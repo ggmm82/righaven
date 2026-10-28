@@ -1,4 +1,5 @@
 export { enUS } from "./locales/en-US";
+export { itIT } from "./locales/it-IT";
 export { zhCN } from "./locales/zh-CN";
 export type { Translations } from "./locales/types";
 export {

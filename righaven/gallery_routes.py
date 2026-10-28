@@ -1,89 +1,56 @@
-"""REST API routes for the RigHaven Community Gallery (/api/v1/gallery)."""
+"""Authenticated Gallery API, using the shared core session."""
 from fastapi import APIRouter, HTTPException, Query, Request
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict
 from . import gallery
+from .identity import current_user_id
 from .i18n import resolve_request_locale
 
-if not hasattr(BaseModel, "model_dump"):
-    BaseModel.model_dump = lambda self, **kw: self.dict(**kw)
-
-router = APIRouter(prefix='/api/v1/gallery', tags=['RigHaven Community Gallery'])
-
+router = APIRouter(prefix='/api/v1/gallery', tags=['RigHaven Gallery'])
 
 class ActivateRequest(BaseModel):
-    user_id: str = Field(default='default', max_length=64)
-    workspace: str | None = Field(default=None, max_length=512)
-
+    model_config = ConfigDict(extra='forbid')
 
 class ForkRequest(BaseModel):
-    author: str = Field(default='community-creator', min_length=1, max_length=64)
-    new_id: str | None = Field(default=None, max_length=64)
-
+    model_config = ConfigDict(extra='forbid')
+    new_id: str | None = None
 
 @router.get('/packs')
-def list_gallery_packs(
-    request: Request,
-    category: str | None = Query(default=None),
-    q: str | None = Query(default=None),
-    tag: str | None = Query(default=None),
-    user_id: str = Query(default='default'),
-):
-    locale = resolve_request_locale(request)
-    try:
-        return gallery.list_packs(category=category, query=q, tag=tag, locale=locale, user_id=user_id)
-    except ValueError as exc:
-        raise HTTPException(400, str(exc)) from exc
-
+def list_packs(request: Request, category: str | None = None, q: str | None = None, tag: str | None = None):
+    return gallery.list_packs(category=category, query=q, tag=tag,
+        locale=resolve_request_locale(request), user_id=current_user_id(request))
 
 @router.get('/packs/{pack_id}')
-def get_gallery_pack(pack_id: str, request: Request):
-    locale = resolve_request_locale(request)
-    try:
-        return gallery.get_pack(pack_id, locale=locale)
-    except KeyError as exc:
-        raise HTTPException(404, str(exc)) from exc
-
+def get_pack(pack_id: str, request: Request):
+    current_user_id(request)
+    try: return gallery.get_pack(pack_id, resolve_request_locale(request))
+    except KeyError as error: raise HTTPException(404, str(error)) from error
 
 @router.post('/packs/{pack_id}/activate')
-def activate_gallery_pack(pack_id: str, request: Request, body: ActivateRequest | None = None):
-    locale = resolve_request_locale(request)
-    payload = body or ActivateRequest()
+async def activate(pack_id: str, request: Request, body: ActivateRequest | None = None):
+    user = current_user_id(request)
     try:
-        return gallery.activate_pack(
-            pack_id,
-            user_id=payload.user_id,
-            workspace=payload.workspace,
-            locale=locale,
-        )
-    except KeyError as exc:
-        raise HTTPException(404, str(exc)) from exc
-    except ValueError as exc:
-        raise HTTPException(400, str(exc)) from exc
-
+        pack = gallery.get_pack(pack_id, resolve_request_locale(request))
+        from .pack_activation import install
+        installed = await install(pack, user)
+        return {**gallery.activate_pack(pack_id, user_id=user, locale=resolve_request_locale(request)),
+                'installation': installed}
+    except KeyError as error: raise HTTPException(404, str(error)) from error
+    except ValueError as error: raise HTTPException(422, str(error)) from error
 
 @router.post('/packs/publish', status_code=201)
-async def publish_gallery_pack(request: Request):
-    locale = resolve_request_locale(request)
+async def publish(request: Request):
+    user = current_user_id(request)
     try:
         manifest = await request.json()
-        return gallery.publish_pack(manifest, locale=locale)
-    except ValueError as exc:
-        raise HTTPException(422, str(exc)) from exc
-
+        manifest['author'] = user
+        manifest['verified'] = False
+        return gallery.publish_pack(manifest, locale=resolve_request_locale(request))
+    except (ValueError, TypeError) as error: raise HTTPException(422, str(error)) from error
 
 @router.post('/packs/{pack_id}/star')
-def star_gallery_pack(pack_id: str, request: Request, user_id: str = Query(default='default')):
-    locale = resolve_request_locale(request)
-    try:
-        return gallery.star_pack(pack_id, user_id=user_id, locale=locale)
-    except KeyError as exc:
-        raise HTTPException(404, str(exc)) from exc
-
+def star(pack_id: str, request: Request):
+    return gallery.star_pack(pack_id, current_user_id(request), resolve_request_locale(request))
 
 @router.post('/packs/{pack_id}/fork', status_code=201)
-def fork_gallery_pack(pack_id: str, body: ForkRequest, request: Request):
-    locale = resolve_request_locale(request)
-    try:
-        return gallery.fork_pack(pack_id, author=body.author, new_id=body.new_id, locale=locale)
-    except (KeyError, ValueError) as exc:
-        raise HTTPException(400, str(exc)) from exc
+def fork(pack_id: str, body: ForkRequest, request: Request):
+    return gallery.fork_pack(pack_id, current_user_id(request), body.new_id, resolve_request_locale(request))

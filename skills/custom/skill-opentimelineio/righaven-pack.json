@@ -9,9 +9,9 @@
     "skill",
     "reopen-check"
   ],
-  "stars": 68,
-  "forks": 20,
-  "verified": true,
+  "stars": 0,
+  "forks": 0,
+  "verified": false,
   "tools": [
     "opentimelineio"
   ],
@@ -30,9 +30,7 @@
     "system_packages": [],
     "python_packages": [],
     "node_packages": [],
-    "nix_packages": [
-      "pkgs.opentimelineio"
-    ]
+    "nix_packages": []
   },
   "cli_binaries": [
     {

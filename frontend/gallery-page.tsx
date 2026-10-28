@@ -59,15 +59,21 @@ function GalleryContent() {
   }, [locale, category, query]);
 
   async function handleActivate(packId: string) {
+    try {
     const response = await fetch(`${base}/packs/${encodeURIComponent(packId)}/activate`, {
       method: "POST",
       headers: { "Content-Type": "application/json", "Accept-Language": locale },
-      body: JSON.stringify({ user_id: "default" }),
+      body: JSON.stringify({}),
     });
+    const data = await response.json();
     if (response.ok) {
-      const data = await response.json();
       setStatusMessage(data.message || t("notifications.pack_activated", { id: packId }));
       await loadPacks();
+    } else {
+      setStatusMessage(typeof data.detail === "string" ? data.detail : (locale === "it" ? "Attivazione non riuscita" : "Activation failed"));
+    }
+    } catch {
+      setStatusMessage(locale === "it" ? "Impossibile contattare la Gallery" : "Cannot reach the Gallery");
     }
   }
 

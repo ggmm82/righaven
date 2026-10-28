@@ -9,9 +9,9 @@
     "skill",
     "reopen-check"
   ],
-  "stars": 119,
-  "forks": 31,
-  "verified": true,
+  "stars": 0,
+  "forks": 0,
+  "verified": false,
   "tools": [
     "plantuml"
   ],
@@ -30,9 +30,7 @@
     "system_packages": [],
     "python_packages": [],
     "node_packages": [],
-    "nix_packages": [
-      "pkgs.plantuml"
-    ]
+    "nix_packages": []
   },
   "cli_binaries": [
     {

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { useI18n as useCoreI18n } from "@/core/i18n/hooks";
 import enCommon from "./locales/en/common.json";
 import itCommon from "./locales/it/common.json";
 
@@ -59,47 +60,15 @@ export function translateKey(locale: Locale, key: string, params?: Record<string
   return text;
 }
 
-export function I18nProvider({ children, initialLocale }: { children: ReactNode; initialLocale?: Locale }) {
-  const [locale, setLocaleState] = useState<Locale>(initialLocale ?? "en");
-
-  useEffect(() => {
-    if (!initialLocale) {
-      setLocaleState(detectBrowserLocale());
-    }
-  }, [initialLocale]);
-
-  function setLocale(next: Locale) {
-    setLocaleState(next);
-    if (typeof window !== "undefined") {
-      try {
-        window.localStorage.setItem("righaven_locale", next);
-      } catch {
-        // Ignore storage restrictions.
-      }
-    }
-  }
-
-  const value: I18nContextValue = {
-    locale,
-    setLocale,
-    t: (key, params) => translateKey(locale, key, params),
-    dictionary: DICTIONARIES[locale] ?? DICTIONARIES.en,
-  };
-
-  return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;
+export function I18nProvider({ children }: { children: ReactNode; initialLocale?: Locale }) {
+  return <>{children}</>;
 }
 
 export function useI18n(): I18nContextValue {
-  const ctx = useContext(I18nContext);
-  if (!ctx) {
-    return {
-      locale: "en",
-      setLocale: () => {},
-      t: (key, params) => translateKey("en", key, params),
-      dictionary: DICTIONARIES.en,
-    };
-  }
-  return ctx;
+  const core = useCoreI18n();
+  const locale: Locale = core.locale === "it-IT" ? "it" : "en";
+  return { locale, setLocale: (next) => core.changeLocale(next === "it" ? "it-IT" : "en-US"),
+    t: (key, params) => translateKey(locale, key, params), dictionary: DICTIONARIES[locale] };
 }
 
 export function LanguageSelector({ className = "" }: { className?: string }) {

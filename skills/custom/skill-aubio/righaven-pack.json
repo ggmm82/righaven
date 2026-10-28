@@ -9,9 +9,9 @@
     "skill",
     "reopen-check"
   ],
-  "stars": 65,
-  "forks": 17,
-  "verified": true,
+  "stars": 0,
+  "forks": 0,
+  "verified": false,
   "tools": [
     "aubio"
   ],
@@ -27,14 +27,10 @@
   },
   "docker_dependencies": {
     "base_image": "righaven-sandbox:0.1.0",
-    "system_packages": [
-      "aubio"
-    ],
+    "system_packages": [],
     "python_packages": [],
     "node_packages": [],
-    "nix_packages": [
-      "pkgs.aubio"
-    ]
+    "nix_packages": []
   },
   "cli_binaries": [
     {

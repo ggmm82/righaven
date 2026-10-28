@@ -9,9 +9,9 @@
     "skill",
     "reopen-check"
   ],
-  "stars": 98,
-  "forks": 30,
-  "verified": true,
+  "stars": 0,
+  "forks": 0,
+  "verified": false,
   "tools": [
     "freecad"
   ],
@@ -30,9 +30,7 @@
     "system_packages": [],
     "python_packages": [],
     "node_packages": [],
-    "nix_packages": [
-      "pkgs.freecad"
-    ]
+    "nix_packages": []
   },
   "cli_binaries": [
     {

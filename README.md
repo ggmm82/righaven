@@ -1,136 +1,78 @@
-# RigHaven (`righaven`)
+# RigHaven
 
-> **The Evolving Agent Harness & Open-Source CLI Environment Integrator**
+RigHaven is a home and an on-demand toolbox for agents. It coordinates dynamic
+project roles, prepares isolated environments containing open-source CLI tools,
+and preserves project state, editable sources and reusable lessons.
 
-[![Edition](https://img.shields.io/badge/Edition-Community%20%7C%20Cloud-0ea5e9)](#dual-execution-model-cloud-vs-self-hosted-community-edition)
-[![i18n](https://img.shields.io/badge/i18n-EN%20(Default)%20%7C%20IT%20(100%25)-10b981)](#native-internationalization-i18n)
-[![License](https://img.shields.io/badge/License-Apache%202.0-blue)](LICENSE)
+## Run the Community edition
 
-**RigHaven** is an open-source multi-agent orchestration harness and on-demand CLI environment integrator. It is engineered around a dual architectural metaphor:
+Copy `.env.example` to `.env`, set `RIGHAVEN_PASSWORD` to a unique password
+of at least 16 characters, then run `bash righaven.sh up`.
+Open http://localhost:2026. Build tools require Docker Compose and the private
+runtime requires privileged container support. The application does not mount
+the host Docker socket. Persistent named volumes preserve application data and
+the internal runtime across container replacement.
 
-1. **A Safe Home (The Agent Harness)**: A persistent, supervised orchestration control plane where a lead coordinator plans outcomes (`harness_plan`), clarifies decisive ambiguities (`ask_clarification`), compiles dynamic project-specific roles, manages shared CPU/RAM cgroup budgets, and verifies every deliverable before promotion.
-2. **An On-Demand Toolbox (The Ephemeral Sandbox & Community Gallery)**: Rootless, network-sealed ephemeral worker containers (`worker-sandbox`) preconfigured with 37+ audited open-source CLI tools (`typst`, `d2`, `structurizr`, `bpmn`, `pandoc`, `ffmpeg`, `blender`, `freecad`, `playwright`, `calibre`, `manim`, `ifcopenshell`, `trivy`, `opengrep`, and more) plus dynamically mountable **Environment Packs** from the **RigHaven Hub (Community Gallery)**.
+For Hostinger, use only the Compose attached to a successful verified release.
+The GitHub workflow builds images, checks native tools, tests portability and
+boots the complete stack before publishing the deployment bundle.
 
-## Dual Execution Model: Cloud vs. Self-Hosted Community Edition
+## Architecture
 
-Inspired by **n8n**, RigHaven runs from a single codebase supporting two execution modes controlled via `RIGHAVEN_EDITION=community|cloud`:
+- `core/backend` and `core/frontend`: the checked-in application engine and web workspace.
+- `righaven/`: project coordination, runtime supervision, delivery checks and Gallery services.
+- `skills/`: operational methods and tool-specific instructions.
+- `config/worker-bundle.json`: the trusted code mounted read-only into each job.
+- `runtime-docker`: an application-owned daemon with persistent software storage.
+- Individual tasks receive isolated staging directories. Only validated outputs
+  are promoted into the project.
 
-| Capability | RigHaven Community Edition (`RIGHAVEN_EDITION=community`) | RigHaven Cloud Portal (`RIGHAVEN_EDITION=cloud`) |
-| :--- | :--- | :--- |
-| **Deployment Target** | Local workstation or self-hosted VPS via Docker Compose | Multi-tenant SaaS Cloud Portal |
-| **Authentication** | Local Admin HTTP / Session Auth | Full Sign-Up, JWT Login, OAuth2 (GitHub & Google), Password Recovery |
-| **Workspace Isolation** | Single-owner shared `/mnt/user-data` (`righaven-data`) | Per-tenant isolated `/mnt/user-data/tenants/<user_id>` |
-| **LLM Provider Keys** | Local `/righaven-state/credentials` | Per-tenant Encrypted API Key Vault (`/api/v1/cloud/vault`) |
-| **LLM Providers Supported** | OpenAI Codex (`app-server`), Google Antigravity (`agy`), DeepSeek API, OpenAI-compatible | OpenAI Codex (`app-server`), Google Antigravity (`agy`), DeepSeek API, OpenAI-compatible |
-| **Resource Supervision** | Host-aware shared cgroup CPU/RAM budget | Per-tenant execution quotas (`sandbox-minutes`, `storage`, `tokens`) + cgroups |
-| **Community Gallery Access** | Full browse, on-demand pack activation, and local/remote publishing | Full browse, one-click activation, Star, Fork, and verified Creator Profile |
-| **UI Localization (i18n)** | Native English (`en` default) + Italian (`it` 100%) | Native English (`en` default) + Italian (`it` 100%) |
+OpenAI Codex, Antigravity CLI, DeepSeek and custom OpenAI-compatible endpoints
+can be configured for the coordinator, specialists or both. Roles are compiled
+for the project; an environment supplies capabilities rather than fixing a role.
 
-## 60-Second Quickstart (Docker Compose)
+## Gallery
 
-```bash
-# 1. Clone the repository and configure your environment
-cp .env.example .env
-# Set a strong RIGHAVEN_PASSWORD (at least 16 characters) and choose RIGHAVEN_EDITION=community or cloud
-sed -i 's/^RIGHAVEN_PASSWORD=.*/RIGHAVEN_PASSWORD=righaven-local-admin-secret-2026/' .env
+The Gallery catalogs environments, CLI tools and skills. Activation uses the
+signed-in core account. An environment pack creates a native Agent configuration
+with on-demand deployment; a skill pack goes through the native skill archive
+scanner before it becomes usable. Disabled native tools remain disabled.
 
-# 2. Launch the 6-container core stack
-bash righaven.sh up
+Published pack versions are immutable and belong to their publisher.
+Community manifests cannot mark themselves verified or overwrite built-in packs.
+The current runtime supports tools in its managed catalog; arbitrary executable
+or dependency declarations are not installed automatically.
 
-# 3. Open the RigHaven Console
-# Web UI:          http://localhost:2026
-# Harness Control: http://localhost:2026/workspace/harness
-# Gallery Hub:     http://localhost:2026/workspace/gallery
-# Cloud Portal:    http://localhost:2026/workspace/cloud
-```
+The registry is currently local to each installation. A public federated Hub,
+signed remote distributions and automatic installation of arbitrary community
+CLI tools are not yet implemented.
 
-## The 6 Core Containers (C4 Container Architecture)
+## Community and hosted editions
 
-1. **`proxy` (Caddy Edge Gateway)**: TLS termination, HTTP/HTTPS routing, WebSockets/SSE streaming (`flush_interval -1`), and load balancing across Frontend, Gateway, and Cloud Portal.
-2. **`frontend` (Next.js / React 19 + TypeScript)**: Interactive multi-agent workspace featuring live artifact preview (Markdown, SVG/PNG, PDF, video/audio, interactive Excalidraw & BPMN 2.0 editors), **Community Gallery**, **Cloud Portal**, and persistent **`EN | IT` language switcher**.
-3. **`gateway` (FastAPI Python 3.12 / Core Orchestrator)**: Manages user brief intake, `ask_clarification`, adaptive planning (`harness_plan`), dynamic role compilation, Gallery pack injection, task delegation (`harness_delegate` / `harness_delegate_batch`), and native LLM drivers (**OpenAI Codex**, **Google Antigravity CLI `agy`**, **DeepSeek REST API**).
-4. **`redis` (Redis 7.4 State & Event Broker)**: FIFO job admission queues, distributed locking (`distlock`), and Pub/Sub for real-time SSE telemetry.
-5. **`runtime-docker` (Isolated Docker-in-Docker Controller)**: Security mediator over `unix:///runtime/docker.sock`. Spawns ephemeral `worker-sandbox` containers with strict cgroups (`--memory`, `--cpus`, `--pids-limit=256`, `--cap-drop=ALL`, `--security-opt=no-new-privileges`), mounts volumes with least privilege, and destroys containers upon job completion.
-6. **`worker-sandbox` (Ephemeral Tool & Skill Container)**: Rootless Debian Bookworm container with 37+ open-source CLIs and dynamic mounting of **Community Gallery Environment Packs**.
+Both editions use the same core authentication and execution engine.
+`RIGHAVEN_EDITION=cloud` identifies a hosted deployment, not a completed SaaS
+service. Public Cloud onboarding, organization quotas, billing and per-tenant
+provider provisioning remain under development.
 
-## Volume Isolation & Formal BPMN 2.0 Resilience Cycle
+The former preview's separate users, JWTs, simulated Google/GitHub login,
+password reset and custom encrypted vault have been removed.
+Authentication uses `/api/v1/auth` and configured native OIDC providers.
+No endpoint may reset a password merely from an email address.
 
-- **`righaven-data` (`/mnt/user-data`)**: Mounted **Read-Only** inside every `worker-sandbox` and **Read-Write** exclusively by the `gateway` during atomic post-verification promotion.
-- **Single-Job Staging (`outputs/workspace/rh-job-<id>` & `RIGHAVEN_OUTPUT_DIR`)**: The only writable directory inside an active sandbox.
-- **`righaven-state` (`/righaven-state` & `.righaven-project/`)**: Stores persistent project state, hash-verified request manifests, compiled role skills, and encrypted credentials.
-- **Resilience & Reopen Verification Protocol**:
-  - **Heartbeats & Incremental State**: Workers emit continuous 2-second heartbeats and save incremental `work/checkpoint.json` (`completed`, `files`, `remaining`, `next_action`) and `work/method.json` (`approach`, `steps`, `scripts`, `limits`).
-  - **Surgical Revision (`revise_step_id`)**: When a check or quality review fails, `harness_plan(revise_step_id=...)` reopens only the affected step using diagnostic logs and preserved partial artifacts, never restarting the entire workflow from scratch.
-  - **Mandatory `reopen check`**: Before generating `handoff.json`, every editable source (`.typ`, `.dsl`, `.d2`, `.bpmn`, `.blend`, `.FCStd`, `.ifc`, `.docx`, `.xlsx`, `.scraft`) must be copied to a clean directory and independently reopened/recompiled to prove portability.
+## Languages
 
-## Community Gallery ("RigHaven Hub") & `righaven-pack.json`
+English is the default. Italian is available in the workspace and shares its
+language preference with Gallery and hosting pages. Advanced core surfaces
+still fall back to English; some project controls still require localization.
+Complete Italian coverage is an open delivery requirement, not a claimed feature.
 
-The RigHaven Hub organizes community and built-in capabilities into three categories:
-1. **`environment`**: Declarative sandbox rigs (*Architecture & Modeling Rig*, *Media & FFmpeg Mastering Rig*, *Full-Stack Web Scraper & QA Rig*, *Data Science & Typst Publishing Rig*, *Parametric CAD & 3D Geometry Rig*).
-2. **`cli-tool`**: Standardized wrappers for 37+ open-source CLI tools with safe flags and automated health checks.
-3. **`skill`**: Competency modules (`skill-typst`, `skill-c4-structurizr`, `skill-d2`, `skill-bpmn`, `skill-pandoc`, `skill-ffmpeg`, etc.) that teach agents how to combine CLIs and verify editable sources.
+## Development and verification
 
-### Creating & Publishing a Pack (`righaven-pack.json`)
+Run `python scripts/validate.py` and
+`python -m unittest discover -s tests -v` for local checks.
+The CI additionally validates real Gateway authentication, Gallery-created native
+environments, resource supervision, tools, portable sources and container startup.
+Passing isolated unit tests does not certify a public SaaS deployment.
 
-```json
-{
-  "id": "skill-custom-diagram",
-  "name": "Custom Architecture Diagram Skill",
-  "version": "1.0.0",
-  "author": "your-handle",
-  "category": "skill",
-  "i18n": {
-    "en": {
-      "title": "Custom Architecture Diagrammer",
-      "description": "Produces verified C4 and D2 diagrams with portable sources."
-    },
-    "it": {
-      "title": "Diagrammatore Architetturale Personalizzato",
-      "description": "Produce diagrammi C4 e D2 verificati con sorgenti portabili."
-    }
-  },
-  "docker_dependencies": {
-    "base_image": "righaven-sandbox:0.1.0",
-    "system_packages": ["graphviz"],
-    "python_packages": [],
-    "node_packages": []
-  },
-  "cli_binaries": [
-    {
-      "name": "d2",
-      "executable": "/usr/local/bin/d2-cli",
-      "safe_flags": ["--layout=elk"],
-      "health_check": "craft capabilities d2"
-    }
-  ],
-  "skill_prompt_template": "Write .d2 sources inside $RIGHAVEN_OUTPUT_DIR, render SVG/PNG, and verify independent reopen in a clean folder before saving handoff.json.",
-  "verification_command": "craft capabilities d2",
-  "security_policy": {
-    "rootless": True,
-    "network_access": False,
-    "writable_paths": ["$RIGHAVEN_OUTPUT_DIR"],
-    "read_only_mounts": ["/mnt/user-data"]
-  }
-}
-```
-
-Publish via REST API or the Gallery UI:
-- `GET /api/v1/gallery/packs` — Browse, search, and filter packs (`category`, `q`, `tag`, `Accept-Language: en|it`).
-- `POST /api/v1/gallery/packs/{id}/activate` — Activate on-demand in workspace or inject into `harness_plan`.
-- `POST /api/v1/gallery/packs/publish` — Validate against `config/righaven-pack.schema.json` and publish.
-
-## Native Internationalization (i18n)
-
-- **Frontend Dictionaries**: `/locales/en/common.json` (Default) and `/locales/it/common.json` (100% parity), mirrored in `/frontend/locales/`.
-- **Automatic Detection & Navbar Selector**: Detects browser locale with fallback to `en` and provides an `EN | IT` toggle across the Dashboard, Gallery, and Cloud Portal.
-- **Backend Localization**: `gateway` inspects `Accept-Language` (`en` or `it`) to localize system notifications, status updates, and `ask_clarification` prompts while keeping all internal code, identifiers, and logs in English.
-
-## Architectural Diagrams & Technical Documentation
-
-- [Audit & Legacy Mapping (`docs/AUDIT_AND_MAPPING.md`)](docs/AUDIT_AND_MAPPING.md)
-- [C4 Model in Structurizr DSL (`docs/c4/righaven.dsl`)](docs/c4/righaven.dsl)
-- [C4 System Context in D2 (`docs/c4/righaven_context.d2`)](docs/c4/righaven_context.d2)
-- [C4 Containers & Volumes in D2 (`docs/c4/righaven_containers.d2`)](docs/c4/righaven_containers.d2)
-- [BPMN 2.0 Coordination Cycle (`docs/bpmn/coordination_cycle.bpmn`)](docs/bpmn/coordination_cycle.bpmn)
-- [Typst Technical Report (`docs/technical-report.typ`)](docs/technical-report.typ)
-- [Contributing Guide (`CONTRIBUTING.md`)](CONTRIBUTING.md) & [Code of Conduct (`CODE_OF_CONDUCT.md`)](CODE_OF_CONDUCT.md)
+The project is MIT licensed. Incorporated source notices are preserved in
+[docs/UPSTREAM-LICENSE](docs/UPSTREAM-LICENSE).

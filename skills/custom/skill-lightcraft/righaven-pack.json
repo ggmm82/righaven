@@ -9,9 +9,9 @@
     "skill",
     "reopen-check"
   ],
-  "stars": 105,
-  "forks": 17,
-  "verified": true,
+  "stars": 0,
+  "forks": 0,
+  "verified": false,
   "tools": [
     "lightcraft"
   ],
@@ -30,9 +30,7 @@
     "system_packages": [],
     "python_packages": [],
     "node_packages": [],
-    "nix_packages": [
-      "pkgs.lightcraft"
-    ]
+    "nix_packages": []
   },
   "cli_binaries": [
     {

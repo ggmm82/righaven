@@ -33,6 +33,17 @@ json.loads(request('/api/agents'))
 skills = json.loads(request('/api/skills'))['skills']
 assert any(s['name'] == 'skill-blender' and s['category'] == 'integrations' for s in skills)
 assert len({s['name'] for s in skills}) == len(skills)
+# Gallery activation must create a real native environment owned by this session.
+activated = json.loads(request('/api/v1/gallery/packs/env-architecture-modeling-rig/activate', {}))
+gallery_name = activated['installation']['native_name']
+gallery_agent = json.loads(request('/api/agents/' + gallery_name))
+assert 'skill-d2' in gallery_agent['skills'], gallery_agent
+assert any(p['name'] == gallery_name for p in json.loads(request('/api/harness/environments'))['environments'])
+request('/api/agents/' + gallery_name, method='DELETE')
+for retired in ('auth/oauth/google', 'auth/recover'):
+    try: request('/api/v1/cloud/' + retired, {'email':'unused@example.test','new_password':'must-not-change'})
+    except urllib.error.HTTPError as error: assert error.code == 410, error
+    else: raise AssertionError('Retired preview authentication remains enabled')
 request('/api/agents', {'name':'ci-native-profile','description':'Native capability scope','skills':['skill-freecad']})
 profile = json.loads(request('/api/agents/ci-native-profile'))
 assert profile['skills'] == ['skill-freecad']
