@@ -47,8 +47,8 @@ def main():
                     again = factory.ensure(['d2'], exact=True)
                 assert again['id']==ready['id'] and again['image_id']==ready['image_id']
                 # The old active bundle is retained, while the next job mounts the updated worker.
-                assert not (first/'righaven/run_agent.py').read_text().endswith('# Simulated next worker release\n')
-                assert (second/'righaven/run_agent.py').read_text().endswith('# Simulated next worker release\n')
+                assert not (first/'righaven-worker/run_agent.py').read_text().endswith('# Simulated next worker release\n')
+                assert (second/'righaven-worker/run_agent.py').read_text().endswith('# Simulated next worker release\n')
                 # Exercise the same administrator verification queue used by the UI.
                 # A second D2 release must coexist with the original cached recipe.
                 from righaven import tool_versions
