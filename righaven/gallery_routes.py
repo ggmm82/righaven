@@ -1,5 +1,5 @@
 """Authenticated Gallery API, using the shared core session."""
-from fastapi import APIRouter, HTTPException, Query, Request
+from fastapi import APIRouter, HTTPException, Query, Request, Response
 from pydantic import BaseModel, ConfigDict
 from . import gallery
 from .identity import current_user_id
@@ -13,6 +13,44 @@ class ActivateRequest(BaseModel):
 class ForkRequest(BaseModel):
     model_config = ConfigDict(extra='forbid')
     new_id: str | None = None
+
+class RegistryRequest(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    url: str
+    sha256: str
+
+@router.get('/registries')
+async def registries(request: Request):
+    from app.gateway.deps import require_admin_user
+    await require_admin_user(request, detail='Only administrators can manage registries')
+    from .hub_registry import settings
+    return settings()
+
+@router.put('/registries/{name}')
+async def configure_registry(name: str, body: RegistryRequest, request: Request):
+    from app.gateway.deps import require_admin_user
+    await require_admin_user(request, detail='Only administrators can manage registries')
+    from .hub_registry import configure
+    try: return configure(name, body.url, body.sha256)
+    except ValueError as error: raise HTTPException(422, str(error)) from error
+
+@router.post('/registries/{name}/sync')
+async def sync_registry(name: str, request: Request):
+    from app.gateway.deps import require_admin_user
+    from starlette.concurrency import run_in_threadpool
+    await require_admin_user(request, detail='Only administrators can manage registries')
+    from .hub_registry import sync
+    try: return await run_in_threadpool(sync, name)
+    except (ValueError, OSError) as error: raise HTTPException(422, str(error)) from error
+
+@router.get('/catalog')
+def export_catalog(request: Request):
+    current_user_id(request)
+    import json, hashlib
+    data = json.dumps({'packs': gallery._all_packs()}, sort_keys=True, ensure_ascii=False).encode()
+    return Response(data, media_type='application/json', headers={
+        'Content-Disposition': 'attachment; filename="righaven-catalog.json"',
+        'X-Content-SHA256': hashlib.sha256(data).hexdigest()})
 
 @router.get('/packs')
 def list_packs(request: Request, category: str | None = None, q: str | None = None, tag: str | None = None):

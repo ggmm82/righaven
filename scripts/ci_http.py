@@ -185,6 +185,8 @@ request('/api/v1/auth/logout', {})
 request('/api/v1/auth/register', {'email': 'harness-ci-user@example.com',
                                  'password': 'CiOnly-Regular-User-P4ssword!78239'})
 for path, payload, method in [('/harness/api/catalog', None, 'GET'),
+                              ('/api/v1/gallery/registries', None, 'GET'),
+                              ('/api/v1/gallery/registries/untrusted', {'url':'https://example.test','sha256':'0'*64}, 'PUT'),
                               ('/harness/api/login/gemini', {}, 'POST'),
                               ('/harness/api/team', {'engine': 'gemini'}, 'PUT')]:
     try:

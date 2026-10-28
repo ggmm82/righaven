@@ -135,6 +135,8 @@ function GalleryContent() {
         </div>
       </header>
 
+      <RegistryManager base={base} locale={locale} onChanged={loadPacks} />
+
       {statusMessage && (
         <div role="status" className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 p-3 text-sm">
           {statusMessage}
@@ -249,6 +251,43 @@ function GalleryContent() {
       )}
     </div>
   );
+}
+
+function RegistryManager({base, locale, onChanged}: {base:string; locale:string; onChanged:()=>Promise<void>}) {
+  const it = locale === 'it';
+  const [admin,setAdmin] = useState(false);
+  const [entries,setEntries] = useState<Record<string,{url:string;sha256:string}>>({});
+  const [name,setName] = useState(''); const [url,setUrl] = useState('');
+  const [pin,setPin] = useState(''); const [busy,setBusy] = useState(false);
+  const [message,setMessage] = useState('');
+  useEffect(()=>{void fetch(base+'/registries').then(async response=>{
+    if(response.ok){setAdmin(true);setEntries(await response.json());}
+  }).catch(()=>{});},[base]);
+  async function sync(registry:string, save=false) {
+    setBusy(true);setMessage('');
+    try {
+      if(save){const response=await fetch(base+'/registries/'+encodeURIComponent(registry),{
+        method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({url,sha256:pin})});
+        if(!response.ok)throw new Error((await response.json()).detail);}
+      const response=await fetch(base+'/registries/'+encodeURIComponent(registry)+'/sync',{method:'POST'});
+      const result=await response.json();if(!response.ok)throw new Error(result.detail);
+      setEntries(await (await fetch(base+'/registries')).json());await onChanged();
+      setMessage(it?'Catalogo sincronizzato':'Catalog synchronized');
+    }catch(error){setMessage(error instanceof Error?error.message:'Registry unavailable');}
+    finally{setBusy(false);}
+  }
+  return <details className="rounded-lg border p-4"><summary>{it?'Cataloghi community e trasferimenti':'Community catalogs and transfers'}</summary>
+    <a className="my-3 inline-block underline" href={base+'/catalog'}>{it?'Esporta catalogo':'Export catalog'}</a>
+    {admin&&<div className="space-y-3"><p>{it?'Autorizza il catalogo HTTPS e il suo hash SHA-256 prima di importarlo.':'Approve the HTTPS catalog and its SHA-256 hash before importing.'}</p>
+      {Object.entries(entries).map(([key,value])=><div key={key} className="flex flex-wrap gap-3"><span>{key}: {value.url}</span><button disabled={busy} className="underline" onClick={()=>void sync(key)}>{it?'Sincronizza':'Sync'}</button></div>)}
+      <form className="grid gap-3" onSubmit={event=>{event.preventDefault();void sync(name,true);}}>
+        <input className="rounded border p-2" required aria-label="Registry name" placeholder={it?'Nome catalogo':'Catalog name'} pattern="[a-z0-9][a-z0-9-]{0,31}" value={name} onChange={e=>setName(e.target.value)}/>
+        <input className="rounded border p-2" required type="url" aria-label="Registry URL" placeholder="https://example.org/catalog.json" value={url} onChange={e=>setUrl(e.target.value)}/>
+        <input className="rounded border p-2" required aria-label="SHA-256" placeholder="SHA-256" pattern="[a-f0-9]{64}" value={pin} onChange={e=>setPin(e.target.value)}/>
+        <button className="rounded border p-2" disabled={busy}>{busy?(it?'Importazione…':'Importing…'):(it?'Autorizza e importa':'Approve and import')}</button>
+      </form></div>}
+    {message&&<p role="status">{message}</p>}
+  </details>;
 }
 
 export default function GalleryPage() {

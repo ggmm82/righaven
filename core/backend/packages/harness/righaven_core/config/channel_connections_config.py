@@ -7,7 +7,7 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 # Languages scheduled-task IM notices are rendered in (the web UI's languages).
-NotificationLocale = Literal["en-US", "zh-CN"]
+NotificationLocale = Literal["en-US", "it-IT", "zh-CN"]
 
 
 class SlackChannelConnectionConfig(BaseModel):

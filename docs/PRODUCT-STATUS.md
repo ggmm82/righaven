@@ -16,7 +16,8 @@ engine, account identity and permission boundaries.
 
 ## Outstanding delivery requirements
 
-- Public community registry synchronization and signed remote distributions.
+- Public directory hosting and publisher-signed distributions. Pinned HTTPS
+  catalog synchronization and export are implemented in the Gallery.
 - Generic, reviewed onboarding of CLI tools outside the managed runtime catalog.
 - Organization isolation, provider credentials, admission quotas and usage
   accounting verified through complete hosted user journeys.

@@ -43,9 +43,13 @@ Community manifests cannot mark themselves verified or overwrite built-in packs.
 The current runtime supports tools in its managed catalog; arbitrary executable
 or dependency declarations are not installed automatically.
 
-The registry is currently local to each installation. A public federated Hub,
-signed remote distributions and automatic installation of arbitrary community
-CLI tools are not yet implemented.
+Catalogs can be exported and hosted on HTTPS. Administrators approve remote
+catalog URLs with an exact SHA-256 pin from the Gallery interface; synchronization
+validates the complete catalog before replacing its local snapshot. Remote pack
+identifiers are namespaced and cannot overwrite local or built-in capabilities.
+The hash pin authenticates approved catalog bytes; it is not a publisher signature.
+A public hosted directory, publisher signatures and automatic installation of
+arbitrary community CLI tools remain under development.
 
 ## Community and hosted editions
 

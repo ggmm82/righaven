@@ -103,6 +103,11 @@ def _all_packs() -> list[dict]:
     merged = {p['id']: dict(p) for p in builtin}
     for custom in community:
         merged[custom['id']] = dict(custom)
+    from .hub_registry import remote_packs
+    for pack in remote_packs():
+        if pack['id'] in merged:
+            raise ValueError('Remote pack collides with a local identifier')
+        merged[pack['id']] = pack
     return list(merged.values())
 
 
@@ -205,6 +210,8 @@ def activate_pack(pack_id: str, *, user_id: str = 'default', workspace: str | Pa
 
 def publish_pack(manifest: dict, *, locale: str = 'en') -> dict:
     validated = validate_pack_manifest(manifest)
+    if validated['id'].startswith('remote-'):
+        raise ValueError('The remote- namespace is reserved for pinned registries')
     with state.LOCK:
         path = _community_store_path()
         existing = json.loads(path.read_text(encoding='utf-8')) if path.is_file() else []
