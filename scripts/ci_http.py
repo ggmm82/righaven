@@ -113,17 +113,25 @@ for attempt in range(60):
     time.sleep(2)
 assert status=='ready' and prepared['preloaded_tools']==['d2'],prepared['runtime']
 # Regression: a clean first boot never reads persisted AgentConfig preloads.
-# Restart with a real native agent + SOUL.md + ready software already stored.
+# Recreate the container: restart alone cannot detect an ephemeral SQLite database.
 from ci_environment_lifecycle import restart
 before_restart=prepared
-restart()
+identity_before=json.loads(request('/api/v1/auth/me'))['id']
+persistent_thread=json.loads(request('/api/threads',{'metadata':{'title':'Container recreation persistence'}}))['thread_id']
+persistent_message='This checkpoint must survive replacing the Gateway container.'
+request('/api/threads/'+persistent_thread+'/state',{'values':{'messages':[{'role':'user','content':persistent_message}]}})
+restart(recreate=True)
+assert json.loads(request('/api/v1/auth/me'))['id']==identity_before
+assert json.loads(request('/api/threads/'+persistent_thread))['metadata']['title']=='Container recreation persistence'
+recovered_state=json.loads(request('/api/threads/'+persistent_thread+'/state'))
+assert any(message.get('content')==persistent_message for message in recovered_state['values']['messages']),recovered_state
 restored=next(p for p in json.loads(request('/api/harness/environments'))['environments'] if p['name']=='ci-custom-environment')
 assert restored['runtime']['status']=='ready',restored
 assert restored['runtime']['id']==before_restart['runtime']['id'],restored
 assert restored['runtime']['image_id']==before_restart['runtime']['image_id'],restored
 assert restored['instructions']==definition['instructions'],restored
 assert restored['revision']==before_restart['revision'],restored
-print('Persisted preload restart OK: native AgentConfig instructions preserved, same ready Docker image reused, authenticated API available.')
+print('Persistent container recreation OK: native AgentConfig instructions preserved, same ready Docker image reused, authenticated API available.')
 def wait_for_terminal_cleanup(identifiers, timeout=20):
     """DELETE acknowledges cancellation; finished confirms container/resource cleanup."""
     pending=set(identifiers)

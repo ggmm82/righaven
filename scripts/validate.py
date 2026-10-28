@@ -64,12 +64,14 @@ def main():
         assert front['name']==skill.parent.name and front['description']
         for path in [skill, skill.parent/'references/CLI-RECIPE.md']:
             assert '/opt/righaven/bin/' not in path.read_text(), f'Percorso CLI inesistente: {path}'
+    assert cfg['database']['sqlite_dir']=='/righaven-state/database', 'Managed SQLite must live on the persistent state volume'
     assert cfg['sandbox']['allow_host_bash'] is False
     assert cfg['subagent_runtime']['max_running']==1
     assert any(t['name']=='harness_delegate' for t in cfg['tools'])
     assert cfg['models'][0]['use']=='righaven.codex_provider:HarnessCodexChatModel'
     assert not any(t['name'] in ('bash', 'write_file', 'str_replace') for t in cfg['tools'])
     for compose in [local,remote]:
+        assert 'righaven-state:/righaven-state' in compose['services']['gateway']['volumes']
         assert compose['services']['gateway']['environment']['RIGHAVEN_DOCKER_SCOPE']=='internal'
         assert compose['services']['gateway']['environment']['DOCKER_HOST']=='unix:///runtime/docker.sock'
         assert compose['services']['runtime-docker']['privileged'] is True

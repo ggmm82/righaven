@@ -51,8 +51,9 @@ def record(name,evidence):
     print('OK:',name,flush=True)
 
 
-def restart():
-    subprocess.run(['docker','compose','restart','gateway'],check=True,capture_output=True,text=True)
+def restart(*, recreate=False):
+    command=['docker','compose','up','-d','--no-deps','--force-recreate','gateway'] if recreate else ['docker','compose','restart','gateway']
+    subprocess.run(command,check=True,capture_output=True,text=True)
     deadline=time.monotonic()+180
     auth=urllib.request.HTTPPasswordMgrWithDefaultRealm();auth.add_password(None,BASE,'admin',os.environ['RIGHAVEN_PASSWORD'])
     opener=urllib.request.build_opener(urllib.request.HTTPBasicAuthHandler(auth))

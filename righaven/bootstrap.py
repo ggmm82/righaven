@@ -193,6 +193,8 @@ def initialize():
         if middleware not in configured:
             configured.append(middleware)
             atomic_json(extension, extensions)
+    from .persistent_database import configure as configure_database
+    configure_database(path, STATE)
     catalog()
 
 

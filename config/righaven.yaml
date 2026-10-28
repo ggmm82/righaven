@@ -706,7 +706,7 @@ subagent_runtime:
   admission_policy: queue
 database:
   backend: sqlite
-  sqlite_dir: .righaven/data
+  sqlite_dir: /righaven-state/database
 run_events:
   backend: db
   track_token_usage: true
