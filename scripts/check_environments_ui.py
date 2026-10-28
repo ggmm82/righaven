@@ -96,6 +96,16 @@ def main():
                 expect(dialog.get_by_label('Nome ambiente')).to_have_value('Progettazione — copia')
                 dialog.get_by_text('Versioni e opzioni avanzate',exact=True).click();expect(dialog.get_by_label('Versione d2',exact=True)).to_have_value('latest')
                 page.keyboard.press('Escape');expect(card.get_by_role('button',name=re.compile('^Gestisci '))).to_be_focused()
+                # A saved selection is not an active capability after a global disable.
+                state['skills'].append({'name':'method-render','kind':'method','description':'Rendering method','enabled':True,'tools':['blender'],'error':''})
+                state['environments'][0]['skills']+=['skill-blender','method-render']
+                page.reload();card.get_by_role('button',name='Configura',exact=True).click()
+                disabled_cli=dialog.get_by_role('checkbox',name=re.compile('^blender '))
+                expect(disabled_cli).not_to_be_checked();expect(disabled_cli).to_be_disabled()
+                disabled_method=dialog.get_by_role('checkbox',name=re.compile('^method-render '))
+                expect(disabled_method).not_to_be_checked();expect(disabled_method).to_be_disabled()
+                expect(dialog.get_by_text('Strumenti selezionati: d2, pandoc',exact=True)).to_be_visible()
+                page.keyboard.press('Escape')
                 # Version resolution must be visible as active work, not a second prepare button.
                 state['environments'][0]['runtime']={'status':'checking_versions'}
                 state['environments'][0]['preparation']={'phase':'checking_versions','label':'Verifica delle versioni','active':True,'started_at':time.time()-90,'tool':'wordcraft','version':'v0.11.0','index':2,'total':3}

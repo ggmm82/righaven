@@ -66,6 +66,9 @@ def diagnosis(text,error='',*,phase=''):
         kind='native_crash';action='Riprova la preparazione. Se il crash si ripete, scegli un’altra release dello strumento nelle opzioni avanzate dell’ambiente.'
     elif 'Memoria insufficiente' in error or 'Memoria esaurita' in error:
         message='Memoria insufficiente durante la preparazione.';kind='memory';action='Attendi la fine degli altri lavori oppure aumenta il budget RAM in La tua squadra.'
+    elif 'http error 404' in observed:
+        message=(tool+': ' if tool else '')+'il file della release non è disponibile (HTTP 404).'
+        kind='release_missing';action='Controlla il catalogo della release o scegli una versione verificata. Riprovare lo stesso URL non corregge un file inesistente.'
     elif any(token in observed for token in ('temporary failure','could not resolve','connection timed out','http error 429','http error 502','http error 503')):
         message='Un download non è riuscito: il servizio remoto non era raggiungibile.';kind='network';action='Riprova la preparazione; le versioni già verificate restano conservate.'
     else:

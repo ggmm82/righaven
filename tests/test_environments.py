@@ -33,6 +33,19 @@ class EnvironmentTests(unittest.TestCase):
             self.assertEqual(result['tools'],[]);self.assertEqual(result['disabled'],['skill-d2'])
         with self.assertRaisesRegex(ValueError,'catalogo'):profiles.skill_requirements(self.skill('bad',tools=['invented']))
 
+    def test_disabling_a_dependency_changes_profile_identity_and_excludes_its_method(self):
+        skills=[self.skill('skill-d2'),self.skill('my-method',tools=['d2'])]
+        agent=SimpleNamespace(name='custom',description='Purpose',display_name='Custom',skills=['my-method'],soul='Instructions')
+        with patch.object(profiles,'skill_inventory',return_value=skills),patch.object(profiles,'preferences',return_value={}):
+            before=profiles.profile('owner',agent)
+            self.assertIn('d2',before['tools'])
+            skills[0].enabled=False
+            after=profiles.profile('owner',agent)
+            self.assertEqual(after['tools'],[])
+            self.assertNotIn('my-method',after['active_skills'])
+            self.assertIn('my-method',after['disabled'])
+            self.assertNotEqual(before['revision'],after['revision'])
+
     def test_empty_method_has_no_native_dependency_and_scope_does_not_copy_all_enabled_skills(self):
         skills=[self.skill('method'),self.skill('skill-blender'),self.skill('skill-d2')]
         with patch.object(profiles,'skill_inventory',return_value=skills):

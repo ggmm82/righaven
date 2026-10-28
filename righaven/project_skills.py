@@ -89,6 +89,10 @@ def validate_roles(roles, apps):
         if not isinstance(tools, list) or len(tools) > 4 or any(not isinstance(t, str) or t not in known for t in tools) or len(set(tools)) != len(tools):
             raise ValueError('Usa solo strumenti installati, al massimo quattro pertinenti a questo incarico; suddividi il contesto se serve')
         value['tools'] = tools
+        rationale = role.get('capability_rationale', '')
+        if not isinstance(rationale,str) or len(rationale)>2000:
+            raise ValueError('capability_rationale deve essere una motivazione breve')
+        if rationale.strip(): value['capability_rationale'] = request_text(rationale)
         skills=role.get('skills',[])
         if not isinstance(skills,list) or len(skills)>12 or any(not isinstance(s,str) or not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.-]{0,127}',s) for s in skills) or len(set(skills))!=len(skills):
             raise ValueError('Seleziona al massimo 12 nomi di skill native per ruolo')

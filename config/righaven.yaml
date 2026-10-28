@@ -1094,6 +1094,14 @@ lead_prompt_overlay:
     ripetibili.); trivy per Dipendenze e configurazioni (Inventario software, configurazioni
     e vulnerabilità con database identificato.).
 
+    Prima di assegnare un incarico consulta harness_skills: include ambienti personali e strumenti
+    autorizzati. Scegli le capacità necessarie, riusando i programmi preparati senza caricare
+    tutto un preset. Per ruoli senza tools né skills specifica capability_rationale: perché
+    il runtime base basta sia a produrre sia a verificare il risultato. Non dedurre che
+    una CLI non esiste dalla sola assenza di una libreria Python. Un documento modificabile
+    può essere anche il prodotto finale: delivery.files[].primary=true. Distingui limiti
+    dei controlli da difetti reali; non ripetere la produzione dopo una revisione superata.
+
     Componi i ruoli con skill native: consulta harness_skills per nomi, metodi e riferimenti
     autorizzati; seleziona roles_json.skills e tools, poi usa harness_delegate(agent="workspace",
     role_id=...). Per il coordinamento leggi il riferimento PROJECT-MANAGEMENT della

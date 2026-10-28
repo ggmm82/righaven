@@ -27,6 +27,7 @@ def experience_root(runtime):
 def harness_skills(runtime:Runtime,query:str='',name:str='',reference:str='SKILL.md',offset:int=0)->str:
     """Discover authorized native skills or read one method/reference in pages.
 
+    Also lists owner environment profiles and all authorized tool capabilities.
     Skills describe methods and tool expertise; available tools and runtime
     images are separate. Read relevant methods before composing a project role.
 
@@ -38,11 +39,12 @@ def harness_skills(runtime:Runtime,query:str='',name:str='',reference:str='SKILL
         offset: Character offset; follow next_offset until null.
     """
     from .capability_policy import runtime_policy
-    from .skill_composition import inventory,package_revision
+    from .skill_composition import inventory,package_revision,environment_inventory
     from pathlib import Path
     import hashlib
     policy=runtime_policy(runtime)
-    if not name:return json.dumps(inventory(policy,query),ensure_ascii=False)
+    if not name:
+        return json.dumps({**inventory(policy,query),'environments':environment_inventory(policy)},ensure_ascii=False)
     source=policy.get('skill_sources',{}).get(name)
     if not source or name not in policy.get('skill_names',[]):raise ValueError('Skill non autorizzata nel profilo')
     root=Path(source).resolve();path=root/reference
@@ -218,6 +220,7 @@ def harness_plan(runtime: Runtime, brief: str = '', steps_json: str = '',
     the work evolves; existing attempts and files are preserved. Activities may
     be reordered, added, reassigned or skipped. depends_on is an input hint, not
     a blocking pipeline. Compile project-specific professional roles from the actual brief; installed tools are capabilities, not a list of professions.
+    Discover capabilities with harness_skills before composing roles. Roles without tools or skills require capability_rationale explaining how the base runtime can produce and verify the product.
     Prefer a representative preview at the intended finish; shorten its scope before lowering fidelity. Improve the observed bottleneck with focused specialist work.
     Avoid long plans and technical recaps: summary and next_action appear beside
     the chat input. Use purpose=delivery on the final integration to check media.
@@ -251,6 +254,8 @@ def harness_plan(runtime: Runtime, brief: str = '', steps_json: str = '',
     if roles_json:
         for spec in json.loads(roles_json):
             require_tools(policy, spec.get('tools', []))
+            if not spec.get('tools') and not spec.get('skills') and (not isinstance(spec.get('capability_rationale'),str) or not spec['capability_rationale'].strip()):
+                raise ValueError('Consulta harness_skills: seleziona strumenti/metodi pertinenti dagli ambienti disponibili, oppure indica capability_rationale per motivare esplicitamente perché il solo runtime base soddisfa il risultato e le verifiche.')
     learning = {}
     requests = user_requests(runtime)
     if read_project(workspace):
@@ -388,11 +393,12 @@ def harness_delegate(agent: str, task: str, runtime: Runtime, step_id: str = '',
     compact['output_count'] = len(handoff.get('delivery', {}).get('files', []))
     if result.get('ok') and purpose in ('preview', 'delivery'):
         files = handoff.get('delivery', {}).get('files', [])
-        primary = next((f['path'] for f in files if f.get('role') == 'export'), None)
+        from .handoff import product_files
+        primary = next((f['path'] for f in product_files(files)), None)
         if primary:
             sources = sorted((f for f in files if f.get('role') in ('source_archive', 'editable_source')),
                              key=lambda f: f['role'] != 'source_archive')
-            compact['presentation'] = {'paths': [primary, *[f['path'] for f in sources[:2]]],
+            compact['presentation'] = {'paths': list(dict.fromkeys([primary, *[f['path'] for f in sources[:2]]])),
                 'instruction': 'Presenta questi file con present_files prima della prossima delega. Spiega cosa è cambiato e i difetti rimasti. Un campione o un prodotto non approvato resta una bozza; non dichiararlo finito e non nascondere la versione disponibile mentre continui le correzioni.'}
     return reply(workspace, compact, 'delegate')
 

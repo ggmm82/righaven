@@ -45,6 +45,20 @@ def main():
                       'Use native parametric CAD when pertinent.', user_id=one)
         selected = native_policy(one, 'cad-profile')
         assert selected['allowed'] == ['freecad']
+        from righaven.skill_composition import environment_inventory
+        from righaven.environments import profile
+        from righaven_core.config.agents_config import load_agent_config
+        discovered=environment_inventory(native_policy(one))
+        assert any(item['name']=='cad-profile' and item['tools']==['freecad'] for item in discovered), discovered
+        assert not environment_inventory(native_policy(two)), 'Another user discovered private environments'
+        definition=load_agent_config('cad-profile',user_id=one)
+        active=profile(one,definition)
+        store.set_skill_enabled_state('skill-freecad',False)
+        inactive=profile(one,definition)
+        assert inactive['tools']==[] and 'skill-freecad' not in inactive['active_skills']
+        assert inactive['revision']!=active['revision']
+        assert not any(item['name']=='cad-profile' for item in environment_inventory(native_policy(one)))
+        store.set_skill_enabled_state('skill-freecad',True)
         agents.create('no-skills', {'name': 'no-skills', 'skills': []}, '', user_id=one)
         assert native_policy(one, 'no-skills')['allowed'] == []
         agents.create('audio-profile',{'name':'audio-profile','skills':['skill-workspace','skill-soundcraft']},'',user_id=one)

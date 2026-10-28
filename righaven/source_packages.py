@@ -486,5 +486,71 @@ def main():
         print('Apri questi progetti locali:', *prepare(folder), sep='\n')
 
 
+OFFICE_PARTS = {
+    '.docx': ('word/document.xml', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml'),
+    '.xlsx': ('xl/workbook.xml', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml'),
+    '.pptx': ('ppt/presentation.xml', 'application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml'),
+}
+
+
+def inspect_office(path):
+    """Validate an OOXML package without claiming a GUI or visual inspection."""
+    import posixpath
+    import xml.etree.ElementTree as xml
+    from urllib.parse import unquote
+    path = Path(path)
+    main, content_type = OFFICE_PARTS[path.suffix.lower()]
+    with zipfile.ZipFile(path) as archive:
+        entries = archive.infolist()
+        if len(entries) > 20000 or sum(info.file_size for info in entries) > 128 * 1024**2:
+            return {'status':'not_run', 'method':'structural', 'evidence':'Package exceeds bounded structural inspection; use a native application.'}
+        names = {info.filename for info in entries}
+        if len(names) != len(entries) or any(name.startswith('/') or '..' in name.split('/') for name in names):
+            raise ValueError('OOXML contains duplicate or unsafe package paths')
+        if not {'[Content_Types].xml', '_rels/.rels', main}.issubset(names):
+            raise ValueError('OOXML is missing required package parts')
+        if archive.testzip() is not None:
+            raise ValueError('OOXML package CRC check failed')
+        documents = {}
+        for info in entries:
+            if not info.filename.endswith(('.xml', '.rels')):
+                continue
+            if info.file_size > 8 * 1024**2:
+                return {'status':'not_run', 'method':'structural', 'evidence':'XML part exceeds bounded inspection; use a native application.'}
+            data = archive.read(info)
+            if b'<!DOCTYPE' in data.replace(b'\x00',b'').upper() or b'<!ENTITY' in data.replace(b'\x00',b'').upper():
+                raise ValueError('OOXML must not contain XML entity declarations')
+            try:
+                documents[info.filename] = xml.fromstring(data)
+            except xml.ParseError as error:
+                raise ValueError('OOXML contains malformed XML: ' + info.filename) from error
+        root_names = {'.docx':('wordprocessingml','document'), '.xlsx':('spreadsheetml','workbook'), '.pptx':('presentationml','presentation')}
+        vocabulary, local_name = root_names[path.suffix.lower()]
+        allowed_roots = {'{http://schemas.openxmlformats.org/'+vocabulary+'/2006/main}'+local_name,
+                         '{http://purl.oclc.org/ooxml/'+vocabulary+'/main}'+local_name}
+        if documents[main].tag not in allowed_roots:
+            raise ValueError('OOXML main XML vocabulary does not match the file format')
+        overrides = {node.get('PartName'):node.get('ContentType') for node in documents['[Content_Types].xml']}
+        if overrides.get('/'+main) != content_type:
+            raise ValueError('OOXML main content type does not match the file format')
+        office_links = [node for node in documents['_rels/.rels'] if node.get('Type','').endswith('/officeDocument')]
+        if len(office_links) != 1 or unquote(office_links[0].get('Target','')).lstrip('/') != main:
+            raise ValueError('OOXML main document relationship is missing or invalid')
+        for name, document in documents.items():
+            if not name.endswith('.rels'):
+                continue
+            base = '' if name == '_rels/.rels' else posixpath.dirname(posixpath.dirname(name))
+            for link in document:
+                if link.get('TargetMode') == 'External':
+                    continue
+                target = unquote(link.get('Target','')).split('#',1)[0]
+                resolved = posixpath.normpath(target.lstrip('/') if target.startswith('/') else posixpath.join(base,target))
+                if resolved not in names:
+                    raise ValueError('OOXML relationship points to a missing part: ' + resolved)
+    return {'status':'passed', 'method':'structural', 'main_part':main, 'parts':len(entries),
+            'evidence':'ZIP CRC, required parts, XML, main content type and internal relationships checked.',
+            'native_application_reopened':False, 'visual_inspection':False}
+
+
 if __name__ == '__main__':
     main()

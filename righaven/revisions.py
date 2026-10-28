@@ -1,5 +1,6 @@
 """Read-only version labels and review targets, independent of specialist titles."""
 from pathlib import Path
+from .handoff import product_files
 from functools import lru_cache
 
 
@@ -71,7 +72,7 @@ def annotate(deliveries, project, workspace, artifact):
             if attempt.get('recovery'):
                 delivery['recovery'] = attempt['recovery']
             files = (attempt.get('delivery_record') or {}).get('files', [])
-            exports = tuple(sorted(f['sha256'] for f in files if f.get('role') == 'export' and f.get('sha256')))
+            exports = tuple(sorted(f['sha256'] for f in product_files(files) if f.get('sha256')))
             sources = {f['sha256'] for f in files if f.get('role') in ('editable_source','source_archive') and f.get('sha256')}
             delivery['content_version'] = delivery.get('version')
             if exports and previous_product and exports == previous_product[0]:
@@ -110,7 +111,7 @@ def annotate(deliveries, project, workspace, artifact):
                 continue
             attempt = next((a for _, a in attempts if
                 ((a.get('delivery_record') or {}).get('id') or Path(a.get('output_dir', '')).name) == delivery['id']), {})
-            exports = [f for f in (attempt.get('delivery_record') or {}).get('files', []) if f.get('role') == 'export']
+            exports = product_files((attempt.get('delivery_record') or {}).get('files', []))
             for export in exports:
                 path = artifact(workspace, export.get('path', ''))
                 if not path or not unchanged(workspace, export.get('path', ''), export.get('sha256'), artifact):

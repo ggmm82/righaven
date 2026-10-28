@@ -2,17 +2,20 @@
 import json
 from pathlib import Path
 import subprocess
+import zipfile
 
 try:
     from .source_packages import digest, verify_archive, sample, NATIVE, DEPENDENT_PROJECTS, inspect_blend, inspect_ebook, inspect_freecad, PRODUCTION_NATIVE, inspect_production, DESIGN_NATIVE, inspect_design
     from .acceptance import METHODS, evaluate, checkpoint_assessment, capabilities
     from .revision import actions, comparison, findings
     from .handoff import blocking_checks
+    from .source_packages import inspect_office, OFFICE_PARTS
 except ImportError:
     from source_packages import digest, verify_archive, sample, NATIVE, DEPENDENT_PROJECTS, inspect_blend, inspect_ebook, inspect_freecad, PRODUCTION_NATIVE, inspect_production, DESIGN_NATIVE, inspect_design
     from acceptance import METHODS, evaluate, checkpoint_assessment, capabilities
     from revision import actions, comparison, findings
     from handoff import blocking_checks
+    from source_packages import inspect_office, OFFICE_PARTS
 
 
 def read_review(handoff, output_dir, workspace, engine, acceptance=None):
@@ -163,6 +166,12 @@ def build_delivery(handoff, output_dir, *, purpose='work', native=True, agent=''
     for item in delivery['files']:
         path = Path(item['path'])
         record = {**item, 'sha256': digest(path), 'size': path.stat().st_size}
+        if path.suffix.lower() in OFFICE_PARTS and item['role'] in ('export','editable_source'):
+            try:
+                record['verification'] = inspect_office(path)
+            except (OSError, ValueError, zipfile.BadZipFile) as error:
+                record['verification'] = {'status':'failed', 'method':'structural', 'error':str(error)[:1000]}
+                issues.append(path.name + ': ' + str(error)[:1000])
         if path.suffix.lower() == '.blend' and item['role'] == 'editable_source':
             try:
                 record['verification'] = inspect_blend(path, root, native=native)
@@ -216,7 +225,9 @@ def build_delivery(handoff, output_dir, *, purpose='work', native=True, agent=''
             except (OSError, ValueError, RuntimeError, subprocess.SubprocessError) as error:
                 record['verification'] = {'status': 'failed', 'error': str(error)[:1000]}
                 issues.append(path.name + ': ' + str(error)[:1000])
-        if item['role'] in ('editable_source', 'source_archive') and item['reopen']['status'] != 'passed':
+        structurally_opened = (path.suffix.lower() in OFFICE_PARTS and
+            record.get('verification',{}).get('status') == 'passed' and item['reopen']['status'] == 'not_run')
+        if item['role'] in ('editable_source', 'source_archive') and item['reopen']['status'] != 'passed' and not structurally_opened:
             issues.append(path.name + ': riapertura non verificata')
         files.append(record)
     if delivery['source_status'] == 'unavailable':
@@ -299,6 +310,7 @@ def build_delivery(handoff, output_dir, *, purpose='work', native=True, agent=''
     value = {'id': root.name, 'title': handoff['task'][:200], 'purpose': purpose,
              'technical_status': 'passed' if not issues else 'needs_revision',
              'issues': issues[:20], 'finalization_pending': finalization, 'files': files, 'source_status': delivery['source_status'],
+             'environment_checks': [c for c in handoff['checks'] if c.get('scope') == 'environment'],
              'historical_checks': [c for c in handoff['checks'] if c.get('scope') == 'historical'],
              'source_coverage':coverage, 'timing':timing,
              'source_package_status': ('not_applicable' if delivery['source_status']=='not_applicable' else
