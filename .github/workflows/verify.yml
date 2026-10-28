@@ -74,6 +74,7 @@ jobs:
           npm install --prefix /tmp/rh-ui-tests --no-audit --no-fund react@19.2.4 react-dom@19.2.4 esbuild@0.25.12 @tailwindcss/cli@4.1.18
           pip install playwright==1.64.1
           python -m playwright install --with-deps chromium
+          python scripts/check_native_models_ui.py --node-modules /tmp/rh-ui-tests/node_modules
           python scripts/check_delegate_progress_ui.py --node-modules /tmp/rh-ui-tests/node_modules
           python scripts/check_runtime_ui.py
           mkdir -p /tmp/design-excalidraw

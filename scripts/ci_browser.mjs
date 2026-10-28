@@ -7,10 +7,10 @@ const context = await browser.newContext({
   httpCredentials: {username:'admin', password:process.env.RIGHAVEN_PASSWORD},
   viewport:{width:1440,height:1000},
 });
+const page = await context.newPage();
+const errors = [];
+page.on('pageerror', error => errors.push(error.message));
 try {
-  const page = await context.newPage();
-  const errors = [];
-  page.on('pageerror', error => errors.push(error.message));
   // Exercise the visible account flow, not an injected session cookie.
   await page.goto('/login');
   await page.locator('input[type="email"]').fill('harness-ci@example.com');
@@ -75,4 +75,9 @@ try {
   await page.screenshot({path:'reports/ui/workspace-mobile.png',fullPage:true});
   if (errors.length) throw Error('Browser errors: '+errors.join('; '));
   console.log('RigHaven browser journey passed: login, overview, task, toolbox, deployment and mobile layout');
+} catch (error) {
+  await fs.mkdir('reports/ui', {recursive:true});
+  await page.screenshot({path:'reports/ui/failure.png',fullPage:true}).catch(()=>{});
+  await fs.writeFile('reports/ui/failure.json',JSON.stringify({url:page.url(),errors,text:await page.locator('main').innerText().catch(()=>''),error:String(error)},null,2));
+  throw error;
 } finally { await context.close(); await browser.close(); }
