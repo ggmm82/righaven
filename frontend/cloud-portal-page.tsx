@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { fetch } from "@/core/api/fetcher";
 import { getBackendBaseURL } from "@/core/config";
-import { I18nProvider, LanguageSelector, useI18n } from "./i18n";
+import { I18nProvider, LanguageSelector, useI18n } from "@/app/workspace/i18n";
 
 type EditionInfo = {
   edition: "community" | "cloud";

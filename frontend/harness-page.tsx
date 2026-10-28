@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { I18nProvider, LanguageSelector, useI18n } from "./i18n";
+import { I18nProvider, LanguageSelector, useI18n } from "@/app/workspace/i18n";
 
 function HarnessContent() {
   const { t } = useI18n();

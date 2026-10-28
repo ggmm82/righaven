@@ -10,14 +10,19 @@ import os
 import sys
 
 
-for key, value in list(os.environ.items()):
-    if key.startswith('RIGHAVEN_'):
-        os.environ.setdefault('DEER_FLOW_' + key.removeprefix('RIGHAVEN_'), value)
+def sync_environment():
+    for key, value in list(os.environ.items()):
+        if key.startswith('RIGHAVEN_'):
+            os.environ['DEER_FLOW_' + key.removeprefix('RIGHAVEN_')] = value
+
+
+sync_environment()
 
 
 class CoreAlias(importlib.abc.MetaPathFinder, importlib.abc.Loader):
     def find_spec(self, fullname, path=None, target=None):
         if fullname == 'righaven_core' or fullname.startswith('righaven_core.'):
+            sync_environment()
             original = 'deerflow' + fullname[len('righaven_core'):]
             spec = importlib.util.find_spec(original)
             if spec is not None:
