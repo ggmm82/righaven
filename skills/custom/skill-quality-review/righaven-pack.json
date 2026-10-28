@@ -1,0 +1,50 @@
+{
+  "id": "skill-quality-review",
+  "name": "Independent Product Quality & Contract Review",
+  "version": "1.0.0",
+  "author": "righaven-core",
+  "category": "skill",
+  "tags": [
+    "protocol",
+    "core",
+    "skill"
+  ],
+  "stars": 110,
+  "forks": 24,
+  "verified": true,
+  "tools": [],
+  "i18n": {
+    "en": {
+      "title": "Independent Product Quality & Contract Review",
+      "description": "Evidence-based quality review against user acceptance criteria and reference hashes."
+    },
+    "it": {
+      "title": "Independent Product Quality & Contract Review",
+      "description": "Revisione indipendente della qualità rispetto ai criteri di accettazione e agli hash di riferimento."
+    }
+  },
+  "docker_dependencies": {
+    "base_image": "righaven-sandbox:0.1.0",
+    "system_packages": [],
+    "python_packages": [],
+    "node_packages": [],
+    "nix_packages": []
+  },
+  "cli_binaries": [],
+  "skill_prompt_template": "Follow `skill-quality-review` protocol rules for verified multi-agent execution.",
+  "verification_command": "python3 /opt/righaven-worker/handoff.py schema",
+  "security_policy": {
+    "rootless": true,
+    "network_access": false,
+    "writable_paths": [
+      "$RIGHAVEN_OUTPUT_DIR"
+    ],
+    "read_only_mounts": [
+      "/mnt/user-data"
+    ],
+    "drop_capabilities": [
+      "ALL"
+    ],
+    "no_new_privileges": true
+  }
+}

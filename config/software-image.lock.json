@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "bootstrap": {
+    "platform": "linux/amd64",
+    "fingerprint": "28e98acadb236cbbd5d350dcd3717a8fa62607f35d4912301e9fae01f36b9ebc",
+    "image": "ghcr.io/righaven/righaven-sandbox@sha256:3757b4e43a3368e66dfa64700899af3a91284ac7a9cba6941ad8a9f97b399294",
+    "verified_run": 40362414847
+  }
+}

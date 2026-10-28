@@ -1,0 +1,63 @@
+{
+  "id": "skill-gridcraft",
+  "name": "GridCraft Agent Skill (skill-gridcraft)",
+  "version": "v0.11.1",
+  "author": "righaven-core",
+  "category": "skill",
+  "tags": [
+    "gridcraft",
+    "skill",
+    "reopen-check"
+  ],
+  "stars": 77,
+  "forks": 29,
+  "verified": true,
+  "tools": [
+    "gridcraft"
+  ],
+  "i18n": {
+    "en": {
+      "title": "Skill: GridCraft Spreadsheet & Formula Engine",
+      "description": "Dynamic competency module instructing RigHaven agents on GridCraft authoring, editable source preservation, and reopen verification."
+    },
+    "it": {
+      "title": "Skill: GridCraft — Fogli di calcolo",
+      "description": "Modulo di competenza dinamico che istruisce gli agenti RigHaven su GridCraft, conservazione dei sorgenti modificabili e reopen check."
+    }
+  },
+  "docker_dependencies": {
+    "base_image": "righaven-sandbox:0.1.0",
+    "system_packages": [],
+    "python_packages": [],
+    "node_packages": [],
+    "nix_packages": [
+      "pkgs.gridcraft"
+    ]
+  },
+  "cli_binaries": [
+    {
+      "name": "gridcraft",
+      "executable": "/usr/local/bin/gridcraft-cli",
+      "safe_flags": [
+        "commands"
+      ],
+      "health_check": "craft capabilities gridcraft"
+    }
+  ],
+  "skill_prompt_template": "Load `/mnt/skills/custom/skill-gridcraft/SKILL.md` and `references/CLI-RECIPE.md`. Produce both the target export and the editable source in `$RIGHAVEN_OUTPUT_DIR`, execute an independent reopen check in a clean folder, and record results in `handoff.json`.",
+  "verification_command": "python3 /opt/righaven-worker/handoff.py validate \"$RIGHAVEN_OUTPUT_DIR\"",
+  "security_policy": {
+    "rootless": true,
+    "network_access": false,
+    "writable_paths": [
+      "$RIGHAVEN_OUTPUT_DIR"
+    ],
+    "read_only_mounts": [
+      "/mnt/user-data"
+    ],
+    "drop_capabilities": [
+      "ALL"
+    ],
+    "no_new_privileges": true
+  }
+}

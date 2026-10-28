@@ -1,0 +1,63 @@
+{
+  "id": "skill-freecad",
+  "name": "FreeCAD Agent Skill (skill-freecad)",
+  "version": "1.1.4",
+  "author": "righaven-core",
+  "category": "skill",
+  "tags": [
+    "freecad",
+    "skill",
+    "reopen-check"
+  ],
+  "stars": 98,
+  "forks": 30,
+  "verified": true,
+  "tools": [
+    "freecad"
+  ],
+  "i18n": {
+    "en": {
+      "title": "Skill: FreeCAD Parametric 3D CAD Modeler",
+      "description": "Dynamic competency module instructing RigHaven agents on FreeCAD authoring, editable source preservation, and reopen verification."
+    },
+    "it": {
+      "title": "Skill: FreeCAD — CAD parametrico tridimensionale",
+      "description": "Modulo di competenza dinamico che istruisce gli agenti RigHaven su FreeCAD, conservazione dei sorgenti modificabili e reopen check."
+    }
+  },
+  "docker_dependencies": {
+    "base_image": "righaven-sandbox:0.1.0",
+    "system_packages": [],
+    "python_packages": [],
+    "node_packages": [],
+    "nix_packages": [
+      "pkgs.freecad"
+    ]
+  },
+  "cli_binaries": [
+    {
+      "name": "freecad",
+      "executable": "/usr/local/bin/freecad-cli",
+      "safe_flags": [
+        "commands"
+      ],
+      "health_check": "craft capabilities freecad"
+    }
+  ],
+  "skill_prompt_template": "Load `/mnt/skills/custom/skill-freecad/SKILL.md` and `references/CLI-RECIPE.md`. Produce both the target export and the editable source in `$RIGHAVEN_OUTPUT_DIR`, execute an independent reopen check in a clean folder, and record results in `handoff.json`.",
+  "verification_command": "python3 /opt/righaven-worker/handoff.py validate \"$RIGHAVEN_OUTPUT_DIR\"",
+  "security_policy": {
+    "rootless": true,
+    "network_access": false,
+    "writable_paths": [
+      "$RIGHAVEN_OUTPUT_DIR"
+    ],
+    "read_only_mounts": [
+      "/mnt/user-data"
+    ],
+    "drop_capabilities": [
+      "ALL"
+    ],
+    "no_new_privileges": true
+  }
+}

@@ -1,0 +1,63 @@
+{
+  "id": "skill-blender",
+  "name": "Blender Agent Skill (skill-blender)",
+  "version": "5.2.3",
+  "author": "righaven-core",
+  "category": "skill",
+  "tags": [
+    "blender",
+    "skill",
+    "reopen-check"
+  ],
+  "stars": 73,
+  "forks": 25,
+  "verified": true,
+  "tools": [
+    "blender"
+  ],
+  "i18n": {
+    "en": {
+      "title": "Skill: Blender Headless 3D Creation Suite",
+      "description": "Dynamic competency module instructing RigHaven agents on Blender authoring, editable source preservation, and reopen verification."
+    },
+    "it": {
+      "title": "Skill: Blender — Modellazione e animazione 3D",
+      "description": "Modulo di competenza dinamico che istruisce gli agenti RigHaven su Blender, conservazione dei sorgenti modificabili e reopen check."
+    }
+  },
+  "docker_dependencies": {
+    "base_image": "righaven-sandbox:0.1.0",
+    "system_packages": [],
+    "python_packages": [],
+    "node_packages": [],
+    "nix_packages": [
+      "pkgs.blender"
+    ]
+  },
+  "cli_binaries": [
+    {
+      "name": "blender",
+      "executable": "/usr/local/bin/blender-cli",
+      "safe_flags": [
+        "commands"
+      ],
+      "health_check": "craft capabilities blender"
+    }
+  ],
+  "skill_prompt_template": "Load `/mnt/skills/custom/skill-blender/SKILL.md` and `references/CLI-RECIPE.md`. Produce both the target export and the editable source in `$RIGHAVEN_OUTPUT_DIR`, execute an independent reopen check in a clean folder, and record results in `handoff.json`.",
+  "verification_command": "python3 /opt/righaven-worker/handoff.py validate \"$RIGHAVEN_OUTPUT_DIR\"",
+  "security_policy": {
+    "rootless": true,
+    "network_access": false,
+    "writable_paths": [
+      "$RIGHAVEN_OUTPUT_DIR"
+    ],
+    "read_only_mounts": [
+      "/mnt/user-data"
+    ],
+    "drop_capabilities": [
+      "ALL"
+    ],
+    "no_new_privileges": true
+  }
+}

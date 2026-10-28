@@ -1,0 +1,158 @@
+name: righaven
+services:
+  runtime-docker:
+    image: docker:27.5.1-dind@sha256:aa3df78ecf320f5fafdce71c659f1629e96e9de0968305fe1de670e0ca9176ce
+    hostname: runtime-docker
+    restart: unless-stopped
+    privileged: true
+    command: [dockerd, --host=unix:///runtime/docker.sock]
+    environment:
+      DOCKER_HOST: unix:///runtime/docker.sock
+    volumes:
+    - runtime-docker-data:/var/lib/docker
+    - runtime-docker-control:/runtime
+    - righaven-state:/righaven-state
+    - righaven-data:/mnt/user-data
+    healthcheck:
+      test: [CMD, docker, info]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 15s
+  redis:
+    restart: unless-stopped
+    init: true
+    image: redis:7.4-alpine
+    command:
+    - redis-server
+    - --appendonly
+    - 'yes'
+    - --maxmemory
+    - 64mb
+    - --maxmemory-policy
+    - noeviction
+    mem_limit: 128m
+    volumes:
+    - redis-data:/data
+    healthcheck:
+      test:
+      - CMD
+      - redis-cli
+      - ping
+      interval: 5s
+      timeout: 3s
+      retries: 10
+  worker-sandbox:
+    profiles:
+    - sandbox-template
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.sandbox
+      target: core
+    image: righaven-sandbox:0.1.0
+    read_only: true
+    security_opt:
+    - no-new-privileges:true
+    cap_drop:
+    - ALL
+    environment:
+      RIGHAVEN_OUTPUT_DIR: /mnt/user-data/outputs/workspace/rh-job-000000000000
+      RIGHAVEN_ISOLATED_OUTPUT: '1'
+      NO_BROWSER: 'true'
+    volumes:
+    - righaven-data:/mnt/user-data:ro
+  gateway:
+    restart: unless-stopped
+    init: true
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.gateway
+      additional_contexts:
+        righaven_core: https://github.com/righaven/righaven-core.git#0bbcccfeb117a73cdeb7a8366f56ba71c25d6f5d
+    image: righaven-gateway:0.1.0
+    mem_limit: 1024m
+    stop_grace_period: 30s
+    environment:
+      RIGHAVEN_EDITION: ${RIGHAVEN_EDITION:-community}
+      RIGHAVEN_DEFAULT_LOCALE: ${RIGHAVEN_DEFAULT_LOCALE:-en}
+      RIGHAVEN_PASSWORD: ${RIGHAVEN_PASSWORD:?Set a password of at least 16 characters}
+      RIGHAVEN_ENVIRONMENT_MODE: dynamic
+      RIGHAVEN_DOCKER_SCOPE: internal
+      RIGHAVEN_SANDBOX_IMAGE: ${RIGHAVEN_SANDBOX_IMAGE:-ghcr.io/righaven/righaven-sandbox@sha256:3757b4e43a3368e66dfa64700899af3a91284ac7a9cba6941ad8a9f97b399294}
+      DOCKER_HOST: unix:///runtime/docker.sock
+      RIGHAVEN_STREAM_BRIDGE_REDIS_URL: redis://redis:6379/0
+      RIGHAVEN_INTERNAL_GATEWAY_BASE_URL: http://gateway:8001
+      AUTH_TRUSTED_PROXIES: proxy
+      BETTER_AUTH_URL: ${RIGHAVEN_PUBLIC_URL:-http://localhost:2026}
+      LANGSMITH_TRACING: 'false'
+    volumes:
+    - righaven-state:/righaven-state
+    - righaven-data:/mnt/user-data
+    - runtime-docker-control:/runtime
+    depends_on:
+      redis:
+        condition: service_healthy
+      runtime-docker:
+        condition: service_healthy
+    healthcheck:
+      test:
+      - CMD
+      - python
+      - -c
+      - import urllib.request; urllib.request.urlopen("http://127.0.0.1:8001/health/ready",timeout=8)
+      interval: 10s
+      timeout: 10s
+      retries: 30
+      start_period: 90s
+  frontend:
+    restart: unless-stopped
+    init: true
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.frontend
+      additional_contexts:
+        righaven_core: https://github.com/righaven/righaven-core.git#0bbcccfeb117a73cdeb7a8366f56ba71c25d6f5d
+    image: righaven-frontend:0.1.0
+    mem_limit: 512m
+    environment:
+      RIGHAVEN_EDITION: ${RIGHAVEN_EDITION:-community}
+      RIGHAVEN_DEFAULT_LOCALE: ${RIGHAVEN_DEFAULT_LOCALE:-en}
+      RIGHAVEN_PASSWORD: ${RIGHAVEN_PASSWORD:?Set RIGHAVEN_PASSWORD}
+      BETTER_AUTH_URL: ${RIGHAVEN_PUBLIC_URL:-http://localhost:2026}
+      RIGHAVEN_INTERNAL_GATEWAY_BASE_URL: http://gateway:8001
+      NODE_OPTIONS: --max-old-space-size=384
+    depends_on:
+      gateway:
+        condition: service_healthy
+  proxy:
+    restart: unless-stopped
+    init: true
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.proxy
+    image: righaven-proxy:0.1.0
+    mem_limit: 96m
+    environment:
+      RIGHAVEN_USER: ${RIGHAVEN_USER:-admin}
+      RIGHAVEN_PASSWORD: ${RIGHAVEN_PASSWORD:?Set RIGHAVEN_PASSWORD}
+      RIGHAVEN_SITE: ${RIGHAVEN_DOMAIN:-:2026}
+    ports:
+    - ${RIGHAVEN_BIND_IP:-0.0.0.0}:2026:2026
+    - ${RIGHAVEN_BIND_IP:-0.0.0.0}:80:80
+    - ${RIGHAVEN_BIND_IP:-0.0.0.0}:443:443
+    volumes:
+    - caddy-data:/data
+    - caddy-config:/config
+    depends_on:
+      gateway:
+        condition: service_healthy
+      frontend:
+        condition: service_started
+volumes:
+  righaven-state: {}
+  righaven-data: {}
+  runtime-docker-data: {}
+  runtime-docker-control: {}
+  redis-data: {}
+  caddy-data: {}
+  caddy-config: {}

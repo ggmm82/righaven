@@ -1,0 +1,63 @@
+{
+  "id": "skill-pymeshlab",
+  "name": "PyMeshLab Agent Skill (skill-pymeshlab)",
+  "version": "2025.7.post1",
+  "author": "righaven-core",
+  "category": "skill",
+  "tags": [
+    "pymeshlab",
+    "skill",
+    "reopen-check"
+  ],
+  "stars": 62,
+  "forks": 14,
+  "verified": true,
+  "tools": [
+    "pymeshlab"
+  ],
+  "i18n": {
+    "en": {
+      "title": "Skill: PyMeshLab 3D Mesh Repair & Filtering",
+      "description": "Dynamic competency module instructing RigHaven agents on PyMeshLab authoring, editable source preservation, and reopen verification."
+    },
+    "it": {
+      "title": "Skill: PyMeshLab — Analisi e riparazione mesh",
+      "description": "Modulo di competenza dinamico che istruisce gli agenti RigHaven su PyMeshLab, conservazione dei sorgenti modificabili e reopen check."
+    }
+  },
+  "docker_dependencies": {
+    "base_image": "righaven-sandbox:0.1.0",
+    "system_packages": [],
+    "python_packages": [],
+    "node_packages": [],
+    "nix_packages": [
+      "pkgs.pymeshlab"
+    ]
+  },
+  "cli_binaries": [
+    {
+      "name": "pymeshlab",
+      "executable": "/usr/local/bin/pymeshlab-cli",
+      "safe_flags": [
+        "commands"
+      ],
+      "health_check": "craft capabilities pymeshlab"
+    }
+  ],
+  "skill_prompt_template": "Load `/mnt/skills/custom/skill-pymeshlab/SKILL.md` and `references/CLI-RECIPE.md`. Produce both the target export and the editable source in `$RIGHAVEN_OUTPUT_DIR`, execute an independent reopen check in a clean folder, and record results in `handoff.json`.",
+  "verification_command": "python3 /opt/righaven-worker/handoff.py validate \"$RIGHAVEN_OUTPUT_DIR\"",
+  "security_policy": {
+    "rootless": true,
+    "network_access": false,
+    "writable_paths": [
+      "$RIGHAVEN_OUTPUT_DIR"
+    ],
+    "read_only_mounts": [
+      "/mnt/user-data"
+    ],
+    "drop_capabilities": [
+      "ALL"
+    ],
+    "no_new_privileges": true
+  }
+}

@@ -1,0 +1,54 @@
+{
+  "mcpServers": {},
+  "skills": {
+    "skill-harness": {
+      "enabled": true
+    },
+    "skill-workspace": {
+      "enabled": true
+    },
+    "skill-photocraft": {
+      "enabled": true
+    },
+    "skill-vectorcraft": {
+      "enabled": true
+    },
+    "skill-filmcraft": {
+      "enabled": true
+    },
+    "skill-lightcraft": {
+      "enabled": true
+    },
+    "skill-pdfcraft": {
+      "enabled": true
+    },
+    "skill-effectcraft": {
+      "enabled": true
+    },
+    "skill-designcraft": {
+      "enabled": true
+    },
+    "skill-gridcraft": {
+      "enabled": true
+    },
+    "skill-wordcraft": {
+      "enabled": true
+    },
+    "skill-deckcraft": {
+      "enabled": true
+    },
+    "skill-cadcraft": {
+      "enabled": true
+    },
+    "skill-soundcraft": {
+      "enabled": true
+    },
+    "skill-figcraft": {
+      "enabled": true
+    }
+  },
+  "middlewares": [
+    "righaven.audit_middleware:ConversationAuditMiddleware",
+    "righaven.completion_middleware:ProjectCompletionMiddleware"
+  ]
+}

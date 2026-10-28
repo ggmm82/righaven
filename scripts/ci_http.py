@@ -1,0 +1,185 @@
+"""Exercise the real RigHaven auth/CSRF middleware and RigHaven over the proxy."""
+import http.cookiejar
+import json
+import os
+import urllib.request
+import urllib.error
+
+base = 'http://127.0.0.1:2026'
+passwords = urllib.request.HTTPPasswordMgrWithDefaultRealm()
+passwords.add_password(None, base, 'admin', os.environ['RIGHAVEN_PASSWORD'])
+cookies = http.cookiejar.CookieJar()
+client = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(cookies),
+                                    urllib.request.HTTPBasicAuthHandler(passwords))
+
+
+def request(path, payload=None, method=None):
+    headers = {'Origin': base, 'Content-Type': 'application/json'}
+    for cookie in cookies:
+        if cookie.name == 'csrf_token':
+            headers['X-CSRF-Token'] = cookie.value
+    data = None if payload is None else json.dumps(payload).encode()
+    req = urllib.request.Request(base + path, data=data, headers=headers, method=method)
+    with client.open(req, timeout=30) as response:
+        return response.read()
+
+
+request('/api/v1/auth/initialize', {'email': 'harness-ci@example.com',
+                                   'password': 'CiOnly-Strong-Login-P4ssword!78239'})
+assert any(cookie.name == 'access_token' for cookie in cookies)
+assert b'RigHaven' in request('/righaven/')
+# Native Agent management and managed capabilities must be available after login.
+json.loads(request('/api/agents'))
+skills = json.loads(request('/api/skills'))['skills']
+assert any(s['name'] == 'skill-blender' and s['category'] == 'integrations' for s in skills)
+assert len({s['name'] for s in skills}) == len(skills)
+request('/api/agents', {'name':'ci-native-profile','description':'Native capability scope','skills':['skill-freecad']})
+profile = json.loads(request('/api/agents/ci-native-profile'))
+assert profile['skills'] == ['skill-freecad']
+request('/api/agents/ci-native-profile', method='DELETE')
+# Custom environments are native Agents, not a duplicated purpose/skills store.
+assert b'Ambienti' in request('/workspace/environments')
+assert b'Terminale' in request('/terminal?environment=ci-custom-environment')
+assert b'function' in request('/rh-terminal/xterm.js')
+assert b'xterm' in request('/rh-terminal/xterm.css')
+assert b'FitAddon' in request('/rh-terminal/addon-fit.js')
+assert b'<!' in request('/rh-design/excalidraw/index.html')
+
+environments=json.loads(request('/api/harness/environments'))
+assert environments['dynamic'] and len(environments['presets'])>=9
+assert environments['can_configure_resources']
+monitor=environments['parallelism']['monitor']
+assert set(monitor['active'])=={'worker','build','terminal','control'}
+assert 'allocated_memory_mib' in monitor and 'observed_at' in monitor
+# A single persisted policy backs both entry points; no restart or divergent settings.
+resource_url='/api/harness/environments/resources/settings'
+previous=json.loads(request(resource_url))['settings']
+try:
+    resource_change={**previous,'max_workers':3}
+    saved=json.loads(request(resource_url,resource_change,method='PUT'))
+    assert saved['settings']['max_workers']==3
+    assert json.loads(request('/harness/api/runtime'))['settings']==saved['settings']
+    assert json.loads(request('/api/harness/environments'))['parallelism']['monitor']['configured_limit']==3
+finally:
+    request(resource_url,{**previous,'max_workers':previous.get('max_workers',2)},method='PUT')
+live=json.loads(request('/api/harness/environments/resources/rebalance',{},method='POST'))
+assert live['pending']==0 and 'updated' in live,live
+print('Authenticated environment resources OK: shared persisted settings, live limit monitor and privileged live rebalancing')
+
+definition={'name':'ci-custom-environment','display_name':'Custom CI','purpose':'Documented diagrams',
+            'instructions':'Preserve editable sources','skills':['skill-d2'],'mode':'on_demand','ephemeral':False}
+created=json.loads(request('/api/harness/environments',definition))
+assert created['tools']==['d2'] and created['deployment']['mode']=='on_demand'
+native=json.loads(request('/api/agents/ci-custom-environment'))
+assert native['description']==definition['purpose'] and native['soul']==definition['instructions']
+assert 'skill-d2' in native['skills']
+request('/api/agents/ci-custom-environment',{'description':'Changed in native Agents'},method='PUT')
+updated=next(p for p in json.loads(request('/api/harness/environments'))['environments'] if p['name']=='ci-custom-environment')
+assert updated['purpose']=='Changed in native Agents'
+exported=json.loads(request('/api/harness/environments/ci-custom-environment/export'))
+assert exported['agent']['name']=='ci-custom-environment'
+# The real authenticated API must prepare the actual selected runtime, not just save a flag.
+definition.update(mode='preload',preload_tools=['d2'])
+request('/api/harness/environments/ci-custom-environment',definition,method='PUT')
+import time
+for attempt in range(60):
+    prepared=next(p for p in json.loads(request('/api/harness/environments'))['environments'] if p['name']=='ci-custom-environment')
+    status=prepared['runtime']['status']
+    if status=='ready':break
+    assert status not in ('failed','invalid'), prepared['runtime']
+    time.sleep(2)
+assert status=='ready' and prepared['preloaded_tools']==['d2'],prepared['runtime']
+# Regression: a clean first boot never reads persisted AgentConfig preloads.
+# Restart with a real native agent + SOUL.md + ready software already stored.
+from ci_environment_lifecycle import restart
+before_restart=prepared
+restart()
+restored=next(p for p in json.loads(request('/api/harness/environments'))['environments'] if p['name']=='ci-custom-environment')
+assert restored['runtime']['status']=='ready',restored
+assert restored['runtime']['id']==before_restart['runtime']['id'],restored
+assert restored['runtime']['image_id']==before_restart['runtime']['image_id'],restored
+assert restored['instructions']==definition['instructions'],restored
+assert restored['revision']==before_restart['revision'],restored
+print('Persisted preload restart OK: native AgentConfig instructions preserved, same ready Docker image reused, authenticated API available.')
+# Real interactive PTY through the authenticated proxy, not only browser fixtures.
+import base64
+terminal=json.loads(request('/api/harness/environments/ci-custom-environment/terminal',{},method='POST'))
+terminal_base='/api/harness/environments/terminals/'+terminal['id']
+try:
+    request(terminal_base+'/input',{'text':"printf 'http-pty-%s\\n' ready\n"},method='POST')
+    output=b'';cursor=0
+    for _ in range(20):
+        event=json.loads(request(terminal_base+'/status?after='+str(cursor)))
+        output+=base64.b64decode(event['output_base64']);cursor=event['cursor']
+        if b'http-pty-ready' in output:break
+    assert b'http-pty-ready' in output,output[-2000:]
+    request(terminal_base+'/resize',{'cols':100,'rows':35},method='POST')
+    print('Authenticated HTTP terminal OK: separate page/assets routed to frontend; actual PTY input/output and resize passed')
+finally:
+    request(terminal_base,method='DELETE')
+    for _ in range(30):
+        state=json.loads(request(terminal_base+'/status'))
+        if state['finished']:break
+        time.sleep(.1)
+    assert state['finished'] and not state.get('error'),state
+
+# Per-window ownership and pending-start cancellation through real auth/CSRF.
+import uuid
+client_ids=[uuid.uuid4().hex,uuid.uuid4().hex]
+owned=[json.loads(request('/api/harness/environments/ci-custom-environment/terminal',{'client_id':identifier},method='POST')) for identifier in client_ids]
+assert owned[0]['id']!=owned[1]['id'],'Two windows unexpectedly share one terminal'
+try:
+    request('/api/harness/environments/terminal-clients/'+client_ids[0]+'/close',{},method='POST')
+    for _ in range(40):
+        closed=json.loads(request('/api/harness/environments/terminals/'+owned[0]['id']+'/status'))
+        if closed['finished']:break
+        time.sleep(.1)
+    assert closed['finished'] and not closed.get('error'),closed
+    other=json.loads(request('/api/harness/environments/terminals/'+owned[1]['id']+'/status'))
+    assert not other['finished'] and not other['closing'],other
+finally:
+    for value in owned:request('/api/harness/environments/terminals/'+value['id'],method='DELETE')
+late=uuid.uuid4().hex
+request('/api/harness/environments/terminal-clients/'+late+'/close',{},method='POST')
+try:request('/api/harness/environments/ci-custom-environment/terminal',{'client_id':late},method='POST')
+except urllib.error.HTTPError as error:assert error.code==409,error
+else:raise AssertionError('A closed page allocated a new terminal')
+print('Authenticated terminal lifecycle OK: legacy empty body, independent same-environment windows, scoped page close and pending-start cancellation.')
+
+definition.update(mode='on_demand',preload_tools=[])
+request('/api/harness/environments/ci-custom-environment',definition,method='PUT')
+assert json.loads(request('/api/harness/environments/ci-custom-environment/cache',method='DELETE'))['removed']
+request('/api/agents/ci-custom-environment',method='DELETE')
+
+request('/api/skills/skill-blender', {'enabled':False}, method='PUT')
+assert json.loads(request('/harness/api/catalog'))['agents']['blender']['enabled'] is False
+request('/api/skills/skill-blender', {'enabled':True}, method='PUT')
+assert json.loads(request('/harness/api/catalog'))['agents']['blender']['enabled'] is True
+request('/harness/api/agents/blender', {'engine':'inherit','enabled':False}, method='PUT')
+assert next(s for s in json.loads(request('/api/skills'))['skills'] if s['name'] == 'skill-blender')['enabled'] is False
+request('/api/skills/skill-blender', {'enabled':True}, method='PUT')
+assert json.loads(request('/harness/api/catalog'))['agents']['blender']['enabled'] is True
+
+
+catalog = json.loads(request('/harness/api/catalog'))
+assert set(catalog['agents']) == {app['id'] for app in catalog['applications']}
+saved = json.loads(request('/harness/api/agents/gridcraft',
+                          {'engine': 'gemini', 'model': '', 'instructions': 'Preferisci euro',
+                           'enabled': True}, method='PUT'))
+assert saved['engine'] == 'gemini'
+catalog = json.loads(request('/harness/api/catalog'))
+assert catalog['agents']['gridcraft']['instructions'] == 'Preferisci euro'
+assert b'La tua squadra' in request('/workspace/harness')
+request('/api/v1/auth/logout', {})
+request('/api/v1/auth/register', {'email': 'harness-ci-user@example.com',
+                                 'password': 'CiOnly-Regular-User-P4ssword!78239'})
+for path, payload, method in [('/harness/api/catalog', None, 'GET'),
+                              ('/harness/api/login/gemini', {}, 'POST'),
+                              ('/harness/api/team', {'engine': 'gemini'}, 'PUT')]:
+    try:
+        request(path, payload, method)
+    except urllib.error.HTTPError as error:
+        assert error.code == 403, (path, error.code)
+    else:
+        raise AssertionError('Un utente ordinario ha accesso alla configurazione globale: ' + path)
+print('OK: account, sessione, CSRF, configurazione amministratore; accesso globale negato agli utenti ordinari.')

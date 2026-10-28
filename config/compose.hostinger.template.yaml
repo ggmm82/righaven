@@ -1,0 +1,134 @@
+# INTERNAL TEMPLATE: for VPS/Hostinger deployments use the sealed Compose attached to the release.
+# Published commit images: 9176304b6e74433109931b1c75721c1b663c3845
+name: ${RIGHAVEN_PROJECT_NAME:-righaven}
+services:
+  runtime-docker:
+    image: docker:27.5.1-dind@sha256:aa3df78ecf320f5fafdce71c659f1629e96e9de0968305fe1de670e0ca9176ce
+    hostname: runtime-docker
+    restart: unless-stopped
+    privileged: true
+    command: [dockerd, --host=unix:///runtime/docker.sock]
+    environment:
+      DOCKER_HOST: unix:///runtime/docker.sock
+    volumes:
+    - runtime-docker-data:/var/lib/docker
+    - runtime-docker-control:/runtime
+    - righaven-state:/righaven-state
+    - righaven-data:/mnt/user-data
+    healthcheck:
+      test: [CMD, docker, info]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 15s
+  redis:
+    restart: unless-stopped
+    init: true
+    image: redis:7.4-alpine
+    command:
+    - redis-server
+    - --appendonly
+    - 'yes'
+    - --maxmemory
+    - 64mb
+    - --maxmemory-policy
+    - noeviction
+    mem_limit: 128m
+    volumes:
+    - redis-data:/data
+    healthcheck:
+      test:
+      - CMD
+      - redis-cli
+      - ping
+      interval: 5s
+      timeout: 3s
+      retries: 10
+  gateway:
+    restart: unless-stopped
+    init: true
+    image: ghcr.io/righaven/righaven-gateway:sha-9176304b6e74433109931b1c75721c1b663c3845
+    mem_limit: 1024m
+    stop_grace_period: 30s
+    environment:
+      RIGHAVEN_EDITION: ${RIGHAVEN_EDITION:-community}
+      RIGHAVEN_DEFAULT_LOCALE: ${RIGHAVEN_DEFAULT_LOCALE:-en}
+      RIGHAVEN_PASSWORD: ${RIGHAVEN_PASSWORD:?Set a password of at least 16 characters}
+      RIGHAVEN_ENVIRONMENT_MODE: dynamic
+      RIGHAVEN_DOCKER_SCOPE: internal
+      RIGHAVEN_SANDBOX_IMAGE: ghcr.io/righaven/righaven-sandbox:sha-9176304b6e74433109931b1c75721c1b663c3845
+      DOCKER_HOST: unix:///runtime/docker.sock
+      RIGHAVEN_STREAM_BRIDGE_REDIS_URL: redis://redis:6379/0
+      RIGHAVEN_INTERNAL_GATEWAY_BASE_URL: http://gateway:8001
+      AUTH_TRUSTED_PROXIES: ''
+      BETTER_AUTH_URL: https://${COMPOSE_PROJECT_NAME}.${TRAEFIK_HOST:?Set TRAEFIK_HOST}
+      LANGSMITH_TRACING: 'false'
+    volumes:
+    - righaven-state:/righaven-state
+    - righaven-data:/mnt/user-data
+    - runtime-docker-control:/runtime
+    depends_on:
+      redis:
+        condition: service_healthy
+      runtime-docker:
+        condition: service_healthy
+    labels:
+    - traefik.enable=true
+    - traefik.http.routers.${COMPOSE_PROJECT_NAME}-langgraph.rule=Host(`${COMPOSE_PROJECT_NAME}.${TRAEFIK_HOST}`)
+      && PathPrefix(`/api/langgraph/`)
+    - traefik.http.routers.${COMPOSE_PROJECT_NAME}-langgraph.entrypoints=websecure
+    - traefik.http.routers.${COMPOSE_PROJECT_NAME}-langgraph.tls=true
+    - traefik.http.routers.${COMPOSE_PROJECT_NAME}-langgraph.tls.certresolver=letsencrypt
+    - traefik.http.routers.${COMPOSE_PROJECT_NAME}-langgraph.priority=110
+    - traefik.http.routers.${COMPOSE_PROJECT_NAME}-langgraph.middlewares=${COMPOSE_PROJECT_NAME}-langgraph-rewrite
+    - traefik.http.routers.${COMPOSE_PROJECT_NAME}-langgraph.service=${COMPOSE_PROJECT_NAME}-gateway
+    - traefik.http.middlewares.${COMPOSE_PROJECT_NAME}-langgraph-rewrite.replacepathregex.regex=^/api/langgraph/(.*)
+    - traefik.http.middlewares.${COMPOSE_PROJECT_NAME}-langgraph-rewrite.replacepathregex.replacement=/api/$${1}
+    - traefik.http.routers.${COMPOSE_PROJECT_NAME}-gateway.rule=Host(`${COMPOSE_PROJECT_NAME}.${TRAEFIK_HOST}`)
+      && (PathPrefix(`/api`) || Path(`/harness`) || PathPrefix(`/harness/`) || PathPrefix(`/health`))
+    - traefik.http.routers.${COMPOSE_PROJECT_NAME}-gateway.entrypoints=websecure
+    - traefik.http.routers.${COMPOSE_PROJECT_NAME}-gateway.tls=true
+    - traefik.http.routers.${COMPOSE_PROJECT_NAME}-gateway.tls.certresolver=letsencrypt
+    - traefik.http.routers.${COMPOSE_PROJECT_NAME}-gateway.priority=100
+    - traefik.http.routers.${COMPOSE_PROJECT_NAME}-gateway.service=${COMPOSE_PROJECT_NAME}-gateway
+    - traefik.http.services.${COMPOSE_PROJECT_NAME}-gateway.loadbalancer.server.port=8001
+    healthcheck:
+      test:
+      - CMD
+      - python
+      - -c
+      - import urllib.request; urllib.request.urlopen("http://127.0.0.1:8001/health/ready",timeout=8)
+      interval: 10s
+      timeout: 10s
+      retries: 30
+      start_period: 90s
+  frontend:
+    restart: unless-stopped
+    init: true
+    image: ghcr.io/righaven/righaven-frontend:sha-9176304b6e74433109931b1c75721c1b663c3845
+    mem_limit: 512m
+    environment:
+      RIGHAVEN_EDITION: ${RIGHAVEN_EDITION:-community}
+      RIGHAVEN_DEFAULT_LOCALE: ${RIGHAVEN_DEFAULT_LOCALE:-en}
+      RIGHAVEN_PASSWORD: ${RIGHAVEN_PASSWORD:?Set RIGHAVEN_PASSWORD}
+      BETTER_AUTH_URL: https://${COMPOSE_PROJECT_NAME}.${TRAEFIK_HOST:?Set TRAEFIK_HOST}
+      RIGHAVEN_INTERNAL_GATEWAY_BASE_URL: http://gateway:8001
+      NODE_OPTIONS: --max-old-space-size=384
+    depends_on:
+      gateway:
+        condition: service_healthy
+    labels:
+    - traefik.enable=true
+    - traefik.http.routers.${COMPOSE_PROJECT_NAME}-frontend.rule=Host(`${COMPOSE_PROJECT_NAME}.${TRAEFIK_HOST}`)
+    - traefik.http.routers.${COMPOSE_PROJECT_NAME}-frontend.entrypoints=websecure
+    - traefik.http.routers.${COMPOSE_PROJECT_NAME}-frontend.tls=true
+    - traefik.http.routers.${COMPOSE_PROJECT_NAME}-frontend.tls.certresolver=letsencrypt
+    - traefik.http.routers.${COMPOSE_PROJECT_NAME}-frontend.priority=1
+    - traefik.http.routers.${COMPOSE_PROJECT_NAME}-frontend.service=${COMPOSE_PROJECT_NAME}-frontend
+    - traefik.http.services.${COMPOSE_PROJECT_NAME}-frontend.loadbalancer.server.port=3000
+volumes:
+  righaven-state: {}
+  righaven-data: {}
+  runtime-docker-data: {}
+  runtime-docker-control: {}
+  redis-data: {}

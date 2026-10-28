@@ -1,0 +1,63 @@
+{
+  "id": "skill-excalidraw",
+  "name": "Excalidraw Agent Skill (skill-excalidraw)",
+  "version": "0.18.1",
+  "author": "righaven-core",
+  "category": "skill",
+  "tags": [
+    "excalidraw",
+    "skill",
+    "reopen-check"
+  ],
+  "stars": 62,
+  "forks": 14,
+  "verified": true,
+  "tools": [
+    "excalidraw"
+  ],
+  "i18n": {
+    "en": {
+      "title": "Skill: Excalidraw Collaborative Visual Whiteboard",
+      "description": "Dynamic competency module instructing RigHaven agents on Excalidraw authoring, editable source preservation, and reopen verification."
+    },
+    "it": {
+      "title": "Skill: Excalidraw — Lavagna visuale modificabile",
+      "description": "Modulo di competenza dinamico che istruisce gli agenti RigHaven su Excalidraw, conservazione dei sorgenti modificabili e reopen check."
+    }
+  },
+  "docker_dependencies": {
+    "base_image": "righaven-sandbox:0.1.0",
+    "system_packages": [],
+    "python_packages": [],
+    "node_packages": [],
+    "nix_packages": [
+      "pkgs.excalidraw"
+    ]
+  },
+  "cli_binaries": [
+    {
+      "name": "excalidraw",
+      "executable": "/usr/local/bin/excalidraw-cli",
+      "safe_flags": [
+        "commands"
+      ],
+      "health_check": "craft capabilities excalidraw"
+    }
+  ],
+  "skill_prompt_template": "Load `/mnt/skills/custom/skill-excalidraw/SKILL.md` and `references/CLI-RECIPE.md`. Produce both the target export and the editable source in `$RIGHAVEN_OUTPUT_DIR`, execute an independent reopen check in a clean folder, and record results in `handoff.json`.",
+  "verification_command": "python3 /opt/righaven-worker/handoff.py validate \"$RIGHAVEN_OUTPUT_DIR\"",
+  "security_policy": {
+    "rootless": true,
+    "network_access": false,
+    "writable_paths": [
+      "$RIGHAVEN_OUTPUT_DIR"
+    ],
+    "read_only_mounts": [
+      "/mnt/user-data"
+    ],
+    "drop_capabilities": [
+      "ALL"
+    ],
+    "no_new_privileges": true
+  }
+}

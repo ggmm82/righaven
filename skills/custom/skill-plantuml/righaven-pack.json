@@ -1,0 +1,63 @@
+{
+  "id": "skill-plantuml",
+  "name": "PlantUML Agent Skill (skill-plantuml)",
+  "version": "v1.2026.9",
+  "author": "righaven-core",
+  "category": "skill",
+  "tags": [
+    "plantuml",
+    "skill",
+    "reopen-check"
+  ],
+  "stars": 119,
+  "forks": 31,
+  "verified": true,
+  "tools": [
+    "plantuml"
+  ],
+  "i18n": {
+    "en": {
+      "title": "Skill: PlantUML Formal UML Modeling",
+      "description": "Dynamic competency module instructing RigHaven agents on PlantUML authoring, editable source preservation, and reopen verification."
+    },
+    "it": {
+      "title": "Skill: PlantUML — Modellazione UML formale",
+      "description": "Modulo di competenza dinamico che istruisce gli agenti RigHaven su PlantUML, conservazione dei sorgenti modificabili e reopen check."
+    }
+  },
+  "docker_dependencies": {
+    "base_image": "righaven-sandbox:0.1.0",
+    "system_packages": [],
+    "python_packages": [],
+    "node_packages": [],
+    "nix_packages": [
+      "pkgs.plantuml"
+    ]
+  },
+  "cli_binaries": [
+    {
+      "name": "plantuml",
+      "executable": "/usr/local/bin/plantuml-cli",
+      "safe_flags": [
+        "commands"
+      ],
+      "health_check": "craft capabilities plantuml"
+    }
+  ],
+  "skill_prompt_template": "Load `/mnt/skills/custom/skill-plantuml/SKILL.md` and `references/CLI-RECIPE.md`. Produce both the target export and the editable source in `$RIGHAVEN_OUTPUT_DIR`, execute an independent reopen check in a clean folder, and record results in `handoff.json`.",
+  "verification_command": "python3 /opt/righaven-worker/handoff.py validate \"$RIGHAVEN_OUTPUT_DIR\"",
+  "security_policy": {
+    "rootless": true,
+    "network_access": false,
+    "writable_paths": [
+      "$RIGHAVEN_OUTPUT_DIR"
+    ],
+    "read_only_mounts": [
+      "/mnt/user-data"
+    ],
+    "drop_capabilities": [
+      "ALL"
+    ],
+    "no_new_privileges": true
+  }
+}

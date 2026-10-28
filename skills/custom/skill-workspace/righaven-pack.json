@@ -1,0 +1,50 @@
+{
+  "id": "skill-workspace",
+  "name": "RigHaven Workspace & Handoff Protocol",
+  "version": "1.0.0",
+  "author": "righaven-core",
+  "category": "skill",
+  "tags": [
+    "protocol",
+    "core",
+    "skill"
+  ],
+  "stars": 110,
+  "forks": 24,
+  "verified": true,
+  "tools": [],
+  "i18n": {
+    "en": {
+      "title": "RigHaven Workspace & Handoff Protocol",
+      "description": "Staging isolation, editable source verification, reopen check, and handoff.json contract."
+    },
+    "it": {
+      "title": "RigHaven Workspace & Handoff Protocol",
+      "description": "Isolamento dello staging, verifica dei sorgenti modificabili, reopen check e contratto handoff.json."
+    }
+  },
+  "docker_dependencies": {
+    "base_image": "righaven-sandbox:0.1.0",
+    "system_packages": [],
+    "python_packages": [],
+    "node_packages": [],
+    "nix_packages": []
+  },
+  "cli_binaries": [],
+  "skill_prompt_template": "Follow `skill-workspace` protocol rules for verified multi-agent execution.",
+  "verification_command": "python3 /opt/righaven-worker/handoff.py schema",
+  "security_policy": {
+    "rootless": true,
+    "network_access": false,
+    "writable_paths": [
+      "$RIGHAVEN_OUTPUT_DIR"
+    ],
+    "read_only_mounts": [
+      "/mnt/user-data"
+    ],
+    "drop_capabilities": [
+      "ALL"
+    ],
+    "no_new_privileges": true
+  }
+}

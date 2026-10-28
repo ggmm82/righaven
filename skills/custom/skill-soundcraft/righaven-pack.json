@@ -1,0 +1,63 @@
+{
+  "id": "skill-soundcraft",
+  "name": "SoundCraft Agent Skill (skill-soundcraft)",
+  "version": "v0.12.1",
+  "author": "righaven-core",
+  "category": "skill",
+  "tags": [
+    "soundcraft",
+    "skill",
+    "reopen-check"
+  ],
+  "stars": 83,
+  "forks": 15,
+  "verified": true,
+  "tools": [
+    "soundcraft"
+  ],
+  "i18n": {
+    "en": {
+      "title": "Skill: SoundCraft Multi-Track Audio & MIDI DAW",
+      "description": "Dynamic competency module instructing RigHaven agents on SoundCraft authoring, editable source preservation, and reopen verification."
+    },
+    "it": {
+      "title": "Skill: SoundCraft — Produzione audio",
+      "description": "Modulo di competenza dinamico che istruisce gli agenti RigHaven su SoundCraft, conservazione dei sorgenti modificabili e reopen check."
+    }
+  },
+  "docker_dependencies": {
+    "base_image": "righaven-sandbox:0.1.0",
+    "system_packages": [],
+    "python_packages": [],
+    "node_packages": [],
+    "nix_packages": [
+      "pkgs.soundcraft"
+    ]
+  },
+  "cli_binaries": [
+    {
+      "name": "soundcraft",
+      "executable": "/usr/local/bin/soundcraft-cli",
+      "safe_flags": [
+        "commands"
+      ],
+      "health_check": "craft capabilities soundcraft"
+    }
+  ],
+  "skill_prompt_template": "Load `/mnt/skills/custom/skill-soundcraft/SKILL.md` and `references/CLI-RECIPE.md`. Produce both the target export and the editable source in `$RIGHAVEN_OUTPUT_DIR`, execute an independent reopen check in a clean folder, and record results in `handoff.json`.",
+  "verification_command": "python3 /opt/righaven-worker/handoff.py validate \"$RIGHAVEN_OUTPUT_DIR\"",
+  "security_policy": {
+    "rootless": true,
+    "network_access": false,
+    "writable_paths": [
+      "$RIGHAVEN_OUTPUT_DIR"
+    ],
+    "read_only_mounts": [
+      "/mnt/user-data"
+    ],
+    "drop_capabilities": [
+      "ALL"
+    ],
+    "no_new_privileges": true
+  }
+}

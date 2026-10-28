@@ -1,0 +1,63 @@
+{
+  "id": "skill-designcraft",
+  "name": "DesignCraft Agent Skill (skill-designcraft)",
+  "version": "v0.12.0",
+  "author": "righaven-core",
+  "category": "skill",
+  "tags": [
+    "designcraft",
+    "skill",
+    "reopen-check"
+  ],
+  "stars": 101,
+  "forks": 13,
+  "verified": true,
+  "tools": [
+    "designcraft"
+  ],
+  "i18n": {
+    "en": {
+      "title": "Skill: DesignCraft Multi-Page Desktop Publishing",
+      "description": "Dynamic competency module instructing RigHaven agents on DesignCraft authoring, editable source preservation, and reopen verification."
+    },
+    "it": {
+      "title": "Skill: DesignCraft — Impaginazione editoriale",
+      "description": "Modulo di competenza dinamico che istruisce gli agenti RigHaven su DesignCraft, conservazione dei sorgenti modificabili e reopen check."
+    }
+  },
+  "docker_dependencies": {
+    "base_image": "righaven-sandbox:0.1.0",
+    "system_packages": [],
+    "python_packages": [],
+    "node_packages": [],
+    "nix_packages": [
+      "pkgs.designcraft"
+    ]
+  },
+  "cli_binaries": [
+    {
+      "name": "designcraft",
+      "executable": "/usr/local/bin/designcraft-cli",
+      "safe_flags": [
+        "commands"
+      ],
+      "health_check": "craft capabilities designcraft"
+    }
+  ],
+  "skill_prompt_template": "Load `/mnt/skills/custom/skill-designcraft/SKILL.md` and `references/CLI-RECIPE.md`. Produce both the target export and the editable source in `$RIGHAVEN_OUTPUT_DIR`, execute an independent reopen check in a clean folder, and record results in `handoff.json`.",
+  "verification_command": "python3 /opt/righaven-worker/handoff.py validate \"$RIGHAVEN_OUTPUT_DIR\"",
+  "security_policy": {
+    "rootless": true,
+    "network_access": false,
+    "writable_paths": [
+      "$RIGHAVEN_OUTPUT_DIR"
+    ],
+    "read_only_mounts": [
+      "/mnt/user-data"
+    ],
+    "drop_capabilities": [
+      "ALL"
+    ],
+    "no_new_privileges": true
+  }
+}

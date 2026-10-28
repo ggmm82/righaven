@@ -1,0 +1,63 @@
+{
+  "id": "skill-playwright",
+  "name": "Playwright Agent Skill (skill-playwright)",
+  "version": "1.64.1",
+  "author": "righaven-core",
+  "category": "skill",
+  "tags": [
+    "playwright",
+    "skill",
+    "reopen-check"
+  ],
+  "stars": 61,
+  "forks": 13,
+  "verified": true,
+  "tools": [
+    "playwright"
+  ],
+  "i18n": {
+    "en": {
+      "title": "Skill: Playwright Headless Browser Automation",
+      "description": "Dynamic competency module instructing RigHaven agents on Playwright authoring, editable source preservation, and reopen verification."
+    },
+    "it": {
+      "title": "Skill: Playwright — Collaudo browser e interfacce",
+      "description": "Modulo di competenza dinamico che istruisce gli agenti RigHaven su Playwright, conservazione dei sorgenti modificabili e reopen check."
+    }
+  },
+  "docker_dependencies": {
+    "base_image": "righaven-sandbox:0.1.0",
+    "system_packages": [],
+    "python_packages": [],
+    "node_packages": [],
+    "nix_packages": [
+      "pkgs.playwright"
+    ]
+  },
+  "cli_binaries": [
+    {
+      "name": "playwright",
+      "executable": "/usr/local/bin/playwright-cli",
+      "safe_flags": [
+        "commands"
+      ],
+      "health_check": "craft capabilities playwright"
+    }
+  ],
+  "skill_prompt_template": "Load `/mnt/skills/custom/skill-playwright/SKILL.md` and `references/CLI-RECIPE.md`. Produce both the target export and the editable source in `$RIGHAVEN_OUTPUT_DIR`, execute an independent reopen check in a clean folder, and record results in `handoff.json`.",
+  "verification_command": "python3 /opt/righaven-worker/handoff.py validate \"$RIGHAVEN_OUTPUT_DIR\"",
+  "security_policy": {
+    "rootless": true,
+    "network_access": false,
+    "writable_paths": [
+      "$RIGHAVEN_OUTPUT_DIR"
+    ],
+    "read_only_mounts": [
+      "/mnt/user-data"
+    ],
+    "drop_capabilities": [
+      "ALL"
+    ],
+    "no_new_privileges": true
+  }
+}

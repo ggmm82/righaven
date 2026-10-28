@@ -1,0 +1,63 @@
+{
+  "id": "skill-d2",
+  "name": "D2 Agent Skill (skill-d2)",
+  "version": "v0.9.0",
+  "author": "righaven-core",
+  "category": "skill",
+  "tags": [
+    "d2",
+    "skill",
+    "reopen-check"
+  ],
+  "stars": 97,
+  "forks": 29,
+  "verified": true,
+  "tools": [
+    "d2"
+  ],
+  "i18n": {
+    "en": {
+      "title": "Skill: D2 Declarative Diagramming Language",
+      "description": "Dynamic competency module instructing RigHaven agents on D2 authoring, editable source preservation, and reopen verification."
+    },
+    "it": {
+      "title": "Skill: D2 — Schemi strutturati moderni",
+      "description": "Modulo di competenza dinamico che istruisce gli agenti RigHaven su D2, conservazione dei sorgenti modificabili e reopen check."
+    }
+  },
+  "docker_dependencies": {
+    "base_image": "righaven-sandbox:0.1.0",
+    "system_packages": [],
+    "python_packages": [],
+    "node_packages": [],
+    "nix_packages": [
+      "pkgs.d2"
+    ]
+  },
+  "cli_binaries": [
+    {
+      "name": "d2",
+      "executable": "/usr/local/bin/d2-cli",
+      "safe_flags": [
+        "commands"
+      ],
+      "health_check": "craft capabilities d2"
+    }
+  ],
+  "skill_prompt_template": "Load `/mnt/skills/custom/skill-d2/SKILL.md` and `references/CLI-RECIPE.md`. Produce both the target export and the editable source in `$RIGHAVEN_OUTPUT_DIR`, execute an independent reopen check in a clean folder, and record results in `handoff.json`.",
+  "verification_command": "python3 /opt/righaven-worker/handoff.py validate \"$RIGHAVEN_OUTPUT_DIR\"",
+  "security_policy": {
+    "rootless": true,
+    "network_access": false,
+    "writable_paths": [
+      "$RIGHAVEN_OUTPUT_DIR"
+    ],
+    "read_only_mounts": [
+      "/mnt/user-data"
+    ],
+    "drop_capabilities": [
+      "ALL"
+    ],
+    "no_new_privileges": true
+  }
+}

@@ -1,0 +1,63 @@
+{
+  "id": "skill-fluidsynth",
+  "name": "FluidSynth Agent Skill (skill-fluidsynth)",
+  "version": "2.6.1",
+  "author": "righaven-core",
+  "category": "skill",
+  "tags": [
+    "fluidsynth",
+    "skill",
+    "reopen-check"
+  ],
+  "stars": 74,
+  "forks": 26,
+  "verified": true,
+  "tools": [
+    "fluidsynth"
+  ],
+  "i18n": {
+    "en": {
+      "title": "Skill: FluidSynth SoundFont MIDI Synthesizer",
+      "description": "Dynamic competency module instructing RigHaven agents on FluidSynth authoring, editable source preservation, and reopen verification."
+    },
+    "it": {
+      "title": "Skill: FluidSynth — Sintesi MIDI e SoundFont",
+      "description": "Modulo di competenza dinamico che istruisce gli agenti RigHaven su FluidSynth, conservazione dei sorgenti modificabili e reopen check."
+    }
+  },
+  "docker_dependencies": {
+    "base_image": "righaven-sandbox:0.1.0",
+    "system_packages": [],
+    "python_packages": [],
+    "node_packages": [],
+    "nix_packages": [
+      "pkgs.fluidsynth"
+    ]
+  },
+  "cli_binaries": [
+    {
+      "name": "fluidsynth",
+      "executable": "/usr/local/bin/fluidsynth-cli",
+      "safe_flags": [
+        "commands"
+      ],
+      "health_check": "craft capabilities fluidsynth"
+    }
+  ],
+  "skill_prompt_template": "Load `/mnt/skills/custom/skill-fluidsynth/SKILL.md` and `references/CLI-RECIPE.md`. Produce both the target export and the editable source in `$RIGHAVEN_OUTPUT_DIR`, execute an independent reopen check in a clean folder, and record results in `handoff.json`.",
+  "verification_command": "python3 /opt/righaven-worker/handoff.py validate \"$RIGHAVEN_OUTPUT_DIR\"",
+  "security_policy": {
+    "rootless": true,
+    "network_access": false,
+    "writable_paths": [
+      "$RIGHAVEN_OUTPUT_DIR"
+    ],
+    "read_only_mounts": [
+      "/mnt/user-data"
+    ],
+    "drop_capabilities": [
+      "ALL"
+    ],
+    "no_new_privileges": true
+  }
+}

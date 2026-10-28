@@ -1,0 +1,440 @@
+name: Verify and build RigHaven
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+concurrency:
+  group: harness-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+permissions:
+  contents: read
+  actions: read
+  pull-requests: read
+jobs:
+  resolve:
+    runs-on: ubuntu-24.04
+    outputs:
+      reuse: ${{ steps.resolve.outputs.reuse }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install PyYAML==6.0.3
+      - id: resolve
+        name: Reuse a successful PR with identical content
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python scripts/release_pipeline.py resolve --directory reports/reuse
+      - uses: actions/upload-artifact@v4
+        if: steps.resolve.outputs.reuse == 'true'
+        with:
+          name: reusable-runtime
+          path: reports/reuse/
+          overwrite: true
+  tests:
+    needs: resolve
+    if: needs.resolve.outputs.reuse != 'true'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -r requirements-dev.txt
+      - name: Use the canonical signed Ubuntu mirror on the CI runner
+        run: |
+          sudo python3 - <<'PYTHON'
+          from pathlib import Path
+          mirrors=Path('/etc/apt/apt-mirrors.txt')
+          if mirrors.exists():mirrors.write_text('https://archive.ubuntu.com/ubuntu/\n')
+          PYTHON
+      - name: Use available media tools or install them with bounded network waits
+        timeout-minutes: 5
+        run: |
+          if ! command -v ffmpeg >/dev/null || ! command -v ffprobe >/dev/null; then
+            sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update
+            sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y --no-install-recommends ffmpeg
+          fi
+          ffmpeg -version | head -n 1
+      - run: python -m unittest discover -s tests -v
+      - run: python scripts/validate.py
+      - name: Check goal-oriented skills and pinned capability map
+        run: |
+          python scripts/render_capability_docs.py --check
+          python scripts/check_tool_capabilities.py --root .
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Browser acceptance for specialist progress
+        run: |
+          npm install --prefix /tmp/rh-ui-tests --no-audit --no-fund react@19.2.4 react-dom@19.2.4 esbuild@0.25.12 @tailwindcss/cli@4.1.18
+          pip install playwright==1.64.1
+          python -m playwright install --with-deps chromium
+          python scripts/check_delegate_progress_ui.py --node-modules /tmp/rh-ui-tests/node_modules
+          python scripts/check_runtime_ui.py
+          mkdir -p /tmp/design-excalidraw
+          cp config/toolkit/design/excalidraw/package*.json /tmp/design-excalidraw/
+          PUPPETEER_SKIP_DOWNLOAD=true npm ci --prefix /tmp/design-excalidraw --ignore-scripts --no-audit --no-fund
+          node scripts/build_design_web.cjs excalidraw /tmp/design-excalidraw /tmp/design-web
+          python scripts/check_project_design_ui.py --node-modules /tmp/rh-ui-tests/node_modules --web /tmp/design-web
+          mkdir -p /tmp/design-bpmn
+          cp config/toolkit/design/bpmn/package*.json /tmp/design-bpmn/
+          PUPPETEER_SKIP_DOWNLOAD=true npm ci --prefix /tmp/design-bpmn --ignore-scripts --no-audit --no-fund
+          node scripts/build_design_web.cjs bpmn /tmp/design-bpmn /tmp/design-bpmn-web
+          python scripts/check_project_design_ui.py --node-modules /tmp/rh-ui-tests/node_modules --web /tmp/design-bpmn-web --tool bpmn
+          python scripts/check_provider_ui.py
+          python scripts/check_environments_ui.py --node-modules /tmp/rh-ui-tests/node_modules
+          mkdir -p /tmp/web-terminal-assets
+          cp config/web-terminal/package*.json /tmp/web-terminal-assets/
+          npm ci --prefix /tmp/web-terminal-assets --ignore-scripts --no-audit --no-fund
+          python scripts/check_terminal_ui.py --node-modules /tmp/rh-ui-tests/node_modules --assets /tmp/web-terminal-assets/node_modules
+      - name: Compose configuration
+        env:
+          RIGHAVEN_PASSWORD: ci-only-not-a-real-credential-123456
+          TRAEFIK_HOST: srv-test.hstgr.cloud
+        run: docker compose config --quiet && docker compose -f config/compose.hostinger.template.yaml config --quiet
+  images:
+    needs: [resolve]
+    if: needs.resolve.outputs.reuse != 'true'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        component: [gateway, frontend, sandbox, proxy]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Login to GitHub Container Registry
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Select published software by its inputs, independently of branch build caches
+        if: matrix.component == 'sandbox' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+        id: software
+        run: python scripts/software_image.py resolve
+      - name: Build deployment candidate once
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/Dockerfile.${{ matrix.component }}
+          target: ${{ matrix.component == 'sandbox' && 'core' || '' }}
+          tags: righaven-${{ matrix.component }}:0.1.0
+          labels: org.opencontainers.image.source=https://github.com/${{ github.repository }}
+          load: true
+          build-contexts: |
+            righaven_core=https://github.com/righaven/righaven-core.git#0bbcccfeb117a73cdeb7a8366f56ba71c25d6f5d
+            ${{ steps.software.outputs.context }}
+          cache-from: type=gha,scope=${{ matrix.component }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.component }}
+      - name: Validate RigHaven schema and injected tool
+        if: matrix.component == 'gateway'
+        run: |
+          docker run --rm --entrypoint python -e RIGHAVEN_PASSWORD=ci-only-not-a-real-credential-123456 righaven-gateway:0.1.0 -c 'from righaven.bootstrap import initialize; initialize(); from righaven_core.config.app_config import AppConfig; AppConfig.from_file("/righaven-state/config.yaml"); from righaven.tools import harness_delegate, harness_plan; from langchain_core.utils.function_calling import convert_to_openai_tool; schemas=[convert_to_openai_tool(t) for t in (harness_delegate, harness_plan)]; assert all("runtime" not in s["function"]["parameters"]["properties"] for s in schemas); print(schemas); from righaven.app import app; print(len(app.routes))'
+      - name: Check Codex credentials rotation with the pinned RigHaven provider
+        if: matrix.component == 'gateway'
+        run: docker run --rm --entrypoint python --mount "type=bind,src=$PWD/tests,dst=/review,readonly" righaven-gateway:0.1.0 -m unittest discover -s /review -p test_codex_provider.py -v
+      - name: Check native RigHaven skill discovery and custom Agent references
+        if: matrix.component == 'gateway'
+        run: docker run --rm --network=none --entrypoint python --mount "type=bind,src=$PWD/scripts,dst=/review,readonly" righaven-gateway:0.1.0 /review/check_skill_wiring.py
+      - name: Check native skill policy, Agent scope and actual skill packages
+        if: matrix.component == 'gateway'
+        run: docker run --rm --network=none --entrypoint python --mount "type=bind,src=$PWD/scripts,dst=/review,readonly" righaven-gateway:0.1.0 /review/check_native_capabilities.py
+      - name: Check custom OpenAI endpoint, SDK streaming and model target isolation
+        if: matrix.component == 'gateway'
+        run: docker run --rm --entrypoint python -e RIGHAVEN_REQUIRE_GATEWAY_TESTS=1 --mount "type=bind,src=$PWD/tests,dst=/review,readonly" righaven-gateway:0.1.0 -m unittest discover -s /review -p test_custom_providers.py -v
+      - name: Check Antigravity coordinator contract
+        if: matrix.component == 'gateway'
+        run: docker run --rm --entrypoint python --mount "type=bind,src=$PWD/tests,dst=/review,readonly" righaven-gateway:0.1.0 -m unittest discover -s /review -p test_gemini_provider.py -v
+      - name: Check background work survives browser disconnect
+        if: matrix.component == 'gateway'
+        run: docker run --rm --entrypoint python -e RIGHAVEN_REQUIRE_GATEWAY_TESTS=1 --mount "type=bind,src=$PWD/tests,dst=/review,readonly" righaven-gateway:0.1.0 -m unittest discover -s /review -p test_background_runs.py -v
+      - name: Check persisted progress authorization and user isolation
+        if: matrix.component == 'gateway'
+        run: docker run --rm --entrypoint python -e RIGHAVEN_REQUIRE_GATEWAY_TESTS=1 --mount "type=bind,src=$PWD/tests,dst=/review,readonly" righaven-gateway:0.1.0 -m unittest discover -s /review -p test_progress_routes.py -v
+      - name: Check adaptive orchestration tools, compact memory and explicit recovery
+        if: matrix.component == 'gateway'
+        run: |
+          set +e
+          docker run --rm --entrypoint python -e RIGHAVEN_REQUIRE_GATEWAY_TESTS=1 --mount "type=bind,src=$PWD/tests,dst=/review,readonly" righaven-gateway:0.1.0 -m unittest discover -s /review -p test_adaptive_tools.py -v > /tmp/rh-tools.log 2>&1
+          result=$?
+          cat /tmp/rh-tools.log
+          if [ "$result" -ne 0 ]; then
+            python - <<'PYTHON'
+          from pathlib import Path
+          text = Path('/tmp/rh-tools.log').read_text()[-8000:]
+          text = text.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
+          print('::error title=Gateway orchestration test failed::' + text)
+          PYTHON
+          fi
+          exit "$result"
+      - name: Check memory exhaustion using genuine cgroup counters
+        if: matrix.component == 'sandbox'
+        run: docker run --rm --init --network=none --memory=256m --memory-swap=256m --pids-limit=64 --cap-drop=ALL --security-opt=no-new-privileges --mount "type=bind,src=$PWD,dst=/review,readonly" righaven-sandbox:0.1.0 python3 /review/scripts/check_resource_supervision.py
+      - name: Check selected native methods inside the actual worker core without installed apps
+        if: matrix.component == 'sandbox'
+        run: docker run --rm --init --network=none --memory=256m --cap-drop=ALL --security-opt=no-new-privileges --mount "type=bind,src=$PWD/scripts,dst=/review,readonly" righaven-sandbox:0.1.0 python3 /review/check_worker_skill_composition.py
+      - name: Check official Antigravity CLI without account credentials
+        if: matrix.component == 'sandbox'
+        run: docker run --rm --network=none --entrypoint python3 --mount "type=bind,src=$PWD,dst=/review,readonly" righaven-sandbox:0.1.0 /review/scripts/check_antigravity_native.py
+      - name: Check native Codex model IDs without generation
+        if: matrix.component == 'sandbox'
+        run: docker run --rm --network=none --entrypoint python3 righaven-sandbox:0.1.0 -c 'import sys; sys.path.insert(0,"/opt/righaven-worker"); from refresh_codex import refresh; models=refresh("models"); assert models and all(m["id"] and m["label"] for m in models); print("Native Codex catalog OK")'
+      - name: Check pinned Codex native image protocol and vector-only choice offline
+        if: matrix.component == 'sandbox'
+        run: docker run --rm --network=none -e RIGHAVEN_REQUIRE_CODEX_NATIVE_TESTS=1 --mount "type=bind,src=$PWD,dst=/review,readonly" righaven-sandbox:0.1.0 python3 -m unittest discover -s /review/tests -p test_codex_native.py -v
+      - name: Validate proxy configuration
+        if: matrix.component == 'proxy'
+        run: |
+          docker run --rm --entrypoint caddy -e RIGHAVEN_SITE=:2026 -e RIGHAVEN_USER=admin -e RIGHAVEN_PASSWORD_HASH='$2a$14$7TqSh37TK/yl18PM9eaMOu/fA7YKMsBFUMDsHRUZTiZoFoRL66Eu6' righaven-proxy:0.1.0 validate --config /etc/caddy/Caddyfile --adapter caddyfile
+      - name: Check base preset, native source recovery, disabled tools and selective cache
+        if: matrix.component == 'sandbox'
+        run: |
+          python -m pip install PyYAML==6.0.3
+          python scripts/check_environment_runtime.py --tools d2 pandoc --incremental-check --policy-check --recovery-check
+          python scripts/check_environment_runtime.py --tools calibre pdfcraft wordcraft --calibre-stress
+      - name: Check a cold preload yields to a ready foreground tool and resumes after cleanup
+        if: matrix.component == 'sandbox'
+        run: |
+          python scripts/check_preload_priority.py
+          python scripts/check_execution_lanes.py
+          python scripts/check_parallel_preparation.py
+          python scripts/check_version_installation.py --tool photocraft --version v0.16.0
+          python scripts/check_task_staging.py
+      - name: Check native environment ownership, CRUD and deployment preferences
+        if: matrix.component == 'gateway'
+        run: docker run --rm --network=none --entrypoint python -e RIGHAVEN_REQUIRE_GATEWAY_TESTS=1 --mount "type=bind,src=$PWD/tests,dst=/review,readonly" righaven-gateway:0.1.0 -m unittest discover -s /review -p test_environment_routes.py -v
+      - name: Load the exact published software after full adapter checks
+        if: matrix.component == 'sandbox' && steps.software.outputs.reuse == 'true'
+        env:
+          SOFTWARE_IMAGE: ${{ steps.software.outputs.image }}
+        run: |
+          docker pull "$SOFTWARE_IMAGE"
+          docker tag "$SOFTWARE_IMAGE" righaven-sandbox:0.1.0
+      - name: Export new software only when its declared inputs changed
+        if: matrix.component == 'sandbox' && steps.software.outputs.reuse != 'true'
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/Dockerfile.sandbox
+          target: software
+          tags: righaven-sandbox:0.1.0
+          load: true
+          cache-from: type=gha,scope=sandbox
+      - name: Check software base has no worker code or skills
+        if: matrix.component == 'sandbox'
+        run: docker run --rm --network=none righaven-sandbox:0.1.0 python3 -c 'from pathlib import Path; assert not Path("/opt/righaven-worker/run_agent.py").exists(); assert not Path("/mnt/skills/custom").exists(); assert not Path("/opt/righaven/craft.py").exists(); print("Stable software base verified")'
+      - name: Verify software reuse without a BuildKit layer cache
+        if: matrix.component == 'sandbox' && steps.software.outputs.fingerprint != ''
+        run: python scripts/check_software_reuse.py
+      - name: Verify published software candidate reuses tools across worker releases
+        if: matrix.component == 'sandbox'
+        run: python scripts/check_runtime_separation.py
+      - name: Publish candidate by immutable digest after component checks
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          COMPONENT: ${{ matrix.component }}
+          REUSE_SOFTWARE: ${{ steps.software.outputs.reuse }}
+          SOFTWARE_IMAGE: ${{ steps.software.outputs.image }}
+        run: |
+          registry_image="ghcr.io/${GITHUB_REPOSITORY,,}-${COMPONENT}:ci-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          if [ "$COMPONENT" = sandbox ] && [ "$REUSE_SOFTWARE" = true ]; then
+            registry_image="$SOFTWARE_IMAGE"
+          else
+            docker tag "righaven-${COMPONENT}:0.1.0" "$registry_image"
+            docker push "$registry_image"
+          fi
+          python scripts/release_pipeline.py record --component "$COMPONENT" --image "$registry_image" --directory reports/runtime
+          if [ "$COMPONENT" = sandbox ]; then
+            python scripts/software_image.py publish --image "$registry_image"
+          fi
+      - uses: actions/upload-artifact@v4
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+        with:
+          name: runtime-${{ matrix.component }}
+          path: reports/runtime/${{ matrix.component }}.json
+          overwrite: true
+  containerd-portability:
+    needs: [resolve, images]
+    if: needs.resolve.outputs.reuse != 'true'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install PyYAML==6.0.3
+      - name: Use Docker containerd image store
+        uses: docker/setup-docker-action@v4
+        with:
+          daemon-config: |
+            {"features":{"containerd-snapshotter":true}}
+      - uses: docker/setup-buildx-action@v3
+      - name: Login to pull verified software candidate
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/download-artifact@v4
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+        with:
+          name: runtime-sandbox
+          path: reports/runtime
+      - name: Load the published software image in containerd
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+        run: |
+          python - <<'PYTHON'
+          import json,subprocess
+          from pathlib import Path
+          image=json.loads(Path('reports/runtime/sandbox.json').read_text())['image']
+          subprocess.run(['docker','pull',image],check=True)
+          subprocess.run(['docker','tag',image,'righaven-sandbox:0.1.0'],check=True)
+          PYTHON
+      - name: Build software for fork verification
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/Dockerfile.sandbox
+          target: software
+          tags: righaven-sandbox:0.1.0
+          load: true
+          cache-from: type=gha,scope=sandbox
+      - name: Verify complete Docker export, rebuild and import on containerd
+        run: |
+          python - <<'PYTHON'
+          import subprocess
+          status=subprocess.check_output(['docker','info','--format','{{json .DriverStatus}}'],text=True)
+          assert 'containerd' in status,status
+          print('Containerd image store verified')
+          PYTHON
+          python scripts/check_runtime_separation.py
+          python scripts/check_task_staging.py
+          python scripts/check_execution_lanes.py
+          python scripts/check_parallel_preparation.py
+          python scripts/check_version_installation.py --tool photocraft --version v0.16.0
+  startup:
+    needs: [resolve, tests, images, containerd-portability]
+    if: needs.resolve.outputs.reuse != 'true'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install PyYAML==6.0.3
+      - name: Login to pull exact candidate images
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/download-artifact@v4
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+        with:
+          pattern: runtime-*
+          merge-multiple: true
+          path: reports/runtime
+      - name: Load the same images already checked, without rebuilding
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+        run: |
+          python scripts/release_pipeline.py assemble
+          python scripts/release_pipeline.py pull
+      # Forks never receive registry/release write access. They still get integration checks.
+      - uses: docker/setup-buildx-action@v3
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository
+      - uses: docker/build-push-action@v6
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository
+        with:
+          context: .
+          file: docker/Dockerfile.gateway
+          tags: righaven-gateway:0.1.0
+          load: true
+          build-contexts: |
+            righaven_core=https://github.com/righaven/righaven-core.git#0bbcccfeb117a73cdeb7a8366f56ba71c25d6f5d
+          cache-from: type=gha,scope=gateway
+      - uses: docker/build-push-action@v6
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository
+        with:
+          context: .
+          file: docker/Dockerfile.frontend
+          tags: righaven-frontend:0.1.0
+          load: true
+          build-contexts: |
+            righaven_core=https://github.com/righaven/righaven-core.git#0bbcccfeb117a73cdeb7a8366f56ba71c25d6f5d
+          cache-from: type=gha,scope=frontend
+      - uses: docker/build-push-action@v6
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository
+        with:
+          context: .
+          file: docker/Dockerfile.sandbox
+          target: software
+          tags: righaven-sandbox:0.1.0
+          load: true
+          cache-from: type=gha,scope=sandbox
+      - uses: docker/build-push-action@v6
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository
+        with:
+          context: .
+          file: docker/Dockerfile.proxy
+          tags: righaven-proxy:0.1.0
+          load: true
+          cache-from: type=gha,scope=proxy
+      - name: Boot full Compose with the checked runtime images
+        run: bash scripts/ci_boot.sh
+      - name: Prepare and seal the verified Hostinger Compose
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          RIGHAVEN_PASSWORD: ci-only-not-a-real-credential-123456
+          TRAEFIK_HOST: srv-test.hstgr.cloud
+        run: |
+          python scripts/prepare_hostinger.py --commit "$GITHUB_SHA" --manifest reports/verified-runtime/runtime-manifest.json --output reports/verified-runtime/compose.hostinger.yaml
+          docker compose -f reports/verified-runtime/compose.hostinger.yaml config --quiet
+          python scripts/release_pipeline.py seal
+      - uses: actions/upload-artifact@v4
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+        with:
+          name: verified-runtime
+          path: reports/verified-runtime/
+          overwrite: true
+  release:
+    needs: [resolve, startup]
+    if: >-
+      always() && needs.resolve.result == 'success' &&
+      (needs.resolve.outputs.reuse == 'true' || needs.startup.result == 'success') &&
+      (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      actions: read
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install PyYAML==6.0.3
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.resolve.outputs.reuse == 'true' && 'reusable-runtime' || 'verified-runtime' }}
+          path: reports/verified-runtime
+      - name: Publish PR Compose or promote the verified images to stable
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python scripts/release_pipeline.py publish

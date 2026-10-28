@@ -1,0 +1,65 @@
+{
+  "id": "skill-aubio",
+  "name": "aubio Agent Skill (skill-aubio)",
+  "version": "0.4.9",
+  "author": "righaven-core",
+  "category": "skill",
+  "tags": [
+    "aubio",
+    "skill",
+    "reopen-check"
+  ],
+  "stars": 65,
+  "forks": 17,
+  "verified": true,
+  "tools": [
+    "aubio"
+  ],
+  "i18n": {
+    "en": {
+      "title": "Skill: Aubio Audio Onset & Pitch Analyzer",
+      "description": "Dynamic competency module instructing RigHaven agents on aubio authoring, editable source preservation, and reopen verification."
+    },
+    "it": {
+      "title": "Skill: aubio — Analisi temporale e musicale",
+      "description": "Modulo di competenza dinamico che istruisce gli agenti RigHaven su aubio, conservazione dei sorgenti modificabili e reopen check."
+    }
+  },
+  "docker_dependencies": {
+    "base_image": "righaven-sandbox:0.1.0",
+    "system_packages": [
+      "aubio"
+    ],
+    "python_packages": [],
+    "node_packages": [],
+    "nix_packages": [
+      "pkgs.aubio"
+    ]
+  },
+  "cli_binaries": [
+    {
+      "name": "aubio",
+      "executable": "/usr/local/bin/aubio-cli",
+      "safe_flags": [
+        "commands"
+      ],
+      "health_check": "craft capabilities aubio"
+    }
+  ],
+  "skill_prompt_template": "Load `/mnt/skills/custom/skill-aubio/SKILL.md` and `references/CLI-RECIPE.md`. Produce both the target export and the editable source in `$RIGHAVEN_OUTPUT_DIR`, execute an independent reopen check in a clean folder, and record results in `handoff.json`.",
+  "verification_command": "python3 /opt/righaven-worker/handoff.py validate \"$RIGHAVEN_OUTPUT_DIR\"",
+  "security_policy": {
+    "rootless": true,
+    "network_access": false,
+    "writable_paths": [
+      "$RIGHAVEN_OUTPUT_DIR"
+    ],
+    "read_only_mounts": [
+      "/mnt/user-data"
+    ],
+    "drop_capabilities": [
+      "ALL"
+    ],
+    "no_new_privileges": true
+  }
+}

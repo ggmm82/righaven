@@ -1,0 +1,63 @@
+{
+  "id": "skill-effectcraft",
+  "name": "EffectCraft Agent Skill (skill-effectcraft)",
+  "version": "v0.16.0",
+  "author": "righaven-core",
+  "category": "skill",
+  "tags": [
+    "effectcraft",
+    "skill",
+    "reopen-check"
+  ],
+  "stars": 62,
+  "forks": 14,
+  "verified": true,
+  "tools": [
+    "effectcraft"
+  ],
+  "i18n": {
+    "en": {
+      "title": "Skill: EffectCraft Motion & VFX Rig",
+      "description": "Dynamic competency module instructing RigHaven agents on EffectCraft authoring, editable source preservation, and reopen verification."
+    },
+    "it": {
+      "title": "Skill: EffectCraft — Animazione ed effetti",
+      "description": "Modulo di competenza dinamico che istruisce gli agenti RigHaven su EffectCraft, conservazione dei sorgenti modificabili e reopen check."
+    }
+  },
+  "docker_dependencies": {
+    "base_image": "righaven-sandbox:0.1.0",
+    "system_packages": [],
+    "python_packages": [],
+    "node_packages": [],
+    "nix_packages": [
+      "pkgs.effectcraft"
+    ]
+  },
+  "cli_binaries": [
+    {
+      "name": "effectcraft",
+      "executable": "/usr/local/bin/effectcraft-cli",
+      "safe_flags": [
+        "commands"
+      ],
+      "health_check": "craft capabilities effectcraft"
+    }
+  ],
+  "skill_prompt_template": "Load `/mnt/skills/custom/skill-effectcraft/SKILL.md` and `references/CLI-RECIPE.md`. Produce both the target export and the editable source in `$RIGHAVEN_OUTPUT_DIR`, execute an independent reopen check in a clean folder, and record results in `handoff.json`.",
+  "verification_command": "python3 /opt/righaven-worker/handoff.py validate \"$RIGHAVEN_OUTPUT_DIR\"",
+  "security_policy": {
+    "rootless": true,
+    "network_access": false,
+    "writable_paths": [
+      "$RIGHAVEN_OUTPUT_DIR"
+    ],
+    "read_only_mounts": [
+      "/mnt/user-data"
+    ],
+    "drop_capabilities": [
+      "ALL"
+    ],
+    "no_new_privileges": true
+  }
+}

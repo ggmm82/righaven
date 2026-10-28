@@ -1,0 +1,63 @@
+{
+  "id": "skill-bpmn",
+  "name": "BPMN / bpmn.io Agent Skill (skill-bpmn)",
+  "version": "0.10.0",
+  "author": "righaven-core",
+  "category": "skill",
+  "tags": [
+    "bpmn",
+    "skill",
+    "reopen-check"
+  ],
+  "stars": 73,
+  "forks": 25,
+  "verified": true,
+  "tools": [
+    "bpmn"
+  ],
+  "i18n": {
+    "en": {
+      "title": "Skill: BPMN 2.0 Process & Workflow Modeler",
+      "description": "Dynamic competency module instructing RigHaven agents on BPMN / bpmn.io authoring, editable source preservation, and reopen verification."
+    },
+    "it": {
+      "title": "Skill: BPMN / bpmn.io — Modellazione dei processi",
+      "description": "Modulo di competenza dinamico che istruisce gli agenti RigHaven su BPMN / bpmn.io, conservazione dei sorgenti modificabili e reopen check."
+    }
+  },
+  "docker_dependencies": {
+    "base_image": "righaven-sandbox:0.1.0",
+    "system_packages": [],
+    "python_packages": [],
+    "node_packages": [],
+    "nix_packages": [
+      "pkgs.bpmn"
+    ]
+  },
+  "cli_binaries": [
+    {
+      "name": "bpmn",
+      "executable": "/usr/local/bin/bpmn-cli",
+      "safe_flags": [
+        "commands"
+      ],
+      "health_check": "craft capabilities bpmn"
+    }
+  ],
+  "skill_prompt_template": "Load `/mnt/skills/custom/skill-bpmn/SKILL.md` and `references/CLI-RECIPE.md`. Produce both the target export and the editable source in `$RIGHAVEN_OUTPUT_DIR`, execute an independent reopen check in a clean folder, and record results in `handoff.json`.",
+  "verification_command": "python3 /opt/righaven-worker/handoff.py validate \"$RIGHAVEN_OUTPUT_DIR\"",
+  "security_policy": {
+    "rootless": true,
+    "network_access": false,
+    "writable_paths": [
+      "$RIGHAVEN_OUTPUT_DIR"
+    ],
+    "read_only_mounts": [
+      "/mnt/user-data"
+    ],
+    "drop_capabilities": [
+      "ALL"
+    ],
+    "no_new_privileges": true
+  }
+}

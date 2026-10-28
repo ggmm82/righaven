@@ -1,0 +1,63 @@
+{
+  "id": "skill-filmcraft",
+  "name": "FilmCraft Agent Skill (skill-filmcraft)",
+  "version": "v0.12.0",
+  "author": "righaven-core",
+  "category": "skill",
+  "tags": [
+    "filmcraft",
+    "skill",
+    "reopen-check"
+  ],
+  "stars": 113,
+  "forks": 25,
+  "verified": true,
+  "tools": [
+    "filmcraft"
+  ],
+  "i18n": {
+    "en": {
+      "title": "Skill: FilmCraft Nonlinear Video Editor",
+      "description": "Dynamic competency module instructing RigHaven agents on FilmCraft authoring, editable source preservation, and reopen verification."
+    },
+    "it": {
+      "title": "Skill: FilmCraft — Montaggio video",
+      "description": "Modulo di competenza dinamico che istruisce gli agenti RigHaven su FilmCraft, conservazione dei sorgenti modificabili e reopen check."
+    }
+  },
+  "docker_dependencies": {
+    "base_image": "righaven-sandbox:0.1.0",
+    "system_packages": [],
+    "python_packages": [],
+    "node_packages": [],
+    "nix_packages": [
+      "pkgs.filmcraft"
+    ]
+  },
+  "cli_binaries": [
+    {
+      "name": "filmcraft",
+      "executable": "/usr/local/bin/filmcraft-cli",
+      "safe_flags": [
+        "commands"
+      ],
+      "health_check": "craft capabilities filmcraft"
+    }
+  ],
+  "skill_prompt_template": "Load `/mnt/skills/custom/skill-filmcraft/SKILL.md` and `references/CLI-RECIPE.md`. Produce both the target export and the editable source in `$RIGHAVEN_OUTPUT_DIR`, execute an independent reopen check in a clean folder, and record results in `handoff.json`.",
+  "verification_command": "python3 /opt/righaven-worker/handoff.py validate \"$RIGHAVEN_OUTPUT_DIR\"",
+  "security_policy": {
+    "rootless": true,
+    "network_access": false,
+    "writable_paths": [
+      "$RIGHAVEN_OUTPUT_DIR"
+    ],
+    "read_only_mounts": [
+      "/mnt/user-data"
+    ],
+    "drop_capabilities": [
+      "ALL"
+    ],
+    "no_new_privileges": true
+  }
+}

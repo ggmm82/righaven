@@ -1,0 +1,161 @@
+name: Verify selected optional environments
+on:
+  pull_request:
+    types: [labeled]
+  workflow_dispatch:
+    inputs:
+      tools:
+        description: 'Tool IDs separated by commas, or all. One isolated environment per tool.'
+        required: true
+        default: 'opengrep,trivy,typst'
+      team_pipeline:
+        description: 'Test Photo/Effect/Sound/Film handoffs and interrupted audio delivery in one selected environment'
+        type: boolean
+        required: false
+        default: false
+      candidate_tag:
+        description: 'Published PR release to test account/environment lifecycle without rebuilding images'
+        required: false
+        default: ''
+      calibre_stress:
+        description: 'Verify the full document preset and 60 native Calibre headless checks'
+        type: boolean
+        required: false
+        default: false
+permissions:
+  contents: read
+jobs:
+  selection:
+    if: (github.event_name == 'workflow_dispatch' && inputs.candidate_tag == '' && !inputs.team_pipeline && !inputs.calibre_stress) || github.event.label.name == 'verify-environments'
+    runs-on: ubuntu-24.04
+    outputs:
+      tools: ${{ steps.select.outputs.tools }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: select
+        env:
+          REQUESTED_TOOLS: ${{ inputs.tools || 'opengrep,trivy,typst' }}
+        run: |
+          python - <<'PYTHON'
+          import json,os
+          from pathlib import Path
+          known={a['id'] for a in json.loads(Path('versions.lock.json').read_text())['applications']}
+          value=os.environ['REQUESTED_TOOLS']
+          selected=sorted(known if value.strip()=='all' else {t.strip() for t in value.split(',') if t.strip()})
+          if not selected or set(selected)-known:raise SystemExit('Choose registered tool IDs')
+          with open(os.environ['GITHUB_OUTPUT'],'a') as output:output.write('tools='+json.dumps(selected)+'\n')
+          PYTHON
+  environment:
+    needs: selection
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix:
+        tool: ${{ fromJSON(needs.selection.outputs.tools) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Build only the basic core
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/Dockerfile.sandbox
+          target: core
+          tags: righaven-sandbox:0.1.0
+          load: true
+          cache-from: type=gha,scope=sandbox
+      - name: Prepare and verify one specialist environment
+        env:
+          TOOL: ${{ matrix.tool }}
+        run: |
+          python -m pip install PyYAML==6.0.3
+          python scripts/check_environment_runtime.py --tools "$TOOL" --verification-dependencies
+
+  lifecycle:
+    if: github.event_name == 'workflow_dispatch' && inputs.candidate_tag != ''
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install PyYAML==6.0.3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Load the exact published candidate, without builds
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CANDIDATE_TAG: ${{ inputs.candidate_tag }}
+        run: |
+          python - <<'PYTHON'
+          import os,re,subprocess
+          from scripts.release_pipeline import validate_bundle
+          tag=os.environ['CANDIDATE_TAG']
+          if not re.fullmatch(r'pr-[0-9]+-run-[0-9]+-[0-9]+',tag):raise SystemExit('Choose a published PR candidate')
+          subprocess.run(['gh','release','download',tag,'--repo',os.environ['GITHUB_REPOSITORY'],'--dir','reports/candidate'],check=True)
+          value=validate_bundle('reports/candidate',os.environ['GITHUB_REPOSITORY'])
+          for component,image in value['images'].items():
+              subprocess.run(['docker','pull',image],check=True)
+              subprocess.run(['docker','tag',image,'righaven-'+component+':0.1.0'],check=True)
+          print('Testing published candidate commit:',value['head_sha'])
+          PYTHON
+      - name: Exercise authenticated accounts, native skills, restart, cache, cancellation and recovery
+        env:
+          RIGHAVEN_LIFECYCLE_CHECK: '1'
+        run: bash scripts/ci_boot.sh
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: environment-lifecycle-report
+          path: reports/environment-lifecycle.json
+
+  document_preset:
+    if: github.event_name == 'workflow_dispatch' && inputs.calibre_stress
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Build the basic core with the current trusted adapters
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/Dockerfile.sandbox
+          target: core
+          tags: righaven-sandbox:0.1.0
+          load: true
+          cache-from: type=gha,scope=sandbox
+      - name: Prepare the whole document preset and repeat real headless checks
+        run: |
+          python -m pip install PyYAML==6.0.3
+          python scripts/check_environment_runtime.py --tools calibre deckcraft epubcheck pandoc pdfcraft typst wordcraft --calibre-stress
+
+  team:
+    if: github.event_name == 'workflow_dispatch' && inputs.team_pipeline
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Build only the basic core
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/Dockerfile.sandbox
+          target: core
+          tags: righaven-sandbox:0.1.0
+          load: true
+          cache-from: type=gha,scope=sandbox
+      - name: Verify actual multidisciplinary handoffs and recovery
+        run: |
+          python -m pip install PyYAML==6.0.3
+          python scripts/check_environment_runtime.py --tools photocraft effectcraft soundcraft filmcraft --team-check

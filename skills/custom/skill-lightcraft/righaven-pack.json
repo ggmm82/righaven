@@ -1,0 +1,63 @@
+{
+  "id": "skill-lightcraft",
+  "name": "LightCraft Agent Skill (skill-lightcraft)",
+  "version": "v0.13.0",
+  "author": "righaven-core",
+  "category": "skill",
+  "tags": [
+    "lightcraft",
+    "skill",
+    "reopen-check"
+  ],
+  "stars": 105,
+  "forks": 17,
+  "verified": true,
+  "tools": [
+    "lightcraft"
+  ],
+  "i18n": {
+    "en": {
+      "title": "Skill: LightCraft RAW Photo Developer",
+      "description": "Dynamic competency module instructing RigHaven agents on LightCraft authoring, editable source preservation, and reopen verification."
+    },
+    "it": {
+      "title": "Skill: LightCraft — Fotografia e RAW",
+      "description": "Modulo di competenza dinamico che istruisce gli agenti RigHaven su LightCraft, conservazione dei sorgenti modificabili e reopen check."
+    }
+  },
+  "docker_dependencies": {
+    "base_image": "righaven-sandbox:0.1.0",
+    "system_packages": [],
+    "python_packages": [],
+    "node_packages": [],
+    "nix_packages": [
+      "pkgs.lightcraft"
+    ]
+  },
+  "cli_binaries": [
+    {
+      "name": "lightcraft",
+      "executable": "/usr/local/bin/lightcraft-cli",
+      "safe_flags": [
+        "commands"
+      ],
+      "health_check": "craft capabilities lightcraft"
+    }
+  ],
+  "skill_prompt_template": "Load `/mnt/skills/custom/skill-lightcraft/SKILL.md` and `references/CLI-RECIPE.md`. Produce both the target export and the editable source in `$RIGHAVEN_OUTPUT_DIR`, execute an independent reopen check in a clean folder, and record results in `handoff.json`.",
+  "verification_command": "python3 /opt/righaven-worker/handoff.py validate \"$RIGHAVEN_OUTPUT_DIR\"",
+  "security_policy": {
+    "rootless": true,
+    "network_access": false,
+    "writable_paths": [
+      "$RIGHAVEN_OUTPUT_DIR"
+    ],
+    "read_only_mounts": [
+      "/mnt/user-data"
+    ],
+    "drop_capabilities": [
+      "ALL"
+    ],
+    "no_new_privileges": true
+  }
+}

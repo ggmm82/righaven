@@ -1,0 +1,63 @@
+{
+  "id": "skill-deckcraft",
+  "name": "DeckCraft Agent Skill (skill-deckcraft)",
+  "version": "v0.10.0",
+  "author": "righaven-core",
+  "category": "skill",
+  "tags": [
+    "deckcraft",
+    "skill",
+    "reopen-check"
+  ],
+  "stars": 83,
+  "forks": 15,
+  "verified": true,
+  "tools": [
+    "deckcraft"
+  ],
+  "i18n": {
+    "en": {
+      "title": "Skill: DeckCraft Presentation & Slide System",
+      "description": "Dynamic competency module instructing RigHaven agents on DeckCraft authoring, editable source preservation, and reopen verification."
+    },
+    "it": {
+      "title": "Skill: DeckCraft — Presentazioni",
+      "description": "Modulo di competenza dinamico che istruisce gli agenti RigHaven su DeckCraft, conservazione dei sorgenti modificabili e reopen check."
+    }
+  },
+  "docker_dependencies": {
+    "base_image": "righaven-sandbox:0.1.0",
+    "system_packages": [],
+    "python_packages": [],
+    "node_packages": [],
+    "nix_packages": [
+      "pkgs.deckcraft"
+    ]
+  },
+  "cli_binaries": [
+    {
+      "name": "deckcraft",
+      "executable": "/usr/local/bin/deckcraft-cli",
+      "safe_flags": [
+        "commands"
+      ],
+      "health_check": "craft capabilities deckcraft"
+    }
+  ],
+  "skill_prompt_template": "Load `/mnt/skills/custom/skill-deckcraft/SKILL.md` and `references/CLI-RECIPE.md`. Produce both the target export and the editable source in `$RIGHAVEN_OUTPUT_DIR`, execute an independent reopen check in a clean folder, and record results in `handoff.json`.",
+  "verification_command": "python3 /opt/righaven-worker/handoff.py validate \"$RIGHAVEN_OUTPUT_DIR\"",
+  "security_policy": {
+    "rootless": true,
+    "network_access": false,
+    "writable_paths": [
+      "$RIGHAVEN_OUTPUT_DIR"
+    ],
+    "read_only_mounts": [
+      "/mnt/user-data"
+    ],
+    "drop_capabilities": [
+      "ALL"
+    ],
+    "no_new_privileges": true
+  }
+}

@@ -1,0 +1,52 @@
+# Scegliere gli strumenti dal risultato
+
+I ruoli professionali si compilano dal progetto. Questa mappa descrive strumenti e confini, non una squadra obbligatoria.
+Consulta `craft capabilities` per la mappa compatta e `craft capabilities ID` per una sola app. Il catalogo completo è in `craft commands ID`; gli schemi esatti in `craft tools ID`.
+
+Un comando registrato non è un workflow collaudato: verifica prerequisiti, dati, unità, modelli/add-on e reale esecuzione. `enabled=false` può dipendere dalla selezione o dal documento aperto; non significa automaticamente funzione assente.
+
+| Strumento | Quando sceglierlo | Sorgenti da conservare |
+|---|---|---|
+| [photocraft](../../skill-photocraft/references/CAPABILITIES.md) | Ritocco, compositing raster e texture con livelli e maschere | PSD o .pcraft con livelli; originali e ricetta delle texture |
+| [vectorcraft](../../skill-vectorcraft/references/CAPABILITIES.md) | Illustrazione vettoriale, loghi, icone, lettering e diagrammi modificabili | .vectorcraft/SVG con tracciati e testo; PDF come export |
+| [filmcraft](../../skill-filmcraft/references/CAPABILITIES.md) | Montaggio, sequenze, composizione di contributi, colore e master audiovisivo | .fcproj, media e pacchetto portabile; master separato |
+| [lightcraft](../../skill-lightcraft/references/CAPABILITIES.md) | Sviluppo fotografico/RAW, catalogazione, correzioni locali e serie coerenti | Originali, parametri e ricetta riproducibile; sidecar solo se realmente supportato |
+| [pdfcraft](../../skill-pdfcraft/references/CAPABILITIES.md) | Ispezione e modifica PDF, pagine, testo, moduli, OCR e prestampa | PDF modificato e originali/ricetta; progetto editoriale da conservare separatamente |
+| [effectcraft](../../skill-effectcraft/references/CAPABILITIES.md) | Animazione 2D/3D, motion graphics, compositing, camera/luci ed effetti | .ecproj e asset; parti, proprietà e keyframe conservati |
+| [designcraft](../../skill-designcraft/references/CAPABILITIES.md) | Impaginazione multipagina, libri, riviste, fumetti e prestampa | .designcraft, font/immagini pertinenti e PDF di lettura/stampa |
+| [gridcraft](../../skill-gridcraft/references/CAPABILITIES.md) | Fogli di calcolo, formule, tabelle, grafici, analisi e reporting | XLSX con formule/dati/grafici; export PDF/CSV separati |
+| [wordcraft](../../skill-wordcraft/references/CAPABILITIES.md) | Scrittura strutturata, documenti lunghi, revisioni e apparati editoriali | DOCX/progetto supportato con struttura, stili e revisioni |
+| [deckcraft](../../skill-deckcraft/references/CAPABILITIES.md) | Presentazioni editabili, sistemi di slide, diagrammi, media e animazioni | .deckcraft e PPTX, con media e limiti di interoperabilità |
+| [cadcraft](../../skill-cadcraft/references/CAPABILITIES.md) | Disegno tecnico, quote, blocchi, geometrie CAD e tavole di progetto | DXF/DWG o formato nativo realmente supportato, con unità e quote |
+| [soundcraft](../../skill-soundcraft/references/CAPABILITIES.md) | Composizione MIDI, sintesi, sound design, montaggio e mix modificabile | .scraft con strumenti/note, clip, automazioni, media, stem e mix |
+| [figcraft](../../skill-figcraft/references/CAPABILITIES.md) | Design di interfacce, componenti, layout adattivi e prototipi | .figcraft e asset; esportazioni .fig/SVG/PDF verificate separatamente |
+| [blender](../../skill-blender/references/CAPABILITIES.md) | Modellazione 3D, rig, materiali, simulazioni, animazione e rendering | .blend con risorse incorporate; GLB/FBX/video come export |
+| [calibre](../../skill-calibre/references/CAPABILITIES.md) | Produzione e conversione editoriale, EPUB/AZW3, metadati, risorse e librerie | XHTML/CSS/OPF e risorse, ebook ricostruibile e input editoriali |
+| [playwright](../../skill-playwright/references/CAPABILITIES.md) | Automazione browser, test di interazione, screenshot e trace su applicazioni web reali | Codice applicativo, test .test.cjs o automazione .cjs, configurazione, screenshot e trace pertinenti |
+| [aubio](../../skill-aubio/references/CAPABILITIES.md) | Stima di attacchi, battiti, altezza e note dal segnale audio, con unità esplicite | Audio originale, parametri di analisi, report con unità, ricetta ripetibile; sorgenti musicali conservati dagli strumenti di authoring |
+| [fluidsynth](../../skill-fluidsynth/references/CAPABILITIES.md) | Rendering offline MIDI con strumenti SF2, partitura e banca conservate per la riproduzione | MIDI, SoundFont SF2 effettivo, licenza della banca e render-settings.json; sessione SoundCraft e stem per il mix |
+| [epubcheck](../../skill-epubcheck/references/CAPABILITIES.md) | Controllo indipendente EPUB di contenitori, manifest, risorse e markup; errori distinti dagli avvisi | EPUB e sorgenti XHTML/CSS/OPF, media e font prodotti dagli strumenti di authoring; report JSON come prova |
+| [pandoc](../../skill-pandoc/references/CAPABILITIES.md) | Conversione Markdown, DOCX, EPUB, HTML e altri formati, con bibliografia e template espliciti | Documento strutturato originale, Markdown/AST quando usato, template, bibliografia CSL/BibTeX, font/media e ricetta di conversione |
+| [typst](../../skill-typst/references/CAPABILITIES.md) | Composizione tipografica riproducibile in PDF, SVG o PNG da sorgenti .typ, font e risorse | Sorgenti .typ, template e moduli locali, dati, immagini, font e ricetta di compilazione |
+| [freecad](../../skill-freecad/references/CAPABILITIES.md) | Modellazione CAD 3D parametrica di oggetti, componenti e costruzioni; sorgenti modificabili e scambio STEP | Documento nativo .FCStd con albero parametrico, script .py realmente usato, dati e riferimenti; STEP come export di scambio |
+| [whisper](../../skill-whisper/references/CAPABILITIES.md) | Trascrizione parlato CPU multilingue in TXT, SRT e JSON con modello tiny fissato e disponibile offline | Audio originale o riferimento autorizzato, TXT/SRT/JSON modificabili, lingua e configurazione, identificativo e hash del modello |
+| [ffmpeg](../../skill-ffmpeg/references/CAPABILITIES.md) | Probe dei flussi, conversione codec e formati, estrazione audio e mux con parametri espliciti | Input originali, progetti delle app di authoring, media collegati, ricetta/parametri di conversione e mux |
+| [musescore](../../skill-musescore/references/CAPABILITIES.md) | Partiture, arrangiamenti e melodia esplicita; SoundCraft resta responsabile del mix. | MSCZ, MusicXML, MIDI, risorse e indicazioni di tempo; WAV/MP3 sono export. |
+| [ifcopenshell](../../skill-ifcopenshell/references/CAPABILITIES.md) | Authoring semantico BIM e validazione IFC; FreeCAD resta il modellatore CAD parametrico. | IFC, script Python, unità, proprietà e risorse originali. |
+| [manim](../../skill-manim/references/CAPABILITIES.md) | Animazioni didattiche, matematiche e dati costruite con Scene Python; EffectCraft resta il compositore generale. | Scene Python, risorse, render-recipe.json e parametri riproducibili. |
+| [opentimelineio](../../skill-opentimelineio/references/CAPABILITIES.md) | Ispezione di tempi razionali, riferimenti e pacchetti media portabili; FilmCraft resta l’editor e FFmpeg il motore codec. | Timeline OTIO e media collegati, bundle OTIOD completo dentro ZIP, script di trasformazione. |
+| [pymeshlab](../../skill-pymeshlab/references/CAPABILITIES.md) | Misura, pulizia e filtri di mesh esistenti; FreeCAD resta il CAD parametrico e Blender l’authoring organico. | MLP, geometrie PLY/OBJ/STL, filtri MLX o Python, risorse collegate. |
+| [d2](../../skill-d2/references/CAPABILITIES.md) | Flussi, relazioni e dipendenze con layout automatico; non richiede UML o professioni fisse. | D2 .d2 autonomo e ricetta; SVG/PNG/PDF come export. |
+| [plantuml](../../skill-plantuml/references/CAPABILITIES.md) | Classi, sequenze, attività e stati quando la semantica UML è utile; D2 resta la scelta per schemi generali. | PlantUML .puml autonomo e ricetta; SVG come export. |
+| [mermaid](../../skill-mermaid/references/CAPABILITIES.md) | Flussi, sequenze, stati e mappe nella chat e nel Markdown; valorizza il renderer Mermaid già presente in RigHaven. | Mermaid .mmd e ricetta, con SVG/PNG/PDF esportati. |
+| [excalidraw](../../skill-excalidraw/references/CAPABILITIES.md) | Brainstorming, mappe e schizzi condivisi; la lavagna resta modificabile dall’utente. VectorCraft resta l’editor vettoriale di produzione. | JSON .excalidraw con immagini incorporate; SVG/PNG/PDF come export. |
+| [bpmn](../../skill-bpmn/references/CAPABILITIES.md) | Processi con eventi, responsabilità, decisioni ed eccezioni in BPMN 2.0; non è un nuovo esecutore dei lavori. | BPMN .bpmn con DI e riferimenti coerenti; SVG/PNG/PDF come export. |
+| [structurizr](../../skill-structurizr/references/CAPABILITIES.md) | Viste coerenti di architettura software da un unico modello C4. Usa le librerie mantenute, non la vecchia CLI dismessa. | DSL .dsl, workspace JSON ed export PlantUML/Mermaid; eventuali immagini sono del renderer scelto. |
+| [opengrep](../../skill-opengrep/references/CAPABILITIES.md) | Analisi statica di codice con regole YAML locali esplicite | Codice o configurazione esaminati, regole locali, report JSON, scan-recipe.json e metadata del database quando usato |
+| [trivy](../../skill-trivy/references/CAPABILITIES.md) | Controllo configurazioni, inventario CycloneDX e vulnerabilità con database esplicito | Codice o configurazione esaminati, regole locali, report JSON, scan-recipe.json e metadata del database quando usato |
+
+## Passaggi tra strumenti
+
+Per ogni passaggio specifica risultato atteso, formato, unità/scala, risoluzione, colore, frame rate/sample rate e riferimenti temporali pertinenti. L’integrazione conserva anche i sorgenti delle componenti, non soltanto il progetto che li contiene.
+Usa gli strumenti di authoring pertinenti prima di ridurre tutto a primitive o script usa-e-getta. Lo scripting rimane utile per costruzione e automazione, con ricetta e parametri conservati. La disponibilità di molte app non obbliga a usarle tutte.
+Se la prova non raggiunge la finitura, cambia il metodo o la competenza sul difetto osservato. Un campione breve può essere fedele al livello finale; un render lungo dello stesso asset rudimentale non lo migliora.

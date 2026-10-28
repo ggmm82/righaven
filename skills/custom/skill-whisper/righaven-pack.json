@@ -1,0 +1,63 @@
+{
+  "id": "skill-whisper",
+  "name": "whisper.cpp Agent Skill (skill-whisper)",
+  "version": "v1.9.5",
+  "author": "righaven-core",
+  "category": "skill",
+  "tags": [
+    "whisper",
+    "skill",
+    "reopen-check"
+  ],
+  "stars": 62,
+  "forks": 14,
+  "verified": true,
+  "tools": [
+    "whisper"
+  ],
+  "i18n": {
+    "en": {
+      "title": "Skill: Whisper.cpp Offline Speech Transcription",
+      "description": "Dynamic competency module instructing RigHaven agents on whisper.cpp authoring, editable source preservation, and reopen verification."
+    },
+    "it": {
+      "title": "Skill: whisper.cpp — Trascrizione e sottotitoli",
+      "description": "Modulo di competenza dinamico che istruisce gli agenti RigHaven su whisper.cpp, conservazione dei sorgenti modificabili e reopen check."
+    }
+  },
+  "docker_dependencies": {
+    "base_image": "righaven-sandbox:0.1.0",
+    "system_packages": [],
+    "python_packages": [],
+    "node_packages": [],
+    "nix_packages": [
+      "pkgs.whisper"
+    ]
+  },
+  "cli_binaries": [
+    {
+      "name": "whisper",
+      "executable": "/usr/local/bin/whisper-cpp-cli",
+      "safe_flags": [
+        "commands"
+      ],
+      "health_check": "craft capabilities whisper"
+    }
+  ],
+  "skill_prompt_template": "Load `/mnt/skills/custom/skill-whisper/SKILL.md` and `references/CLI-RECIPE.md`. Produce both the target export and the editable source in `$RIGHAVEN_OUTPUT_DIR`, execute an independent reopen check in a clean folder, and record results in `handoff.json`.",
+  "verification_command": "python3 /opt/righaven-worker/handoff.py validate \"$RIGHAVEN_OUTPUT_DIR\"",
+  "security_policy": {
+    "rootless": true,
+    "network_access": false,
+    "writable_paths": [
+      "$RIGHAVEN_OUTPUT_DIR"
+    ],
+    "read_only_mounts": [
+      "/mnt/user-data"
+    ],
+    "drop_capabilities": [
+      "ALL"
+    ],
+    "no_new_privileges": true
+  }
+}

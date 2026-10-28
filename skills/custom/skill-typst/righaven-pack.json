@@ -1,0 +1,63 @@
+{
+  "id": "skill-typst",
+  "name": "Typst Agent Skill (skill-typst)",
+  "version": "v0.15.1",
+  "author": "righaven-core",
+  "category": "skill",
+  "tags": [
+    "typst",
+    "skill",
+    "reopen-check"
+  ],
+  "stars": 119,
+  "forks": 31,
+  "verified": true,
+  "tools": [
+    "typst"
+  ],
+  "i18n": {
+    "en": {
+      "title": "Skill: Typst Programmable Typesetting System",
+      "description": "Dynamic competency module instructing RigHaven agents on Typst authoring, editable source preservation, and reopen verification."
+    },
+    "it": {
+      "title": "Skill: Typst — Impaginazione programmabile",
+      "description": "Modulo di competenza dinamico che istruisce gli agenti RigHaven su Typst, conservazione dei sorgenti modificabili e reopen check."
+    }
+  },
+  "docker_dependencies": {
+    "base_image": "righaven-sandbox:0.1.0",
+    "system_packages": [],
+    "python_packages": [],
+    "node_packages": [],
+    "nix_packages": [
+      "pkgs.typst"
+    ]
+  },
+  "cli_binaries": [
+    {
+      "name": "typst",
+      "executable": "/usr/local/bin/typst-cli",
+      "safe_flags": [
+        "commands"
+      ],
+      "health_check": "craft capabilities typst"
+    }
+  ],
+  "skill_prompt_template": "Load `/mnt/skills/custom/skill-typst/SKILL.md` and `references/CLI-RECIPE.md`. Produce both the target export and the editable source in `$RIGHAVEN_OUTPUT_DIR`, execute an independent reopen check in a clean folder, and record results in `handoff.json`.",
+  "verification_command": "python3 /opt/righaven-worker/handoff.py validate \"$RIGHAVEN_OUTPUT_DIR\"",
+  "security_policy": {
+    "rootless": true,
+    "network_access": false,
+    "writable_paths": [
+      "$RIGHAVEN_OUTPUT_DIR"
+    ],
+    "read_only_mounts": [
+      "/mnt/user-data"
+    ],
+    "drop_capabilities": [
+      "ALL"
+    ],
+    "no_new_privileges": true
+  }
+}

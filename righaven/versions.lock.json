@@ -1,0 +1,1596 @@
+{
+  "schema_version": 1,
+  "verified_date": "2026-10-25",
+  "righaven_core": {
+    "repository": "https://github.com/righaven/righaven-core.git",
+    "commit": "0bbcccfeb117a73cdeb7a8366f56ba71c25d6f5d"
+  },
+  "sandbox_base": "node:22-bookworm-slim",
+  "applications": [
+    {
+      "id": "photocraft",
+      "name": "PhotoCraft",
+      "role": "Immagini e ritocco",
+      "description": "Ritocco, compositing raster e texture con livelli e maschere.",
+      "repository": "https://github.com/storytold/photocraft",
+      "version": "v0.15.1",
+      "executable": "photocraft-cli",
+      "registry_args": [
+        "commands"
+      ],
+      "mcp_args": [
+        "mcp",
+        "--automation-read-root",
+        "/mnt/user-data",
+        "--automation-write-root",
+        "/mnt/user-data"
+      ],
+      "assets": {
+        "amd64": {
+          "name": "photocraft-0.15.1-linux-x86_64.tar.gz",
+          "url": "https://github.com/storytold/photocraft/releases/download/v0.15.1/photocraft-0.15.1-linux-x86_64.tar.gz",
+          "sha256": "b622be40355513056f8152afe895d0a05c1bc3c344a027f772a9a12fa3d1c223",
+          "size_bytes": 85757901
+        },
+        "arm64": {
+          "name": "photocraft-0.15.1-linux-aarch64.tar.gz",
+          "url": "https://github.com/storytold/photocraft/releases/download/v0.15.1/photocraft-0.15.1-linux-aarch64.tar.gz",
+          "sha256": "ff2ea1945df3b413b17c64ec7c0131c093b09c717994a47b4c46c0dabf1c822f",
+          "size_bytes": 81119043
+        }
+      },
+      "checks": [
+        "Ispeziona dimensioni, profilo colore, livelli e trasparenza prima delle modifiche.",
+        "Conserva il sorgente con livelli e salva gli export separatamente.",
+        "Verifica l’anteprima, il ritaglio e la leggibilità alla risoluzione di consegna."
+      ],
+      "examples": [
+        "photocraft-cli info input.psd",
+        "photocraft-cli commands --filter blur",
+        "photocraft-cli convert input.psd output.png"
+      ]
+    },
+    {
+      "id": "vectorcraft",
+      "name": "VectorCraft",
+      "role": "Grafica vettoriale",
+      "description": "Illustrazione vettoriale, loghi, icone, lettering e diagrammi modificabili.",
+      "repository": "https://github.com/storytold/vectorcraft",
+      "version": "v0.16.0",
+      "executable": "vectorcraft-cli",
+      "registry_args": [
+        "commands"
+      ],
+      "mcp_args": [
+        "mcp",
+        "--automation-read-root",
+        "/mnt/user-data",
+        "--automation-write-root",
+        "/mnt/user-data"
+      ],
+      "assets": {
+        "amd64": {
+          "name": "vectorcraft-0.16.0-linux-x86_64.tar.gz",
+          "url": "https://github.com/storytold/vectorcraft/releases/download/v0.16.0/vectorcraft-0.16.0-linux-x86_64.tar.gz",
+          "sha256": "651fac17255271ad1dbc8ba1e8287db9f28e529ba9a14dd0383eca93a2cc5aa6",
+          "size_bytes": 127317438
+        },
+        "arm64": {
+          "name": "vectorcraft-0.16.0-linux-aarch64.tar.gz",
+          "url": "https://github.com/storytold/vectorcraft/releases/download/v0.16.0/vectorcraft-0.16.0-linux-aarch64.tar.gz",
+          "sha256": "7a624f47c20c10e4a8c07bba90e30f3da2ff26e5653632f942c7c5404105d02e",
+          "size_bytes": 121971166
+        }
+      },
+      "checks": [
+        "Definisci dimensioni delle tavole, palette e tipografia.",
+        "Mantieni tracciati e testo modificabili nel sorgente.",
+        "Controlla viewBox, margini, font e rasterizzazioni nell’export SVG/PDF."
+      ],
+      "examples": [
+        "vectorcraft-cli commands",
+        "vectorcraft-cli run --in input.vectorcraft --export output.pdf"
+      ]
+    },
+    {
+      "id": "filmcraft",
+      "name": "FilmCraft",
+      "role": "Montaggio video",
+      "description": "Montaggio, sequenze, composizione di contributi, colore e master audiovisivo.",
+      "repository": "https://github.com/storytold/filmcraft",
+      "version": "v0.12.0",
+      "executable": "filmcraft-cli",
+      "registry_args": [
+        "commands"
+      ],
+      "mcp_args": [
+        "mcp"
+      ],
+      "assets": {
+        "amd64": {
+          "name": "filmcraft-0.12.0-linux-x86_64.tar.gz",
+          "url": "https://github.com/storytold/filmcraft/releases/download/v0.12.0/filmcraft-0.12.0-linux-x86_64.tar.gz",
+          "sha256": "ddff0a2ec0d89e5e9e65644ed724b5b79959600b1602fd4ea6653b5a54bf88fd",
+          "size_bytes": 69907641
+        },
+        "arm64": {
+          "name": "filmcraft-0.12.0-linux-aarch64.tar.gz",
+          "url": "https://github.com/storytold/filmcraft/releases/download/v0.12.0/filmcraft-0.12.0-linux-aarch64.tar.gz",
+          "sha256": "83714c4a73774a3f54a3d2bf52ae0065d3fb8ca8c781deb7cb3450f9b4e74568",
+          "size_bytes": 66987637
+        }
+      },
+      "checks": [
+        "Ispeziona tutti i media: durata, codec, frame rate, dimensioni e canali audio.",
+        "Lavora su un progetto salvato; usa frame di prova prima di render lunghi.",
+        "Verifica durata, sincronizzazione, media mancanti e file finale con ffprobe."
+      ],
+      "examples": [
+        "filmcraft-cli probe input.mp4",
+        "filmcraft-cli commands --json",
+        "filmcraft-cli --project input.fcproj inspect",
+        "filmcraft-cli --project input.fcproj export output.mp4 --gpu-rendering off"
+      ]
+    },
+    {
+      "id": "lightcraft",
+      "name": "LightCraft",
+      "role": "Fotografia e RAW",
+      "description": "Sviluppo fotografico/RAW, catalogazione, correzioni locali e serie coerenti.",
+      "repository": "https://github.com/storytold/lightcraft",
+      "version": "v0.13.0",
+      "executable": "lightcraft-cli",
+      "registry_args": [
+        "commands"
+      ],
+      "mcp_args": [
+        "mcp"
+      ],
+      "assets": {
+        "amd64": {
+          "name": "lightcraft-0.13.0-linux-x86_64.tar.gz",
+          "url": "https://github.com/storytold/lightcraft/releases/download/v0.13.0/lightcraft-0.13.0-linux-x86_64.tar.gz",
+          "sha256": "873c795e641ea8c345e02e4895f6c2659015e531420f68352ca3421aa9b8edcd",
+          "size_bytes": 110150449
+        },
+        "arm64": {
+          "name": "lightcraft-0.13.0-linux-aarch64.tar.gz",
+          "url": "https://github.com/storytold/lightcraft/releases/download/v0.13.0/lightcraft-0.13.0-linux-aarch64.tar.gz",
+          "sha256": "5f47cb0e71d17d21c130aa06bf9c3e0895185c5501b94f14633a9de6a587ca48",
+          "size_bytes": 105426065
+        }
+      },
+      "checks": [
+        "Mantieni gli originali e gli eventuali sidecar intatti.",
+        "Controlla esposizione, bilanciamento del bianco e clipping sui campioni.",
+        "Applica elaborazioni in serie solo dopo avere verificato un’immagine campione."
+      ],
+      "examples": [
+        "lightcraft-cli commands --json",
+        "lightcraft-cli render input.jpg -o output.jpg --set light.exposure=0.5"
+      ]
+    },
+    {
+      "id": "pdfcraft",
+      "name": "PdfCraft",
+      "role": "Documenti PDF",
+      "description": "Ispezione e modifica PDF, pagine, testo, moduli, OCR e prestampa.",
+      "repository": "https://github.com/storytold/pdfcraft",
+      "version": "v0.13.0",
+      "executable": "pdfcraft-cli",
+      "registry_args": [
+        "tools"
+      ],
+      "mcp_args": [
+        "mcp",
+        "--root",
+        "/mnt/user-data"
+      ],
+      "assets": {
+        "amd64": {
+          "name": "pdfcraft-cli-0.13.0-linux-x86_64.tar.gz",
+          "url": "https://github.com/storytold/pdfcraft/releases/download/v0.13.0/pdfcraft-cli-0.13.0-linux-x86_64.tar.gz",
+          "sha256": "fd40f80157856cadd4348a464ef0acde8f19894d831d78e9823708ecf70a3352",
+          "size_bytes": 31200527
+        },
+        "arm64": {
+          "name": "pdfcraft-cli-0.13.0-linux-aarch64.tar.gz",
+          "url": "https://github.com/storytold/pdfcraft/releases/download/v0.13.0/pdfcraft-cli-0.13.0-linux-aarch64.tar.gz",
+          "sha256": "1d1181757f281b2291ca218a0446ade4cfd54c5c258f3d4f22953fa1037dd29d",
+          "size_bytes": 29648957
+        }
+      },
+      "checks": [
+        "Rileva pagine, testo, moduli e restrizioni del documento.",
+        "Controlla le pagine coinvolte e verifica il numero pagine dopo le modifiche.",
+        "Non dichiarare una redazione sicura soltanto perché il testo è coperto visivamente: verifica il contenuto estratto."
+      ],
+      "examples": [
+        "pdfcraft-cli info input.pdf",
+        "pdfcraft-cli tools",
+        "pdfcraft-cli combine input.pdf appendix.pdf --out output.pdf",
+        "pdfcraft-cli text output.pdf"
+      ]
+    },
+    {
+      "id": "effectcraft",
+      "name": "EffectCraft",
+      "role": "Animazione ed effetti",
+      "description": "Animazione 2D/3D, motion graphics, compositing, camera/luci ed effetti.",
+      "repository": "https://github.com/storytold/effectcraft",
+      "version": "v0.16.0",
+      "executable": "effectcraft-cli",
+      "registry_args": [
+        "commands"
+      ],
+      "mcp_args": [
+        "mcp",
+        "--automation-read-root",
+        "/mnt/user-data",
+        "--automation-write-root",
+        "/mnt/user-data"
+      ],
+      "assets": {
+        "amd64": {
+          "name": "effectcraft-0.16.0-linux-x86_64.tar.gz",
+          "url": "https://github.com/storytold/effectcraft/releases/download/v0.16.0/effectcraft-0.16.0-linux-x86_64.tar.gz",
+          "sha256": "91b40da9e18be49157467a96db7b2fbf7c20b5182d8c415c59bed51591bc1de0",
+          "size_bytes": 64233249
+        },
+        "arm64": {
+          "name": "effectcraft-0.16.0-linux-aarch64.tar.gz",
+          "url": "https://github.com/storytold/effectcraft/releases/download/v0.16.0/effectcraft-0.16.0-linux-aarch64.tar.gz",
+          "sha256": "bf38cec1717b35432d73a6f48cfc075c0d2b110fae357fba5c4242d55c4aae97",
+          "size_bytes": 59955491
+        }
+      },
+      "checks": [
+        "Definisci durata, frame rate, risoluzione e composizione principale.",
+        "Verifica frame iniziale, intermedio e finale prima di esportare il video.",
+        "Controlla dipendenze, media collegati, alpha e formato di consegna."
+      ],
+      "examples": [
+        "effectcraft-cli commands",
+        "effectcraft-cli info input.ecproj",
+        "effectcraft-cli render --comp Main --out output.mp4 input.ecproj"
+      ]
+    },
+    {
+      "id": "designcraft",
+      "name": "DesignCraft",
+      "role": "Impaginazione editoriale",
+      "description": "Impaginazione multipagina, libri, riviste, fumetti e prestampa.",
+      "repository": "https://github.com/storytold/designcraft",
+      "version": "v0.12.0",
+      "executable": "designcraft-cli",
+      "registry_args": [
+        "commands"
+      ],
+      "mcp_args": [
+        "mcp"
+      ],
+      "assets": {
+        "amd64": {
+          "name": "designcraft-0.12.0-linux-x86_64.tar.gz",
+          "url": "https://github.com/storytold/designcraft/releases/download/v0.12.0/designcraft-0.12.0-linux-x86_64.tar.gz",
+          "sha256": "0e7bbe349670f8d5eb178fa9bd4a1bf1c7c51d6a54e1b802b8dcdbb2ae68fe1d",
+          "size_bytes": 81822394
+        },
+        "arm64": {
+          "name": "designcraft-0.12.0-linux-aarch64.tar.gz",
+          "url": "https://github.com/storytold/designcraft/releases/download/v0.12.0/designcraft-0.12.0-linux-aarch64.tar.gz",
+          "sha256": "eb055f655ab26a137d5e46d63c6d7d91683148814766224a36de73ecbff7a6b3",
+          "size_bytes": 78038419
+        }
+      },
+      "checks": [
+        "Definisci formato, margini, colonne, abbondanze e stili.",
+        "Verifica overflow del testo, immagini mancanti e font.",
+        "Esamina tutte le pagine renderizzate; usa validate-pdf per il controllo PDF/X supportato."
+      ],
+      "examples": [
+        "designcraft-cli commands",
+        "designcraft-cli run --in input.designcraft --all-pages preview",
+        "designcraft-cli run --in input.designcraft --export output.pdf",
+        "designcraft-cli validate-pdf output.pdf"
+      ]
+    },
+    {
+      "id": "gridcraft",
+      "name": "GridCraft",
+      "role": "Fogli di calcolo",
+      "description": "Fogli di calcolo, formule, tabelle, grafici, analisi e reporting.",
+      "repository": "https://github.com/storytold/gridcraft",
+      "version": "v0.11.1",
+      "executable": "gridcraft-cli",
+      "registry_args": [
+        "commands"
+      ],
+      "mcp_args": [
+        "mcp"
+      ],
+      "assets": {
+        "amd64": {
+          "name": "gridcraft-0.11.1-linux-x86_64.tar.gz",
+          "url": "https://github.com/storytold/gridcraft/releases/download/v0.11.1/gridcraft-0.11.1-linux-x86_64.tar.gz",
+          "sha256": "f2c83e6c26449a6c45983e903bf32c1d4c302b2042f263ead995271129c70e87",
+          "size_bytes": 20503035
+        },
+        "arm64": {
+          "name": "gridcraft-0.11.1-linux-aarch64.tar.gz",
+          "url": "https://github.com/storytold/gridcraft/releases/download/v0.11.1/gridcraft-0.11.1-linux-aarch64.tar.gz",
+          "sha256": "16e4da4873867a9080ec41d76e38430a8d0e62fa22b43edb6d7b1dbde0925435",
+          "size_bytes": 19060544
+        }
+      },
+      "checks": [
+        "Conserva i valori numerici come numeri; unità e descrizioni nelle intestazioni.",
+        "Presenta numeri con convenzioni italiane; nelle API mantieni la sintassi canonica richiesta dalla CLI.",
+        "Controlla formule, riferimenti, totali e valori di errore dopo il ricalcolo.",
+        "Consegna XLSX con formule e, se richiesto, CSV UTF-8 con separatore esplicito."
+      ],
+      "examples": [
+        "gridcraft-cli info input.xlsx --json",
+        "gridcraft-cli commands --json",
+        "gridcraft-cli functions --json",
+        "gridcraft-cli eval \"=SUM(1,2,3)\"",
+        "gridcraft-cli cat input.xlsx --range A1:D20 --csv",
+        "gridcraft-cli check input.xlsx --json"
+      ]
+    },
+    {
+      "id": "wordcraft",
+      "name": "WordCraft",
+      "role": "Testi e documenti",
+      "description": "Scrittura strutturata, documenti lunghi, revisioni e apparati editoriali.",
+      "repository": "https://github.com/storytold/wordcraft",
+      "version": "v0.10.0",
+      "executable": "wordcraft-cli",
+      "registry_args": [
+        "commands"
+      ],
+      "mcp_args": [
+        "mcp",
+        "--automation-read-root",
+        "/mnt/user-data",
+        "--automation-write-root",
+        "/mnt/user-data"
+      ],
+      "assets": {
+        "amd64": {
+          "name": "wordcraft-0.10.0-linux-x86_64.tar.gz",
+          "url": "https://github.com/storytold/wordcraft/releases/download/v0.10.0/wordcraft-0.10.0-linux-x86_64.tar.gz",
+          "sha256": "ca99ea350ba0aea4103fc8020cad98f051c58d9e9fcf670c119d810108cc45ff",
+          "size_bytes": 102094935
+        },
+        "arm64": {
+          "name": "wordcraft-0.10.0-linux-aarch64.tar.gz",
+          "url": "https://github.com/storytold/wordcraft/releases/download/v0.10.0/wordcraft-0.10.0-linux-aarch64.tar.gz",
+          "sha256": "77e838120d9da38752ab355066a0987253d9bc95dfddad1c47bac1f180975bbb",
+          "size_bytes": 99191485
+        }
+      },
+      "checks": [
+        "Scrivi in italiano salvo diversa richiesta; usa stili e titoli strutturati.",
+        "Separa contenuti, riferimenti e dati da elementi decorativi.",
+        "Verifica testo, numerazione, interruzioni, tabelle e anteprime delle pagine esportate."
+      ],
+      "examples": [
+        "wordcraft-cli commands --json",
+        "wordcraft-cli inspect input.docx",
+        "wordcraft-cli convert input.docx output.pdf",
+        "wordcraft-cli render input.docx preview.png --page 1"
+      ]
+    },
+    {
+      "id": "deckcraft",
+      "name": "DeckCraft",
+      "role": "Presentazioni",
+      "description": "Presentazioni editabili, sistemi di slide, diagrammi, media e animazioni.",
+      "repository": "https://github.com/storytold/deckcraft",
+      "version": "v0.10.0",
+      "executable": "deckcraft-cli",
+      "registry_args": [
+        "commands"
+      ],
+      "mcp_args": [
+        "mcp"
+      ],
+      "assets": {
+        "amd64": {
+          "name": "deckcraft-0.10.0-linux-x86_64.tar.gz",
+          "url": "https://github.com/storytold/deckcraft/releases/download/v0.10.0/deckcraft-0.10.0-linux-x86_64.tar.gz",
+          "sha256": "546616eb2300ce8efb20b44a53e60abfe6b96d71ac606b452a36fd21c6b1ff28",
+          "size_bytes": 81279161
+        },
+        "arm64": {
+          "name": "deckcraft-0.10.0-linux-aarch64.tar.gz",
+          "url": "https://github.com/storytold/deckcraft/releases/download/v0.10.0/deckcraft-0.10.0-linux-aarch64.tar.gz",
+          "sha256": "7be0594d90c4c0be15b812a597b85f6005271716be778b2999cb492f52c8676b",
+          "size_bytes": 78638573
+        }
+      },
+      "checks": [
+        "Definisci pubblico, obiettivo e formato prima delle slide.",
+        "Usa dati e asset verificati dagli altri specialisti.",
+        "Controlla tutte le slide renderizzate per tagli, sovrapposizioni e leggibilità."
+      ],
+      "examples": [
+        "deckcraft-cli commands",
+        "deckcraft-cli info input.pptx",
+        "deckcraft-cli render input.pptx --all preview",
+        "deckcraft-cli convert input.deckcraft output.pptx"
+      ]
+    },
+    {
+      "id": "cadcraft",
+      "name": "CADCraft",
+      "role": "Disegno CAD",
+      "description": "Disegno tecnico, quote, blocchi, geometrie CAD e tavole di progetto.",
+      "repository": "https://github.com/storytold/cadcraft",
+      "version": "v0.12.0",
+      "executable": "cadcraft-cli",
+      "registry_args": [
+        "commands"
+      ],
+      "mcp_args": [
+        "mcp"
+      ],
+      "assets": {
+        "amd64": {
+          "name": "cadcraft-0.12.0-linux-x86_64.tar.gz",
+          "url": "https://github.com/storytold/cadcraft/releases/download/v0.12.0/cadcraft-0.12.0-linux-x86_64.tar.gz",
+          "sha256": "6ae27b9eabc3608caef356a00f69b9fdccbf1e408d6308b5614b6e6b256308de",
+          "size_bytes": 61176441
+        },
+        "arm64": {
+          "name": "cadcraft-0.12.0-linux-aarch64.tar.gz",
+          "url": "https://github.com/storytold/cadcraft/releases/download/v0.12.0/cadcraft-0.12.0-linux-aarch64.tar.gz",
+          "sha256": "29a674e41223c18532359c38f2afc936dde1aa774e2c6479ca1246d3f3bf97f6",
+          "size_bytes": 58749638
+        }
+      },
+      "checks": [
+        "Dichiara unità, scala, origine e tolleranze del disegno.",
+        "Controlla dimensioni geometriche e quote, non soltanto l’immagine.",
+        "Registra eventuali perdite di dati nell’import/export dei formati."
+      ],
+      "examples": [
+        "cadcraft-cli commands",
+        "cadcraft-cli info input.dxf",
+        "cadcraft-cli convert input.dxf output.svg"
+      ]
+    },
+    {
+      "id": "soundcraft",
+      "name": "SoundCraft",
+      "role": "Produzione audio",
+      "description": "Composizione MIDI, sintesi, sound design, montaggio e mix modificabile.",
+      "repository": "https://github.com/storytold/soundcraft",
+      "version": "v0.12.1",
+      "executable": "soundcraft-cli",
+      "registry_args": [
+        "commands"
+      ],
+      "mcp_args": [
+        "mcp",
+        "--automation-read-root",
+        "/mnt/user-data",
+        "--automation-write-root",
+        "/mnt/user-data"
+      ],
+      "assets": {
+        "amd64": {
+          "name": "soundcraft-0.12.1-linux-x86_64.tar.gz",
+          "url": "https://github.com/storytold/soundcraft/releases/download/v0.12.1/soundcraft-0.12.1-linux-x86_64.tar.gz",
+          "sha256": "b0a56bd6b5d27de6b12e354580c362be6f59125ea58f573044c84f6a7da87780",
+          "size_bytes": 16474930
+        },
+        "arm64": {
+          "name": "soundcraft-0.12.1-linux-aarch64.tar.gz",
+          "url": "https://github.com/storytold/soundcraft/releases/download/v0.12.1/soundcraft-0.12.1-linux-aarch64.tar.gz",
+          "sha256": "b16513d16be67a9715ec650db955ee6b41624db21fc182905ccaaa311547700d",
+          "size_bytes": 15088076
+        }
+      },
+      "checks": [
+        "Rileva frequenza di campionamento, canali e durata delle sorgenti.",
+        "Mantieni margine di livello, evita clipping e conserva il progetto multitraccia.",
+        "Controlla durata, picchi e formato; non dichiarare ascolto o qualità percettiva verificati senza un controllo audio reale."
+      ],
+      "examples": [
+        "soundcraft-cli commands",
+        "soundcraft-cli run --demo --bounce output.wav",
+        "ffprobe -v error -show_format -show_streams -of json output.wav"
+      ]
+    },
+    {
+      "id": "figcraft",
+      "name": "FigCraft",
+      "role": "Interfacce e prototipi",
+      "description": "Design di interfacce, componenti, layout adattivi e prototipi.",
+      "repository": "https://github.com/storytold/figcraft",
+      "version": "v0.10.0",
+      "executable": "figcraft-cli",
+      "registry_args": [
+        "commands"
+      ],
+      "mcp_args": [
+        "mcp"
+      ],
+      "assets": {
+        "amd64": {
+          "name": "figcraft-0.10.0-linux-x86_64.tar.gz",
+          "url": "https://github.com/storytold/figcraft/releases/download/v0.10.0/figcraft-0.10.0-linux-x86_64.tar.gz",
+          "sha256": "b3e2ffdab54d203a3f6ed1a0018b8325300bd22dbed6a02f0af6757f3eb669da",
+          "size_bytes": 88888910
+        },
+        "arm64": {
+          "name": "figcraft-0.10.0-linux-aarch64.tar.gz",
+          "url": "https://github.com/storytold/figcraft/releases/download/v0.10.0/figcraft-0.10.0-linux-aarch64.tar.gz",
+          "sha256": "fd5d55f7999d95bf8dd5677559dde8eafead8021a397eed9eacdeb9a5abe1df9",
+          "size_bytes": 85962437
+        }
+      },
+      "checks": [
+        "Definisci viewport, griglia, componenti e stili condivisi.",
+        "Verifica spaziature, vincoli, stati e contrasto dei componenti.",
+        "Consegna sorgente modificabile e anteprime; segnala i limiti dell’export .fig."
+      ],
+      "examples": [
+        "figcraft-cli commands --json",
+        "figcraft-cli info input.figcraft --json",
+        "figcraft-cli render input.figcraft -o preview.png --scale 2",
+        "figcraft-cli export input.figcraft -o exports --format svg"
+      ]
+    },
+    {
+      "id": "blender",
+      "name": "Blender",
+      "role": "Modellazione e animazione 3D",
+      "description": "Modellazione 3D, rig, materiali, simulazioni, animazione e rendering.",
+      "repository": "https://projects.blender.org/blender/blender",
+      "version": "5.2.3",
+      "executable": "blender-cli",
+      "binary": "blender",
+      "download_base": "https://download.blender.org/release/Blender5.2/",
+      "registry_args": [
+        "commands"
+      ],
+      "mcp_args": [
+        "mcp"
+      ],
+      "assets": {
+        "amd64": {
+          "name": "blender-5.2.3-linux-x64.tar.xz",
+          "url": "https://download.blender.org/release/Blender5.2/blender-5.2.3-linux-x64.tar.xz",
+          "sha256": "78486c018b4443efe5e75ab54c290ed8c15abafd249b862c2c9ce2530a918eec",
+          "size_bytes": 385331224
+        }
+      },
+      "checks": [
+        "Riapri il .blend in un processo separato con auto-esecuzione Python disabilitata.",
+        "Verifica texture e dipendenze dopo il trasferimento.",
+        "Controlla struttura modificabile e render campione."
+      ],
+      "examples": [
+        "blender-cli inspect scena.blend",
+        "blender-cli render scena.blend anteprima.png --frame 1",
+        "blender --background --factory-startup --disable-autoexec --python-exit-code 1 --python lavoro.py"
+      ]
+    },
+    {
+      "id": "calibre",
+      "name": "Calibre",
+      "role": "Conversione e controllo delle pubblicazioni digitali",
+      "description": "Produzione e conversione editoriale, EPUB/AZW3, metadati, risorse e librerie.",
+      "repository": "https://github.com/kovidgoyal/calibre",
+      "version": "9.17.0",
+      "executable": "calibre-cli",
+      "binary": "ebook-convert",
+      "binary_paths": {
+        "ebook-convert": "ebook-convert",
+        "ebook-meta": "ebook-meta",
+        "ebook-polish": "ebook-polish",
+        "calibre-debug": "calibre-debug",
+        "calibredb": "calibredb",
+        "ebook-edit": "ebook-edit"
+      },
+      "download_base": "https://download.calibre-ebook.com/9.17.0/",
+      "registry_args": [
+        "commands"
+      ],
+      "mcp_args": [
+        "mcp"
+      ],
+      "assets": {
+        "amd64": {
+          "name": "calibre-9.17.0-x86_64.txz",
+          "url": "https://download.calibre-ebook.com/9.17.0/calibre-9.17.0-x86_64.txz",
+          "sha256": "953e4512a6482848cd803c88b6d942e6afca65dc3b67c7d1353ae048d616de53",
+          "size_bytes": 201590724
+        },
+        "arm64": {
+          "name": "calibre-9.17.0-arm64.txz",
+          "url": "https://download.calibre-ebook.com/9.17.0/calibre-9.17.0-arm64.txz",
+          "sha256": "3c72bb26196f8339cfb0914224d824ccbaccbb635f0df9c3a55540ae316199bd",
+          "size_bytes": 188047576
+        }
+      },
+      "checks": [
+        "Riaprire il prodotto con la CLI e ispezionare metadati, spine e risorse.",
+        "Eseguire il controllo strutturale nativo e riportare errori e avvisi reali.",
+        "Conservare gli input e consegnare i sorgenti modificabili con le dipendenze."
+      ],
+      "examples": [
+        "calibre-cli convert input.xhtml output.epub",
+        "calibre-cli inspect output.epub",
+        "calibre-cli unpack output.epub sorgenti",
+        "calibre-cli check output.epub"
+      ]
+    },
+    {
+      "id": "playwright",
+      "name": "Playwright",
+      "role": "Collaudo browser e interfacce",
+      "description": "Automazione browser, test di interazione, screenshot e trace su applicazioni web reali.",
+      "repository": "https://github.com/microsoft/playwright",
+      "version": "1.64.1",
+      "license": "Apache-2.0",
+      "executable": "playwright-cli",
+      "registry_args": [
+        "commands"
+      ],
+      "mcp_args": [
+        "mcp"
+      ],
+      "adapter": true,
+      "checks": [
+        "Preserva input, ricetta e dipendenze.",
+        "Verifica con una riapertura o ricostruzione reale."
+      ],
+      "examples": [
+        "craft capabilities playwright",
+        "craft tools playwright",
+        "playwright-cli call OPERAZIONE '{\"input\":\"/mnt/user-data/input\",\"output\":\"/mnt/user-data/outputs/nuovo\"}'"
+      ],
+      "assets": {
+        "amd64": {
+          "name": "test-1.64.1.tgz",
+          "url": "https://registry.npmjs.org/@playwright/test/-/test-1.64.1.tgz",
+          "sha256": "9bc8fb4bf5c8f395c1c6b6999e5480607a5aaaead17e9fe6e58181002b4086e3",
+          "size_bytes": 8748
+        },
+        "arm64": {
+          "name": "test-1.64.1.tgz",
+          "url": "https://registry.npmjs.org/@playwright/test/-/test-1.64.1.tgz",
+          "sha256": "9bc8fb4bf5c8f395c1c6b6999e5480607a5aaaead17e9fe6e58181002b4086e3",
+          "size_bytes": 8748
+        }
+      },
+      "download_base": "https://registry.npmjs.org/@playwright/test/-/",
+      "install": {
+        "kind": "npm",
+        "lock": "config/toolkit/package-lock.json"
+      }
+    },
+    {
+      "id": "aubio",
+      "name": "aubio",
+      "role": "Analisi temporale e musicale",
+      "description": "Stima di attacchi, battiti, altezza e note dal segnale audio, con unità esplicite.",
+      "repository": "https://github.com/aubio/aubio",
+      "version": "0.4.9",
+      "license": "GPL-3.0-or-later",
+      "executable": "aubio-cli",
+      "registry_args": [
+        "commands"
+      ],
+      "mcp_args": [
+        "mcp"
+      ],
+      "adapter": true,
+      "checks": [
+        "Preserva input, ricetta e dipendenze.",
+        "Verifica con una riapertura o ricostruzione reale."
+      ],
+      "examples": [
+        "craft capabilities aubio",
+        "craft tools aubio",
+        "aubio-cli call OPERAZIONE '{\"input\":\"/mnt/user-data/input\",\"output\":\"/mnt/user-data/outputs/nuovo\"}'"
+      ],
+      "assets": {
+        "amd64": {
+          "name": "aubio-tools_0.4.9-4.3+b1_amd64.deb",
+          "url": "https://deb.debian.org/debian/pool/main/a/aubio/aubio-tools_0.4.9-4.3+b1_amd64.deb",
+          "sha256": "5d612e36dcbb80e982562d3d7d7600dae0f8a4c2b9171d5b86b3beadc0493ae4",
+          "size_bytes": 58152,
+          "package": "aubio-tools",
+          "package_version": "0.4.9-4.3+b1"
+        },
+        "arm64": {
+          "name": "aubio-tools_0.4.9-4.3+b1_arm64.deb",
+          "url": "https://deb.debian.org/debian/pool/main/a/aubio/aubio-tools_0.4.9-4.3+b1_arm64.deb",
+          "sha256": "46585b296f41b09244be91fb395e29c9e30a0b158d490146c82244beb2426803",
+          "size_bytes": 57872,
+          "package": "aubio-tools",
+          "package_version": "0.4.9-4.3+b1"
+        }
+      },
+      "download_base": "https://deb.debian.org/debian/pool/",
+      "install": {
+        "kind": "debian",
+        "native_path": "/usr/bin/aubio"
+      }
+    },
+    {
+      "id": "fluidsynth",
+      "name": "FluidSynth",
+      "role": "Sintesi MIDI e SoundFont",
+      "description": "Rendering offline MIDI con strumenti SF2, partitura e banca conservate per la riproduzione.",
+      "repository": "https://github.com/FluidSynth/fluidsynth",
+      "version": "2.6.1",
+      "license": "LGPL-2.1-or-later",
+      "executable": "fluidsynth-cli",
+      "registry_args": [
+        "commands"
+      ],
+      "mcp_args": [
+        "mcp"
+      ],
+      "adapter": true,
+      "checks": [
+        "Preserva input, ricetta e dipendenze.",
+        "Verifica con una riapertura o ricostruzione reale."
+      ],
+      "examples": [
+        "craft capabilities fluidsynth",
+        "craft tools fluidsynth",
+        "fluidsynth-cli call OPERAZIONE '{\"input\":\"/mnt/user-data/input\",\"output\":\"/mnt/user-data/outputs/nuovo\"}'"
+      ],
+      "assets": {
+        "amd64": {
+          "name": "fluidsynth-2.6.1.tar.gz",
+          "url": "https://codeload.github.com/FluidSynth/fluidsynth/tar.gz/refs/tags/v2.6.1",
+          "sha256": "3d258a3bf97cc20c59eeebfe62c2432fae88adda74d3ad098681c76e0ebf446b",
+          "size_bytes": 2273951
+        },
+        "arm64": {
+          "name": "fluidsynth-2.6.1.tar.gz",
+          "url": "https://codeload.github.com/FluidSynth/fluidsynth/tar.gz/refs/tags/v2.6.1",
+          "sha256": "3d258a3bf97cc20c59eeebfe62c2432fae88adda74d3ad098681c76e0ebf446b",
+          "size_bytes": 2273951
+        }
+      },
+      "download_base": "https://codeload.github.com/FluidSynth/fluidsynth/tar.gz/refs/tags/",
+      "install": {
+        "kind": "fluidsynth-cmake",
+        "source_dir": "fluidsynth-2.6.1"
+      },
+      "resources": [
+        {
+          "name": "timgm6mb-soundfont_1.3-5_all.deb",
+          "url": "https://deb.debian.org/debian/pool/main/t/timgm6mb-soundfont/timgm6mb-soundfont_1.3-5_all.deb",
+          "sha256": "034abdfb296d9353433513dad5dbdcab46425ee6008fc02fe7039b46e75edc54",
+          "size_bytes": 5426644,
+          "kind": "debian",
+          "package": "timgm6mb-soundfont",
+          "package_version": "1.3-5",
+          "license": "GPL-2.0-only",
+          "source": "Debian Bookworm main / TimGM6mb"
+        }
+      ]
+    },
+    {
+      "id": "epubcheck",
+      "name": "EPUBCheck",
+      "role": "Conformità EPUB",
+      "description": "Controllo indipendente EPUB di contenitori, manifest, risorse e markup; errori distinti dagli avvisi.",
+      "repository": "https://github.com/w3c/epubcheck",
+      "version": "v5.4.0",
+      "license": "BSD-3-Clause",
+      "executable": "epubcheck-cli",
+      "registry_args": [
+        "commands"
+      ],
+      "mcp_args": [
+        "mcp"
+      ],
+      "adapter": true,
+      "checks": [
+        "Preserva input, ricetta e dipendenze.",
+        "Verifica con una riapertura o ricostruzione reale."
+      ],
+      "examples": [
+        "craft capabilities epubcheck",
+        "craft tools epubcheck",
+        "epubcheck-cli call OPERAZIONE '{\"input\":\"/mnt/user-data/input\",\"output\":\"/mnt/user-data/outputs/nuovo\"}'"
+      ],
+      "assets": {
+        "amd64": {
+          "name": "epubcheck-5.4.0.zip",
+          "url": "https://github.com/w3c/epubcheck/releases/download/v5.4.0/epubcheck-5.4.0.zip",
+          "sha256": "33350c61038e71dfb3d45a76aed04bf5481e6d5500cb780f6e98db8bbd15a28c",
+          "size_bytes": 33093170
+        },
+        "arm64": {
+          "name": "epubcheck-5.4.0.zip",
+          "url": "https://github.com/w3c/epubcheck/releases/download/v5.4.0/epubcheck-5.4.0.zip",
+          "sha256": "33350c61038e71dfb3d45a76aed04bf5481e6d5500cb780f6e98db8bbd15a28c",
+          "size_bytes": 33093170
+        }
+      },
+      "install": {
+        "kind": "zip"
+      }
+    },
+    {
+      "id": "pandoc",
+      "name": "Pandoc",
+      "role": "Conversione di documenti strutturati",
+      "description": "Conversione Markdown, DOCX, EPUB, HTML e altri formati, con bibliografia e template espliciti.",
+      "repository": "https://github.com/jgm/pandoc",
+      "version": "3.12.1",
+      "license": "GPL-2.0-or-later",
+      "executable": "pandoc-cli",
+      "registry_args": [
+        "commands"
+      ],
+      "mcp_args": [
+        "mcp"
+      ],
+      "adapter": true,
+      "checks": [
+        "Preserva input, ricetta e dipendenze.",
+        "Verifica con una riapertura o ricostruzione reale."
+      ],
+      "examples": [
+        "craft capabilities pandoc",
+        "craft tools pandoc",
+        "pandoc-cli call OPERAZIONE '{\"input\":\"/mnt/user-data/input\",\"output\":\"/mnt/user-data/outputs/nuovo\"}'"
+      ],
+      "assets": {
+        "amd64": {
+          "name": "pandoc-3.12.1-linux-amd64.tar.gz",
+          "url": "https://github.com/jgm/pandoc/releases/download/3.12.1/pandoc-3.12.1-linux-amd64.tar.gz",
+          "sha256": "d0c90410e90204c9ca83b8539fac5c7aed01fd537207e4585849f8abc5df20b8",
+          "size_bytes": 35363545
+        },
+        "arm64": {
+          "name": "pandoc-3.12.1-linux-arm64.tar.gz",
+          "url": "https://github.com/jgm/pandoc/releases/download/3.12.1/pandoc-3.12.1-linux-arm64.tar.gz",
+          "sha256": "445d96fd08801fe636cab1158b4f017ee320ac3b7446328b4fe2f902117b19b9",
+          "size_bytes": 37892300
+        }
+      },
+      "binary": "pandoc",
+      "binary_paths": {
+        "pandoc": "pandoc-3.12.1/bin/pandoc"
+      }
+    },
+    {
+      "id": "typst",
+      "name": "Typst",
+      "role": "Impaginazione programmabile",
+      "description": "Composizione tipografica riproducibile in PDF, SVG o PNG da sorgenti .typ, font e risorse.",
+      "repository": "https://github.com/typst/typst",
+      "version": "v0.15.1",
+      "license": "Apache-2.0",
+      "executable": "typst-cli",
+      "registry_args": [
+        "commands"
+      ],
+      "mcp_args": [
+        "mcp"
+      ],
+      "adapter": true,
+      "checks": [
+        "Preserva input, ricetta e dipendenze.",
+        "Verifica con una riapertura o ricostruzione reale."
+      ],
+      "examples": [
+        "craft capabilities typst",
+        "craft tools typst",
+        "typst-cli call OPERAZIONE '{\"input\":\"/mnt/user-data/input\",\"output\":\"/mnt/user-data/outputs/nuovo\"}'"
+      ],
+      "assets": {
+        "amd64": {
+          "name": "typst-x86_64-unknown-linux-musl.tar.xz",
+          "url": "https://github.com/typst/typst/releases/download/v0.15.1/typst-x86_64-unknown-linux-musl.tar.xz",
+          "sha256": "a6d077d0a95eed5a2eba715b2dae06be954f624ccbf85758a03f389ded33118c",
+          "size_bytes": 17462992
+        },
+        "arm64": {
+          "name": "typst-aarch64-unknown-linux-musl.tar.xz",
+          "url": "https://github.com/typst/typst/releases/download/v0.15.1/typst-aarch64-unknown-linux-musl.tar.xz",
+          "sha256": "5aa8d74a3d906e60ea12a66ac2f37f8eef1b14cbad7182a745e393a10c23dcee",
+          "size_bytes": 16216812
+        }
+      },
+      "binary": "typst"
+    },
+    {
+      "id": "freecad",
+      "name": "FreeCAD",
+      "role": "CAD parametrico tridimensionale",
+      "description": "Authoring parametrico .FCStd, misure geometriche e scambio STEP tramite motore headless nativo.",
+      "repository": "https://github.com/FreeCAD/FreeCAD",
+      "version": "1.1.4",
+      "license": "LGPL-2.1-or-later",
+      "executable": "freecad-cli",
+      "registry_args": [
+        "commands"
+      ],
+      "mcp_args": [
+        "mcp"
+      ],
+      "adapter": true,
+      "checks": [
+        "Preserva input, ricetta e dipendenze.",
+        "Verifica con una riapertura o ricostruzione reale."
+      ],
+      "examples": [
+        "craft capabilities freecad",
+        "craft tools freecad",
+        "freecad-cli call OPERAZIONE '{\"input\":\"/mnt/user-data/input\",\"output\":\"/mnt/user-data/outputs/nuovo\"}'"
+      ],
+      "assets": {
+        "amd64": {
+          "name": "FreeCAD_1.1.4-Linux-x86_64-py311.AppImage",
+          "url": "https://github.com/FreeCAD/FreeCAD/releases/download/1.1.4/FreeCAD_1.1.4-Linux-x86_64-py311.AppImage",
+          "sha256": "f6dc6ba676e5ac96a565ebc8d657232f94c6158e85b4352141bd1a46f6b43434",
+          "size_bytes": 820812280
+        },
+        "arm64": {
+          "name": "FreeCAD_1.1.4-Linux-aarch64-py311.AppImage",
+          "url": "https://github.com/FreeCAD/FreeCAD/releases/download/1.1.4/FreeCAD_1.1.4-Linux-aarch64-py311.AppImage",
+          "sha256": "675d1a4295b2183e0e1d816a4b5557dcb63aeced4e60aaa28d6c3686f4c71dc9",
+          "size_bytes": 755591688
+        }
+      },
+      "install": {
+        "kind": "freecad-appimage"
+      }
+    },
+    {
+      "id": "whisper",
+      "name": "whisper.cpp",
+      "role": "Trascrizione e sottotitoli",
+      "description": "Trascrizione parlato CPU multilingue in TXT, SRT e JSON con modello tiny fissato e disponibile offline.",
+      "repository": "https://github.com/ggml-org/whisper.cpp",
+      "version": "v1.9.5",
+      "license": "MIT",
+      "executable": "whisper-cpp-cli",
+      "registry_args": [
+        "commands"
+      ],
+      "mcp_args": [
+        "mcp"
+      ],
+      "adapter": true,
+      "checks": [
+        "Preserva input, ricetta e dipendenze.",
+        "Verifica con una riapertura o ricostruzione reale."
+      ],
+      "examples": [
+        "craft capabilities whisper",
+        "craft tools whisper",
+        "whisper-cli call OPERAZIONE '{\"input\":\"/mnt/user-data/input\",\"output\":\"/mnt/user-data/outputs/nuovo\"}'"
+      ],
+      "assets": {
+        "amd64": {
+          "name": "whisper.cpp-1.9.5.tar.gz",
+          "url": "https://codeload.github.com/ggml-org/whisper.cpp/tar.gz/refs/tags/v1.9.5",
+          "sha256": "ff1a9053feb509ff9d7729703355541ae9690073a6b1c40eb692c962e0dc1720",
+          "size_bytes": 9626464
+        },
+        "arm64": {
+          "name": "whisper.cpp-1.9.5.tar.gz",
+          "url": "https://codeload.github.com/ggml-org/whisper.cpp/tar.gz/refs/tags/v1.9.5",
+          "sha256": "ff1a9053feb509ff9d7729703355541ae9690073a6b1c40eb692c962e0dc1720",
+          "size_bytes": 9626464
+        }
+      },
+      "download_base": "https://codeload.github.com/ggml-org/whisper.cpp/tar.gz/refs/tags/",
+      "install": {
+        "kind": "whisper-cmake",
+        "source_dir": "whisper.cpp-1.9.5"
+      },
+      "resources": [
+        {
+          "name": "ggml-tiny.bin",
+          "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/5359861c739e955e79d9a303bcbc70fb988958b1/ggml-tiny.bin",
+          "sha256": "be07e048e1e599ad46341c8d2a135645097a538221678b7acdd1b1919c6e1b21",
+          "size_bytes": 77691713,
+          "kind": "file",
+          "install_path": "resources/whisper/ggml-tiny.bin",
+          "license": "MIT",
+          "revision": "5359861c739e955e79d9a303bcbc70fb988958b1",
+          "source": "OpenAI Whisper tiny multilingual converted by whisper.cpp maintainer"
+        }
+      ]
+    },
+    {
+      "id": "ffmpeg",
+      "name": "FFmpeg",
+      "role": "Conversione e verifica audio/video",
+      "description": "Probe dei flussi, conversione codec e formati, estrazione audio e mux con parametri espliciti.",
+      "repository": "https://github.com/FFmpeg/FFmpeg",
+      "version": "9.0.2",
+      "license": "GPL-2.0-or-later (GPL build; codec licenses vary)",
+      "executable": "ffmpeg-cli",
+      "registry_args": [
+        "commands"
+      ],
+      "mcp_args": [
+        "mcp"
+      ],
+      "adapter": true,
+      "download_base": "https://codeload.github.com/FFmpeg/FFmpeg/tar.gz/refs/tags/",
+      "assets": {
+        "amd64": {
+          "name": "ffmpeg-9.0.2.tar.gz",
+          "url": "https://codeload.github.com/FFmpeg/FFmpeg/tar.gz/refs/tags/n9.0.2",
+          "sha256": "6e374ed621e48faa40639307dff48ba6fe574a509977956d2cce9669b7cc27e9",
+          "size_bytes": 17319950
+        },
+        "arm64": {
+          "name": "ffmpeg-9.0.2.tar.gz",
+          "url": "https://codeload.github.com/FFmpeg/FFmpeg/tar.gz/refs/tags/n9.0.2",
+          "sha256": "6e374ed621e48faa40639307dff48ba6fe574a509977956d2cce9669b7cc27e9",
+          "size_bytes": 17319950
+        }
+      },
+      "install": {
+        "kind": "ffmpeg-source",
+        "source_dir": "FFmpeg-n9.0.2"
+      },
+      "checks": [
+        "Verifica stream, frame rate, sample rate, canali, durata e destinazione.",
+        "Conserva progetto di authoring e ricetta, non soltanto il media esportato."
+      ],
+      "examples": [
+        "craft capabilities ffmpeg",
+        "ffmpeg -filters",
+        "ffmpeg -h full"
+      ]
+    },
+    {
+      "id": "musescore",
+      "name": "MuseScore RigHaven",
+      "role": "Notazione e composizione musicale",
+      "description": "Partiture, arrangiamenti e melodia esplicita; SoundCraft resta responsabile del mix.",
+      "repository": "https://github.com/musescore/MuseScore",
+      "version": "v4.7.5",
+      "executable": "musescore-cli",
+      "registry_args": [
+        "commands"
+      ],
+      "mcp_args": [
+        "mcp"
+      ],
+      "assets": {
+        "amd64": {
+          "name": "MuseScore-RigHaven-4.7.5.260831071-x86_64.AppImage",
+          "url": "https://github.com/musescore/MuseScore/releases/download/v4.7.5/MuseScore-RigHaven-4.7.5.260831071-x86_64.AppImage",
+          "sha256": "a31b2da2dbcc2191bcc98beb7be5c15f2f517bedb3444def96fe3088b74d3a1e",
+          "size_bytes": 194411000
+        },
+        "arm64": {
+          "name": "MuseScore-RigHaven-4.7.5.260831071-aarch64.AppImage",
+          "url": "https://github.com/musescore/MuseScore/releases/download/v4.7.5/MuseScore-RigHaven-4.7.5.260831071-aarch64.AppImage",
+          "sha256": "034f0257fd21ed6b7d4863714dbf8e97cc86d454beb79aaa845a5ade3ff99e36",
+          "size_bytes": 190441992
+        }
+      },
+      "install": {
+        "kind": "musescore-appimage"
+      },
+      "download_base": "https://github.com/musescore/MuseScore/releases/download/v4.7.5/",
+      "license": "GPL-3.0",
+      "checks": [
+        "Conserva sorgente e dipendenze, verifica la riapertura e l’export reale.",
+        "Non sostituisce il montaggio o il mix SoundCraft. Il banco offline MuseScore Basic non è MuseSounds. La presenza di note non prova somiglianza musicale o qualità percettiva."
+      ],
+      "examples": [
+        "musescore-cli commands",
+        "musescore-cli tools"
+      ],
+      "adapter": true
+    },
+    {
+      "id": "ifcopenshell",
+      "name": "IfcOpenShell",
+      "role": "BIM e controllo IFC",
+      "description": "Authoring semantico BIM e validazione IFC; FreeCAD resta il modellatore CAD parametrico.",
+      "repository": "https://github.com/IfcOpenShell/IfcOpenShell",
+      "version": "0.9.0.post1",
+      "executable": "ifcopenshell-cli",
+      "registry_args": [
+        "commands"
+      ],
+      "mcp_args": [
+        "mcp"
+      ],
+      "assets": {
+        "amd64": {
+          "name": "ifcopenshell-0.9.0.post1-py311-none-macosx_10_15_x86_64.whl",
+          "url": "https://files.pythonhosted.org/packages/4b/48/cb167a04d7c062596b064d45a916d0193d5a7a388b5bb2b1dc69b9fcabe1/ifcopenshell-0.9.0.post1-py311-none-macosx_10_15_x86_64.whl",
+          "sha256": "1f175c13482c25cd0de2d55fd6cf6c5237e580f256ed2b99bde26dee4b48e375",
+          "size_bytes": 45423781
+        },
+        "arm64": {
+          "name": "ifcopenshell-0.9.0.post1-py311-none-manylinux_2_31_aarch64.whl",
+          "url": "https://files.pythonhosted.org/packages/96/6f/ecf8e1c4bddd2ae35fcb0a853ca80f24be4f37acd9d8a1f3ef92ca73fdca/ifcopenshell-0.9.0.post1-py311-none-manylinux_2_31_aarch64.whl",
+          "sha256": "f0b2d270d68adda61d8f217e044bc8a83d599c3452c8482625d29d03f3db2335",
+          "size_bytes": 52382223
+        }
+      },
+      "install": {
+        "kind": "pip-native"
+      },
+      "download_base": "https://files.pythonhosted.org/",
+      "license": "LGPL-3.0",
+      "checks": [
+        "Conserva sorgente e dipendenze, verifica la riapertura e l’export reale.",
+        "La validazione dello schema non certifica geometria, normativa o sicurezza strutturale. Non richiede Blender e non ricostruisce uno storico CAD da una mesh."
+      ],
+      "examples": [
+        "ifcopenshell-cli commands",
+        "ifcopenshell-cli tools"
+      ],
+      "adapter": true
+    },
+    {
+      "id": "manim",
+      "name": "Manim Community",
+      "role": "Animazioni esplicative programmatiche",
+      "description": "Animazioni didattiche, matematiche e dati costruite con Scene Python; EffectCraft resta il compositore generale.",
+      "repository": "https://github.com/ManimCommunity/manim",
+      "version": "0.22.0",
+      "executable": "manim-cli",
+      "registry_args": [
+        "commands"
+      ],
+      "mcp_args": [
+        "mcp"
+      ],
+      "assets": {
+        "amd64": {
+          "name": "manim-0.22.0-py3-none-any.whl",
+          "url": "https://files.pythonhosted.org/packages/2d/05/35fc67b65a8ecbe38de39b9747adabc18de696683e0e27b5e121ad6d05ae/manim-0.22.0-py3-none-any.whl",
+          "sha256": "bce56dbe420ce002cb77076c0b4e041637a0bd41ce5749e837e96375937e935f",
+          "size_bytes": 700688
+        },
+        "arm64": {
+          "name": "manim-0.22.0-py3-none-any.whl",
+          "url": "https://files.pythonhosted.org/packages/2d/05/35fc67b65a8ecbe38de39b9747adabc18de696683e0e27b5e121ad6d05ae/manim-0.22.0-py3-none-any.whl",
+          "sha256": "bce56dbe420ce002cb77076c0b4e041637a0bd41ce5749e837e96375937e935f",
+          "size_bytes": 700688
+        }
+      },
+      "install": {
+        "kind": "pip-native",
+        "build_requirements": true
+      },
+      "download_base": "https://files.pythonhosted.org/",
+      "license": "MIT",
+      "checks": [
+        "Conserva sorgente e dipendenze, verifica la riapertura e l’export reale.",
+        "Renderer Cairo CPU. LaTeX non incluso: usare SVG generati con Typst già disponibile per formule. Non è un editor video né un sostituto di rig e animazione organica."
+      ],
+      "examples": [
+        "manim-cli commands",
+        "manim-cli tools"
+      ],
+      "adapter": true
+    },
+    {
+      "id": "opentimelineio",
+      "name": "OpenTimelineIO",
+      "role": "Controllo e trasporto timeline",
+      "description": "Ispezione di tempi razionali, riferimenti e pacchetti media portabili; FilmCraft resta l’editor e FFmpeg il motore codec.",
+      "repository": "https://github.com/AcademySoftwareFoundation/OpenTimelineIO",
+      "version": "0.18.1",
+      "executable": "opentimelineio-cli",
+      "registry_args": [
+        "commands"
+      ],
+      "mcp_args": [
+        "mcp"
+      ],
+      "assets": {
+        "amd64": {
+          "name": "opentimelineio-0.18.1-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.whl",
+          "url": "https://files.pythonhosted.org/packages/e6/88/d7d1c5762db4338669040f6bb1b36ad93f3999dfbcd27600d5aff1ed2334/opentimelineio-0.18.1-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.whl",
+          "sha256": "e45fe3164c6e559e660b7e1cce6c87ef0b5d634743114823c6e1fb5f56f8601e",
+          "size_bytes": 848468
+        },
+        "arm64": {
+          "name": "opentimelineio-0.18.1-cp311-cp311-manylinux2014_aarch64.manylinux_2_17_aarch64.whl",
+          "url": "https://files.pythonhosted.org/packages/23/2e/c60ace05002dd3026b44aa8ae206282365172a234759a3cb8cfb12f635d8/opentimelineio-0.18.1-cp311-cp311-manylinux2014_aarch64.manylinux_2_17_aarch64.whl",
+          "sha256": "b90df7b0fa9c67c9619114a1288861410b4d984e071fb63f524730199aa41f40",
+          "size_bytes": 779468
+        }
+      },
+      "install": {
+        "kind": "pip-native"
+      },
+      "download_base": "https://files.pythonhosted.org/",
+      "license": "Apache-2.0",
+      "checks": [
+        "Conserva sorgente e dipendenze, verifica la riapertura e l’export reale.",
+        "Solo adapter core OTIO JSON/OTIOD/OTIOZ disponibili; il wrapper accetta OTIO e produce OTIOD. Nessun plugin AAF/Maya aggiuntivo. Non renderizza e non certifica sincronizzazione percettiva. Il controllo supporta riferimenti locali a file, non generatori o sequenze implicite."
+      ],
+      "examples": [
+        "opentimelineio-cli commands",
+        "opentimelineio-cli tools"
+      ],
+      "adapter": true
+    },
+    {
+      "id": "pymeshlab",
+      "name": "PyMeshLab",
+      "role": "Analisi e riparazione mesh",
+      "description": "Misura, pulizia e filtri di mesh esistenti; FreeCAD resta il CAD parametrico e Blender l’authoring organico.",
+      "repository": "https://github.com/cnr-isti-vclab/PyMeshLab",
+      "version": "2025.7.post1",
+      "executable": "pymeshlab-cli",
+      "registry_args": [
+        "commands"
+      ],
+      "mcp_args": [
+        "mcp"
+      ],
+      "assets": {
+        "amd64": {
+          "name": "pymeshlab-2025.7.post1-cp311-cp311-macosx_11_0_x86_64.whl",
+          "url": "https://files.pythonhosted.org/packages/d1/d1/d6a0a4fc5f4858f3ddbdaf72a28709aa05fc46efb052f1b14d5ab54c6a61/pymeshlab-2025.7.post1-cp311-cp311-macosx_11_0_x86_64.whl",
+          "sha256": "56628cf8603195f057884ffafd006391a6baca9ef90aa7f7032c50a276c77bfb",
+          "size_bytes": 54504910
+        },
+        "arm64": {
+          "name": "pymeshlab-2025.7.post1-cp311-cp311-manylinux_2_35_aarch64.whl",
+          "url": "https://files.pythonhosted.org/packages/49/7b/caba5fba3e0cc57230b5600b4a4965e797d39aa59b3ef87e405f4fb9b5bc/pymeshlab-2025.7.post1-cp311-cp311-manylinux_2_35_aarch64.whl",
+          "sha256": "244324df41dc168a0adb0818b0585a91d31d10d73b4415d59b15eaaba0eec900",
+          "size_bytes": 65089098
+        }
+      },
+      "install": {
+        "kind": "pip-native"
+      },
+      "download_base": "https://files.pythonhosted.org/",
+      "license": "GPL-3.0",
+      "checks": [
+        "Conserva sorgente e dipendenze, verifica la riapertura e l’export reale.",
+        "Non ricostruisce automaticamente CAD parametrico, rig o texture. L’adattatore apply produce una mesh PLY: per asset texturizzati preservare risorse e usare uno script esplicito con verifica delle UV. Un filtro registrato non è una prova di efficacia."
+      ],
+      "examples": [
+        "pymeshlab-cli commands",
+        "pymeshlab-cli tools"
+      ],
+      "adapter": true
+    },
+    {
+      "id": "d2",
+      "name": "D2",
+      "role": "Schemi strutturati moderni",
+      "description": "Flussi, relazioni e dipendenze con layout automatico; non richiede UML o professioni fisse.",
+      "repository": "https://github.com/d2lang/d2",
+      "version": "v0.9.0",
+      "executable": "d2-cli",
+      "registry_args": [
+        "commands"
+      ],
+      "mcp_args": [
+        "mcp"
+      ],
+      "adapter": true,
+      "assets": {
+        "amd64": {
+          "name": "d2-v0.9.0-linux-amd64.tar.gz",
+          "url": "https://github.com/d2lang/d2/releases/download/v0.9.0/d2-v0.9.0-linux-amd64.tar.gz",
+          "size_bytes": 18020287,
+          "sha256": "5669ddc46b99e942cc96078f4a4e36d5e62103348f4c05179ede27802fdd87a9"
+        },
+        "arm64": {
+          "name": "d2-v0.9.0-linux-arm64.tar.gz",
+          "url": "https://github.com/d2lang/d2/releases/download/v0.9.0/d2-v0.9.0-linux-arm64.tar.gz",
+          "size_bytes": 16593094,
+          "sha256": "ac2c028697199479acb321db1e3d68caee9f2ba492ed73caa3cd13f3829bf913"
+        }
+      },
+      "install": {
+        "kind": "design-native"
+      },
+      "download_base": "https://github.com/d2lang/d2/releases/download/v0.9.0/",
+      "license": "MPL-2.0",
+      "checks": [
+        "Sorgenti autonomi: niente include remoti, script, plugin o risorse esterne non impacchettate. Verifica nativa di sintassi/import e render; non certifica correttezza del progetto. Usa una prova leggibile e controlla relazioni, etichette e coerenza con il brief.",
+        "Conserva il sorgente modificabile, i riferimenti al progetto e una ricetta ripetibile."
+      ],
+      "examples": [
+        "d2-cli commands",
+        "craft tools d2"
+      ]
+    },
+    {
+      "id": "plantuml",
+      "name": "PlantUML",
+      "role": "Modellazione UML formale",
+      "description": "Classi, sequenze, attività e stati quando la semantica UML è utile; D2 resta la scelta per schemi generali.",
+      "repository": "https://github.com/plantuml/plantuml",
+      "version": "v1.2026.9",
+      "executable": "plantuml-cli",
+      "registry_args": [
+        "commands"
+      ],
+      "mcp_args": [
+        "mcp"
+      ],
+      "adapter": true,
+      "assets": {
+        "amd64": {
+          "name": "plantuml-1.2026.9.jar",
+          "url": "https://github.com/plantuml/plantuml/releases/download/v1.2026.9/plantuml-1.2026.9.jar",
+          "size_bytes": 30020557,
+          "sha256": "aa4a1d06f8911c4b842beff4828dd955be431692b631a312d04c0e9fab9581de"
+        },
+        "arm64": {
+          "name": "plantuml-1.2026.9.jar",
+          "url": "https://github.com/plantuml/plantuml/releases/download/v1.2026.9/plantuml-1.2026.9.jar",
+          "size_bytes": 30020557,
+          "sha256": "aa4a1d06f8911c4b842beff4828dd955be431692b631a312d04c0e9fab9581de"
+        }
+      },
+      "install": {
+        "kind": "design-native"
+      },
+      "download_base": "https://github.com/plantuml/plantuml/releases/download/v1.2026.9/",
+      "license": "GPL-3.0",
+      "checks": [
+        "Sorgenti autonomi: niente include remoti, script, plugin o risorse esterne non impacchettate. Verifica nativa di sintassi/import e render; non certifica correttezza del progetto. Usa una prova leggibile e controlla relazioni, etichette e coerenza con il brief.",
+        "Conserva il sorgente modificabile, i riferimenti al progetto e una ricetta ripetibile."
+      ],
+      "examples": [
+        "plantuml-cli commands",
+        "craft tools plantuml"
+      ]
+    },
+    {
+      "id": "mermaid",
+      "name": "Mermaid",
+      "role": "Diagrammi nella documentazione",
+      "description": "Flussi, sequenze, stati e mappe nella chat e nel Markdown; valorizza il renderer Mermaid già presente in RigHaven.",
+      "repository": "https://github.com/mermaid-js/mermaid-cli",
+      "version": "12.0.0",
+      "executable": "mermaid-cli",
+      "registry_args": [
+        "commands"
+      ],
+      "mcp_args": [
+        "mcp"
+      ],
+      "adapter": true,
+      "assets": {
+        "amd64": {
+          "name": "mermaid-cli-12.0.0.tgz",
+          "url": "https://registry.npmjs.org/@mermaid-js/mermaid-cli/-/mermaid-cli-12.0.0.tgz",
+          "size_bytes": 26224,
+          "sha256": "b5b43bc60c2e6bc87f7d12ab3e6e78883c799213ea5b015363fecdd5e6363c84"
+        }
+      },
+      "install": {
+        "kind": "design-node"
+      },
+      "download_base": "https://registry.npmjs.org/",
+      "license": "MIT",
+      "checks": [
+        "Sorgenti autonomi: niente include remoti, script, plugin o risorse esterne non impacchettate. Verifica nativa di sintassi/import e render; non certifica correttezza del progetto. Usa una prova leggibile e controlla relazioni, etichette e coerenza con il brief.",
+        "Conserva il sorgente modificabile, i riferimenti al progetto e una ricetta ripetibile."
+      ],
+      "examples": [
+        "mermaid-cli commands",
+        "craft tools mermaid"
+      ]
+    },
+    {
+      "id": "excalidraw",
+      "name": "Excalidraw",
+      "role": "Lavagna visuale modificabile",
+      "description": "Brainstorming, mappe e schizzi condivisi; la lavagna resta modificabile dall’utente. VectorCraft resta l’editor vettoriale di produzione.",
+      "repository": "https://github.com/excalidraw/excalidraw",
+      "version": "0.18.1",
+      "executable": "excalidraw-cli",
+      "registry_args": [
+        "commands"
+      ],
+      "mcp_args": [
+        "mcp"
+      ],
+      "adapter": true,
+      "assets": {
+        "amd64": {
+          "name": "excalidraw-0.18.1.tgz",
+          "url": "https://registry.npmjs.org/@excalidraw/excalidraw/-/excalidraw-0.18.1.tgz",
+          "size_bytes": 31234066,
+          "sha256": "b280d4b364b65cba264c5aa4e7435cc2ce6421eabbbef9765a56997a0fadf534"
+        }
+      },
+      "install": {
+        "kind": "design-node"
+      },
+      "download_base": "https://registry.npmjs.org/",
+      "license": "MIT",
+      "checks": [
+        "Sorgenti autonomi: niente include remoti, script, plugin o risorse esterne non impacchettate. Verifica nativa di sintassi/import e render; non certifica correttezza del progetto. Usa una prova leggibile e controlla relazioni, etichette e coerenza con il brief.",
+        "Conserva il sorgente modificabile, i riferimenti al progetto e una ricetta ripetibile."
+      ],
+      "examples": [
+        "excalidraw-cli commands",
+        "craft tools excalidraw"
+      ]
+    },
+    {
+      "id": "bpmn",
+      "name": "BPMN / bpmn.io",
+      "role": "Modellazione dei processi",
+      "description": "Processi con eventi, responsabilità, decisioni ed eccezioni in BPMN 2.0; non è un nuovo esecutore dei lavori.",
+      "repository": "https://github.com/bpmn-io/bpmn-to-image",
+      "version": "0.10.0",
+      "executable": "bpmn-cli",
+      "registry_args": [
+        "commands"
+      ],
+      "mcp_args": [
+        "mcp"
+      ],
+      "adapter": true,
+      "assets": {
+        "amd64": {
+          "name": "bpmn-to-image-0.10.0.tgz",
+          "url": "https://registry.npmjs.org/bpmn-to-image/-/bpmn-to-image-0.10.0.tgz",
+          "size_bytes": 4282,
+          "sha256": "0a180cee94d5adcddd6a6f76a5fc029bf98702dec7fcf027b6275595013cf7fd"
+        }
+      },
+      "install": {
+        "kind": "design-node"
+      },
+      "download_base": "https://registry.npmjs.org/",
+      "license": "MIT",
+      "checks": [
+        "Sorgenti autonomi: niente include remoti, script, plugin o risorse esterne non impacchettate. Verifica nativa di sintassi/import e render; non certifica correttezza del progetto. Usa una prova leggibile e controlla relazioni, etichette e coerenza con il brief. Il file deve contenere il layout BPMN DI. Le segnalazioni di importazione vanno corrette, non ignorate.",
+        "Conserva il sorgente modificabile, i riferimenti al progetto e una ricetta ripetibile."
+      ],
+      "examples": [
+        "bpmn-cli commands",
+        "craft tools bpmn"
+      ]
+    },
+    {
+      "id": "structurizr",
+      "name": "Structurizr DSL",
+      "role": "Architetture C4 da un modello",
+      "description": "Viste coerenti di architettura software da un unico modello C4. Usa le librerie mantenute, non la vecchia CLI dismessa.",
+      "repository": "https://github.com/structurizr/structurizr",
+      "version": "6.2.3",
+      "executable": "structurizr-cli",
+      "registry_args": [
+        "commands"
+      ],
+      "mcp_args": [
+        "mcp"
+      ],
+      "adapter": true,
+      "assets": {
+        "amd64": {
+          "name": "structurizr-dsl-6.2.3.jar",
+          "url": "https://repo.maven.apache.org/maven2/com/structurizr/structurizr-dsl/6.2.3/structurizr-dsl-6.2.3.jar",
+          "sha256": "71d767655f5d1252dfa833d338950dbfb6c3f8a3186ac7c7de6f8c010991dd0d",
+          "size_bytes": 259839
+        }
+      },
+      "install": {
+        "kind": "design-native"
+      },
+      "download_base": "https://repo.maven.apache.org/maven2/",
+      "license": "Apache-2.0",
+      "checks": [
+        "Sorgenti autonomi: niente include remoti, script, plugin o risorse esterne non impacchettate. Verifica nativa di sintassi/import e render; non certifica correttezza del progetto. Usa una prova leggibile e controlla relazioni, etichette e coerenza con il brief. Modalità ristretta delle librerie DSL 6.2.3, Java 21 isolato; nessun server o servizio enterprise. Export testuali, non un renderer aggiuntivo.",
+        "Conserva il sorgente modificabile, i riferimenti al progetto e una ricetta ripetibile."
+      ],
+      "examples": [
+        "structurizr-cli commands",
+        "craft tools structurizr"
+      ]
+    },
+    {
+      "id": "opengrep",
+      "name": "Opengrep",
+      "role": "Analisi statica del codice",
+      "description": "Controlli semantici su codice locale con regole esplicite e report ripetibili.",
+      "repository": "https://github.com/opengrep/opengrep",
+      "version": "v1.32.0",
+      "license": "LGPL-2.1",
+      "executable": "opengrep-cli",
+      "registry_args": [
+        "commands"
+      ],
+      "mcp_args": [
+        "mcp"
+      ],
+      "adapter": true,
+      "assets": {
+        "amd64": {
+          "name": "opengrep_manylinux_x86",
+          "url": "https://github.com/opengrep/opengrep/releases/download/v1.32.0/opengrep_manylinux_x86",
+          "sha256": "7360d60174880bd9214f2dfbe439b7bce82b7a3d44cfe945ba833c85cc8bda75",
+          "size_bytes": 46513552
+        },
+        "arm64": {
+          "name": "opengrep_manylinux_aarch64",
+          "url": "https://github.com/opengrep/opengrep/releases/download/v1.32.0/opengrep_manylinux_aarch64",
+          "sha256": "dc6229319c0d68948733053786a5614873947e5ec1d4669cc0e94ae9038cb99d",
+          "size_bytes": 47910328
+        }
+      },
+      "install": {
+        "kind": "security-native"
+      },
+      "checks": [
+        "Conserva configurazione, input e rapporti; non confondere difetti trovati con un crash."
+      ],
+      "examples": [
+        "opengrep-cli commands",
+        "craft tools opengrep"
+      ]
+    },
+    {
+      "id": "trivy",
+      "name": "Trivy",
+      "role": "Dipendenze e configurazioni",
+      "description": "Inventario software, configurazioni e vulnerabilità con database identificato.",
+      "repository": "https://github.com/aquasecurity/trivy",
+      "version": "v0.76.1",
+      "license": "Apache-2.0",
+      "executable": "trivy-cli",
+      "registry_args": [
+        "commands"
+      ],
+      "mcp_args": [
+        "mcp"
+      ],
+      "adapter": true,
+      "assets": {
+        "amd64": {
+          "name": "trivy_0.76.1_Linux-64bit.tar.gz",
+          "url": "https://github.com/aquasecurity/trivy/releases/download/v0.76.1/trivy_0.76.1_Linux-64bit.tar.gz",
+          "sha256": "c7cbe3137fb8a48a17574bede3dd6beb16742d1e9772929940fc90082c39d9c0",
+          "size_bytes": 52676794
+        },
+        "arm64": {
+          "name": "trivy_0.76.1_Linux-ARM64.tar.gz",
+          "url": "https://github.com/aquasecurity/trivy/releases/download/v0.76.1/trivy_0.76.1_Linux-ARM64.tar.gz",
+          "sha256": "e174dff2a6dba5e3ae41f8d0537a6324405bd08132497340304c6b20e0f16a1f",
+          "size_bytes": 47434511
+        }
+      },
+      "install": {
+        "kind": "security-native"
+      },
+      "checks": [
+        "Conserva configurazione, input e rapporti; non confondere difetti trovati con un crash."
+      ],
+      "examples": [
+        "trivy-cli commands",
+        "craft tools trivy"
+      ]
+    }
+  ],
+  "cli_runtimes": {
+    "codex": "0.164.0",
+    "gemini": "1.4.7",
+    "antigravity": "1.4.7"
+  }
+}

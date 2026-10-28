@@ -1,0 +1,63 @@
+{
+  "id": "skill-cadcraft",
+  "name": "CADCraft Agent Skill (skill-cadcraft)",
+  "version": "v0.12.0",
+  "author": "righaven-core",
+  "category": "skill",
+  "tags": [
+    "cadcraft",
+    "skill",
+    "reopen-check"
+  ],
+  "stars": 97,
+  "forks": 29,
+  "verified": true,
+  "tools": [
+    "cadcraft"
+  ],
+  "i18n": {
+    "en": {
+      "title": "Skill: CADCraft 2D Technical Drafting",
+      "description": "Dynamic competency module instructing RigHaven agents on CADCraft authoring, editable source preservation, and reopen verification."
+    },
+    "it": {
+      "title": "Skill: CADCraft — Disegno CAD",
+      "description": "Modulo di competenza dinamico che istruisce gli agenti RigHaven su CADCraft, conservazione dei sorgenti modificabili e reopen check."
+    }
+  },
+  "docker_dependencies": {
+    "base_image": "righaven-sandbox:0.1.0",
+    "system_packages": [],
+    "python_packages": [],
+    "node_packages": [],
+    "nix_packages": [
+      "pkgs.cadcraft"
+    ]
+  },
+  "cli_binaries": [
+    {
+      "name": "cadcraft",
+      "executable": "/usr/local/bin/cadcraft-cli",
+      "safe_flags": [
+        "commands"
+      ],
+      "health_check": "craft capabilities cadcraft"
+    }
+  ],
+  "skill_prompt_template": "Load `/mnt/skills/custom/skill-cadcraft/SKILL.md` and `references/CLI-RECIPE.md`. Produce both the target export and the editable source in `$RIGHAVEN_OUTPUT_DIR`, execute an independent reopen check in a clean folder, and record results in `handoff.json`.",
+  "verification_command": "python3 /opt/righaven-worker/handoff.py validate \"$RIGHAVEN_OUTPUT_DIR\"",
+  "security_policy": {
+    "rootless": true,
+    "network_access": false,
+    "writable_paths": [
+      "$RIGHAVEN_OUTPUT_DIR"
+    ],
+    "read_only_mounts": [
+      "/mnt/user-data"
+    ],
+    "drop_capabilities": [
+      "ALL"
+    ],
+    "no_new_privileges": true
+  }
+}

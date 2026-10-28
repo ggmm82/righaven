@@ -1,0 +1,12 @@
+.git
+.env
+data
+runtime
+research
+reports
+__pycache__
+*.pyc
+.pytest_cache
+.venv
+pip-metadata-*
+pip-unpack-*

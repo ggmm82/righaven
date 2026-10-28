@@ -1,0 +1,63 @@
+{
+  "id": "skill-pdfcraft",
+  "name": "PdfCraft Agent Skill (skill-pdfcraft)",
+  "version": "v0.13.0",
+  "author": "righaven-core",
+  "category": "skill",
+  "tags": [
+    "pdfcraft",
+    "skill",
+    "reopen-check"
+  ],
+  "stars": 104,
+  "forks": 16,
+  "verified": true,
+  "tools": [
+    "pdfcraft"
+  ],
+  "i18n": {
+    "en": {
+      "title": "Skill: PDFCraft Document Inspector & Prepress",
+      "description": "Dynamic competency module instructing RigHaven agents on PdfCraft authoring, editable source preservation, and reopen verification."
+    },
+    "it": {
+      "title": "Skill: PdfCraft — Documenti PDF",
+      "description": "Modulo di competenza dinamico che istruisce gli agenti RigHaven su PdfCraft, conservazione dei sorgenti modificabili e reopen check."
+    }
+  },
+  "docker_dependencies": {
+    "base_image": "righaven-sandbox:0.1.0",
+    "system_packages": [],
+    "python_packages": [],
+    "node_packages": [],
+    "nix_packages": [
+      "pkgs.pdfcraft"
+    ]
+  },
+  "cli_binaries": [
+    {
+      "name": "pdfcraft",
+      "executable": "/usr/local/bin/pdfcraft-cli",
+      "safe_flags": [
+        "tools"
+      ],
+      "health_check": "craft capabilities pdfcraft"
+    }
+  ],
+  "skill_prompt_template": "Load `/mnt/skills/custom/skill-pdfcraft/SKILL.md` and `references/CLI-RECIPE.md`. Produce both the target export and the editable source in `$RIGHAVEN_OUTPUT_DIR`, execute an independent reopen check in a clean folder, and record results in `handoff.json`.",
+  "verification_command": "python3 /opt/righaven-worker/handoff.py validate \"$RIGHAVEN_OUTPUT_DIR\"",
+  "security_policy": {
+    "rootless": true,
+    "network_access": false,
+    "writable_paths": [
+      "$RIGHAVEN_OUTPUT_DIR"
+    ],
+    "read_only_mounts": [
+      "/mnt/user-data"
+    ],
+    "drop_capabilities": [
+      "ALL"
+    ],
+    "no_new_privileges": true
+  }
+}

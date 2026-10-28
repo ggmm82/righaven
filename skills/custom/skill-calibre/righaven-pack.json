@@ -1,0 +1,63 @@
+{
+  "id": "skill-calibre",
+  "name": "Calibre Agent Skill (skill-calibre)",
+  "version": "9.17.0",
+  "author": "righaven-core",
+  "category": "skill",
+  "tags": [
+    "calibre",
+    "skill",
+    "reopen-check"
+  ],
+  "stars": 81,
+  "forks": 13,
+  "verified": true,
+  "tools": [
+    "calibre"
+  ],
+  "i18n": {
+    "en": {
+      "title": "Skill: Calibre Digital E-Book Publishing Suite",
+      "description": "Dynamic competency module instructing RigHaven agents on Calibre authoring, editable source preservation, and reopen verification."
+    },
+    "it": {
+      "title": "Skill: Calibre — Conversione e controllo delle pubblicazioni digitali",
+      "description": "Modulo di competenza dinamico che istruisce gli agenti RigHaven su Calibre, conservazione dei sorgenti modificabili e reopen check."
+    }
+  },
+  "docker_dependencies": {
+    "base_image": "righaven-sandbox:0.1.0",
+    "system_packages": [],
+    "python_packages": [],
+    "node_packages": [],
+    "nix_packages": [
+      "pkgs.calibre"
+    ]
+  },
+  "cli_binaries": [
+    {
+      "name": "calibre",
+      "executable": "/usr/local/bin/calibre-cli",
+      "safe_flags": [
+        "commands"
+      ],
+      "health_check": "craft capabilities calibre"
+    }
+  ],
+  "skill_prompt_template": "Load `/mnt/skills/custom/skill-calibre/SKILL.md` and `references/CLI-RECIPE.md`. Produce both the target export and the editable source in `$RIGHAVEN_OUTPUT_DIR`, execute an independent reopen check in a clean folder, and record results in `handoff.json`.",
+  "verification_command": "python3 /opt/righaven-worker/handoff.py validate \"$RIGHAVEN_OUTPUT_DIR\"",
+  "security_policy": {
+    "rootless": true,
+    "network_access": false,
+    "writable_paths": [
+      "$RIGHAVEN_OUTPUT_DIR"
+    ],
+    "read_only_mounts": [
+      "/mnt/user-data"
+    ],
+    "drop_capabilities": [
+      "ALL"
+    ],
+    "no_new_privileges": true
+  }
+}

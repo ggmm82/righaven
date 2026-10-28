@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>La tua squadra · RigHaven</title><style>
+:root{font-family:system-ui,sans-serif;color:#e7ecf3;background:#0b1018;color-scheme:dark}body{max-width:1000px;margin:auto;padding:28px}h1{font-size:30px;margin-bottom:8px}p{line-height:1.6;color:#adb9c9}a{color:#9dccff}.top,.row{display:flex;flex-wrap:wrap;gap:12px;align-items:center}.top{justify-content:space-between}.box{border:1px solid #2b384a;border-radius:14px;padding:22px;margin:20px 0;background:#111b29}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}.grid .box{margin:0}button,select,input,textarea{font:inherit;border:1px solid #35455c;border-radius:7px;padding:11px;background:#192638;color:inherit}button,.primary{cursor:pointer;background:#24558d}button:disabled{opacity:.5;cursor:wait}.primary{display:inline-block;padding:12px 18px;border-radius:7px;color:white;text-decoration:none}label{display:block;margin:16px 0 6px}input,textarea,select{box-sizing:border-box;width:100%}textarea{min-height:95px}pre{white-space:pre-wrap;overflow-wrap:anywhere;max-height:280px;overflow:auto;background:#070d15;padding:16px}#status{position:sticky;top:0;z-index:1;background:#0b1018;min-height:26px;color:#9fcdff}.tag,small{color:#a9b8cc}h3{margin:0}#login{display:none}[hidden]{display:none!important}#auth-links a{display:block;overflow-wrap:anywhere;margin:8px 0}fieldset{min-width:0;border:0;padding:0;margin:0}summary{cursor:pointer;padding:6px 0}.ready{color:#9de0b6}#team-summary{font-weight:600}.hint{font-size:14px}
+</style></head><body>
+<div class="top"><h1>RigHaven Harness Control</h1><a href="/workspace/chats/new" target="_top">Torna alla chat →</a></div>
+<p>Racconta il problema. La squadra sceglie gli specialisti, lavora sui tuoi file e ti consegna il risultato.</p>
+<div id="status" role="status" aria-live="polite"></div>
+<section class="box" aria-labelledby="team-title"><h2 id="team-title">Modelli e servizi AI</h2>
+<p id="team-summary" aria-live="polite">Caricamento della configurazione…</p>
+<p>Scegli dove applicare provider e modello. Le competenze e gli strumenti della squadra sono già configurati.</p>
+<button id="reload-config" type="button" hidden>Riprova caricamento</button>
+<form id="team-form"><fieldset id="team-controls" disabled>
+<label for="team-scope">Applica a</label><select id="team-scope"><option value="both">Coordinatore e squadra · entrambi</option><option value="coordinator">Solo coordinatore</option><option value="squad">Solo squadra</option></select>
+<label for="team-engine">Servizio da usare</label><select id="team-engine"><option value="deepseek">DeepSeek · chiave API</option><option value="codex">Codex · account OpenAI</option><option value="gemini">Antigravity · abbonamento Google</option><option value="openai">OpenAI compatibile · URL e chiave API</option></select>
+<div id="openai-fields" hidden><label for="openai-url">URL base dell’API</label><input id="openai-url" type="url" autocomplete="off" placeholder="https://provider.example/v1"><label for="openai-key">Chiave API</label><input id="openai-key" type="password" autocomplete="off" placeholder="Incolla la chiave del provider"><p class="hint">API Chat Completions compatibile OpenAI. Gli specialisti richiedono il supporto alle chiamate di strumenti. Puoi scrivere l’ID modello anche senza elenco automatico.</p></div>
+<div id="deepseek-fields"><label for="deepseek-key">Chiave API DeepSeek</label><input id="deepseek-key" type="password" autocomplete="off" placeholder="Incolla la chiave per collegare il servizio"><p class="hint">La chiave resta sul server. Le chiamate consumano il credito API del tuo account.</p></div>
+<div id="account-fields" hidden><button id="account-login" type="button">Collega account Codex</button><span id="account-state"></span><p class="hint">Completa l’accesso dal link ufficiale mostrato qui sotto, poi salva la squadra. Antigravity usa il tuo account Google e le quote disponibili; non richiede una chiave API. Se avevi collegato Gemini CLI, collega nuovamente l’account.</p></div>
+<label for="team-model">Modello da applicare</label><select id="team-model"><option value="">Automatico · consigliato</option></select><button id="refresh-models" type="button" hidden>Aggiorna elenco modelli</button>
+<details id="cli-custom" hidden><summary>ID del modello (anche manuale)</summary><label for="custom-model">ID modello</label><input id="custom-model" placeholder="Usa un ID dall’elenco, non il nome commerciale"></details>
+<p class="hint">Puoi lasciare Automatico. Per DeepSeek verifichiamo chiave e disponibilità del modello. Non occorre configurare i singoli specialisti. Al salvataggio verifichiamo il collegamento; l’endpoint personalizzato esegue una breve richiesta di prova.</p>
+<div class="row"><button id="team-save" type="submit">Salva e attiva la squadra</button><a id="start-work" class="primary" href="/workspace/chats/new" target="_top" hidden>Risolvi un problema →</a></div>
+</fieldset></form>
+<div id="login"><p id="login-state" role="status" aria-live="polite"></p><div id="auth-links"></div><div id="copy-login" hidden><label for="auth-url">Link ufficiale da copiare</label><input id="auth-url" readonly autocomplete="off"><button id="copy-auth-url" type="button">Copia link</button></div><label for="auth-code">Codice restituito da Google per questo accesso</label><input id="auth-code" type="password" autocomplete="off"><div class="row"><button id="send-code" type="button">Invia codice</button><button id="cancel-login" type="button">Annulla accesso</button></div><details><summary>Dettagli dell’accesso</summary><pre id="terminal"></pre></details></div>
+</section>
+<section class="box"><h2>Hai un problema da risolvere?</h2><p>Apri una chat, allega eventuali file e descrivi il risultato che ti serve. La squadra sceglie chi coinvolgere e ti restituisce i file scaricabili.</p><p class="hint">Per esempio: «Da queste vendite prepara un foglio con i totali e una breve relazione da condividere con il cliente».</p><p id="setup-needed">Collega un servizio qui sopra per iniziare.</p></section>
+<section class="box"><h2>Competenze e Agents</h2><p>Abilita gli strumenti nel Capability Center di RigHaven. Gli Agents nativi conservano istruzioni e selezione delle skills; i ruoli di lavoro si compongono nel progetto.</p><div class="row"><a href="/workspace/capabilities" target="_top">Apri Capability Center</a><a href="/workspace/agents" target="_top">Apri Agents</a></div><details id="specialists"><summary>Strumenti disponibili</summary><div class="grid" id="agents"></div></details></section>
+<section class="box" aria-labelledby="runtime-title"><h2 id="runtime-title">Risorse della squadra</h2>
+<p>Un solo budget per tutti gli strumenti. Le modifiche valgono dai prossimi incarichi; il lavoro attivo continua con il budget iniziale.</p>
+<form id="runtime-form"><label for="runtime-mode">Budget</label><select id="runtime-mode"><option value="auto">Automatico · consigliato</option><option value="manual">Personalizzato</option></select>
+<div id="runtime-manual" hidden><label for="runtime-cpus">CPU</label><input id="runtime-cpus" type="number" min="0.5" max="32" step="0.5" value="1.5"><label for="runtime-memory">RAM (MiB)</label><input id="runtime-memory" type="number" min="512" max="65536" step="128" value="1536"></div>
+<label for="runtime-model-wait">Attesa massima senza eventi del modello (secondi)</label><input id="runtime-model-wait" type="number" min="0" max="1500" step="1" value="0"><p>0 = recupero automatico disattivato. Imposta 60–1500 per limitare l’attesa senza eventi del modello; non è il budget dei render e comandi lunghi. Alla scadenza il coordinatore riceve i file parziali e può ripianificare.</p>
+<label for="runtime-workers">Operazioni parallele (massimo)</label><input id="runtime-workers" type="number" min="1" max="8" value="2"><p>Limite condiviso da incarichi, preparazioni e verifiche delle versioni. CPU/RAM possono ridurlo; i terminali condividono una quota riservata.</p><p id="runtime-effective" aria-live="polite">Caricamento del budget…</p><button type="submit">Salva risorse</button></form></section>
+<script>
+let currentLogin=null,timer=null,currentTeam=null,currentProfiles={},editingConnectionId=null,connections={};
+const $=id=>document.getElementById(id);
+const status=text=>$('status').textContent=text;
+async function api(path,options={}){
+ const cookie=document.cookie.split('; ').find(v=>v.startsWith('csrf_token='));
+ const csrf=cookie?decodeURIComponent(cookie.slice('csrf_token='.length)):'';
+ let response;
+ try{response=await fetch('/harness/api/'+path,{...options,headers:{'Content-Type':'application/json','X-CSRF-Token':csrf,...options.headers}})}
+ catch{throw Error('Connessione interrotta. Riprova tra poco.')}
+ if(response.status===401)throw Error('La sessione è scaduta. Accedi di nuovo dalla chat.');
+ let data;
+ try{data=await response.json()}catch{throw Error('Il server non risponde correttamente. Riprova.')}
+ if(!response.ok)throw Error(typeof data.detail==='string'?data.detail:'Controlla i campi e riprova.');
+ return data
+}
+function element(tag,text){const e=document.createElement(tag);if(text!==undefined)e.textContent=text;return e}
+let modelLabels={};
+function modelOptions(models=[],chosen=''){if(chosen==='auto')chosen='';models=models.filter(m=>m!=='auto');if(models.length&&!models.includes(chosen))chosen='';const select=$('team-model');select.replaceChildren();for(const [value,label] of [['','Automatico · consigliato'],...Array.from(new Set([...models,...(chosen?[chosen]:[])])).map(m=>[m,modelLabels[m]?modelLabels[m]+' · '+m:m])]){const option=element('option',label);option.value=value;select.append(option)}select.value=chosen}
+function serviceName(engine){return {deepseek:'DeepSeek',codex:'OpenAI Codex',gemini:'Antigravity',openai:'OpenAI compatibile'}[engine]||engine}
+function selectedProfile(){return currentProfiles[$('team-scope').value==='squad'?'squad':'coordinator']||currentTeam}
+function serviceFields(){const engine=$('team-engine').value,native=['codex','gemini'].includes(engine);$('deepseek-fields').hidden=engine!=='deepseek';$('openai-fields').hidden=engine!=='openai';$('openai-url').required=engine==='openai';$('account-fields').hidden=!native;$('cli-custom').hidden=engine==='deepseek';$('cli-custom').open=engine==='openai';$('refresh-models').hidden=!connections[engine]?.credentials_present&&engine!=='openai';$('account-login').textContent='Collega account '+serviceName(engine);$('account-state').textContent=connections[engine]?.credentials_present?' Account collegato':' Da collegare';$('deepseek-key').placeholder=connections.deepseek?.credentials_present?'Già collegato · compila solo per sostituire la chiave':'Incolla la chiave per collegare il servizio';$('openai-key').placeholder=connections.openai?.credentials_present?'Già salvata · compila per sostituirla':'Incolla la chiave del provider'}
+function fillProfile(models=[]){const profile=selectedProfile();$('team-engine').value=profile?.ready?profile.engine:'deepseek';modelOptions(models,profile?.ready?profile.model:'');$('custom-model').value=profile?.engine==='openai'?profile.model:'';const custom=profile?.engine==='openai'?profile:connections.openai||{};editingConnectionId=custom.connection_id||null;$('openai-url').value=custom.base_url||'';$('deepseek-key').value='';$('openai-key').value='';serviceFields()}
+async function refresh(models=[]){const data=await api('catalog');currentTeam=data.team;currentProfiles=data.profiles||{coordinator:data.team,squad:data.team};connections=data.connections;$('team-controls').disabled=false;$('team-save').textContent='Salva configurazione';$('reload-config').hidden=true;fillProfile(models);const describe=p=>p?.ready?serviceName(p.engine)+' · '+(p.model==='auto'?'Automatico della CLI':p.model):'Da configurare';const ready=currentProfiles.coordinator.ready&&currentProfiles.squad.ready;$('team-summary').textContent='Coordinatore: '+describe(currentProfiles.coordinator)+' | Squadra: '+describe(currentProfiles.squad);$('team-summary').className=ready?'ready':'';$('start-work').hidden=!ready;$('setup-needed').hidden=ready;$('agents').replaceChildren();for(const app of data.applications){const config=data.agents[app.id],card=element('section');card.className='box';card.append(element('h3',app.name),element('p',app.role),element('small',config.enabled?'Disponibile nel Capability Center':'Disabilitato nel Capability Center'));$('agents').append(card)} }
+$('refresh-models').onclick=async()=>{const engine=$('team-engine').value,scope=$('team-scope').value,connectionId=editingConnectionId,button=$('refresh-models');button.disabled=true;try{const value={engine,base_url:$('openai-url').value.trim(),...(editingConnectionId?{connection_id:editingConnectionId}:{}),...($('openai-key').value.trim()?{api_key:$('openai-key').value}:{})};const data=engine==='openai'?await api('team/models',{method:'POST',body:JSON.stringify(value)}):await api('team/models?engine='+engine);modelLabels=Object.fromEntries((data.details||[]).map(item=>[item.id,item.label]));if($('team-engine').value===engine&&$('team-scope').value===scope&&editingConnectionId===connectionId)modelOptions(data.models,$('team-model').value);status('Elenco aggiornato. Scegli il modello e salva la squadra.')}catch(e){status(e.message)}finally{button.disabled=false}};
+$('team-model').onchange=()=>{$('custom-model').value=''};
+$('team-scope').onchange=()=>{fillProfile();if(['codex','gemini'].includes($('team-engine').value)&&connections[$('team-engine').value]?.credentials_present)$('refresh-models').click()};
+$('team-engine').onchange=()=>{const engine=$('team-engine').value,profile=selectedProfile();modelOptions([],profile?.engine===engine?profile.model:'');$('custom-model').value=engine==='openai'&&profile?.engine===engine?profile.model:'';$('deepseek-key').value='';$('openai-key').value='';if(engine==='openai'){const custom=profile?.engine===engine?profile:connections.openai||{};$('openai-url').value=custom.base_url||'';editingConnectionId=custom.connection_id||null}serviceFields();if(['codex','gemini'].includes(engine)&&connections[engine]?.credentials_present)$('refresh-models').click()};
+$('team-form').onsubmit=async event=>{event.preventDefault();const button=$('team-save');button.disabled=true;status('Verifica del servizio e salvataggio della configurazione…');try{const engine=$('team-engine').value;const value={engine,scope:$('team-scope').value,model:engine!=='deepseek'&&$('custom-model').value.trim()?$('custom-model').value.trim():$('team-model').value};if(engine==='deepseek'&&$('deepseek-key').value.trim())value.api_key=$('deepseek-key').value;if(engine==='openai'){value.base_url=$('openai-url').value.trim();if(editingConnectionId)value.connection_id=editingConnectionId;if($('openai-key').value.trim())value.api_key=$('openai-key').value}const result=await api('team',{method:'PUT',body:JSON.stringify(value)});$('deepseek-key').value='';$('openai-key').value='';await refresh(result.models);status('Configurazione salvata per '+{both:'coordinatore e squadra',coordinator:'il solo coordinatore',squad:'la sola squadra'}[value.scope]+'.')}catch(e){status(e.message)}finally{button.disabled=false}};
+async function pollLogin(){
+ if(!currentLogin)return;
+ try{
+  const data=await api('login-session/'+currentLogin);
+  $('terminal').textContent=data.text;
+  $('auth-links').replaceChildren();
+  $('copy-login').hidden=true;
+  if(data.authorization_url){
+   const parsed=new URL(data.authorization_url);
+   if(parsed.protocol==='https:'&&['auth.openai.com','accounts.google.com'].includes(parsed.hostname)){
+    const a=element('a','Apri il login ufficiale');a.href=data.authorization_url;a.target='_blank';a.rel='noopener noreferrer';$('auth-links').append(a);
+    $('auth-url').value=data.authorization_url;$('copy-login').hidden=false;
+   }
+  }
+  $('send-code').disabled=!!data.input_sent||data.finished;
+  $('auth-code').disabled=!!data.input_sent||data.finished;
+  $('login-state').textContent=data.input_sent?'Codice inviato. Verifica dell’account e dei modelli in corso…':data.authorization_url?'Apri questo link, completa l’accesso Google e incolla qui il codice di questo tentativo.':'Avvio dell’accesso ufficiale…';
+  if(data.finished){
+   clearInterval(timer);currentLogin=null;
+   $('account-login').disabled=false;$('team-engine').disabled=false;$('team-scope').disabled=false;$('team-save').disabled=false;
+   const success=data.returncode===0;
+   $('login-state').textContent=success?'Account collegato. Salva e attiva la squadra.':data.error||'Accesso non completato. Avvia un nuovo accesso e usa il codice del nuovo link.';
+   if(success)$('login').style.display='none';
+   else{$('auth-links').replaceChildren();$('copy-login').hidden=true;}
+   connections=(await api('catalog')).connections;serviceFields();status($('login-state').textContent);
+  }
+ }catch(e){status(e.message)}
+}
+$('copy-auth-url').onclick=async()=>{const input=$('auth-url');try{await navigator.clipboard.writeText(input.value);status('Link ufficiale copiato.')}catch{input.focus();input.select();status('Link selezionato: copialo e aprilo nel browser.')}};
+$('account-login').onclick=async()=>{try{$('account-login').disabled=true;$('team-engine').disabled=true;$('team-scope').disabled=true;$('team-save').disabled=true;const manual=$('team-engine').value==='gemini';$('send-code').disabled=false;$('auth-code').disabled=false;$('auth-code').value='';$('auth-code').hidden=!manual;document.querySelector('label[for="auth-code"]').hidden=!manual;$('send-code').hidden=!manual;const data=await api('login/'+$('team-engine').value,{method:'POST'});currentLogin=data.id;$('login').style.display='block';$('terminal').textContent='Avvio dell’accesso…';timer=setInterval(pollLogin,1000);await pollLogin()}catch(e){status(e.message);$('account-login').disabled=false;$('team-engine').disabled=false;$('team-scope').disabled=false;$('team-save').disabled=false}};
+$('send-code').onclick=async()=>{try{
+ if(!currentLogin)throw Error('Avvia prima l’accesso');
+ const code=$('auth-code').value.trim();if(!code)throw Error('Incolla il codice restituito da Google per questo accesso.');
+ $('send-code').disabled=true;
+ await api('login-session/'+currentLogin+'/input',{method:'POST',body:JSON.stringify({text:code})});
+ $('auth-code').value='';$('auth-code').disabled=true;$('login-state').textContent='Codice inviato. Verifica dell’account e dei modelli in corso…';await pollLogin();
+}catch(e){status(e.message);$('send-code').disabled=false}};
+$('cancel-login').onclick=async()=>{try{if(currentLogin)await api('login-session/'+currentLogin,{method:'DELETE'})}catch(e){status(e.message)}};
+function loadError(e){status(e.message);$('reload-config').hidden=false}
+$('reload-config').onclick=async()=>{const button=$('reload-config');button.disabled=true;try{await refresh();status('Configurazione caricata.')}catch(e){loadError(e)}finally{button.disabled=false}};
+
+function showRuntime(data){$('runtime-mode').value=data.settings.mode;$('runtime-cpus').value=data.settings.cpus;$('runtime-memory').value=data.settings.memory_mib;$('runtime-model-wait').value=data.settings.model_wait_seconds??0;$('runtime-workers').value=data.settings.max_workers??2;$('runtime-manual').hidden=data.settings.mode!=='manual';$('runtime-effective').textContent=data.warning?'Configurazione da correggere: '+data.warning:'Budget totale condiviso: '+data.effective.cpus+' CPU · '+data.effective.memory_mib+' MiB RAM. '+(data.host.detected?'Capacità rilevata; riserva mantenuta per i servizi.':'Capacità host non rilevata: budget prudente provvisorio.');}
+$('runtime-mode').onchange=()=>{$('runtime-manual').hidden=$('runtime-mode').value!=='manual'};
+$('runtime-form').onsubmit=async event=>{event.preventDefault();const button=event.currentTarget.querySelector('button');button.disabled=true;try{showRuntime(await api('runtime',{method:'PUT',body:JSON.stringify({mode:$('runtime-mode').value,cpus:Number($('runtime-cpus').value),memory_mib:Number($('runtime-memory').value),model_wait_seconds:Number($('runtime-model-wait').value),max_workers:Number($('runtime-workers').value)})}));status('Risorse salvate per le prossime operazioni della squadra e degli ambienti.')}catch(e){status(e.message)}finally{button.disabled=false}};
+api('runtime').then(showRuntime).catch(e=>{$('runtime-effective').textContent=e.message});
+
+refresh().then(()=>{if(['codex','gemini'].includes($('team-engine').value)&&connections[$('team-engine').value]?.credentials_present)$('refresh-models').click()}).catch(loadError);
+</script></body></html>

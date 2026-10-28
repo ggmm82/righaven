@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                  id="Definitions_RigHaven_Cycle"
+                  targetNamespace="http://righaven.io/schema/bpmn">
+  <bpmn:process id="Process_RigHaven_Coordination" name="RigHaven Multi-Agent Coordination &amp; Resilience Cycle" isExecutable="false">
+    <bpmn:startEvent id="StartEvent_Brief" name="User Brief Received (EN/IT)">
+      <bpmn:outgoing>Flow_1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:task id="Task_Clarify" name="Evaluate Outcome &amp; ask_clarification (Accept-Language)">
+      <bpmn:incoming>Flow_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_2</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="Task_Plan" name="harness_plan: Compile Dynamic Roles &amp; Inject Gallery Packs">
+      <bpmn:incoming>Flow_2</bpmn:incoming>
+      <bpmn:incoming>Flow_Revise</bpmn:incoming>
+      <bpmn:outgoing>Flow_3</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="Task_Delegate" name="harness_delegate: Enqueue Job in Redis &amp; Provision Staging (rh-job-id)">
+      <bpmn:incoming>Flow_3</bpmn:incoming>
+      <bpmn:outgoing>Flow_4</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="Task_Sandbox" name="worker-sandbox: Execute CLIs in RIGHAVEN_OUTPUT_DIR, Emit Heartbeat, Save checkpoint.json &amp; method.json">
+      <bpmn:incoming>Flow_4</bpmn:incoming>
+      <bpmn:outgoing>Flow_5</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="Gateway_ReopenCheck" name="Independent Reopen Check Passed in Clean Folder?">
+      <bpmn:incoming>Flow_5</bpmn:incoming>
+      <bpmn:outgoing>Flow_Pass</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Fail</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:task id="Task_SurgicalRevise" name="Surgical Revision (revise_step_id) Using Logs &amp; Partial Artifacts">
+      <bpmn:incoming>Flow_Fail</bpmn:incoming>
+      <bpmn:outgoing>Flow_Revise</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="Task_Handoff" name="Validate handoff.json &amp; Promote Atomically to righaven-data (/mnt/user-data)">
+      <bpmn:incoming>Flow_Pass</bpmn:incoming>
+      <bpmn:outgoing>Flow_6</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:endEvent id="EndEvent_Delivered" name="Verified Deliverable &amp; Editable Sources Published">
+      <bpmn:incoming>Flow_6</bpmn:outgoing>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_1" sourceRef="StartEvent_Brief" targetRef="Task_Clarify"/>
+    <bpmn:sequenceFlow id="Flow_2" sourceRef="Task_Clarify" targetRef="Task_Plan"/>
+    <bpmn:sequenceFlow id="Flow_3" sourceRef="Task_Plan" targetRef="Task_Delegate"/>
+    <bpmn:sequenceFlow id="Flow_4" sourceRef="Task_Delegate" targetRef="Task_Sandbox"/>
+    <bpmn:sequenceFlow id="Flow_5" sourceRef="Task_Sandbox" targetRef="Gateway_ReopenCheck"/>
+    <bpmn:sequenceFlow id="Flow_Pass" name="Yes (Passed)" sourceRef="Gateway_ReopenCheck" targetRef="Task_Handoff"/>
+    <bpmn:sequenceFlow id="Flow_Fail" name="No (Needs Revision)" sourceRef="Gateway_ReopenCheck" targetRef="Task_SurgicalRevise"/>
+    <bpmn:sequenceFlow id="Flow_Revise" sourceRef="Task_SurgicalRevise" targetRef="Task_Plan"/>
+    <bpmn:sequenceFlow id="Flow_6" sourceRef="Task_Handoff" targetRef="EndEvent_Delivered"/>
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_RigHaven">
+    <bpmndi:BPMNPlane id="BPMNPlane_RigHaven" bpmnElement="Process_RigHaven_Coordination">
+      <bpmndi:BPMNShape id="Shape_Start" bpmnElement="StartEvent_Brief">
+        <dc:Bounds x="80" y="162" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Clarify" bpmnElement="Task_Clarify">
+        <dc:Bounds x="160" y="140" width="140" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Plan" bpmnElement="Task_Plan">
+        <dc:Bounds x="340" y="140" width="150" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Delegate" bpmnElement="Task_Delegate">
+        <dc:Bounds x="530" y="140" width="150" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Sandbox" bpmnElement="Task_Sandbox">
+        <dc:Bounds x="720" y="140" width="160" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Gateway" bpmnElement="Gateway_ReopenCheck" isMarkerVisible="true">
+        <dc:Bounds x="925" y="155" width="50" height="50"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Revise" bpmnElement="Task_SurgicalRevise">
+        <dc:Bounds x="875" y="280" width="150" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Handoff" bpmnElement="Task_Handoff">
+        <dc:Bounds x="1030" y="140" width="150" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_End" bpmnElement="EndEvent_Delivered">
+        <dc:Bounds x="1230" y="162" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Edge_1" bpmnElement="Flow_1">
+        <di:waypoint x="116" y="180"/>
+        <di:waypoint x="160" y="180"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_2" bpmnElement="Flow_2">
+        <di:waypoint x="300" y="180"/>
+        <di:waypoint x="340" y="180"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_3" bpmnElement="Flow_3">
+        <di:waypoint x="490" y="180"/>
+        <di:waypoint x="530" y="180"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_4" bpmnElement="Flow_4">
+        <di:waypoint x="680" y="180"/>
+        <di:waypoint x="720" y="180"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_5" bpmnElement="Flow_5">
+        <di:waypoint x="880" y="180"/>
+        <di:waypoint x="925" y="180"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Pass" bpmnElement="Flow_Pass">
+        <di:waypoint x="975" y="180"/>
+        <di:waypoint x="1030" y="180"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Fail" bpmnElement="Flow_Fail">
+        <di:waypoint x="950" y="205"/>
+        <di:waypoint x="950" y="280"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Revise" bpmnElement="Flow_Revise">
+        <di:waypoint x="875" y="320"/>
+        <di:waypoint x="415" y="320"/>
+        <di:waypoint x="415" y="220"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_6" bpmnElement="Flow_6">
+        <di:waypoint x="1180" y="180"/>
+        <di:waypoint x="1230" y="180"/>
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

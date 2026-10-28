@@ -1,0 +1,63 @@
+{
+  "id": "skill-vectorcraft",
+  "name": "VectorCraft Agent Skill (skill-vectorcraft)",
+  "version": "v0.16.0",
+  "author": "righaven-core",
+  "category": "skill",
+  "tags": [
+    "vectorcraft",
+    "skill",
+    "reopen-check"
+  ],
+  "stars": 98,
+  "forks": 30,
+  "verified": true,
+  "tools": [
+    "vectorcraft"
+  ],
+  "i18n": {
+    "en": {
+      "title": "Skill: VectorCraft SVG & Illustration Engine",
+      "description": "Dynamic competency module instructing RigHaven agents on VectorCraft authoring, editable source preservation, and reopen verification."
+    },
+    "it": {
+      "title": "Skill: VectorCraft — Grafica vettoriale",
+      "description": "Modulo di competenza dinamico che istruisce gli agenti RigHaven su VectorCraft, conservazione dei sorgenti modificabili e reopen check."
+    }
+  },
+  "docker_dependencies": {
+    "base_image": "righaven-sandbox:0.1.0",
+    "system_packages": [],
+    "python_packages": [],
+    "node_packages": [],
+    "nix_packages": [
+      "pkgs.vectorcraft"
+    ]
+  },
+  "cli_binaries": [
+    {
+      "name": "vectorcraft",
+      "executable": "/usr/local/bin/vectorcraft-cli",
+      "safe_flags": [
+        "commands"
+      ],
+      "health_check": "craft capabilities vectorcraft"
+    }
+  ],
+  "skill_prompt_template": "Load `/mnt/skills/custom/skill-vectorcraft/SKILL.md` and `references/CLI-RECIPE.md`. Produce both the target export and the editable source in `$RIGHAVEN_OUTPUT_DIR`, execute an independent reopen check in a clean folder, and record results in `handoff.json`.",
+  "verification_command": "python3 /opt/righaven-worker/handoff.py validate \"$RIGHAVEN_OUTPUT_DIR\"",
+  "security_policy": {
+    "rootless": true,
+    "network_access": false,
+    "writable_paths": [
+      "$RIGHAVEN_OUTPUT_DIR"
+    ],
+    "read_only_mounts": [
+      "/mnt/user-data"
+    ],
+    "drop_capabilities": [
+      "ALL"
+    ],
+    "no_new_privileges": true
+  }
+}

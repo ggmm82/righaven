@@ -1,0 +1,29 @@
+direction: down
+
+title: {
+  label: "RigHaven — 6-Container Core Architecture, Gallery Hub & Volume Isolation"
+  near: top-center
+  shape: text
+}
+
+proxy: "1. proxy (Caddy 2.10 Edge Gateway)\nTLS Termination, HTTP/HTTPS, SSE Streaming"
+frontend: "2. frontend (Next.js / React 19 + TypeScript)\nChat Workspace, Artifact Viewer, Community Gallery, Cloud Portal, EN|IT i18n"
+gateway: "3. gateway (FastAPI Python 3.12 Core Orchestrator)\nharness_plan, harness_delegate, Gallery API, Cloud Multi-Tenant Auth & Vault"
+redis: "4. redis (Redis 7.4 Broker)\nFIFO Queues, distlock, Real-Time Pub/Sub SSE"
+runtime_docker: "5. runtime-docker (Docker SDK / DinD Controller)\ncgroups CPU/RAM/PID Limits, Least-Privilege Mounts"
+worker_sandbox: "6. worker-sandbox (Rootless Sealed Debian Container)\n37+ Open-Source CLIs + On-Demand Gallery Environment Packs"
+
+volumes: "Persistent Volumes & Isolation Boundaries" {
+  righaven_data: "righaven-data (/mnt/user-data)\nRead-Only for worker-sandbox | Read-Write for Gateway Promotion\nStaging: outputs/workspace/rh-job-<id> (RIGHAVEN_OUTPUT_DIR)"
+  righaven_state: "righaven-state (/righaven-state & .righaven-project/)\nEncrypted Vault, Gallery Catalog, Checkpoints & Audit Logs"
+}
+
+proxy -> frontend: "Routes Web UI (/workspace/*)"
+proxy -> gateway: "Routes /api/*, /harness/*, /api/v1/gallery/*, /api/v1/cloud/*"
+frontend -> gateway: "REST & SSE (Accept-Language: en | it)"
+gateway -> redis: "FIFO Queue + distlock + SSE Pub/Sub"
+gateway -> runtime_docker: "unix:///runtime/docker.sock"
+runtime_docker -> worker_sandbox: "Spawns ephemeral container with cgroups & Environment Packs"
+worker_sandbox -> volumes.righaven_data: "RO: /mnt/user-data | RW ONLY: RIGHAVEN_OUTPUT_DIR"
+gateway -> volumes.righaven_data: "Atomic Promotion after reopen check & handoff.json validation"
+gateway -> volumes.righaven_state: "Persists .righaven-project/, Gallery Packs & Cloud Tenant State"

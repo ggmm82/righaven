@@ -1,0 +1,5440 @@
+{
+  "schema_version": "1.0.0",
+  "hub_name": "RigHaven Hub",
+  "total_packs": 84,
+  "packs": [
+    {
+      "id": "env-architecture-modeling-rig",
+      "name": "Architecture & Modeling Rig",
+      "version": "1.2.0",
+      "author": "righaven-core",
+      "category": "environment",
+      "tags": [
+        "c4",
+        "structurizr",
+        "d2",
+        "bpmn",
+        "uml",
+        "architecture"
+      ],
+      "stars": 148,
+      "forks": 34,
+      "verified": true,
+      "tools": [
+        "structurizr",
+        "d2",
+        "bpmn",
+        "plantuml",
+        "mermaid",
+        "excalidraw",
+        "typst"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Architecture & Modeling Rig",
+          "description": "Preconfigured sandbox for software architecture (C4 Structurizr DSL, D2, PlantUML, Mermaid), BPMN 2.0 process modeling, and Typst technical reports."
+        },
+        "it": {
+          "title": "Rig Architettura e Modellazione",
+          "description": "Sandbox preconfigurata per architettura software (C4 Structurizr DSL, D2, PlantUML, Mermaid), modellazione processi BPMN 2.0 e report tecnici Typst."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [
+          "openjdk-21-jre-headless",
+          "graphviz",
+          "librsvg2-bin"
+        ],
+        "python_packages": [
+          "pyyaml"
+        ],
+        "node_packages": [
+          "@mermaid-js/mermaid-cli",
+          "bpmn-to-image",
+          "@excalidraw/excalidraw"
+        ],
+        "nix_packages": [
+          "pkgs.d2",
+          "pkgs.typst",
+          "pkgs.plantuml"
+        ]
+      },
+      "cli_binaries": [
+        {
+          "name": "structurizr",
+          "executable": "/usr/local/bin/structurizr-cli",
+          "safe_flags": [
+            "validate",
+            "export"
+          ],
+          "health_check": "craft capabilities structurizr"
+        },
+        {
+          "name": "d2",
+          "executable": "/usr/local/bin/d2-cli",
+          "safe_flags": [
+            "--layout=elk"
+          ],
+          "health_check": "craft capabilities d2"
+        },
+        {
+          "name": "bpmn",
+          "executable": "/usr/local/bin/bpmn-cli",
+          "safe_flags": [
+            "render"
+          ],
+          "health_check": "craft capabilities bpmn"
+        },
+        {
+          "name": "typst",
+          "executable": "/usr/local/bin/typst-cli",
+          "safe_flags": [
+            "compile"
+          ],
+          "health_check": "craft capabilities typst"
+        }
+      ],
+      "skill_prompt_template": "Use the Architecture & Modeling Rig to author C4 models (.dsl), D2 diagrams (.d2), BPMN 2.0 workflows (.bpmn), and Typst reports (.typ). Always run independent reopen verification in a clean directory before writing handoff.json.",
+      "verification_command": "craft capabilities structurizr && craft capabilities d2 && craft capabilities bpmn && craft capabilities typst",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ],
+        "read_only_mounts": [
+          "/mnt/user-data"
+        ],
+        "drop_capabilities": [
+          "ALL"
+        ],
+        "no_new_privileges": true
+      }
+    },
+    {
+      "id": "env-media-ffmpeg-rig",
+      "name": "Media & FFmpeg Mastering Rig",
+      "version": "1.2.0",
+      "author": "righaven-core",
+      "category": "environment",
+      "tags": [
+        "ffmpeg",
+        "audio",
+        "video",
+        "midi",
+        "manim",
+        "multimedia"
+      ],
+      "stars": 132,
+      "forks": 29,
+      "verified": true,
+      "tools": [
+        "ffmpeg",
+        "soundcraft",
+        "filmcraft",
+        "effectcraft",
+        "aubio",
+        "fluidsynth",
+        "musescore",
+        "whisper",
+        "opentimelineio",
+        "manim"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Media & FFmpeg Mastering Rig",
+          "description": "Complete audiovisual production environment with FFmpeg stream mastering, multi-track MIDI/audio synthesis, Manim scenes, and OpenTimelineIO verification."
+        },
+        "it": {
+          "title": "Rig Mastering Media e FFmpeg",
+          "description": "Ambiente completo di produzione audiovisiva con mastering FFmpeg, sintesi multi-traccia MIDI/audio, scene Manim e verifica OpenTimelineIO."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [
+          "ffmpeg",
+          "fluidsynth",
+          "aubio-tools",
+          "musescore3"
+        ],
+        "python_packages": [
+          "manim",
+          "opentimelineio",
+          "numpy"
+        ],
+        "node_packages": [],
+        "nix_packages": [
+          "pkgs.ffmpeg_7",
+          "pkgs.fluidsynth"
+        ]
+      },
+      "cli_binaries": [
+        {
+          "name": "ffmpeg",
+          "executable": "/usr/local/bin/ffmpeg-cli",
+          "safe_flags": [
+            "-v",
+            "error",
+            "-nostdin"
+          ],
+          "health_check": "craft capabilities ffmpeg"
+        },
+        {
+          "name": "soundcraft",
+          "executable": "/usr/local/bin/soundcraft-cli",
+          "safe_flags": [
+            "run",
+            "--inspect"
+          ],
+          "health_check": "craft capabilities soundcraft"
+        },
+        {
+          "name": "filmcraft",
+          "executable": "/usr/local/bin/filmcraft-cli",
+          "safe_flags": [
+            "run",
+            "--inspect"
+          ],
+          "health_check": "craft capabilities filmcraft"
+        }
+      ],
+      "skill_prompt_template": "Use the Media & FFmpeg Mastering Rig to synthesize audio, edit video timelines, and mux final deliverables. Verify audio/video stream presence and duration with ffprobe and reopen native project files before writing handoff.json.",
+      "verification_command": "craft capabilities ffmpeg && craft capabilities soundcraft && craft capabilities filmcraft",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ],
+        "read_only_mounts": [
+          "/mnt/user-data"
+        ],
+        "drop_capabilities": [
+          "ALL"
+        ],
+        "no_new_privileges": true
+      }
+    },
+    {
+      "id": "env-fullstack-scraper-rig",
+      "name": "Full-Stack Web Scraper & QA Rig",
+      "version": "1.1.0",
+      "author": "righaven-core",
+      "category": "environment",
+      "tags": [
+        "playwright",
+        "web",
+        "qa",
+        "security",
+        "opengrep",
+        "trivy"
+      ],
+      "stars": 119,
+      "forks": 21,
+      "verified": true,
+      "tools": [
+        "playwright",
+        "opengrep",
+        "trivy",
+        "d2"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Full-Stack Web Scraper & QA Rig",
+          "description": "Headless Chromium automation with Playwright, semantic code auditing with OpenGrep, and dependency vulnerability scanning with Trivy."
+        },
+        "it": {
+          "title": "Rig Web Scraper e Collaudo Full-Stack",
+          "description": "Automazione Chromium headless con Playwright, analisi statica semantica con OpenGrep e scansione vulnerabilità dipendenze con Trivy."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [
+          "chromium",
+          "libnss3",
+          "libatk-bridge2.0-0"
+        ],
+        "python_packages": [
+          "playwright"
+        ],
+        "node_packages": [
+          "@playwright/test"
+        ],
+        "nix_packages": [
+          "pkgs.playwright-driver",
+          "pkgs.trivy"
+        ]
+      },
+      "cli_binaries": [
+        {
+          "name": "playwright",
+          "executable": "/usr/local/bin/playwright-cli",
+          "safe_flags": [
+            "test",
+            "--headed=false"
+          ],
+          "health_check": "craft capabilities playwright"
+        },
+        {
+          "name": "opengrep",
+          "executable": "/usr/local/bin/opengrep-cli",
+          "safe_flags": [
+            "scan"
+          ],
+          "health_check": "craft capabilities opengrep"
+        },
+        {
+          "name": "trivy",
+          "executable": "/usr/local/bin/trivy-cli",
+          "safe_flags": [
+            "fs",
+            "--offline-scan"
+          ],
+          "health_check": "craft capabilities trivy"
+        }
+      ],
+      "skill_prompt_template": "Use the Full-Stack Web Scraper & QA Rig to verify web interfaces across desktop/mobile viewports, capture DOM traces, and run static security checks.",
+      "verification_command": "craft capabilities playwright && craft capabilities opengrep && craft capabilities trivy",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ],
+        "read_only_mounts": [
+          "/mnt/user-data"
+        ],
+        "drop_capabilities": [
+          "ALL"
+        ],
+        "no_new_privileges": true
+      }
+    },
+    {
+      "id": "env-datascience-typst-rig",
+      "name": "Data Science & Typst Publishing Rig",
+      "version": "1.2.0",
+      "author": "righaven-core",
+      "category": "environment",
+      "tags": [
+        "typst",
+        "pandoc",
+        "calibre",
+        "data-science",
+        "publishing",
+        "pdf"
+      ],
+      "stars": 164,
+      "forks": 42,
+      "verified": true,
+      "tools": [
+        "gridcraft",
+        "typst",
+        "pandoc",
+        "calibre",
+        "epubcheck",
+        "pdfcraft",
+        "wordcraft",
+        "deckcraft"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Data Science & Typst Publishing Rig",
+          "description": "Reproducible quantitative analysis and publication pipeline combining GridCraft spreadsheets, Typst programmable typesetting, Pandoc, and Calibre EPUBCheck."
+        },
+        "it": {
+          "title": "Rig Data Science ed Editoria Typst",
+          "description": "Pipeline di analisi quantitativa ed editoria riproducibile con fogli di calcolo GridCraft, composizione tipografica Typst, Pandoc e Calibre EPUBCheck."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [
+          "pandoc",
+          "calibre",
+          "fonts-dejavu-core",
+          "fonts-liberation"
+        ],
+        "python_packages": [
+          "openpyxl",
+          "pandas"
+        ],
+        "node_packages": [],
+        "nix_packages": [
+          "pkgs.typst",
+          "pkgs.pandoc",
+          "pkgs.calibre"
+        ]
+      },
+      "cli_binaries": [
+        {
+          "name": "typst",
+          "executable": "/usr/local/bin/typst-cli",
+          "safe_flags": [
+            "compile"
+          ],
+          "health_check": "craft capabilities typst"
+        },
+        {
+          "name": "pandoc",
+          "executable": "/usr/local/bin/pandoc-cli",
+          "safe_flags": [
+            "--standalone"
+          ],
+          "health_check": "craft capabilities pandoc"
+        },
+        {
+          "name": "gridcraft",
+          "executable": "/usr/local/bin/gridcraft-cli",
+          "safe_flags": [
+            "run",
+            "--inspect"
+          ],
+          "health_check": "craft capabilities gridcraft"
+        }
+      ],
+      "skill_prompt_template": "Use the Data Science & Typst Publishing Rig to reconcile tabular models in GridCraft and typeset publication-ready PDFs/EPUBs in Typst, Pandoc, and Calibre.",
+      "verification_command": "craft capabilities typst && craft capabilities pandoc && craft capabilities gridcraft",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ],
+        "read_only_mounts": [
+          "/mnt/user-data"
+        ],
+        "drop_capabilities": [
+          "ALL"
+        ],
+        "no_new_privileges": true
+      }
+    },
+    {
+      "id": "env-cad-3d-rig",
+      "name": "Parametric CAD & 3D Geometry Rig",
+      "version": "1.1.0",
+      "author": "righaven-core",
+      "category": "environment",
+      "tags": [
+        "freecad",
+        "blender",
+        "ifc",
+        "bim",
+        "cad",
+        "mesh"
+      ],
+      "stars": 98,
+      "forks": 19,
+      "verified": true,
+      "tools": [
+        "freecad",
+        "cadcraft",
+        "blender",
+        "ifcopenshell",
+        "pymeshlab"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Parametric CAD & 3D Geometry Rig",
+          "description": "Engineering and 3D modeling rig featuring FreeCAD parametric solids, CADCraft 2D DXF drafting, Blender 3D rendering, IfcOpenShell BIM, and PyMeshLab."
+        },
+        "it": {
+          "title": "Rig CAD Parametrico e Geometria 3D",
+          "description": "Rig di ingegneria e modellazione 3D con solidi parametrici FreeCAD, disegno 2D DXF CADCraft, rendering 3D Blender, BIM IfcOpenShell e PyMeshLab."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [
+          "freecad",
+          "blender"
+        ],
+        "python_packages": [
+          "ifcopenshell",
+          "pymeshlab"
+        ],
+        "node_packages": [],
+        "nix_packages": [
+          "pkgs.freecad",
+          "pkgs.blender"
+        ]
+      },
+      "cli_binaries": [
+        {
+          "name": "freecad",
+          "executable": "/usr/local/bin/freecad-cli",
+          "safe_flags": [
+            "--headless"
+          ],
+          "health_check": "craft capabilities freecad"
+        },
+        {
+          "name": "blender",
+          "executable": "/usr/local/bin/blender-cli",
+          "safe_flags": [
+            "-b",
+            "--factory-startup"
+          ],
+          "health_check": "craft capabilities blender"
+        }
+      ],
+      "skill_prompt_template": "Use the Parametric CAD & 3D Geometry Rig to create verified .FCStd, .dxf, .ifc, and .blend sources with independent reopen checks.",
+      "verification_command": "craft capabilities freecad && craft capabilities blender",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ],
+        "read_only_mounts": [
+          "/mnt/user-data"
+        ],
+        "drop_capabilities": [
+          "ALL"
+        ],
+        "no_new_privileges": true
+      }
+    },
+    {
+      "id": "cli-photocraft",
+      "name": "PhotoCraft CLI Wrapper",
+      "version": "v0.15.1",
+      "author": "righaven-core",
+      "category": "cli-tool",
+      "tags": [
+        "photocraft",
+        "cli",
+        "open-source"
+      ],
+      "stars": 84,
+      "forks": 17,
+      "verified": true,
+      "tools": [
+        "photocraft"
+      ],
+      "i18n": {
+        "en": {
+          "title": "PhotoCraft Raster Compositor",
+          "description": "Layered raster retouching, compositing, masks, and non-destructive image workflows."
+        },
+        "it": {
+          "title": "PhotoCraft — Immagini e ritocco",
+          "description": "Ritocco, compositing raster e texture con livelli e maschere."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": [
+          "pkgs.photocraft"
+        ]
+      },
+      "cli_binaries": [
+        {
+          "name": "photocraft",
+          "executable": "/usr/local/bin/photocraft-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities photocraft"
+        }
+      ],
+      "skill_prompt_template": "Invoke `photocraft-cli` inside `$RIGHAVEN_OUTPUT_DIR`. Inspect capabilities via `craft capabilities photocraft` and validate editable sources via independent reopen check before writing `handoff.json`.",
+      "verification_command": "craft capabilities photocraft",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ],
+        "read_only_mounts": [
+          "/mnt/user-data"
+        ],
+        "drop_capabilities": [
+          "ALL"
+        ],
+        "no_new_privileges": true
+      }
+    },
+    {
+      "id": "skill-photocraft",
+      "name": "PhotoCraft Agent Skill (skill-photocraft)",
+      "version": "v0.15.1",
+      "author": "righaven-core",
+      "category": "skill",
+      "tags": [
+        "photocraft",
+        "skill",
+        "reopen-check"
+      ],
+      "stars": 90,
+      "forks": 22,
+      "verified": true,
+      "tools": [
+        "photocraft"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Skill: PhotoCraft Raster Compositor",
+          "description": "Dynamic competency module instructing RigHaven agents on PhotoCraft authoring, editable source preservation, and reopen verification."
+        },
+        "it": {
+          "title": "Skill: PhotoCraft — Immagini e ritocco",
+          "description": "Modulo di competenza dinamico che istruisce gli agenti RigHaven su PhotoCraft, conservazione dei sorgenti modificabili e reopen check."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": [
+          "pkgs.photocraft"
+        ]
+      },
+      "cli_binaries": [
+        {
+          "name": "photocraft",
+          "executable": "/usr/local/bin/photocraft-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities photocraft"
+        }
+      ],
+      "skill_prompt_template": "Load `/mnt/skills/custom/skill-photocraft/SKILL.md` and `references/CLI-RECIPE.md`. Produce both the target export and the editable source in `$RIGHAVEN_OUTPUT_DIR`, execute an independent reopen check in a clean folder, and record results in `handoff.json`.",
+      "verification_command": "python3 /opt/righaven-worker/handoff.py validate \"$RIGHAVEN_OUTPUT_DIR\"",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ],
+        "read_only_mounts": [
+          "/mnt/user-data"
+        ],
+        "drop_capabilities": [
+          "ALL"
+        ],
+        "no_new_privileges": true
+      }
+    },
+    {
+      "id": "cli-vectorcraft",
+      "name": "VectorCraft CLI Wrapper",
+      "version": "v0.16.0",
+      "author": "righaven-core",
+      "category": "cli-tool",
+      "tags": [
+        "vectorcraft",
+        "cli",
+        "open-source"
+      ],
+      "stars": 69,
+      "forks": 12,
+      "verified": true,
+      "tools": [
+        "vectorcraft"
+      ],
+      "i18n": {
+        "en": {
+          "title": "VectorCraft SVG & Illustration Engine",
+          "description": "Editable vector graphics, logos, icons, typography, and structured SVG authoring."
+        },
+        "it": {
+          "title": "VectorCraft — Grafica vettoriale",
+          "description": "Illustrazione vettoriale, loghi, icone, lettering e diagrammi modificabili."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": [
+          "pkgs.vectorcraft"
+        ]
+      },
+      "cli_binaries": [
+        {
+          "name": "vectorcraft",
+          "executable": "/usr/local/bin/vectorcraft-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities vectorcraft"
+        }
+      ],
+      "skill_prompt_template": "Invoke `vectorcraft-cli` inside `$RIGHAVEN_OUTPUT_DIR`. Inspect capabilities via `craft capabilities vectorcraft` and validate editable sources via independent reopen check before writing `handoff.json`.",
+      "verification_command": "craft capabilities vectorcraft",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ],
+        "read_only_mounts": [
+          "/mnt/user-data"
+        ],
+        "drop_capabilities": [
+          "ALL"
+        ],
+        "no_new_privileges": true
+      }
+    },
+    {
+      "id": "skill-vectorcraft",
+      "name": "VectorCraft Agent Skill (skill-vectorcraft)",
+      "version": "v0.16.0",
+      "author": "righaven-core",
+      "category": "skill",
+      "tags": [
+        "vectorcraft",
+        "skill",
+        "reopen-check"
+      ],
+      "stars": 98,
+      "forks": 30,
+      "verified": true,
+      "tools": [
+        "vectorcraft"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Skill: VectorCraft SVG & Illustration Engine",
+          "description": "Dynamic competency module instructing RigHaven agents on VectorCraft authoring, editable source preservation, and reopen verification."
+        },
+        "it": {
+          "title": "Skill: VectorCraft — Grafica vettoriale",
+          "description": "Modulo di competenza dinamico che istruisce gli agenti RigHaven su VectorCraft, conservazione dei sorgenti modificabili e reopen check."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": [
+          "pkgs.vectorcraft"
+        ]
+      },
+      "cli_binaries": [
+        {
+          "name": "vectorcraft",
+          "executable": "/usr/local/bin/vectorcraft-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities vectorcraft"
+        }
+      ],
+      "skill_prompt_template": "Load `/mnt/skills/custom/skill-vectorcraft/SKILL.md` and `references/CLI-RECIPE.md`. Produce both the target export and the editable source in `$RIGHAVEN_OUTPUT_DIR`, execute an independent reopen check in a clean folder, and record results in `handoff.json`.",
+      "verification_command": "python3 /opt/righaven-worker/handoff.py validate \"$RIGHAVEN_OUTPUT_DIR\"",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ],
+        "read_only_mounts": [
+          "/mnt/user-data"
+        ],
+        "drop_capabilities": [
+          "ALL"
+        ],
+        "no_new_privileges": true
+      }
+    },
+    {
+      "id": "cli-filmcraft",
+      "name": "FilmCraft CLI Wrapper",
+      "version": "v0.12.0",
+      "author": "righaven-core",
+      "category": "cli-tool",
+      "tags": [
+        "filmcraft",
+        "cli",
+        "open-source"
+      ],
+      "stars": 86,
+      "forks": 14,
+      "verified": true,
+      "tools": [
+        "filmcraft"
+      ],
+      "i18n": {
+        "en": {
+          "title": "FilmCraft Nonlinear Video Editor",
+          "description": "Multi-track video sequence editing, color grading, and synchronized audiovisual mastering."
+        },
+        "it": {
+          "title": "FilmCraft — Montaggio video",
+          "description": "Montaggio, sequenze, composizione di contributi, colore e master audiovisivo."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": [
+          "pkgs.filmcraft"
+        ]
+      },
+      "cli_binaries": [
+        {
+          "name": "filmcraft",
+          "executable": "/usr/local/bin/filmcraft-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities filmcraft"
+        }
+      ],
+      "skill_prompt_template": "Invoke `filmcraft-cli` inside `$RIGHAVEN_OUTPUT_DIR`. Inspect capabilities via `craft capabilities filmcraft` and validate editable sources via independent reopen check before writing `handoff.json`.",
+      "verification_command": "craft capabilities filmcraft",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ],
+        "read_only_mounts": [
+          "/mnt/user-data"
+        ],
+        "drop_capabilities": [
+          "ALL"
+        ],
+        "no_new_privileges": true
+      }
+    },
+    {
+      "id": "skill-filmcraft",
+      "name": "FilmCraft Agent Skill (skill-filmcraft)",
+      "version": "v0.12.0",
+      "author": "righaven-core",
+      "category": "skill",
+      "tags": [
+        "filmcraft",
+        "skill",
+        "reopen-check"
+      ],
+      "stars": 113,
+      "forks": 25,
+      "verified": true,
+      "tools": [
+        "filmcraft"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Skill: FilmCraft Nonlinear Video Editor",
+          "description": "Dynamic competency module instructing RigHaven agents on FilmCraft authoring, editable source preservation, and reopen verification."
+        },
+        "it": {
+          "title": "Skill: FilmCraft — Montaggio video",
+          "description": "Modulo di competenza dinamico che istruisce gli agenti RigHaven su FilmCraft, conservazione dei sorgenti modificabili e reopen check."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": [
+          "pkgs.filmcraft"
+        ]
+      },
+      "cli_binaries": [
+        {
+          "name": "filmcraft",
+          "executable": "/usr/local/bin/filmcraft-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities filmcraft"
+        }
+      ],
+      "skill_prompt_template": "Load `/mnt/skills/custom/skill-filmcraft/SKILL.md` and `references/CLI-RECIPE.md`. Produce both the target export and the editable source in `$RIGHAVEN_OUTPUT_DIR`, execute an independent reopen check in a clean folder, and record results in `handoff.json`.",
+      "verification_command": "python3 /opt/righaven-worker/handoff.py validate \"$RIGHAVEN_OUTPUT_DIR\"",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ],
+        "read_only_mounts": [
+          "/mnt/user-data"
+        ],
+        "drop_capabilities": [
+          "ALL"
+        ],
+        "no_new_privileges": true
+      }
+    },
+    {
+      "id": "cli-lightcraft",
+      "name": "LightCraft CLI Wrapper",
+      "version": "v0.13.0",
+      "author": "righaven-core",
+      "category": "cli-tool",
+      "tags": [
+        "lightcraft",
+        "cli",
+        "open-source"
+      ],
+      "stars": 87,
+      "forks": 15,
+      "verified": true,
+      "tools": [
+        "lightcraft"
+      ],
+      "i18n": {
+        "en": {
+          "title": "LightCraft RAW Photo Developer",
+          "description": "Parametric RAW photography development, color calibration, and batch exposure grading."
+        },
+        "it": {
+          "title": "LightCraft — Fotografia e RAW",
+          "description": "Sviluppo fotografico/RAW, catalogazione, correzioni locali e serie coerenti."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": [
+          "pkgs.lightcraft"
+        ]
+      },
+      "cli_binaries": [
+        {
+          "name": "lightcraft",
+          "executable": "/usr/local/bin/lightcraft-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities lightcraft"
+        }
+      ],
+      "skill_prompt_template": "Invoke `lightcraft-cli` inside `$RIGHAVEN_OUTPUT_DIR`. Inspect capabilities via `craft capabilities lightcraft` and validate editable sources via independent reopen check before writing `handoff.json`.",
+      "verification_command": "craft capabilities lightcraft",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ],
+        "read_only_mounts": [
+          "/mnt/user-data"
+        ],
+        "drop_capabilities": [
+          "ALL"
+        ],
+        "no_new_privileges": true
+      }
+    },
+    {
+      "id": "skill-lightcraft",
+      "name": "LightCraft Agent Skill (skill-lightcraft)",
+      "version": "v0.13.0",
+      "author": "righaven-core",
+      "category": "skill",
+      "tags": [
+        "lightcraft",
+        "skill",
+        "reopen-check"
+      ],
+      "stars": 105,
+      "forks": 17,
+      "verified": true,
+      "tools": [
+        "lightcraft"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Skill: LightCraft RAW Photo Developer",
+          "description": "Dynamic competency module instructing RigHaven agents on LightCraft authoring, editable source preservation, and reopen verification."
+        },
+        "it": {
+          "title": "Skill: LightCraft — Fotografia e RAW",
+          "description": "Modulo di competenza dinamico che istruisce gli agenti RigHaven su LightCraft, conservazione dei sorgenti modificabili e reopen check."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": [
+          "pkgs.lightcraft"
+        ]
+      },
+      "cli_binaries": [
+        {
+          "name": "lightcraft",
+          "executable": "/usr/local/bin/lightcraft-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities lightcraft"
+        }
+      ],
+      "skill_prompt_template": "Load `/mnt/skills/custom/skill-lightcraft/SKILL.md` and `references/CLI-RECIPE.md`. Produce both the target export and the editable source in `$RIGHAVEN_OUTPUT_DIR`, execute an independent reopen check in a clean folder, and record results in `handoff.json`.",
+      "verification_command": "python3 /opt/righaven-worker/handoff.py validate \"$RIGHAVEN_OUTPUT_DIR\"",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ],
+        "read_only_mounts": [
+          "/mnt/user-data"
+        ],
+        "drop_capabilities": [
+          "ALL"
+        ],
+        "no_new_privileges": true
+      }
+    },
+    {
+      "id": "cli-pdfcraft",
+      "name": "PdfCraft CLI Wrapper",
+      "version": "v0.13.0",
+      "author": "righaven-core",
+      "category": "cli-tool",
+      "tags": [
+        "pdfcraft",
+        "cli",
+        "open-source"
+      ],
+      "stars": 68,
+      "forks": 16,
+      "verified": true,
+      "tools": [
+        "pdfcraft"
+      ],
+      "i18n": {
+        "en": {
+          "title": "PDFCraft Document Inspector & Prepress",
+          "description": "PDF inspection, page assembly, form filling, redaction, OCR, and prepress verification."
+        },
+        "it": {
+          "title": "PdfCraft — Documenti PDF",
+          "description": "Ispezione e modifica PDF, pagine, testo, moduli, OCR e prestampa."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": [
+          "pkgs.pdfcraft"
+        ]
+      },
+      "cli_binaries": [
+        {
+          "name": "pdfcraft",
+          "executable": "/usr/local/bin/pdfcraft-cli",
+          "safe_flags": [
+            "tools"
+          ],
+          "health_check": "craft capabilities pdfcraft"
+        }
+      ],
+      "skill_prompt_template": "Invoke `pdfcraft-cli` inside `$RIGHAVEN_OUTPUT_DIR`. Inspect capabilities via `craft capabilities pdfcraft` and validate editable sources via independent reopen check before writing `handoff.json`.",
+      "verification_command": "craft capabilities pdfcraft",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ],
+        "read_only_mounts": [
+          "/mnt/user-data"
+        ],
+        "drop_capabilities": [
+          "ALL"
+        ],
+        "no_new_privileges": true
+      }
+    },
+    {
+      "id": "skill-pdfcraft",
+      "name": "PdfCraft Agent Skill (skill-pdfcraft)",
+      "version": "v0.13.0",
+      "author": "righaven-core",
+      "category": "skill",
+      "tags": [
+        "pdfcraft",
+        "skill",
+        "reopen-check"
+      ],
+      "stars": 104,
+      "forks": 16,
+      "verified": true,
+      "tools": [
+        "pdfcraft"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Skill: PDFCraft Document Inspector & Prepress",
+          "description": "Dynamic competency module instructing RigHaven agents on PdfCraft authoring, editable source preservation, and reopen verification."
+        },
+        "it": {
+          "title": "Skill: PdfCraft — Documenti PDF",
+          "description": "Modulo di competenza dinamico che istruisce gli agenti RigHaven su PdfCraft, conservazione dei sorgenti modificabili e reopen check."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": [
+          "pkgs.pdfcraft"
+        ]
+      },
+      "cli_binaries": [
+        {
+          "name": "pdfcraft",
+          "executable": "/usr/local/bin/pdfcraft-cli",
+          "safe_flags": [
+            "tools"
+          ],
+          "health_check": "craft capabilities pdfcraft"
+        }
+      ],
+      "skill_prompt_template": "Load `/mnt/skills/custom/skill-pdfcraft/SKILL.md` and `references/CLI-RECIPE.md`. Produce both the target export and the editable source in `$RIGHAVEN_OUTPUT_DIR`, execute an independent reopen check in a clean folder, and record results in `handoff.json`.",
+      "verification_command": "python3 /opt/righaven-worker/handoff.py validate \"$RIGHAVEN_OUTPUT_DIR\"",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ],
+        "read_only_mounts": [
+          "/mnt/user-data"
+        ],
+        "drop_capabilities": [
+          "ALL"
+        ],
+        "no_new_privileges": true
+      }
+    },
+    {
+      "id": "cli-effectcraft",
+      "name": "EffectCraft CLI Wrapper",
+      "version": "v0.16.0",
+      "author": "righaven-core",
+      "category": "cli-tool",
+      "tags": [
+        "effectcraft",
+        "cli",
+        "open-source"
+      ],
+      "stars": 45,
+      "forks": 18,
+      "verified": true,
+      "tools": [
+        "effectcraft"
+      ],
+      "i18n": {
+        "en": {
+          "title": "EffectCraft Motion & VFX Rig",
+          "description": "2D/3D motion graphics, keyframe animation, camera/lighting rigs, and visual effects."
+        },
+        "it": {
+          "title": "EffectCraft — Animazione ed effetti",
+          "description": "Animazione 2D/3D, motion graphics, compositing, camera/luci ed effetti."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": [
+          "pkgs.effectcraft"
+        ]
+      },
+      "cli_binaries": [
+        {
+          "name": "effectcraft",
+          "executable": "/usr/local/bin/effectcraft-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities effectcraft"
+        }
+      ],
+      "skill_prompt_template": "Invoke `effectcraft-cli` inside `$RIGHAVEN_OUTPUT_DIR`. Inspect capabilities via `craft capabilities effectcraft` and validate editable sources via independent reopen check before writing `handoff.json`.",
+      "verification_command": "craft capabilities effectcraft",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ],
+        "read_only_mounts": [
+          "/mnt/user-data"
+        ],
+        "drop_capabilities": [
+          "ALL"
+        ],
+        "no_new_privileges": true
+      }
+    },
+    {
+      "id": "skill-effectcraft",
+      "name": "EffectCraft Agent Skill (skill-effectcraft)",
+      "version": "v0.16.0",
+      "author": "righaven-core",
+      "category": "skill",
+      "tags": [
+        "effectcraft",
+        "skill",
+        "reopen-check"
+      ],
+      "stars": 62,
+      "forks": 14,
+      "verified": true,
+      "tools": [
+        "effectcraft"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Skill: EffectCraft Motion & VFX Rig",
+          "description": "Dynamic competency module instructing RigHaven agents on EffectCraft authoring, editable source preservation, and reopen verification."
+        },
+        "it": {
+          "title": "Skill: EffectCraft — Animazione ed effetti",
+          "description": "Modulo di competenza dinamico che istruisce gli agenti RigHaven su EffectCraft, conservazione dei sorgenti modificabili e reopen check."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": [
+          "pkgs.effectcraft"
+        ]
+      },
+      "cli_binaries": [
+        {
+          "name": "effectcraft",
+          "executable": "/usr/local/bin/effectcraft-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities effectcraft"
+        }
+      ],
+      "skill_prompt_template": "Load `/mnt/skills/custom/skill-effectcraft/SKILL.md` and `references/CLI-RECIPE.md`. Produce both the target export and the editable source in `$RIGHAVEN_OUTPUT_DIR`, execute an independent reopen check in a clean folder, and record results in `handoff.json`.",
+      "verification_command": "python3 /opt/righaven-worker/handoff.py validate \"$RIGHAVEN_OUTPUT_DIR\"",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ],
+        "read_only_mounts": [
+          "/mnt/user-data"
+        ],
+        "drop_capabilities": [
+          "ALL"
+        ],
+        "no_new_privileges": true
+      }
+    },
+    {
+      "id": "cli-designcraft",
+      "name": "DesignCraft CLI Wrapper",
+      "version": "v0.12.0",
+      "author": "righaven-core",
+      "category": "cli-tool",
+      "tags": [
+        "designcraft",
+        "cli",
+        "open-source"
+      ],
+      "stars": 50,
+      "forks": 13,
+      "verified": true,
+      "tools": [
+        "designcraft"
+      ],
+      "i18n": {
+        "en": {
+          "title": "DesignCraft Multi-Page Desktop Publishing",
+          "description": "Multi-page editorial layout, books, magazines, bleed/trim prepress, and typography."
+        },
+        "it": {
+          "title": "DesignCraft — Impaginazione editoriale",
+          "description": "Impaginazione multipagina, libri, riviste, fumetti e prestampa."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": [
+          "pkgs.designcraft"
+        ]
+      },
+      "cli_binaries": [
+        {
+          "name": "designcraft",
+          "executable": "/usr/local/bin/designcraft-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities designcraft"
+        }
+      ],
+      "skill_prompt_template": "Invoke `designcraft-cli` inside `$RIGHAVEN_OUTPUT_DIR`. Inspect capabilities via `craft capabilities designcraft` and validate editable sources via independent reopen check before writing `handoff.json`.",
+      "verification_command": "craft capabilities designcraft",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ],
+        "read_only_mounts": [
+          "/mnt/user-data"
+        ],
+        "drop_capabilities": [
+          "ALL"
+        ],
+        "no_new_privileges": true
+      }
+    },
+    {
+      "id": "skill-designcraft",
+      "name": "DesignCraft Agent Skill (skill-designcraft)",
+      "version": "v0.12.0",
+      "author": "righaven-core",
+      "category": "skill",
+      "tags": [
+        "designcraft",
+        "skill",
+        "reopen-check"
+      ],
+      "stars": 101,
+      "forks": 13,
+      "verified": true,
+      "tools": [
+        "designcraft"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Skill: DesignCraft Multi-Page Desktop Publishing",
+          "description": "Dynamic competency module instructing RigHaven agents on DesignCraft authoring, editable source preservation, and reopen verification."
+        },
+        "it": {
+          "title": "Skill: DesignCraft — Impaginazione editoriale",
+          "description": "Modulo di competenza dinamico che istruisce gli agenti RigHaven su DesignCraft, conservazione dei sorgenti modificabili e reopen check."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": [
+          "pkgs.designcraft"
+        ]
+      },
+      "cli_binaries": [
+        {
+          "name": "designcraft",
+          "executable": "/usr/local/bin/designcraft-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities designcraft"
+        }
+      ],
+      "skill_prompt_template": "Load `/mnt/skills/custom/skill-designcraft/SKILL.md` and `references/CLI-RECIPE.md`. Produce both the target export and the editable source in `$RIGHAVEN_OUTPUT_DIR`, execute an independent reopen check in a clean folder, and record results in `handoff.json`.",
+      "verification_command": "python3 /opt/righaven-worker/handoff.py validate \"$RIGHAVEN_OUTPUT_DIR\"",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ],
+        "read_only_mounts": [
+          "/mnt/user-data"
+        ],
+        "drop_capabilities": [
+          "ALL"
+        ],
+        "no_new_privileges": true
+      }
+    },
+    {
+      "id": "cli-gridcraft",
+      "name": "GridCraft CLI Wrapper",
+      "version": "v0.11.1",
+      "author": "righaven-core",
+      "category": "cli-tool",
+      "tags": [
+        "gridcraft",
+        "cli",
+        "open-source"
+      ],
+      "stars": 74,
+      "forks": 12,
+      "verified": true,
+      "tools": [
+        "gridcraft"
+      ],
+      "i18n": {
+        "en": {
+          "title": "GridCraft Spreadsheet & Formula Engine",
+          "description": "Structured spreadsheets, financial/data formulas, charts, and reconciled tabular reporting."
+        },
+        "it": {
+          "title": "GridCraft — Fogli di calcolo",
+          "description": "Fogli di calcolo, formule, tabelle, grafici, analisi e reporting."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": [
+          "pkgs.gridcraft"
+        ]
+      },
+      "cli_binaries": [
+        {
+          "name": "gridcraft",
+          "executable": "/usr/local/bin/gridcraft-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities gridcraft"
+        }
+      ],
+      "skill_prompt_template": "Invoke `gridcraft-cli` inside `$RIGHAVEN_OUTPUT_DIR`. Inspect capabilities via `craft capabilities gridcraft` and validate editable sources via independent reopen check before writing `handoff.json`.",
+      "verification_command": "craft capabilities gridcraft",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ],
+        "read_only_mounts": [
+          "/mnt/user-data"
+        ],
+        "drop_capabilities": [
+          "ALL"
+        ],
+        "no_new_privileges": true
+      }
+    },
+    {
+      "id": "skill-gridcraft",
+      "name": "GridCraft Agent Skill (skill-gridcraft)",
+      "version": "v0.11.1",
+      "author": "righaven-core",
+      "category": "skill",
+      "tags": [
+        "gridcraft",
+        "skill",
+        "reopen-check"
+      ],
+      "stars": 77,
+      "forks": 29,
+      "verified": true,
+      "tools": [
+        "gridcraft"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Skill: GridCraft Spreadsheet & Formula Engine",
+          "description": "Dynamic competency module instructing RigHaven agents on GridCraft authoring, editable source preservation, and reopen verification."
+        },
+        "it": {
+          "title": "Skill: GridCraft — Fogli di calcolo",
+          "description": "Modulo di competenza dinamico che istruisce gli agenti RigHaven su GridCraft, conservazione dei sorgenti modificabili e reopen check."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": [
+          "pkgs.gridcraft"
+        ]
+      },
+      "cli_binaries": [
+        {
+          "name": "gridcraft",
+          "executable": "/usr/local/bin/gridcraft-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities gridcraft"
+        }
+      ],
+      "skill_prompt_template": "Load `/mnt/skills/custom/skill-gridcraft/SKILL.md` and `references/CLI-RECIPE.md`. Produce both the target export and the editable source in `$RIGHAVEN_OUTPUT_DIR`, execute an independent reopen check in a clean folder, and record results in `handoff.json`.",
+      "verification_command": "python3 /opt/righaven-worker/handoff.py validate \"$RIGHAVEN_OUTPUT_DIR\"",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ],
+        "read_only_mounts": [
+          "/mnt/user-data"
+        ],
+        "drop_capabilities": [
+          "ALL"
+        ],
+        "no_new_privileges": true
+      }
+    },
+    {
+      "id": "cli-wordcraft",
+      "name": "WordCraft CLI Wrapper",
+      "version": "v0.10.0",
+      "author": "righaven-core",
+      "category": "cli-tool",
+      "tags": [
+        "wordcraft",
+        "cli",
+        "open-source"
+      ],
+      "stars": 59,
+      "forks": 22,
+      "verified": true,
+      "tools": [
+        "wordcraft"
+      ],
+      "i18n": {
+        "en": {
+          "title": "WordCraft Structured Document Processor",
+          "description": "Long-form editable DOCX authoring, styles, tables of contents, and editorial revisions."
+        },
+        "it": {
+          "title": "WordCraft — Testi e documenti",
+          "description": "Scrittura strutturata, documenti lunghi, revisioni e apparati editoriali."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": [
+          "pkgs.wordcraft"
+        ]
+      },
+      "cli_binaries": [
+        {
+          "name": "wordcraft",
+          "executable": "/usr/local/bin/wordcraft-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities wordcraft"
+        }
+      ],
+      "skill_prompt_template": "Invoke `wordcraft-cli` inside `$RIGHAVEN_OUTPUT_DIR`. Inspect capabilities via `craft capabilities wordcraft` and validate editable sources via independent reopen check before writing `handoff.json`.",
+      "verification_command": "craft capabilities wordcraft",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ],
+        "read_only_mounts": [
+          "/mnt/user-data"
+        ],
+        "drop_capabilities": [
+          "ALL"
+        ],
+        "no_new_privileges": true
+      }
+    },
+    {
+      "id": "skill-wordcraft",
+      "name": "WordCraft Agent Skill (skill-wordcraft)",
+      "version": "v0.10.0",
+      "author": "righaven-core",
+      "category": "skill",
+      "tags": [
+        "wordcraft",
+        "skill",
+        "reopen-check"
+      ],
+      "stars": 76,
+      "forks": 28,
+      "verified": true,
+      "tools": [
+        "wordcraft"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Skill: WordCraft Structured Document Processor",
+          "description": "Dynamic competency module instructing RigHaven agents on WordCraft authoring, editable source preservation, and reopen verification."
+        },
+        "it": {
+          "title": "Skill: WordCraft — Testi e documenti",
+          "description": "Modulo di competenza dinamico che istruisce gli agenti RigHaven su WordCraft, conservazione dei sorgenti modificabili e reopen check."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": [
+          "pkgs.wordcraft"
+        ]
+      },
+      "cli_binaries": [
+        {
+          "name": "wordcraft",
+          "executable": "/usr/local/bin/wordcraft-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities wordcraft"
+        }
+      ],
+      "skill_prompt_template": "Load `/mnt/skills/custom/skill-wordcraft/SKILL.md` and `references/CLI-RECIPE.md`. Produce both the target export and the editable source in `$RIGHAVEN_OUTPUT_DIR`, execute an independent reopen check in a clean folder, and record results in `handoff.json`.",
+      "verification_command": "python3 /opt/righaven-worker/handoff.py validate \"$RIGHAVEN_OUTPUT_DIR\"",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ],
+        "read_only_mounts": [
+          "/mnt/user-data"
+        ],
+        "drop_capabilities": [
+          "ALL"
+        ],
+        "no_new_privileges": true
+      }
+    },
+    {
+      "id": "cli-deckcraft",
+      "name": "DeckCraft CLI Wrapper",
+      "version": "v0.10.0",
+      "author": "righaven-core",
+      "category": "cli-tool",
+      "tags": [
+        "deckcraft",
+        "cli",
+        "open-source"
+      ],
+      "stars": 68,
+      "forks": 16,
+      "verified": true,
+      "tools": [
+        "deckcraft"
+      ],
+      "i18n": {
+        "en": {
+          "title": "DeckCraft Presentation & Slide System",
+          "description": "Editable PPTX slide decks, master layouts, data charts, and speaker notes."
+        },
+        "it": {
+          "title": "DeckCraft — Presentazioni",
+          "description": "Presentazioni editabili, sistemi di slide, diagrammi, media e animazioni."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": [
+          "pkgs.deckcraft"
+        ]
+      },
+      "cli_binaries": [
+        {
+          "name": "deckcraft",
+          "executable": "/usr/local/bin/deckcraft-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities deckcraft"
+        }
+      ],
+      "skill_prompt_template": "Invoke `deckcraft-cli` inside `$RIGHAVEN_OUTPUT_DIR`. Inspect capabilities via `craft capabilities deckcraft` and validate editable sources via independent reopen check before writing `handoff.json`.",
+      "verification_command": "craft capabilities deckcraft",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ],
+        "read_only_mounts": [
+          "/mnt/user-data"
+        ],
+        "drop_capabilities": [
+          "ALL"
+        ],
+        "no_new_privileges": true
+      }
+    },
+    {
+      "id": "skill-deckcraft",
+      "name": "DeckCraft Agent Skill (skill-deckcraft)",
+      "version": "v0.10.0",
+      "author": "righaven-core",
+      "category": "skill",
+      "tags": [
+        "deckcraft",
+        "skill",
+        "reopen-check"
+      ],
+      "stars": 83,
+      "forks": 15,
+      "verified": true,
+      "tools": [
+        "deckcraft"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Skill: DeckCraft Presentation & Slide System",
+          "description": "Dynamic competency module instructing RigHaven agents on DeckCraft authoring, editable source preservation, and reopen verification."
+        },
+        "it": {
+          "title": "Skill: DeckCraft — Presentazioni",
+          "description": "Modulo di competenza dinamico che istruisce gli agenti RigHaven su DeckCraft, conservazione dei sorgenti modificabili e reopen check."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": [
+          "pkgs.deckcraft"
+        ]
+      },
+      "cli_binaries": [
+        {
+          "name": "deckcraft",
+          "executable": "/usr/local/bin/deckcraft-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities deckcraft"
+        }
+      ],
+      "skill_prompt_template": "Load `/mnt/skills/custom/skill-deckcraft/SKILL.md` and `references/CLI-RECIPE.md`. Produce both the target export and the editable source in `$RIGHAVEN_OUTPUT_DIR`, execute an independent reopen check in a clean folder, and record results in `handoff.json`.",
+      "verification_command": "python3 /opt/righaven-worker/handoff.py validate \"$RIGHAVEN_OUTPUT_DIR\"",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ],
+        "read_only_mounts": [
+          "/mnt/user-data"
+        ],
+        "drop_capabilities": [
+          "ALL"
+        ],
+        "no_new_privileges": true
+      }
+    },
+    {
+      "id": "cli-cadcraft",
+      "name": "CADCraft CLI Wrapper",
+      "version": "v0.12.0",
+      "author": "righaven-core",
+      "category": "cli-tool",
+      "tags": [
+        "cadcraft",
+        "cli",
+        "open-source"
+      ],
+      "stars": 65,
+      "forks": 8,
+      "verified": true,
+      "tools": [
+        "cadcraft"
+      ],
+      "i18n": {
+        "en": {
+          "title": "CADCraft 2D Technical Drafting",
+          "description": "Metric 2D CAD drafting, DXF layers, dimension blocks, and geometric contour verification."
+        },
+        "it": {
+          "title": "CADCraft — Disegno CAD",
+          "description": "Disegno tecnico, quote, blocchi, geometrie CAD e tavole di progetto."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": [
+          "pkgs.cadcraft"
+        ]
+      },
+      "cli_binaries": [
+        {
+          "name": "cadcraft",
+          "executable": "/usr/local/bin/cadcraft-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities cadcraft"
+        }
+      ],
+      "skill_prompt_template": "Invoke `cadcraft-cli` inside `$RIGHAVEN_OUTPUT_DIR`. Inspect capabilities via `craft capabilities cadcraft` and validate editable sources via independent reopen check before writing `handoff.json`.",
+      "verification_command": "craft capabilities cadcraft",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ],
+        "read_only_mounts": [
+          "/mnt/user-data"
+        ],
+        "drop_capabilities": [
+          "ALL"
+        ],
+        "no_new_privileges": true
+      }
+    },
+    {
+      "id": "skill-cadcraft",
+      "name": "CADCraft Agent Skill (skill-cadcraft)",
+      "version": "v0.12.0",
+      "author": "righaven-core",
+      "category": "skill",
+      "tags": [
+        "cadcraft",
+        "skill",
+        "reopen-check"
+      ],
+      "stars": 97,
+      "forks": 29,
+      "verified": true,
+      "tools": [
+        "cadcraft"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Skill: CADCraft 2D Technical Drafting",
+          "description": "Dynamic competency module instructing RigHaven agents on CADCraft authoring, editable source preservation, and reopen verification."
+        },
+        "it": {
+          "title": "Skill: CADCraft — Disegno CAD",
+          "description": "Modulo di competenza dinamico che istruisce gli agenti RigHaven su CADCraft, conservazione dei sorgenti modificabili e reopen check."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": [
+          "pkgs.cadcraft"
+        ]
+      },
+      "cli_binaries": [
+        {
+          "name": "cadcraft",
+          "executable": "/usr/local/bin/cadcraft-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities cadcraft"
+        }
+      ],
+      "skill_prompt_template": "Load `/mnt/skills/custom/skill-cadcraft/SKILL.md` and `references/CLI-RECIPE.md`. Produce both the target export and the editable source in `$RIGHAVEN_OUTPUT_DIR`, execute an independent reopen check in a clean folder, and record results in `handoff.json`.",
+      "verification_command": "python3 /opt/righaven-worker/handoff.py validate \"$RIGHAVEN_OUTPUT_DIR\"",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ],
+        "read_only_mounts": [
+          "/mnt/user-data"
+        ],
+        "drop_capabilities": [
+          "ALL"
+        ],
+        "no_new_privileges": true
+      }
+    },
+    {
+      "id": "cli-soundcraft",
+      "name": "SoundCraft CLI Wrapper",
+      "version": "v0.12.1",
+      "author": "righaven-core",
+      "category": "cli-tool",
+      "tags": [
+        "soundcraft",
+        "cli",
+        "open-source"
+      ],
+      "stars": 77,
+      "forks": 20,
+      "verified": true,
+      "tools": [
+        "soundcraft"
+      ],
+      "i18n": {
+        "en": {
+          "title": "SoundCraft Multi-Track Audio & MIDI DAW",
+          "description": "Multi-track MIDI synthesis, audio mixing, loudness metering, and lossless stem mastering."
+        },
+        "it": {
+          "title": "SoundCraft — Produzione audio",
+          "description": "Composizione MIDI, sintesi, sound design, montaggio e mix modificabile."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": [
+          "pkgs.soundcraft"
+        ]
+      },
+      "cli_binaries": [
+        {
+          "name": "soundcraft",
+          "executable": "/usr/local/bin/soundcraft-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities soundcraft"
+        }
+      ],
+      "skill_prompt_template": "Invoke `soundcraft-cli` inside `$RIGHAVEN_OUTPUT_DIR`. Inspect capabilities via `craft capabilities soundcraft` and validate editable sources via independent reopen check before writing `handoff.json`.",
+      "verification_command": "craft capabilities soundcraft",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ],
+        "read_only_mounts": [
+          "/mnt/user-data"
+        ],
+        "drop_capabilities": [
+          "ALL"
+        ],
+        "no_new_privileges": true
+      }
+    },
+    {
+      "id": "skill-soundcraft",
+      "name": "SoundCraft Agent Skill (skill-soundcraft)",
+      "version": "v0.12.1",
+      "author": "righaven-core",
+      "category": "skill",
+      "tags": [
+        "soundcraft",
+        "skill",
+        "reopen-check"
+      ],
+      "stars": 83,
+      "forks": 15,
+      "verified": true,
+      "tools": [
+        "soundcraft"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Skill: SoundCraft Multi-Track Audio & MIDI DAW",
+          "description": "Dynamic competency module instructing RigHaven agents on SoundCraft authoring, editable source preservation, and reopen verification."
+        },
+        "it": {
+          "title": "Skill: SoundCraft — Produzione audio",
+          "description": "Modulo di competenza dinamico che istruisce gli agenti RigHaven su SoundCraft, conservazione dei sorgenti modificabili e reopen check."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": [
+          "pkgs.soundcraft"
+        ]
+      },
+      "cli_binaries": [
+        {
+          "name": "soundcraft",
+          "executable": "/usr/local/bin/soundcraft-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities soundcraft"
+        }
+      ],
+      "skill_prompt_template": "Load `/mnt/skills/custom/skill-soundcraft/SKILL.md` and `references/CLI-RECIPE.md`. Produce both the target export and the editable source in `$RIGHAVEN_OUTPUT_DIR`, execute an independent reopen check in a clean folder, and record results in `handoff.json`.",
+      "verification_command": "python3 /opt/righaven-worker/handoff.py validate \"$RIGHAVEN_OUTPUT_DIR\"",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ],
+        "read_only_mounts": [
+          "/mnt/user-data"
+        ],
+        "drop_capabilities": [
+          "ALL"
+        ],
+        "no_new_privileges": true
+      }
+    },
+    {
+      "id": "cli-figcraft",
+      "name": "FigCraft CLI Wrapper",
+      "version": "v0.10.0",
+      "author": "righaven-core",
+      "category": "cli-tool",
+      "tags": [
+        "figcraft",
+        "cli",
+        "open-source"
+      ],
+      "stars": 84,
+      "forks": 17,
+      "verified": true,
+      "tools": [
+        "figcraft"
+      ],
+      "i18n": {
+        "en": {
+          "title": "FigCraft UI/UX Component Prototyping",
+          "description": "Interactive responsive interface design, component systems, and multi-state UI prototypes."
+        },
+        "it": {
+          "title": "FigCraft — Interfacce e prototipi",
+          "description": "Design di interfacce, componenti, layout adattivi e prototipi."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": [
+          "pkgs.figcraft"
+        ]
+      },
+      "cli_binaries": [
+        {
+          "name": "figcraft",
+          "executable": "/usr/local/bin/figcraft-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities figcraft"
+        }
+      ],
+      "skill_prompt_template": "Invoke `figcraft-cli` inside `$RIGHAVEN_OUTPUT_DIR`. Inspect capabilities via `craft capabilities figcraft` and validate editable sources via independent reopen check before writing `handoff.json`.",
+      "verification_command": "craft capabilities figcraft",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ],
+        "read_only_mounts": [
+          "/mnt/user-data"
+        ],
+        "drop_capabilities": [
+          "ALL"
+        ],
+        "no_new_privileges": true
+      }
+    },
+    {
+      "id": "skill-figcraft",
+      "name": "FigCraft Agent Skill (skill-figcraft)",
+      "version": "v0.10.0",
+      "author": "righaven-core",
+      "category": "skill",
+      "tags": [
+        "figcraft",
+        "skill",
+        "reopen-check"
+      ],
+      "stars": 118,
+      "forks": 30,
+      "verified": true,
+      "tools": [
+        "figcraft"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Skill: FigCraft UI/UX Component Prototyping",
+          "description": "Dynamic competency module instructing RigHaven agents on FigCraft authoring, editable source preservation, and reopen verification."
+        },
+        "it": {
+          "title": "Skill: FigCraft — Interfacce e prototipi",
+          "description": "Modulo di competenza dinamico che istruisce gli agenti RigHaven su FigCraft, conservazione dei sorgenti modificabili e reopen check."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": [
+          "pkgs.figcraft"
+        ]
+      },
+      "cli_binaries": [
+        {
+          "name": "figcraft",
+          "executable": "/usr/local/bin/figcraft-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities figcraft"
+        }
+      ],
+      "skill_prompt_template": "Load `/mnt/skills/custom/skill-figcraft/SKILL.md` and `references/CLI-RECIPE.md`. Produce both the target export and the editable source in `$RIGHAVEN_OUTPUT_DIR`, execute an independent reopen check in a clean folder, and record results in `handoff.json`.",
+      "verification_command": "python3 /opt/righaven-worker/handoff.py validate \"$RIGHAVEN_OUTPUT_DIR\"",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ],
+        "read_only_mounts": [
+          "/mnt/user-data"
+        ],
+        "drop_capabilities": [
+          "ALL"
+        ],
+        "no_new_privileges": true
+      }
+    },
+    {
+      "id": "cli-blender",
+      "name": "Blender CLI Wrapper",
+      "version": "5.2.3",
+      "author": "righaven-core",
+      "category": "cli-tool",
+      "tags": [
+        "blender",
+        "cli",
+        "open-source"
+      ],
+      "stars": 66,
+      "forks": 14,
+      "verified": true,
+      "tools": [
+        "blender"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Blender Headless 3D Creation Suite",
+          "description": "3D modeling, rigging, PBR materials, keyframe animation, and headless Cycles/EEVEE rendering."
+        },
+        "it": {
+          "title": "Blender — Modellazione e animazione 3D",
+          "description": "Modellazione 3D, rig, materiali, simulazioni, animazione e rendering."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": [
+          "pkgs.blender"
+        ]
+      },
+      "cli_binaries": [
+        {
+          "name": "blender",
+          "executable": "/usr/local/bin/blender-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities blender"
+        }
+      ],
+      "skill_prompt_template": "Invoke `blender-cli` inside `$RIGHAVEN_OUTPUT_DIR`. Inspect capabilities via `craft capabilities blender` and validate editable sources via independent reopen check before writing `handoff.json`.",
+      "verification_command": "craft capabilities blender",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ],
+        "read_only_mounts": [
+          "/mnt/user-data"
+        ],
+        "drop_capabilities": [
+          "ALL"
+        ],
+        "no_new_privileges": true
+      }
+    },
+    {
+      "id": "skill-blender",
+      "name": "Blender Agent Skill (skill-blender)",
+      "version": "5.2.3",
+      "author": "righaven-core",
+      "category": "skill",
+      "tags": [
+        "blender",
+        "skill",
+        "reopen-check"
+      ],
+      "stars": 73,
+      "forks": 25,
+      "verified": true,
+      "tools": [
+        "blender"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Skill: Blender Headless 3D Creation Suite",
+          "description": "Dynamic competency module instructing RigHaven agents on Blender authoring, editable source preservation, and reopen verification."
+        },
+        "it": {
+          "title": "Skill: Blender — Modellazione e animazione 3D",
+          "description": "Modulo di competenza dinamico che istruisce gli agenti RigHaven su Blender, conservazione dei sorgenti modificabili e reopen check."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": [
+          "pkgs.blender"
+        ]
+      },
+      "cli_binaries": [
+        {
+          "name": "blender",
+          "executable": "/usr/local/bin/blender-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities blender"
+        }
+      ],
+      "skill_prompt_template": "Load `/mnt/skills/custom/skill-blender/SKILL.md` and `references/CLI-RECIPE.md`. Produce both the target export and the editable source in `$RIGHAVEN_OUTPUT_DIR`, execute an independent reopen check in a clean folder, and record results in `handoff.json`.",
+      "verification_command": "python3 /opt/righaven-worker/handoff.py validate \"$RIGHAVEN_OUTPUT_DIR\"",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ],
+        "read_only_mounts": [
+          "/mnt/user-data"
+        ],
+        "drop_capabilities": [
+          "ALL"
+        ],
+        "no_new_privileges": true
+      }
+    },
+    {
+      "id": "cli-calibre",
+      "name": "Calibre CLI Wrapper",
+      "version": "9.17.0",
+      "author": "righaven-core",
+      "category": "cli-tool",
+      "tags": [
+        "calibre",
+        "cli",
+        "open-source"
+      ],
+      "stars": 76,
+      "forks": 9,
+      "verified": true,
+      "tools": [
+        "calibre"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Calibre Digital E-Book Publishing Suite",
+          "description": "EPUB/AZW3/PDF e-book conversion, metadata management, CSS polishing, and structure checks."
+        },
+        "it": {
+          "title": "Calibre — Conversione e controllo delle pubblicazioni digitali",
+          "description": "Produzione e conversione editoriale, EPUB/AZW3, metadati, risorse e librerie."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": [
+          "pkgs.calibre"
+        ]
+      },
+      "cli_binaries": [
+        {
+          "name": "calibre",
+          "executable": "/usr/local/bin/calibre-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities calibre"
+        }
+      ],
+      "skill_prompt_template": "Invoke `calibre-cli` inside `$RIGHAVEN_OUTPUT_DIR`. Inspect capabilities via `craft capabilities calibre` and validate editable sources via independent reopen check before writing `handoff.json`.",
+      "verification_command": "craft capabilities calibre",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ],
+        "read_only_mounts": [
+          "/mnt/user-data"
+        ],
+        "drop_capabilities": [
+          "ALL"
+        ],
+        "no_new_privileges": true
+      }
+    },
+    {
+      "id": "skill-calibre",
+      "name": "Calibre Agent Skill (skill-calibre)",
+      "version": "9.17.0",
+      "author": "righaven-core",
+      "category": "skill",
+      "tags": [
+        "calibre",
+        "skill",
+        "reopen-check"
+      ],
+      "stars": 81,
+      "forks": 13,
+      "verified": true,
+      "tools": [
+        "calibre"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Skill: Calibre Digital E-Book Publishing Suite",
+          "description": "Dynamic competency module instructing RigHaven agents on Calibre authoring, editable source preservation, and reopen verification."
+        },
+        "it": {
+          "title": "Skill: Calibre — Conversione e controllo delle pubblicazioni digitali",
+          "description": "Modulo di competenza dinamico che istruisce gli agenti RigHaven su Calibre, conservazione dei sorgenti modificabili e reopen check."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": [
+          "pkgs.calibre"
+        ]
+      },
+      "cli_binaries": [
+        {
+          "name": "calibre",
+          "executable": "/usr/local/bin/calibre-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities calibre"
+        }
+      ],
+      "skill_prompt_template": "Load `/mnt/skills/custom/skill-calibre/SKILL.md` and `references/CLI-RECIPE.md`. Produce both the target export and the editable source in `$RIGHAVEN_OUTPUT_DIR`, execute an independent reopen check in a clean folder, and record results in `handoff.json`.",
+      "verification_command": "python3 /opt/righaven-worker/handoff.py validate \"$RIGHAVEN_OUTPUT_DIR\"",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ],
+        "read_only_mounts": [
+          "/mnt/user-data"
+        ],
+        "drop_capabilities": [
+          "ALL"
+        ],
+        "no_new_privileges": true
+      }
+    },
+    {
+      "id": "cli-playwright",
+      "name": "Playwright CLI Wrapper",
+      "version": "1.64.1",
+      "author": "righaven-core",
+      "category": "cli-tool",
+      "tags": [
+        "playwright",
+        "cli",
+        "open-source"
+      ],
+      "stars": 94,
+      "forks": 22,
+      "verified": true,
+      "tools": [
+        "playwright"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Playwright Headless Browser Automation",
+          "description": "End-to-end web interaction testing, responsive viewport capture, and DOM trace verification."
+        },
+        "it": {
+          "title": "Playwright — Collaudo browser e interfacce",
+          "description": "Automazione browser, test di interazione, screenshot e trace su applicazioni web reali."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": [
+          "pkgs.playwright"
+        ]
+      },
+      "cli_binaries": [
+        {
+          "name": "playwright",
+          "executable": "/usr/local/bin/playwright-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities playwright"
+        }
+      ],
+      "skill_prompt_template": "Invoke `playwright-cli` inside `$RIGHAVEN_OUTPUT_DIR`. Inspect capabilities via `craft capabilities playwright` and validate editable sources via independent reopen check before writing `handoff.json`.",
+      "verification_command": "craft capabilities playwright",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ],
+        "read_only_mounts": [
+          "/mnt/user-data"
+        ],
+        "drop_capabilities": [
+          "ALL"
+        ],
+        "no_new_privileges": true
+      }
+    },
+    {
+      "id": "skill-playwright",
+      "name": "Playwright Agent Skill (skill-playwright)",
+      "version": "1.64.1",
+      "author": "righaven-core",
+      "category": "skill",
+      "tags": [
+        "playwright",
+        "skill",
+        "reopen-check"
+      ],
+      "stars": 61,
+      "forks": 13,
+      "verified": true,
+      "tools": [
+        "playwright"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Skill: Playwright Headless Browser Automation",
+          "description": "Dynamic competency module instructing RigHaven agents on Playwright authoring, editable source preservation, and reopen verification."
+        },
+        "it": {
+          "title": "Skill: Playwright — Collaudo browser e interfacce",
+          "description": "Modulo di competenza dinamico che istruisce gli agenti RigHaven su Playwright, conservazione dei sorgenti modificabili e reopen check."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": [
+          "pkgs.playwright"
+        ]
+      },
+      "cli_binaries": [
+        {
+          "name": "playwright",
+          "executable": "/usr/local/bin/playwright-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities playwright"
+        }
+      ],
+      "skill_prompt_template": "Load `/mnt/skills/custom/skill-playwright/SKILL.md` and `references/CLI-RECIPE.md`. Produce both the target export and the editable source in `$RIGHAVEN_OUTPUT_DIR`, execute an independent reopen check in a clean folder, and record results in `handoff.json`.",
+      "verification_command": "python3 /opt/righaven-worker/handoff.py validate \"$RIGHAVEN_OUTPUT_DIR\"",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ],
+        "read_only_mounts": [
+          "/mnt/user-data"
+        ],
+        "drop_capabilities": [
+          "ALL"
+        ],
+        "no_new_privileges": true
+      }
+    },
+    {
+      "id": "cli-aubio",
+      "name": "aubio CLI Wrapper",
+      "version": "0.4.9",
+      "author": "righaven-core",
+      "category": "cli-tool",
+      "tags": [
+        "aubio",
+        "cli",
+        "open-source"
+      ],
+      "stars": 83,
+      "forks": 21,
+      "verified": true,
+      "tools": [
+        "aubio"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Aubio Audio Onset & Pitch Analyzer",
+          "description": "Temporal audio analysis for onset detection, tempo beat tracking, and fundamental pitch estimation."
+        },
+        "it": {
+          "title": "aubio — Analisi temporale e musicale",
+          "description": "Stima di attacchi, battiti, altezza e note dal segnale audio, con unità esplicite."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [
+          "aubio"
+        ],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": [
+          "pkgs.aubio"
+        ]
+      },
+      "cli_binaries": [
+        {
+          "name": "aubio",
+          "executable": "/usr/local/bin/aubio-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities aubio"
+        }
+      ],
+      "skill_prompt_template": "Invoke `aubio-cli` inside `$RIGHAVEN_OUTPUT_DIR`. Inspect capabilities via `craft capabilities aubio` and validate editable sources via independent reopen check before writing `handoff.json`.",
+      "verification_command": "craft capabilities aubio",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ],
+        "read_only_mounts": [
+          "/mnt/user-data"
+        ],
+        "drop_capabilities": [
+          "ALL"
+        ],
+        "no_new_privileges": true
+      }
+    },
+    {
+      "id": "skill-aubio",
+      "name": "aubio Agent Skill (skill-aubio)",
+      "version": "0.4.9",
+      "author": "righaven-core",
+      "category": "skill",
+      "tags": [
+        "aubio",
+        "skill",
+        "reopen-check"
+      ],
+      "stars": 65,
+      "forks": 17,
+      "verified": true,
+      "tools": [
+        "aubio"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Skill: Aubio Audio Onset & Pitch Analyzer",
+          "description": "Dynamic competency module instructing RigHaven agents on aubio authoring, editable source preservation, and reopen verification."
+        },
+        "it": {
+          "title": "Skill: aubio — Analisi temporale e musicale",
+          "description": "Modulo di competenza dinamico che istruisce gli agenti RigHaven su aubio, conservazione dei sorgenti modificabili e reopen check."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [
+          "aubio"
+        ],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": [
+          "pkgs.aubio"
+        ]
+      },
+      "cli_binaries": [
+        {
+          "name": "aubio",
+          "executable": "/usr/local/bin/aubio-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities aubio"
+        }
+      ],
+      "skill_prompt_template": "Load `/mnt/skills/custom/skill-aubio/SKILL.md` and `references/CLI-RECIPE.md`. Produce both the target export and the editable source in `$RIGHAVEN_OUTPUT_DIR`, execute an independent reopen check in a clean folder, and record results in `handoff.json`.",
+      "verification_command": "python3 /opt/righaven-worker/handoff.py validate \"$RIGHAVEN_OUTPUT_DIR\"",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ],
+        "read_only_mounts": [
+          "/mnt/user-data"
+        ],
+        "drop_capabilities": [
+          "ALL"
+        ],
+        "no_new_privileges": true
+      }
+    },
+    {
+      "id": "cli-fluidsynth",
+      "name": "FluidSynth CLI Wrapper",
+      "version": "2.6.1",
+      "author": "righaven-core",
+      "category": "cli-tool",
+      "tags": [
+        "fluidsynth",
+        "cli",
+        "open-source"
+      ],
+      "stars": 50,
+      "forks": 8,
+      "verified": true,
+      "tools": [
+        "fluidsynth"
+      ],
+      "i18n": {
+        "en": {
+          "title": "FluidSynth SoundFont MIDI Synthesizer",
+          "description": "Offline deterministic MIDI rendering with SF2 SoundFont banks into verified WAV audio."
+        },
+        "it": {
+          "title": "FluidSynth — Sintesi MIDI e SoundFont",
+          "description": "Rendering offline MIDI con strumenti SF2, partitura e banca conservate per la riproduzione."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": [
+          "pkgs.fluidsynth"
+        ]
+      },
+      "cli_binaries": [
+        {
+          "name": "fluidsynth",
+          "executable": "/usr/local/bin/fluidsynth-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities fluidsynth"
+        }
+      ],
+      "skill_prompt_template": "Invoke `fluidsynth-cli` inside `$RIGHAVEN_OUTPUT_DIR`. Inspect capabilities via `craft capabilities fluidsynth` and validate editable sources via independent reopen check before writing `handoff.json`.",
+      "verification_command": "craft capabilities fluidsynth",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ],
+        "read_only_mounts": [
+          "/mnt/user-data"
+        ],
+        "drop_capabilities": [
+          "ALL"
+        ],
+        "no_new_privileges": true
+      }
+    },
+    {
+      "id": "skill-fluidsynth",
+      "name": "FluidSynth Agent Skill (skill-fluidsynth)",
+      "version": "2.6.1",
+      "author": "righaven-core",
+      "category": "skill",
+      "tags": [
+        "fluidsynth",
+        "skill",
+        "reopen-check"
+      ],
+      "stars": 74,
+      "forks": 26,
+      "verified": true,
+      "tools": [
+        "fluidsynth"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Skill: FluidSynth SoundFont MIDI Synthesizer",
+          "description": "Dynamic competency module instructing RigHaven agents on FluidSynth authoring, editable source preservation, and reopen verification."
+        },
+        "it": {
+          "title": "Skill: FluidSynth — Sintesi MIDI e SoundFont",
+          "description": "Modulo di competenza dinamico che istruisce gli agenti RigHaven su FluidSynth, conservazione dei sorgenti modificabili e reopen check."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": [
+          "pkgs.fluidsynth"
+        ]
+      },
+      "cli_binaries": [
+        {
+          "name": "fluidsynth",
+          "executable": "/usr/local/bin/fluidsynth-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities fluidsynth"
+        }
+      ],
+      "skill_prompt_template": "Load `/mnt/skills/custom/skill-fluidsynth/SKILL.md` and `references/CLI-RECIPE.md`. Produce both the target export and the editable source in `$RIGHAVEN_OUTPUT_DIR`, execute an independent reopen check in a clean folder, and record results in `handoff.json`.",
+      "verification_command": "python3 /opt/righaven-worker/handoff.py validate \"$RIGHAVEN_OUTPUT_DIR\"",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ],
+        "read_only_mounts": [
+          "/mnt/user-data"
+        ],
+        "drop_capabilities": [
+          "ALL"
+        ],
+        "no_new_privileges": true
+      }
+    },
+    {
+      "id": "cli-epubcheck",
+      "name": "EPUBCheck CLI Wrapper",
+      "version": "v5.4.0",
+      "author": "righaven-core",
+      "category": "cli-tool",
+      "tags": [
+        "epubcheck",
+        "cli",
+        "open-source"
+      ],
+      "stars": 49,
+      "forks": 22,
+      "verified": true,
+      "tools": [
+        "epubcheck"
+      ],
+      "i18n": {
+        "en": {
+          "title": "EPUBCheck W3C Conformance Validator",
+          "description": "Strict W3C EPUB container, OPF manifest, XHTML markup, and resource conformance validation."
+        },
+        "it": {
+          "title": "EPUBCheck — Conformità EPUB",
+          "description": "Controllo indipendente EPUB di contenitori, manifest, risorse e markup; errori distinti dagli avvisi."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": [
+          "pkgs.epubcheck"
+        ]
+      },
+      "cli_binaries": [
+        {
+          "name": "epubcheck",
+          "executable": "/usr/local/bin/epubcheck-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities epubcheck"
+        }
+      ],
+      "skill_prompt_template": "Invoke `epubcheck-cli` inside `$RIGHAVEN_OUTPUT_DIR`. Inspect capabilities via `craft capabilities epubcheck` and validate editable sources via independent reopen check before writing `handoff.json`.",
+      "verification_command": "craft capabilities epubcheck",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ],
+        "read_only_mounts": [
+          "/mnt/user-data"
+        ],
+        "drop_capabilities": [
+          "ALL"
+        ],
+        "no_new_privileges": true
+      }
+    },
+    {
+      "id": "skill-epubcheck",
+      "name": "EPUBCheck Agent Skill (skill-epubcheck)",
+      "version": "v5.4.0",
+      "author": "righaven-core",
+      "category": "skill",
+      "tags": [
+        "epubcheck",
+        "skill",
+        "reopen-check"
+      ],
+      "stars": 113,
+      "forks": 25,
+      "verified": true,
+      "tools": [
+        "epubcheck"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Skill: EPUBCheck W3C Conformance Validator",
+          "description": "Dynamic competency module instructing RigHaven agents on EPUBCheck authoring, editable source preservation, and reopen verification."
+        },
+        "it": {
+          "title": "Skill: EPUBCheck — Conformità EPUB",
+          "description": "Modulo di competenza dinamico che istruisce gli agenti RigHaven su EPUBCheck, conservazione dei sorgenti modificabili e reopen check."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": [
+          "pkgs.epubcheck"
+        ]
+      },
+      "cli_binaries": [
+        {
+          "name": "epubcheck",
+          "executable": "/usr/local/bin/epubcheck-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities epubcheck"
+        }
+      ],
+      "skill_prompt_template": "Load `/mnt/skills/custom/skill-epubcheck/SKILL.md` and `references/CLI-RECIPE.md`. Produce both the target export and the editable source in `$RIGHAVEN_OUTPUT_DIR`, execute an independent reopen check in a clean folder, and record results in `handoff.json`.",
+      "verification_command": "python3 /opt/righaven-worker/handoff.py validate \"$RIGHAVEN_OUTPUT_DIR\"",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ],
+        "read_only_mounts": [
+          "/mnt/user-data"
+        ],
+        "drop_capabilities": [
+          "ALL"
+        ],
+        "no_new_privileges": true
+      }
+    },
+    {
+      "id": "cli-pandoc",
+      "name": "Pandoc CLI Wrapper",
+      "version": "3.12.1",
+      "author": "righaven-core",
+      "category": "cli-tool",
+      "tags": [
+        "pandoc",
+        "cli",
+        "open-source"
+      ],
+      "stars": 94,
+      "forks": 12,
+      "verified": true,
+      "tools": [
+        "pandoc"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Pandoc Universal Document Converter",
+          "description": "Structured markup conversion across Markdown, DOCX, EPUB, HTML, LaTeX, and citations."
+        },
+        "it": {
+          "title": "Pandoc — Conversione di documenti strutturati",
+          "description": "Conversione Markdown, DOCX, EPUB, HTML e altri formati, con bibliografia e template espliciti."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": [
+          "pkgs.pandoc"
+        ]
+      },
+      "cli_binaries": [
+        {
+          "name": "pandoc",
+          "executable": "/usr/local/bin/pandoc-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities pandoc"
+        }
+      ],
+      "skill_prompt_template": "Invoke `pandoc-cli` inside `$RIGHAVEN_OUTPUT_DIR`. Inspect capabilities via `craft capabilities pandoc` and validate editable sources via independent reopen check before writing `handoff.json`.",
+      "verification_command": "craft capabilities pandoc",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ],
+        "read_only_mounts": [
+          "/mnt/user-data"
+        ],
+        "drop_capabilities": [
+          "ALL"
+        ],
+        "no_new_privileges": true
+      }
+    },
+    {
+      "id": "skill-pandoc",
+      "name": "Pandoc Agent Skill (skill-pandoc)",
+      "version": "3.12.1",
+      "author": "righaven-core",
+      "category": "skill",
+      "tags": [
+        "pandoc",
+        "skill",
+        "reopen-check"
+      ],
+      "stars": 108,
+      "forks": 20,
+      "verified": true,
+      "tools": [
+        "pandoc"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Skill: Pandoc Universal Document Converter",
+          "description": "Dynamic competency module instructing RigHaven agents on Pandoc authoring, editable source preservation, and reopen verification."
+        },
+        "it": {
+          "title": "Skill: Pandoc — Conversione di documenti strutturati",
+          "description": "Modulo di competenza dinamico che istruisce gli agenti RigHaven su Pandoc, conservazione dei sorgenti modificabili e reopen check."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": [
+          "pkgs.pandoc"
+        ]
+      },
+      "cli_binaries": [
+        {
+          "name": "pandoc",
+          "executable": "/usr/local/bin/pandoc-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities pandoc"
+        }
+      ],
+      "skill_prompt_template": "Load `/mnt/skills/custom/skill-pandoc/SKILL.md` and `references/CLI-RECIPE.md`. Produce both the target export and the editable source in `$RIGHAVEN_OUTPUT_DIR`, execute an independent reopen check in a clean folder, and record results in `handoff.json`.",
+      "verification_command": "python3 /opt/righaven-worker/handoff.py validate \"$RIGHAVEN_OUTPUT_DIR\"",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ],
+        "read_only_mounts": [
+          "/mnt/user-data"
+        ],
+        "drop_capabilities": [
+          "ALL"
+        ],
+        "no_new_privileges": true
+      }
+    },
+    {
+      "id": "cli-typst",
+      "name": "Typst CLI Wrapper",
+      "version": "v0.15.1",
+      "author": "righaven-core",
+      "category": "cli-tool",
+      "tags": [
+        "typst",
+        "cli",
+        "open-source"
+      ],
+      "stars": 83,
+      "forks": 21,
+      "verified": true,
+      "tools": [
+        "typst"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Typst Programmable Typesetting System",
+          "description": "Deterministic programmable typesetting from .typ sources into publication-grade PDF, SVG, and PNG."
+        },
+        "it": {
+          "title": "Typst — Impaginazione programmabile",
+          "description": "Composizione tipografica riproducibile in PDF, SVG o PNG da sorgenti .typ, font e risorse."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": [
+          "pkgs.typst"
+        ]
+      },
+      "cli_binaries": [
+        {
+          "name": "typst",
+          "executable": "/usr/local/bin/typst-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities typst"
+        }
+      ],
+      "skill_prompt_template": "Invoke `typst-cli` inside `$RIGHAVEN_OUTPUT_DIR`. Inspect capabilities via `craft capabilities typst` and validate editable sources via independent reopen check before writing `handoff.json`.",
+      "verification_command": "craft capabilities typst",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ],
+        "read_only_mounts": [
+          "/mnt/user-data"
+        ],
+        "drop_capabilities": [
+          "ALL"
+        ],
+        "no_new_privileges": true
+      }
+    },
+    {
+      "id": "skill-typst",
+      "name": "Typst Agent Skill (skill-typst)",
+      "version": "v0.15.1",
+      "author": "righaven-core",
+      "category": "skill",
+      "tags": [
+        "typst",
+        "skill",
+        "reopen-check"
+      ],
+      "stars": 119,
+      "forks": 31,
+      "verified": true,
+      "tools": [
+        "typst"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Skill: Typst Programmable Typesetting System",
+          "description": "Dynamic competency module instructing RigHaven agents on Typst authoring, editable source preservation, and reopen verification."
+        },
+        "it": {
+          "title": "Skill: Typst — Impaginazione programmabile",
+          "description": "Modulo di competenza dinamico che istruisce gli agenti RigHaven su Typst, conservazione dei sorgenti modificabili e reopen check."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": [
+          "pkgs.typst"
+        ]
+      },
+      "cli_binaries": [
+        {
+          "name": "typst",
+          "executable": "/usr/local/bin/typst-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities typst"
+        }
+      ],
+      "skill_prompt_template": "Load `/mnt/skills/custom/skill-typst/SKILL.md` and `references/CLI-RECIPE.md`. Produce both the target export and the editable source in `$RIGHAVEN_OUTPUT_DIR`, execute an independent reopen check in a clean folder, and record results in `handoff.json`.",
+      "verification_command": "python3 /opt/righaven-worker/handoff.py validate \"$RIGHAVEN_OUTPUT_DIR\"",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ],
+        "read_only_mounts": [
+          "/mnt/user-data"
+        ],
+        "drop_capabilities": [
+          "ALL"
+        ],
+        "no_new_privileges": true
+      }
+    },
+    {
+      "id": "cli-freecad",
+      "name": "FreeCAD CLI Wrapper",
+      "version": "1.1.4",
+      "author": "righaven-core",
+      "category": "cli-tool",
+      "tags": [
+        "freecad",
+        "cli",
+        "open-source"
+      ],
+      "stars": 86,
+      "forks": 9,
+      "verified": true,
+      "tools": [
+        "freecad"
+      ],
+      "i18n": {
+        "en": {
+          "title": "FreeCAD Parametric 3D CAD Modeler",
+          "description": "Parametric 3D solid modeling (.FCStd), geometric tolerances, and STEP engineering exchange."
+        },
+        "it": {
+          "title": "FreeCAD — CAD parametrico tridimensionale",
+          "description": "Authoring parametrico .FCStd, misure geometriche e scambio STEP tramite motore headless nativo."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": [
+          "pkgs.freecad"
+        ]
+      },
+      "cli_binaries": [
+        {
+          "name": "freecad",
+          "executable": "/usr/local/bin/freecad-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities freecad"
+        }
+      ],
+      "skill_prompt_template": "Invoke `freecad-cli` inside `$RIGHAVEN_OUTPUT_DIR`. Inspect capabilities via `craft capabilities freecad` and validate editable sources via independent reopen check before writing `handoff.json`.",
+      "verification_command": "craft capabilities freecad",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ],
+        "read_only_mounts": [
+          "/mnt/user-data"
+        ],
+        "drop_capabilities": [
+          "ALL"
+        ],
+        "no_new_privileges": true
+      }
+    },
+    {
+      "id": "skill-freecad",
+      "name": "FreeCAD Agent Skill (skill-freecad)",
+      "version": "1.1.4",
+      "author": "righaven-core",
+      "category": "skill",
+      "tags": [
+        "freecad",
+        "skill",
+        "reopen-check"
+      ],
+      "stars": 98,
+      "forks": 30,
+      "verified": true,
+      "tools": [
+        "freecad"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Skill: FreeCAD Parametric 3D CAD Modeler",
+          "description": "Dynamic competency module instructing RigHaven agents on FreeCAD authoring, editable source preservation, and reopen verification."
+        },
+        "it": {
+          "title": "Skill: FreeCAD — CAD parametrico tridimensionale",
+          "description": "Modulo di competenza dinamico che istruisce gli agenti RigHaven su FreeCAD, conservazione dei sorgenti modificabili e reopen check."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": [
+          "pkgs.freecad"
+        ]
+      },
+      "cli_binaries": [
+        {
+          "name": "freecad",
+          "executable": "/usr/local/bin/freecad-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities freecad"
+        }
+      ],
+      "skill_prompt_template": "Load `/mnt/skills/custom/skill-freecad/SKILL.md` and `references/CLI-RECIPE.md`. Produce both the target export and the editable source in `$RIGHAVEN_OUTPUT_DIR`, execute an independent reopen check in a clean folder, and record results in `handoff.json`.",
+      "verification_command": "python3 /opt/righaven-worker/handoff.py validate \"$RIGHAVEN_OUTPUT_DIR\"",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ],
+        "read_only_mounts": [
+          "/mnt/user-data"
+        ],
+        "drop_capabilities": [
+          "ALL"
+        ],
+        "no_new_privileges": true
+      }
+    },
+    {
+      "id": "cli-whisper",
+      "name": "whisper.cpp CLI Wrapper",
+      "version": "v1.9.5",
+      "author": "righaven-core",
+      "category": "cli-tool",
+      "tags": [
+        "whisper",
+        "cli",
+        "open-source"
+      ],
+      "stars": 83,
+      "forks": 11,
+      "verified": true,
+      "tools": [
+        "whisper"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Whisper.cpp Offline Speech Transcription",
+          "description": "Offline CPU multilingual speech-to-text transcription into timed SRT, VTT, TXT, and JSON."
+        },
+        "it": {
+          "title": "whisper.cpp — Trascrizione e sottotitoli",
+          "description": "Trascrizione parlato CPU multilingue in TXT, SRT e JSON con modello tiny fissato e disponibile offline."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": [
+          "pkgs.whisper"
+        ]
+      },
+      "cli_binaries": [
+        {
+          "name": "whisper",
+          "executable": "/usr/local/bin/whisper-cpp-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities whisper"
+        }
+      ],
+      "skill_prompt_template": "Invoke `whisper-cpp-cli` inside `$RIGHAVEN_OUTPUT_DIR`. Inspect capabilities via `craft capabilities whisper` and validate editable sources via independent reopen check before writing `handoff.json`.",
+      "verification_command": "craft capabilities whisper",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ],
+        "read_only_mounts": [
+          "/mnt/user-data"
+        ],
+        "drop_capabilities": [
+          "ALL"
+        ],
+        "no_new_privileges": true
+      }
+    },
+    {
+      "id": "skill-whisper",
+      "name": "whisper.cpp Agent Skill (skill-whisper)",
+      "version": "v1.9.5",
+      "author": "righaven-core",
+      "category": "skill",
+      "tags": [
+        "whisper",
+        "skill",
+        "reopen-check"
+      ],
+      "stars": 62,
+      "forks": 14,
+      "verified": true,
+      "tools": [
+        "whisper"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Skill: Whisper.cpp Offline Speech Transcription",
+          "description": "Dynamic competency module instructing RigHaven agents on whisper.cpp authoring, editable source preservation, and reopen verification."
+        },
+        "it": {
+          "title": "Skill: whisper.cpp — Trascrizione e sottotitoli",
+          "description": "Modulo di competenza dinamico che istruisce gli agenti RigHaven su whisper.cpp, conservazione dei sorgenti modificabili e reopen check."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": [
+          "pkgs.whisper"
+        ]
+      },
+      "cli_binaries": [
+        {
+          "name": "whisper",
+          "executable": "/usr/local/bin/whisper-cpp-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities whisper"
+        }
+      ],
+      "skill_prompt_template": "Load `/mnt/skills/custom/skill-whisper/SKILL.md` and `references/CLI-RECIPE.md`. Produce both the target export and the editable source in `$RIGHAVEN_OUTPUT_DIR`, execute an independent reopen check in a clean folder, and record results in `handoff.json`.",
+      "verification_command": "python3 /opt/righaven-worker/handoff.py validate \"$RIGHAVEN_OUTPUT_DIR\"",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ],
+        "read_only_mounts": [
+          "/mnt/user-data"
+        ],
+        "drop_capabilities": [
+          "ALL"
+        ],
+        "no_new_privileges": true
+      }
+    },
+    {
+      "id": "cli-ffmpeg",
+      "name": "FFmpeg CLI Wrapper",
+      "version": "9.0.2",
+      "author": "righaven-core",
+      "category": "cli-tool",
+      "tags": [
+        "ffmpeg",
+        "cli",
+        "open-source"
+      ],
+      "stars": 85,
+      "forks": 18,
+      "verified": true,
+      "tools": [
+        "ffmpeg"
+      ],
+      "i18n": {
+        "en": {
+          "title": "FFmpeg Multimedia Stream & Codec Engine",
+          "description": "Stream probing (ffprobe), lossless muxing, codec transcoding, and loudness/sync verification."
+        },
+        "it": {
+          "title": "FFmpeg — Conversione e verifica audio/video",
+          "description": "Probe dei flussi, conversione codec e formati, estrazione audio e mux con parametri espliciti."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": [
+          "pkgs.ffmpeg"
+        ]
+      },
+      "cli_binaries": [
+        {
+          "name": "ffmpeg",
+          "executable": "/usr/local/bin/ffmpeg-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities ffmpeg"
+        }
+      ],
+      "skill_prompt_template": "Invoke `ffmpeg-cli` inside `$RIGHAVEN_OUTPUT_DIR`. Inspect capabilities via `craft capabilities ffmpeg` and validate editable sources via independent reopen check before writing `handoff.json`.",
+      "verification_command": "craft capabilities ffmpeg",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ],
+        "read_only_mounts": [
+          "/mnt/user-data"
+        ],
+        "drop_capabilities": [
+          "ALL"
+        ],
+        "no_new_privileges": true
+      }
+    },
+    {
+      "id": "skill-ffmpeg",
+      "name": "FFmpeg Agent Skill (skill-ffmpeg)",
+      "version": "9.0.2",
+      "author": "righaven-core",
+      "category": "skill",
+      "tags": [
+        "ffmpeg",
+        "skill",
+        "reopen-check"
+      ],
+      "stars": 95,
+      "forks": 27,
+      "verified": true,
+      "tools": [
+        "ffmpeg"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Skill: FFmpeg Multimedia Stream & Codec Engine",
+          "description": "Dynamic competency module instructing RigHaven agents on FFmpeg authoring, editable source preservation, and reopen verification."
+        },
+        "it": {
+          "title": "Skill: FFmpeg — Conversione e verifica audio/video",
+          "description": "Modulo di competenza dinamico che istruisce gli agenti RigHaven su FFmpeg, conservazione dei sorgenti modificabili e reopen check."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": [
+          "pkgs.ffmpeg"
+        ]
+      },
+      "cli_binaries": [
+        {
+          "name": "ffmpeg",
+          "executable": "/usr/local/bin/ffmpeg-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities ffmpeg"
+        }
+      ],
+      "skill_prompt_template": "Load `/mnt/skills/custom/skill-ffmpeg/SKILL.md` and `references/CLI-RECIPE.md`. Produce both the target export and the editable source in `$RIGHAVEN_OUTPUT_DIR`, execute an independent reopen check in a clean folder, and record results in `handoff.json`.",
+      "verification_command": "python3 /opt/righaven-worker/handoff.py validate \"$RIGHAVEN_OUTPUT_DIR\"",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ],
+        "read_only_mounts": [
+          "/mnt/user-data"
+        ],
+        "drop_capabilities": [
+          "ALL"
+        ],
+        "no_new_privileges": true
+      }
+    },
+    {
+      "id": "cli-musescore",
+      "name": "MuseScore RigHaven CLI Wrapper",
+      "version": "v4.7.5",
+      "author": "righaven-core",
+      "category": "cli-tool",
+      "tags": [
+        "musescore",
+        "cli",
+        "open-source"
+      ],
+      "stars": 73,
+      "forks": 11,
+      "verified": true,
+      "tools": [
+        "musescore"
+      ],
+      "i18n": {
+        "en": {
+          "title": "MuseScore Music Notation & Engraving",
+          "description": "Sheet music engraving (.mscz / MusicXML), score transposition, and offline audio/PDF export."
+        },
+        "it": {
+          "title": "MuseScore RigHaven — Notazione e composizione musicale",
+          "description": "Partiture, arrangiamenti e melodia esplicita; SoundCraft resta responsabile del mix."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": [
+          "pkgs.musescore"
+        ]
+      },
+      "cli_binaries": [
+        {
+          "name": "musescore",
+          "executable": "/usr/local/bin/musescore-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities musescore"
+        }
+      ],
+      "skill_prompt_template": "Invoke `musescore-cli` inside `$RIGHAVEN_OUTPUT_DIR`. Inspect capabilities via `craft capabilities musescore` and validate editable sources via independent reopen check before writing `handoff.json`.",
+      "verification_command": "craft capabilities musescore",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ],
+        "read_only_mounts": [
+          "/mnt/user-data"
+        ],
+        "drop_capabilities": [
+          "ALL"
+        ],
+        "no_new_privileges": true
+      }
+    },
+    {
+      "id": "skill-musescore",
+      "name": "MuseScore RigHaven Agent Skill (skill-musescore)",
+      "version": "v4.7.5",
+      "author": "righaven-core",
+      "category": "skill",
+      "tags": [
+        "musescore",
+        "skill",
+        "reopen-check"
+      ],
+      "stars": 70,
+      "forks": 22,
+      "verified": true,
+      "tools": [
+        "musescore"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Skill: MuseScore Music Notation & Engraving",
+          "description": "Dynamic competency module instructing RigHaven agents on MuseScore RigHaven authoring, editable source preservation, and reopen verification."
+        },
+        "it": {
+          "title": "Skill: MuseScore RigHaven — Notazione e composizione musicale",
+          "description": "Modulo di competenza dinamico che istruisce gli agenti RigHaven su MuseScore RigHaven, conservazione dei sorgenti modificabili e reopen check."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": [
+          "pkgs.musescore"
+        ]
+      },
+      "cli_binaries": [
+        {
+          "name": "musescore",
+          "executable": "/usr/local/bin/musescore-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities musescore"
+        }
+      ],
+      "skill_prompt_template": "Load `/mnt/skills/custom/skill-musescore/SKILL.md` and `references/CLI-RECIPE.md`. Produce both the target export and the editable source in `$RIGHAVEN_OUTPUT_DIR`, execute an independent reopen check in a clean folder, and record results in `handoff.json`.",
+      "verification_command": "python3 /opt/righaven-worker/handoff.py validate \"$RIGHAVEN_OUTPUT_DIR\"",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ],
+        "read_only_mounts": [
+          "/mnt/user-data"
+        ],
+        "drop_capabilities": [
+          "ALL"
+        ],
+        "no_new_privileges": true
+      }
+    },
+    {
+      "id": "cli-ifcopenshell",
+      "name": "IfcOpenShell CLI Wrapper",
+      "version": "0.9.0.post1",
+      "author": "righaven-core",
+      "category": "cli-tool",
+      "tags": [
+        "ifcopenshell",
+        "cli",
+        "open-source"
+      ],
+      "stars": 62,
+      "forks": 10,
+      "verified": true,
+      "tools": [
+        "ifcopenshell"
+      ],
+      "i18n": {
+        "en": {
+          "title": "IfcOpenShell BIM & IFC4 Authoring",
+          "description": "Semantic Building Information Modeling (BIM) authoring and IFC4 schema validation."
+        },
+        "it": {
+          "title": "IfcOpenShell — BIM e controllo IFC",
+          "description": "Authoring semantico BIM e validazione IFC; FreeCAD resta il modellatore CAD parametrico."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": [
+          "pkgs.ifcopenshell"
+        ]
+      },
+      "cli_binaries": [
+        {
+          "name": "ifcopenshell",
+          "executable": "/usr/local/bin/ifcopenshell-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities ifcopenshell"
+        }
+      ],
+      "skill_prompt_template": "Invoke `ifcopenshell-cli` inside `$RIGHAVEN_OUTPUT_DIR`. Inspect capabilities via `craft capabilities ifcopenshell` and validate editable sources via independent reopen check before writing `handoff.json`.",
+      "verification_command": "craft capabilities ifcopenshell",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ],
+        "read_only_mounts": [
+          "/mnt/user-data"
+        ],
+        "drop_capabilities": [
+          "ALL"
+        ],
+        "no_new_privileges": true
+      }
+    },
+    {
+      "id": "skill-ifcopenshell",
+      "name": "IfcOpenShell Agent Skill (skill-ifcopenshell)",
+      "version": "0.9.0.post1",
+      "author": "righaven-core",
+      "category": "skill",
+      "tags": [
+        "ifcopenshell",
+        "skill",
+        "reopen-check"
+      ],
+      "stars": 110,
+      "forks": 22,
+      "verified": true,
+      "tools": [
+        "ifcopenshell"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Skill: IfcOpenShell BIM & IFC4 Authoring",
+          "description": "Dynamic competency module instructing RigHaven agents on IfcOpenShell authoring, editable source preservation, and reopen verification."
+        },
+        "it": {
+          "title": "Skill: IfcOpenShell — BIM e controllo IFC",
+          "description": "Modulo di competenza dinamico che istruisce gli agenti RigHaven su IfcOpenShell, conservazione dei sorgenti modificabili e reopen check."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": [
+          "pkgs.ifcopenshell"
+        ]
+      },
+      "cli_binaries": [
+        {
+          "name": "ifcopenshell",
+          "executable": "/usr/local/bin/ifcopenshell-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities ifcopenshell"
+        }
+      ],
+      "skill_prompt_template": "Load `/mnt/skills/custom/skill-ifcopenshell/SKILL.md` and `references/CLI-RECIPE.md`. Produce both the target export and the editable source in `$RIGHAVEN_OUTPUT_DIR`, execute an independent reopen check in a clean folder, and record results in `handoff.json`.",
+      "verification_command": "python3 /opt/righaven-worker/handoff.py validate \"$RIGHAVEN_OUTPUT_DIR\"",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ],
+        "read_only_mounts": [
+          "/mnt/user-data"
+        ],
+        "drop_capabilities": [
+          "ALL"
+        ],
+        "no_new_privileges": true
+      }
+    },
+    {
+      "id": "cli-manim",
+      "name": "Manim Community CLI Wrapper",
+      "version": "0.22.0",
+      "author": "righaven-core",
+      "category": "cli-tool",
+      "tags": [
+        "manim",
+        "cli",
+        "open-source"
+      ],
+      "stars": 88,
+      "forks": 11,
+      "verified": true,
+      "tools": [
+        "manim"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Manim Mathematical Animation Engine",
+          "description": "Programmatic explanatory and mathematical animations rendered via deterministic Python scenes."
+        },
+        "it": {
+          "title": "Manim Community — Animazioni esplicative programmatiche",
+          "description": "Animazioni didattiche, matematiche e dati costruite con Scene Python; EffectCraft resta il compositore generale."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": [
+          "pkgs.manim"
+        ]
+      },
+      "cli_binaries": [
+        {
+          "name": "manim",
+          "executable": "/usr/local/bin/manim-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities manim"
+        }
+      ],
+      "skill_prompt_template": "Invoke `manim-cli` inside `$RIGHAVEN_OUTPUT_DIR`. Inspect capabilities via `craft capabilities manim` and validate editable sources via independent reopen check before writing `handoff.json`.",
+      "verification_command": "craft capabilities manim",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ],
+        "read_only_mounts": [
+          "/mnt/user-data"
+        ],
+        "drop_capabilities": [
+          "ALL"
+        ],
+        "no_new_privileges": true
+      }
+    },
+    {
+      "id": "skill-manim",
+      "name": "Manim Community Agent Skill (skill-manim)",
+      "version": "0.22.0",
+      "author": "righaven-core",
+      "category": "skill",
+      "tags": [
+        "manim",
+        "skill",
+        "reopen-check"
+      ],
+      "stars": 112,
+      "forks": 24,
+      "verified": true,
+      "tools": [
+        "manim"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Skill: Manim Mathematical Animation Engine",
+          "description": "Dynamic competency module instructing RigHaven agents on Manim Community authoring, editable source preservation, and reopen verification."
+        },
+        "it": {
+          "title": "Skill: Manim Community — Animazioni esplicative programmatiche",
+          "description": "Modulo di competenza dinamico che istruisce gli agenti RigHaven su Manim Community, conservazione dei sorgenti modificabili e reopen check."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": [
+          "pkgs.manim"
+        ]
+      },
+      "cli_binaries": [
+        {
+          "name": "manim",
+          "executable": "/usr/local/bin/manim-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities manim"
+        }
+      ],
+      "skill_prompt_template": "Load `/mnt/skills/custom/skill-manim/SKILL.md` and `references/CLI-RECIPE.md`. Produce both the target export and the editable source in `$RIGHAVEN_OUTPUT_DIR`, execute an independent reopen check in a clean folder, and record results in `handoff.json`.",
+      "verification_command": "python3 /opt/righaven-worker/handoff.py validate \"$RIGHAVEN_OUTPUT_DIR\"",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ],
+        "read_only_mounts": [
+          "/mnt/user-data"
+        ],
+        "drop_capabilities": [
+          "ALL"
+        ],
+        "no_new_privileges": true
+      }
+    },
+    {
+      "id": "cli-opentimelineio",
+      "name": "OpenTimelineIO CLI Wrapper",
+      "version": "0.18.1",
+      "author": "righaven-core",
+      "category": "cli-tool",
+      "tags": [
+        "opentimelineio",
+        "cli",
+        "open-source"
+      ],
+      "stars": 68,
+      "forks": 21,
+      "verified": true,
+      "tools": [
+        "opentimelineio"
+      ],
+      "i18n": {
+        "en": {
+          "title": "OpenTimelineIO Editorial Timeline Adapter",
+          "description": "Rational time editorial timeline inspection, clip reference auditing, and portable OTIOD bundles."
+        },
+        "it": {
+          "title": "OpenTimelineIO — Controllo e trasporto timeline",
+          "description": "Ispezione di tempi razionali, riferimenti e pacchetti media portabili; FilmCraft resta l’editor e FFmpeg il motore codec."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": [
+          "pkgs.opentimelineio"
+        ]
+      },
+      "cli_binaries": [
+        {
+          "name": "opentimelineio",
+          "executable": "/usr/local/bin/opentimelineio-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities opentimelineio"
+        }
+      ],
+      "skill_prompt_template": "Invoke `opentimelineio-cli` inside `$RIGHAVEN_OUTPUT_DIR`. Inspect capabilities via `craft capabilities opentimelineio` and validate editable sources via independent reopen check before writing `handoff.json`.",
+      "verification_command": "craft capabilities opentimelineio",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ],
+        "read_only_mounts": [
+          "/mnt/user-data"
+        ],
+        "drop_capabilities": [
+          "ALL"
+        ],
+        "no_new_privileges": true
+      }
+    },
+    {
+      "id": "skill-opentimelineio",
+      "name": "OpenTimelineIO Agent Skill (skill-opentimelineio)",
+      "version": "0.18.1",
+      "author": "righaven-core",
+      "category": "skill",
+      "tags": [
+        "opentimelineio",
+        "skill",
+        "reopen-check"
+      ],
+      "stars": 68,
+      "forks": 20,
+      "verified": true,
+      "tools": [
+        "opentimelineio"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Skill: OpenTimelineIO Editorial Timeline Adapter",
+          "description": "Dynamic competency module instructing RigHaven agents on OpenTimelineIO authoring, editable source preservation, and reopen verification."
+        },
+        "it": {
+          "title": "Skill: OpenTimelineIO — Controllo e trasporto timeline",
+          "description": "Modulo di competenza dinamico che istruisce gli agenti RigHaven su OpenTimelineIO, conservazione dei sorgenti modificabili e reopen check."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": [
+          "pkgs.opentimelineio"
+        ]
+      },
+      "cli_binaries": [
+        {
+          "name": "opentimelineio",
+          "executable": "/usr/local/bin/opentimelineio-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities opentimelineio"
+        }
+      ],
+      "skill_prompt_template": "Load `/mnt/skills/custom/skill-opentimelineio/SKILL.md` and `references/CLI-RECIPE.md`. Produce both the target export and the editable source in `$RIGHAVEN_OUTPUT_DIR`, execute an independent reopen check in a clean folder, and record results in `handoff.json`.",
+      "verification_command": "python3 /opt/righaven-worker/handoff.py validate \"$RIGHAVEN_OUTPUT_DIR\"",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ],
+        "read_only_mounts": [
+          "/mnt/user-data"
+        ],
+        "drop_capabilities": [
+          "ALL"
+        ],
+        "no_new_privileges": true
+      }
+    },
+    {
+      "id": "cli-pymeshlab",
+      "name": "PyMeshLab CLI Wrapper",
+      "version": "2025.7.post1",
+      "author": "righaven-core",
+      "category": "cli-tool",
+      "tags": [
+        "pymeshlab",
+        "cli",
+        "open-source"
+      ],
+      "stars": 90,
+      "forks": 18,
+      "verified": true,
+      "tools": [
+        "pymeshlab"
+      ],
+      "i18n": {
+        "en": {
+          "title": "PyMeshLab 3D Mesh Repair & Filtering",
+          "description": "Topological 3D mesh inspection, manifold repair, decimation, and surface normal filtering."
+        },
+        "it": {
+          "title": "PyMeshLab — Analisi e riparazione mesh",
+          "description": "Misura, pulizia e filtri di mesh esistenti; FreeCAD resta il CAD parametrico e Blender l’authoring organico."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": [
+          "pkgs.pymeshlab"
+        ]
+      },
+      "cli_binaries": [
+        {
+          "name": "pymeshlab",
+          "executable": "/usr/local/bin/pymeshlab-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities pymeshlab"
+        }
+      ],
+      "skill_prompt_template": "Invoke `pymeshlab-cli` inside `$RIGHAVEN_OUTPUT_DIR`. Inspect capabilities via `craft capabilities pymeshlab` and validate editable sources via independent reopen check before writing `handoff.json`.",
+      "verification_command": "craft capabilities pymeshlab",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ],
+        "read_only_mounts": [
+          "/mnt/user-data"
+        ],
+        "drop_capabilities": [
+          "ALL"
+        ],
+        "no_new_privileges": true
+      }
+    },
+    {
+      "id": "skill-pymeshlab",
+      "name": "PyMeshLab Agent Skill (skill-pymeshlab)",
+      "version": "2025.7.post1",
+      "author": "righaven-core",
+      "category": "skill",
+      "tags": [
+        "pymeshlab",
+        "skill",
+        "reopen-check"
+      ],
+      "stars": 62,
+      "forks": 14,
+      "verified": true,
+      "tools": [
+        "pymeshlab"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Skill: PyMeshLab 3D Mesh Repair & Filtering",
+          "description": "Dynamic competency module instructing RigHaven agents on PyMeshLab authoring, editable source preservation, and reopen verification."
+        },
+        "it": {
+          "title": "Skill: PyMeshLab — Analisi e riparazione mesh",
+          "description": "Modulo di competenza dinamico che istruisce gli agenti RigHaven su PyMeshLab, conservazione dei sorgenti modificabili e reopen check."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": [
+          "pkgs.pymeshlab"
+        ]
+      },
+      "cli_binaries": [
+        {
+          "name": "pymeshlab",
+          "executable": "/usr/local/bin/pymeshlab-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities pymeshlab"
+        }
+      ],
+      "skill_prompt_template": "Load `/mnt/skills/custom/skill-pymeshlab/SKILL.md` and `references/CLI-RECIPE.md`. Produce both the target export and the editable source in `$RIGHAVEN_OUTPUT_DIR`, execute an independent reopen check in a clean folder, and record results in `handoff.json`.",
+      "verification_command": "python3 /opt/righaven-worker/handoff.py validate \"$RIGHAVEN_OUTPUT_DIR\"",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ],
+        "read_only_mounts": [
+          "/mnt/user-data"
+        ],
+        "drop_capabilities": [
+          "ALL"
+        ],
+        "no_new_privileges": true
+      }
+    },
+    {
+      "id": "cli-d2",
+      "name": "D2 CLI Wrapper",
+      "version": "v0.9.0",
+      "author": "righaven-core",
+      "category": "cli-tool",
+      "tags": [
+        "d2",
+        "cli",
+        "open-source"
+      ],
+      "stars": 62,
+      "forks": 20,
+      "verified": true,
+      "tools": [
+        "d2"
+      ],
+      "i18n": {
+        "en": {
+          "title": "D2 Declarative Diagramming Language",
+          "description": "Modern declarative architecture and flow diagramming with automatic layout and SVG/PNG export."
+        },
+        "it": {
+          "title": "D2 — Schemi strutturati moderni",
+          "description": "Flussi, relazioni e dipendenze con layout automatico; non richiede UML o professioni fisse."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": [
+          "pkgs.d2"
+        ]
+      },
+      "cli_binaries": [
+        {
+          "name": "d2",
+          "executable": "/usr/local/bin/d2-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities d2"
+        }
+      ],
+      "skill_prompt_template": "Invoke `d2-cli` inside `$RIGHAVEN_OUTPUT_DIR`. Inspect capabilities via `craft capabilities d2` and validate editable sources via independent reopen check before writing `handoff.json`.",
+      "verification_command": "craft capabilities d2",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ],
+        "read_only_mounts": [
+          "/mnt/user-data"
+        ],
+        "drop_capabilities": [
+          "ALL"
+        ],
+        "no_new_privileges": true
+      }
+    },
+    {
+      "id": "skill-d2",
+      "name": "D2 Agent Skill (skill-d2)",
+      "version": "v0.9.0",
+      "author": "righaven-core",
+      "category": "skill",
+      "tags": [
+        "d2",
+        "skill",
+        "reopen-check"
+      ],
+      "stars": 97,
+      "forks": 29,
+      "verified": true,
+      "tools": [
+        "d2"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Skill: D2 Declarative Diagramming Language",
+          "description": "Dynamic competency module instructing RigHaven agents on D2 authoring, editable source preservation, and reopen verification."
+        },
+        "it": {
+          "title": "Skill: D2 — Schemi strutturati moderni",
+          "description": "Modulo di competenza dinamico che istruisce gli agenti RigHaven su D2, conservazione dei sorgenti modificabili e reopen check."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": [
+          "pkgs.d2"
+        ]
+      },
+      "cli_binaries": [
+        {
+          "name": "d2",
+          "executable": "/usr/local/bin/d2-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities d2"
+        }
+      ],
+      "skill_prompt_template": "Load `/mnt/skills/custom/skill-d2/SKILL.md` and `references/CLI-RECIPE.md`. Produce both the target export and the editable source in `$RIGHAVEN_OUTPUT_DIR`, execute an independent reopen check in a clean folder, and record results in `handoff.json`.",
+      "verification_command": "python3 /opt/righaven-worker/handoff.py validate \"$RIGHAVEN_OUTPUT_DIR\"",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ],
+        "read_only_mounts": [
+          "/mnt/user-data"
+        ],
+        "drop_capabilities": [
+          "ALL"
+        ],
+        "no_new_privileges": true
+      }
+    },
+    {
+      "id": "cli-plantuml",
+      "name": "PlantUML CLI Wrapper",
+      "version": "v1.2026.9",
+      "author": "righaven-core",
+      "category": "cli-tool",
+      "tags": [
+        "plantuml",
+        "cli",
+        "open-source"
+      ],
+      "stars": 49,
+      "forks": 22,
+      "verified": true,
+      "tools": [
+        "plantuml"
+      ],
+      "i18n": {
+        "en": {
+          "title": "PlantUML Formal UML Modeling",
+          "description": "Formal sequence, class, state, and component UML diagramming from standalone .puml sources."
+        },
+        "it": {
+          "title": "PlantUML — Modellazione UML formale",
+          "description": "Classi, sequenze, attività e stati quando la semantica UML è utile; D2 resta la scelta per schemi generali."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": [
+          "pkgs.plantuml"
+        ]
+      },
+      "cli_binaries": [
+        {
+          "name": "plantuml",
+          "executable": "/usr/local/bin/plantuml-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities plantuml"
+        }
+      ],
+      "skill_prompt_template": "Invoke `plantuml-cli` inside `$RIGHAVEN_OUTPUT_DIR`. Inspect capabilities via `craft capabilities plantuml` and validate editable sources via independent reopen check before writing `handoff.json`.",
+      "verification_command": "craft capabilities plantuml",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ],
+        "read_only_mounts": [
+          "/mnt/user-data"
+        ],
+        "drop_capabilities": [
+          "ALL"
+        ],
+        "no_new_privileges": true
+      }
+    },
+    {
+      "id": "skill-plantuml",
+      "name": "PlantUML Agent Skill (skill-plantuml)",
+      "version": "v1.2026.9",
+      "author": "righaven-core",
+      "category": "skill",
+      "tags": [
+        "plantuml",
+        "skill",
+        "reopen-check"
+      ],
+      "stars": 119,
+      "forks": 31,
+      "verified": true,
+      "tools": [
+        "plantuml"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Skill: PlantUML Formal UML Modeling",
+          "description": "Dynamic competency module instructing RigHaven agents on PlantUML authoring, editable source preservation, and reopen verification."
+        },
+        "it": {
+          "title": "Skill: PlantUML — Modellazione UML formale",
+          "description": "Modulo di competenza dinamico che istruisce gli agenti RigHaven su PlantUML, conservazione dei sorgenti modificabili e reopen check."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": [
+          "pkgs.plantuml"
+        ]
+      },
+      "cli_binaries": [
+        {
+          "name": "plantuml",
+          "executable": "/usr/local/bin/plantuml-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities plantuml"
+        }
+      ],
+      "skill_prompt_template": "Load `/mnt/skills/custom/skill-plantuml/SKILL.md` and `references/CLI-RECIPE.md`. Produce both the target export and the editable source in `$RIGHAVEN_OUTPUT_DIR`, execute an independent reopen check in a clean folder, and record results in `handoff.json`.",
+      "verification_command": "python3 /opt/righaven-worker/handoff.py validate \"$RIGHAVEN_OUTPUT_DIR\"",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ],
+        "read_only_mounts": [
+          "/mnt/user-data"
+        ],
+        "drop_capabilities": [
+          "ALL"
+        ],
+        "no_new_privileges": true
+      }
+    },
+    {
+      "id": "cli-mermaid",
+      "name": "Mermaid CLI Wrapper",
+      "version": "12.0.0",
+      "author": "righaven-core",
+      "category": "cli-tool",
+      "tags": [
+        "mermaid",
+        "cli",
+        "open-source"
+      ],
+      "stars": 46,
+      "forks": 9,
+      "verified": true,
+      "tools": [
+        "mermaid"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Mermaid Markdown Diagram Renderer",
+          "description": "Flowcharts, sequence diagrams, Gantt charts, and state machines rendered from .mmd sources."
+        },
+        "it": {
+          "title": "Mermaid — Diagrammi nella documentazione",
+          "description": "Flussi, sequenze, stati e mappe nella chat e nel Markdown; valorizza il renderer Mermaid già presente in RigHaven."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": [
+          "pkgs.mermaid"
+        ]
+      },
+      "cli_binaries": [
+        {
+          "name": "mermaid",
+          "executable": "/usr/local/bin/mermaid-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities mermaid"
+        }
+      ],
+      "skill_prompt_template": "Invoke `mermaid-cli` inside `$RIGHAVEN_OUTPUT_DIR`. Inspect capabilities via `craft capabilities mermaid` and validate editable sources via independent reopen check before writing `handoff.json`.",
+      "verification_command": "craft capabilities mermaid",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ],
+        "read_only_mounts": [
+          "/mnt/user-data"
+        ],
+        "drop_capabilities": [
+          "ALL"
+        ],
+        "no_new_privileges": true
+      }
+    },
+    {
+      "id": "skill-mermaid",
+      "name": "Mermaid Agent Skill (skill-mermaid)",
+      "version": "12.0.0",
+      "author": "righaven-core",
+      "category": "skill",
+      "tags": [
+        "mermaid",
+        "skill",
+        "reopen-check"
+      ],
+      "stars": 113,
+      "forks": 25,
+      "verified": true,
+      "tools": [
+        "mermaid"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Skill: Mermaid Markdown Diagram Renderer",
+          "description": "Dynamic competency module instructing RigHaven agents on Mermaid authoring, editable source preservation, and reopen verification."
+        },
+        "it": {
+          "title": "Skill: Mermaid — Diagrammi nella documentazione",
+          "description": "Modulo di competenza dinamico che istruisce gli agenti RigHaven su Mermaid, conservazione dei sorgenti modificabili e reopen check."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": [
+          "pkgs.mermaid"
+        ]
+      },
+      "cli_binaries": [
+        {
+          "name": "mermaid",
+          "executable": "/usr/local/bin/mermaid-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities mermaid"
+        }
+      ],
+      "skill_prompt_template": "Load `/mnt/skills/custom/skill-mermaid/SKILL.md` and `references/CLI-RECIPE.md`. Produce both the target export and the editable source in `$RIGHAVEN_OUTPUT_DIR`, execute an independent reopen check in a clean folder, and record results in `handoff.json`.",
+      "verification_command": "python3 /opt/righaven-worker/handoff.py validate \"$RIGHAVEN_OUTPUT_DIR\"",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ],
+        "read_only_mounts": [
+          "/mnt/user-data"
+        ],
+        "drop_capabilities": [
+          "ALL"
+        ],
+        "no_new_privileges": true
+      }
+    },
+    {
+      "id": "cli-excalidraw",
+      "name": "Excalidraw CLI Wrapper",
+      "version": "0.18.1",
+      "author": "righaven-core",
+      "category": "cli-tool",
+      "tags": [
+        "excalidraw",
+        "cli",
+        "open-source"
+      ],
+      "stars": 76,
+      "forks": 19,
+      "verified": true,
+      "tools": [
+        "excalidraw"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Excalidraw Collaborative Visual Whiteboard",
+          "description": "Editable hand-drawn style architectural whiteboards (.excalidraw JSON) with SVG/PNG export."
+        },
+        "it": {
+          "title": "Excalidraw — Lavagna visuale modificabile",
+          "description": "Brainstorming, mappe e schizzi condivisi; la lavagna resta modificabile dall’utente. VectorCraft resta l’editor vettoriale di produzione."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": [
+          "pkgs.excalidraw"
+        ]
+      },
+      "cli_binaries": [
+        {
+          "name": "excalidraw",
+          "executable": "/usr/local/bin/excalidraw-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities excalidraw"
+        }
+      ],
+      "skill_prompt_template": "Invoke `excalidraw-cli` inside `$RIGHAVEN_OUTPUT_DIR`. Inspect capabilities via `craft capabilities excalidraw` and validate editable sources via independent reopen check before writing `handoff.json`.",
+      "verification_command": "craft capabilities excalidraw",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ],
+        "read_only_mounts": [
+          "/mnt/user-data"
+        ],
+        "drop_capabilities": [
+          "ALL"
+        ],
+        "no_new_privileges": true
+      }
+    },
+    {
+      "id": "skill-excalidraw",
+      "name": "Excalidraw Agent Skill (skill-excalidraw)",
+      "version": "0.18.1",
+      "author": "righaven-core",
+      "category": "skill",
+      "tags": [
+        "excalidraw",
+        "skill",
+        "reopen-check"
+      ],
+      "stars": 62,
+      "forks": 14,
+      "verified": true,
+      "tools": [
+        "excalidraw"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Skill: Excalidraw Collaborative Visual Whiteboard",
+          "description": "Dynamic competency module instructing RigHaven agents on Excalidraw authoring, editable source preservation, and reopen verification."
+        },
+        "it": {
+          "title": "Skill: Excalidraw — Lavagna visuale modificabile",
+          "description": "Modulo di competenza dinamico che istruisce gli agenti RigHaven su Excalidraw, conservazione dei sorgenti modificabili e reopen check."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": [
+          "pkgs.excalidraw"
+        ]
+      },
+      "cli_binaries": [
+        {
+          "name": "excalidraw",
+          "executable": "/usr/local/bin/excalidraw-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities excalidraw"
+        }
+      ],
+      "skill_prompt_template": "Load `/mnt/skills/custom/skill-excalidraw/SKILL.md` and `references/CLI-RECIPE.md`. Produce both the target export and the editable source in `$RIGHAVEN_OUTPUT_DIR`, execute an independent reopen check in a clean folder, and record results in `handoff.json`.",
+      "verification_command": "python3 /opt/righaven-worker/handoff.py validate \"$RIGHAVEN_OUTPUT_DIR\"",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ],
+        "read_only_mounts": [
+          "/mnt/user-data"
+        ],
+        "drop_capabilities": [
+          "ALL"
+        ],
+        "no_new_privileges": true
+      }
+    },
+    {
+      "id": "cli-bpmn",
+      "name": "BPMN / bpmn.io CLI Wrapper",
+      "version": "0.10.0",
+      "author": "righaven-core",
+      "category": "cli-tool",
+      "tags": [
+        "bpmn",
+        "cli",
+        "open-source"
+      ],
+      "stars": 63,
+      "forks": 21,
+      "verified": true,
+      "tools": [
+        "bpmn"
+      ],
+      "i18n": {
+        "en": {
+          "title": "BPMN 2.0 Process & Workflow Modeler",
+          "description": "Formal BPMN 2.0 XML process modeling with lanes, events, gateways, and diagram interchange (DI)."
+        },
+        "it": {
+          "title": "BPMN / bpmn.io — Modellazione dei processi",
+          "description": "Processi con eventi, responsabilità, decisioni ed eccezioni in BPMN 2.0; non è un nuovo esecutore dei lavori."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": [
+          "pkgs.bpmn"
+        ]
+      },
+      "cli_binaries": [
+        {
+          "name": "bpmn",
+          "executable": "/usr/local/bin/bpmn-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities bpmn"
+        }
+      ],
+      "skill_prompt_template": "Invoke `bpmn-cli` inside `$RIGHAVEN_OUTPUT_DIR`. Inspect capabilities via `craft capabilities bpmn` and validate editable sources via independent reopen check before writing `handoff.json`.",
+      "verification_command": "craft capabilities bpmn",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ],
+        "read_only_mounts": [
+          "/mnt/user-data"
+        ],
+        "drop_capabilities": [
+          "ALL"
+        ],
+        "no_new_privileges": true
+      }
+    },
+    {
+      "id": "skill-bpmn",
+      "name": "BPMN / bpmn.io Agent Skill (skill-bpmn)",
+      "version": "0.10.0",
+      "author": "righaven-core",
+      "category": "skill",
+      "tags": [
+        "bpmn",
+        "skill",
+        "reopen-check"
+      ],
+      "stars": 73,
+      "forks": 25,
+      "verified": true,
+      "tools": [
+        "bpmn"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Skill: BPMN 2.0 Process & Workflow Modeler",
+          "description": "Dynamic competency module instructing RigHaven agents on BPMN / bpmn.io authoring, editable source preservation, and reopen verification."
+        },
+        "it": {
+          "title": "Skill: BPMN / bpmn.io — Modellazione dei processi",
+          "description": "Modulo di competenza dinamico che istruisce gli agenti RigHaven su BPMN / bpmn.io, conservazione dei sorgenti modificabili e reopen check."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": [
+          "pkgs.bpmn"
+        ]
+      },
+      "cli_binaries": [
+        {
+          "name": "bpmn",
+          "executable": "/usr/local/bin/bpmn-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities bpmn"
+        }
+      ],
+      "skill_prompt_template": "Load `/mnt/skills/custom/skill-bpmn/SKILL.md` and `references/CLI-RECIPE.md`. Produce both the target export and the editable source in `$RIGHAVEN_OUTPUT_DIR`, execute an independent reopen check in a clean folder, and record results in `handoff.json`.",
+      "verification_command": "python3 /opt/righaven-worker/handoff.py validate \"$RIGHAVEN_OUTPUT_DIR\"",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ],
+        "read_only_mounts": [
+          "/mnt/user-data"
+        ],
+        "drop_capabilities": [
+          "ALL"
+        ],
+        "no_new_privileges": true
+      }
+    },
+    {
+      "id": "cli-structurizr",
+      "name": "Structurizr DSL CLI Wrapper",
+      "version": "6.2.3",
+      "author": "righaven-core",
+      "category": "cli-tool",
+      "tags": [
+        "structurizr",
+        "cli",
+        "open-source"
+      ],
+      "stars": 65,
+      "forks": 8,
+      "verified": true,
+      "tools": [
+        "structurizr"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Structurizr C4 Architecture Modeler",
+          "description": "Single-source C4 software architecture modeling (System Context, Containers, Components) via Structurizr DSL."
+        },
+        "it": {
+          "title": "Structurizr DSL — Architetture C4 da un modello",
+          "description": "Viste coerenti di architettura software da un unico modello C4. Usa le librerie mantenute, non la vecchia CLI dismessa."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": [
+          "pkgs.structurizr"
+        ]
+      },
+      "cli_binaries": [
+        {
+          "name": "structurizr",
+          "executable": "/usr/local/bin/structurizr-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities structurizr"
+        }
+      ],
+      "skill_prompt_template": "Invoke `structurizr-cli` inside `$RIGHAVEN_OUTPUT_DIR`. Inspect capabilities via `craft capabilities structurizr` and validate editable sources via independent reopen check before writing `handoff.json`.",
+      "verification_command": "craft capabilities structurizr",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ],
+        "read_only_mounts": [
+          "/mnt/user-data"
+        ],
+        "drop_capabilities": [
+          "ALL"
+        ],
+        "no_new_privileges": true
+      }
+    },
+    {
+      "id": "skill-structurizr",
+      "name": "Structurizr DSL Agent Skill (skill-structurizr)",
+      "version": "6.2.3",
+      "author": "righaven-core",
+      "category": "skill",
+      "tags": [
+        "structurizr",
+        "skill",
+        "reopen-check"
+      ],
+      "stars": 77,
+      "forks": 29,
+      "verified": true,
+      "tools": [
+        "structurizr"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Skill: Structurizr C4 Architecture Modeler",
+          "description": "Dynamic competency module instructing RigHaven agents on Structurizr DSL authoring, editable source preservation, and reopen verification."
+        },
+        "it": {
+          "title": "Skill: Structurizr DSL — Architetture C4 da un modello",
+          "description": "Modulo di competenza dinamico che istruisce gli agenti RigHaven su Structurizr DSL, conservazione dei sorgenti modificabili e reopen check."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": [
+          "pkgs.structurizr"
+        ]
+      },
+      "cli_binaries": [
+        {
+          "name": "structurizr",
+          "executable": "/usr/local/bin/structurizr-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities structurizr"
+        }
+      ],
+      "skill_prompt_template": "Load `/mnt/skills/custom/skill-structurizr/SKILL.md` and `references/CLI-RECIPE.md`. Produce both the target export and the editable source in `$RIGHAVEN_OUTPUT_DIR`, execute an independent reopen check in a clean folder, and record results in `handoff.json`.",
+      "verification_command": "python3 /opt/righaven-worker/handoff.py validate \"$RIGHAVEN_OUTPUT_DIR\"",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ],
+        "read_only_mounts": [
+          "/mnt/user-data"
+        ],
+        "drop_capabilities": [
+          "ALL"
+        ],
+        "no_new_privileges": true
+      }
+    },
+    {
+      "id": "cli-opengrep",
+      "name": "Opengrep CLI Wrapper",
+      "version": "v1.32.0",
+      "author": "righaven-core",
+      "category": "cli-tool",
+      "tags": [
+        "opengrep",
+        "cli",
+        "open-source"
+      ],
+      "stars": 88,
+      "forks": 16,
+      "verified": true,
+      "tools": [
+        "opengrep"
+      ],
+      "i18n": {
+        "en": {
+          "title": "OpenGrep Semantic Static Code Analyzer",
+          "description": "Deterministic rule-based semantic static code analysis and security pattern scanning."
+        },
+        "it": {
+          "title": "Opengrep — Analisi statica del codice",
+          "description": "Controlli semantici su codice locale con regole esplicite e report ripetibili."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": [
+          "pkgs.opengrep"
+        ]
+      },
+      "cli_binaries": [
+        {
+          "name": "opengrep",
+          "executable": "/usr/local/bin/opengrep-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities opengrep"
+        }
+      ],
+      "skill_prompt_template": "Invoke `opengrep-cli` inside `$RIGHAVEN_OUTPUT_DIR`. Inspect capabilities via `craft capabilities opengrep` and validate editable sources via independent reopen check before writing `handoff.json`.",
+      "verification_command": "craft capabilities opengrep",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ],
+        "read_only_mounts": [
+          "/mnt/user-data"
+        ],
+        "drop_capabilities": [
+          "ALL"
+        ],
+        "no_new_privileges": true
+      }
+    },
+    {
+      "id": "skill-opengrep",
+      "name": "Opengrep Agent Skill (skill-opengrep)",
+      "version": "v1.32.0",
+      "author": "righaven-core",
+      "category": "skill",
+      "tags": [
+        "opengrep",
+        "skill",
+        "reopen-check"
+      ],
+      "stars": 67,
+      "forks": 19,
+      "verified": true,
+      "tools": [
+        "opengrep"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Skill: OpenGrep Semantic Static Code Analyzer",
+          "description": "Dynamic competency module instructing RigHaven agents on Opengrep authoring, editable source preservation, and reopen verification."
+        },
+        "it": {
+          "title": "Skill: Opengrep — Analisi statica del codice",
+          "description": "Modulo di competenza dinamico che istruisce gli agenti RigHaven su Opengrep, conservazione dei sorgenti modificabili e reopen check."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": [
+          "pkgs.opengrep"
+        ]
+      },
+      "cli_binaries": [
+        {
+          "name": "opengrep",
+          "executable": "/usr/local/bin/opengrep-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities opengrep"
+        }
+      ],
+      "skill_prompt_template": "Load `/mnt/skills/custom/skill-opengrep/SKILL.md` and `references/CLI-RECIPE.md`. Produce both the target export and the editable source in `$RIGHAVEN_OUTPUT_DIR`, execute an independent reopen check in a clean folder, and record results in `handoff.json`.",
+      "verification_command": "python3 /opt/righaven-worker/handoff.py validate \"$RIGHAVEN_OUTPUT_DIR\"",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ],
+        "read_only_mounts": [
+          "/mnt/user-data"
+        ],
+        "drop_capabilities": [
+          "ALL"
+        ],
+        "no_new_privileges": true
+      }
+    },
+    {
+      "id": "cli-trivy",
+      "name": "Trivy CLI Wrapper",
+      "version": "v0.76.1",
+      "author": "righaven-core",
+      "category": "cli-tool",
+      "tags": [
+        "trivy",
+        "cli",
+        "open-source"
+      ],
+      "stars": 48,
+      "forks": 11,
+      "verified": true,
+      "tools": [
+        "trivy"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Trivy Vulnerability & Misconfiguration Scanner",
+          "description": "Filesystem, SBOM, dependency, and container configuration security auditing."
+        },
+        "it": {
+          "title": "Trivy — Dipendenze e configurazioni",
+          "description": "Inventario software, configurazioni e vulnerabilità con database identificato."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": [
+          "pkgs.trivy"
+        ]
+      },
+      "cli_binaries": [
+        {
+          "name": "trivy",
+          "executable": "/usr/local/bin/trivy-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities trivy"
+        }
+      ],
+      "skill_prompt_template": "Invoke `trivy-cli` inside `$RIGHAVEN_OUTPUT_DIR`. Inspect capabilities via `craft capabilities trivy` and validate editable sources via independent reopen check before writing `handoff.json`.",
+      "verification_command": "craft capabilities trivy",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ],
+        "read_only_mounts": [
+          "/mnt/user-data"
+        ],
+        "drop_capabilities": [
+          "ALL"
+        ],
+        "no_new_privileges": true
+      }
+    },
+    {
+      "id": "skill-trivy",
+      "name": "Trivy Agent Skill (skill-trivy)",
+      "version": "v0.76.1",
+      "author": "righaven-core",
+      "category": "skill",
+      "tags": [
+        "trivy",
+        "skill",
+        "reopen-check"
+      ],
+      "stars": 113,
+      "forks": 25,
+      "verified": true,
+      "tools": [
+        "trivy"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Skill: Trivy Vulnerability & Misconfiguration Scanner",
+          "description": "Dynamic competency module instructing RigHaven agents on Trivy authoring, editable source preservation, and reopen verification."
+        },
+        "it": {
+          "title": "Skill: Trivy — Dipendenze e configurazioni",
+          "description": "Modulo di competenza dinamico che istruisce gli agenti RigHaven su Trivy, conservazione dei sorgenti modificabili e reopen check."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": [
+          "pkgs.trivy"
+        ]
+      },
+      "cli_binaries": [
+        {
+          "name": "trivy",
+          "executable": "/usr/local/bin/trivy-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities trivy"
+        }
+      ],
+      "skill_prompt_template": "Load `/mnt/skills/custom/skill-trivy/SKILL.md` and `references/CLI-RECIPE.md`. Produce both the target export and the editable source in `$RIGHAVEN_OUTPUT_DIR`, execute an independent reopen check in a clean folder, and record results in `handoff.json`.",
+      "verification_command": "python3 /opt/righaven-worker/handoff.py validate \"$RIGHAVEN_OUTPUT_DIR\"",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ],
+        "read_only_mounts": [
+          "/mnt/user-data"
+        ],
+        "drop_capabilities": [
+          "ALL"
+        ],
+        "no_new_privileges": true
+      }
+    },
+    {
+      "id": "skill-c4-structurizr",
+      "name": "C4 Structurizr Architecture Skill (skill-c4-structurizr)",
+      "version": "v2.0.0",
+      "author": "righaven-core",
+      "category": "skill",
+      "tags": [
+        "c4",
+        "structurizr",
+        "architecture",
+        "dsl",
+        "skill"
+      ],
+      "stars": 142,
+      "forks": 31,
+      "verified": true,
+      "tools": [
+        "structurizr",
+        "d2"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Skill: C4 Architecture with Structurizr DSL",
+          "description": "Competency module for single-model C4 software architecture (Context, Container, Component views) using Structurizr DSL and D2."
+        },
+        "it": {
+          "title": "Skill: Architettura C4 con Structurizr DSL",
+          "description": "Modulo di competenza per architetture software C4 da singolo modello (viste Context, Container, Component) con Structurizr DSL e D2."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [
+          "openjdk-21-jre-headless",
+          "graphviz"
+        ],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": [
+          "pkgs.structurizr-cli",
+          "pkgs.d2"
+        ]
+      },
+      "cli_binaries": [
+        {
+          "name": "structurizr",
+          "executable": "/usr/local/bin/structurizr-cli",
+          "safe_flags": [
+            "validate",
+            "export"
+          ],
+          "health_check": "craft capabilities structurizr"
+        }
+      ],
+      "skill_prompt_template": "Author `.dsl` C4 architecture models using `structurizr-cli` and validate all views in an isolated directory before producing `handoff.json`.",
+      "verification_command": "craft capabilities structurizr",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ],
+        "read_only_mounts": [
+          "/mnt/user-data"
+        ],
+        "drop_capabilities": [
+          "ALL"
+        ],
+        "no_new_privileges": true
+      }
+    },
+    {
+      "id": "skill-harness",
+      "name": "RigHaven Harness Coordinator Skill",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "skill",
+      "tags": [
+        "protocol",
+        "core",
+        "skill"
+      ],
+      "stars": 110,
+      "forks": 24,
+      "verified": true,
+      "tools": [],
+      "i18n": {
+        "en": {
+          "title": "RigHaven Harness Coordinator Skill",
+          "description": "Multi-agent role compilation, adaptive planning, and checkpoint supervision."
+        },
+        "it": {
+          "title": "RigHaven Harness Coordinator Skill",
+          "description": "Compilazione dinamica dei ruoli, pianificazione adattiva e supervisione dei checkpoint."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [],
+      "skill_prompt_template": "Follow `skill-harness` protocol rules for verified multi-agent execution.",
+      "verification_command": "python3 /opt/righaven-worker/handoff.py schema",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ],
+        "read_only_mounts": [
+          "/mnt/user-data"
+        ],
+        "drop_capabilities": [
+          "ALL"
+        ],
+        "no_new_privileges": true
+      }
+    },
+    {
+      "id": "skill-workspace",
+      "name": "RigHaven Workspace & Handoff Protocol",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "skill",
+      "tags": [
+        "protocol",
+        "core",
+        "skill"
+      ],
+      "stars": 110,
+      "forks": 24,
+      "verified": true,
+      "tools": [],
+      "i18n": {
+        "en": {
+          "title": "RigHaven Workspace & Handoff Protocol",
+          "description": "Staging isolation, editable source verification, reopen check, and handoff.json contract."
+        },
+        "it": {
+          "title": "RigHaven Workspace & Handoff Protocol",
+          "description": "Isolamento dello staging, verifica dei sorgenti modificabili, reopen check e contratto handoff.json."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [],
+      "skill_prompt_template": "Follow `skill-workspace` protocol rules for verified multi-agent execution.",
+      "verification_command": "python3 /opt/righaven-worker/handoff.py schema",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ],
+        "read_only_mounts": [
+          "/mnt/user-data"
+        ],
+        "drop_capabilities": [
+          "ALL"
+        ],
+        "no_new_privileges": true
+      }
+    },
+    {
+      "id": "skill-problem-solving",
+      "name": "Structured Problem Solving & Hypothesis Testing",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "skill",
+      "tags": [
+        "protocol",
+        "core",
+        "skill"
+      ],
+      "stars": 110,
+      "forks": 24,
+      "verified": true,
+      "tools": [],
+      "i18n": {
+        "en": {
+          "title": "Structured Problem Solving & Hypothesis Testing",
+          "description": "Root-cause isolation and low-cost representative sample verification."
+        },
+        "it": {
+          "title": "Structured Problem Solving & Hypothesis Testing",
+          "description": "Isolamento delle cause radice e verifica su campioni rappresentativi a basso costo."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [],
+      "skill_prompt_template": "Follow `skill-problem-solving` protocol rules for verified multi-agent execution.",
+      "verification_command": "python3 /opt/righaven-worker/handoff.py schema",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ],
+        "read_only_mounts": [
+          "/mnt/user-data"
+        ],
+        "drop_capabilities": [
+          "ALL"
+        ],
+        "no_new_privileges": true
+      }
+    },
+    {
+      "id": "skill-quality-review",
+      "name": "Independent Product Quality & Contract Review",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "skill",
+      "tags": [
+        "protocol",
+        "core",
+        "skill"
+      ],
+      "stars": 110,
+      "forks": 24,
+      "verified": true,
+      "tools": [],
+      "i18n": {
+        "en": {
+          "title": "Independent Product Quality & Contract Review",
+          "description": "Evidence-based quality review against user acceptance criteria and reference hashes."
+        },
+        "it": {
+          "title": "Independent Product Quality & Contract Review",
+          "description": "Revisione indipendente della qualità rispetto ai criteri di accettazione e agli hash di riferimento."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [],
+      "skill_prompt_template": "Follow `skill-quality-review` protocol rules for verified multi-agent execution.",
+      "verification_command": "python3 /opt/righaven-worker/handoff.py schema",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ],
+        "read_only_mounts": [
+          "/mnt/user-data"
+        ],
+        "drop_capabilities": [
+          "ALL"
+        ],
+        "no_new_privileges": true
+      }
+    }
+  ]
+}

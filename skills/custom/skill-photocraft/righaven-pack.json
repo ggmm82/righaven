@@ -1,0 +1,63 @@
+{
+  "id": "skill-photocraft",
+  "name": "PhotoCraft Agent Skill (skill-photocraft)",
+  "version": "v0.15.1",
+  "author": "righaven-core",
+  "category": "skill",
+  "tags": [
+    "photocraft",
+    "skill",
+    "reopen-check"
+  ],
+  "stars": 90,
+  "forks": 22,
+  "verified": true,
+  "tools": [
+    "photocraft"
+  ],
+  "i18n": {
+    "en": {
+      "title": "Skill: PhotoCraft Raster Compositor",
+      "description": "Dynamic competency module instructing RigHaven agents on PhotoCraft authoring, editable source preservation, and reopen verification."
+    },
+    "it": {
+      "title": "Skill: PhotoCraft — Immagini e ritocco",
+      "description": "Modulo di competenza dinamico che istruisce gli agenti RigHaven su PhotoCraft, conservazione dei sorgenti modificabili e reopen check."
+    }
+  },
+  "docker_dependencies": {
+    "base_image": "righaven-sandbox:0.1.0",
+    "system_packages": [],
+    "python_packages": [],
+    "node_packages": [],
+    "nix_packages": [
+      "pkgs.photocraft"
+    ]
+  },
+  "cli_binaries": [
+    {
+      "name": "photocraft",
+      "executable": "/usr/local/bin/photocraft-cli",
+      "safe_flags": [
+        "commands"
+      ],
+      "health_check": "craft capabilities photocraft"
+    }
+  ],
+  "skill_prompt_template": "Load `/mnt/skills/custom/skill-photocraft/SKILL.md` and `references/CLI-RECIPE.md`. Produce both the target export and the editable source in `$RIGHAVEN_OUTPUT_DIR`, execute an independent reopen check in a clean folder, and record results in `handoff.json`.",
+  "verification_command": "python3 /opt/righaven-worker/handoff.py validate \"$RIGHAVEN_OUTPUT_DIR\"",
+  "security_policy": {
+    "rootless": true,
+    "network_access": false,
+    "writable_paths": [
+      "$RIGHAVEN_OUTPUT_DIR"
+    ],
+    "read_only_mounts": [
+      "/mnt/user-data"
+    ],
+    "drop_capabilities": [
+      "ALL"
+    ],
+    "no_new_privileges": true
+  }
+}

@@ -1,0 +1,75 @@
+{
+  "meta": {
+    "language": "it",
+    "label": "Italiano",
+    "brand": "RigHaven",
+    "tagline": "L'Agent Harness Evoluto e Integratore di Ambienti e CLI Open Source"
+  },
+  "navbar": {
+    "dashboard": "Workspace Harness",
+    "environments": "Ambienti e Rig",
+    "gallery": "Community Gallery",
+    "cloud_portal": "Portale Cloud",
+    "new_chat": "Nuova Sessione",
+    "language_selector": "Lingua",
+    "edition_community": "Community Edition (Self-Hosted)",
+    "edition_cloud": "Cloud Portal (SaaS Multi-Tenant)"
+  },
+  "harness": {
+    "title": "Controllo RigHaven Harness",
+    "subtitle": "Configura i provider AI, i ruoli multi-agente e il budget di esecuzione condiviso.",
+    "coordinator_label": "Coordinatore",
+    "squad_label": "Squadra Specialisti",
+    "status_ready": "Pronto",
+    "status_working": "In lavorazione",
+    "status_review": "In revisione",
+    "status_clarifying": "In attesa di chiarimenti",
+    "status_blocked": "Bloccato",
+    "status_paused": "In pausa",
+    "ask_clarification_prompt": "Chiarisci le seguenti scelte progettuali prima di avviare la produzione:",
+    "deliver_now": "Consegna Ora",
+    "pause_work": "Metti in Pausa",
+    "resume_work": "Riprendi Lavoro",
+    "reopen_check_passed": "Controllo di riapertura indipendente superato in cartella pulita",
+    "checkpoint_saved": "Salvataggio incrementale di checkpoint.json e method.json completato"
+  },
+  "gallery": {
+    "title": "RigHaven Hub · Community Gallery",
+    "subtitle": "Esplora, attiva on-demand o pubblica Ambienti preconfigurati, Tool CLI Open Source e Agent Skill.",
+    "search_placeholder": "Cerca pacchetti per nome, binario CLI o capacità...",
+    "filter_all": "Tutti i Pacchetti",
+    "filter_environment": "Ambienti",
+    "filter_cli_tool": "Tool CLI Open Source",
+    "filter_skill": "Agent Skill",
+    "activate_button": "Attiva nel Workspace",
+    "activated_badge": "Attivo nel Workspace",
+    "publish_button": "Pubblica Pacchetto",
+    "star_button": "Stella",
+    "fork_button": "Fork",
+    "reopen_verification": "Comando di Verifica Riapertura",
+    "security_policy": "Policy Rootless e Dati Utente in Sola Lettura"
+  },
+  "cloud": {
+    "title": "RigHaven Cloud Portal",
+    "subtitle": "Workspace multi-tenant, vault crittografato per API key, quote di esecuzione e profilo creatore community.",
+    "signup_title": "Crea il tuo Account RigHaven Cloud",
+    "login_title": "Accedi a RigHaven Cloud",
+    "oauth_github": "Continua con GitHub",
+    "oauth_google": "Continua con Google",
+    "recover_password": "Password dimenticata?",
+    "tenant_workspace": "Workspace Tenant Isolato",
+    "vault_title": "Vault Crittografato Chiavi API LLM",
+    "quotas_title": "Quote Risorse e Utilizzo",
+    "sandbox_minutes": "Minuti di Esecuzione Sandbox",
+    "storage_quota": "Spazio di Archiviazione Workspace",
+    "token_budget": "Budget Mensile Token",
+    "creator_profile": "Profilo Creatore Community"
+  },
+  "notifications": {
+    "pack_activated": "Pacchetto '{id}' attivato nel workspace e registrato per l'iniezione in harness_plan.",
+    "pack_published": "Pacchetto '{id}' validato secondo lo schema righaven-pack.json e pubblicato nella Gallery.",
+    "auth_Required": "Autenticazione richiesta per accedere a questa risorsa Cloud multi-tenant.",
+    "quota_exceeded": "Quota risorse del workspace superata. Aggiorna il piano o passa alla Community Edition Self-Hosted.",
+    "clarification_needed": "Prima di avviare le sandbox degli specialisti, rispondi alle domande aperte sul risultato."
+  }
+}

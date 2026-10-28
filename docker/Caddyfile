@@ -1,0 +1,39 @@
+{$RIGHAVEN_SITE} {
+    basic_auth {
+        {$RIGHAVEN_USER} {$RIGHAVEN_PASSWORD_HASH}
+    }
+    @harness path /harness /harness/*
+    handle @harness {
+        reverse_proxy gateway:8001 {
+            header_up -Authorization
+            header_up Host {hostport}
+            flush_interval -1
+        }
+    }
+    handle /health* {
+        reverse_proxy gateway:8001 {
+            header_up -Authorization
+        }
+    }
+    handle /api/langgraph/* {
+        uri replace /api/langgraph /api
+        reverse_proxy gateway:8001 {
+            header_up -Authorization
+            header_up Host {hostport}
+            flush_interval -1
+        }
+    }
+    handle /api/* {
+        reverse_proxy gateway:8001 {
+            header_up -Authorization
+            header_up Host {hostport}
+            flush_interval -1
+        }
+    }
+    handle {
+        reverse_proxy frontend:3000 {
+            header_up -Authorization
+            header_up Host {hostport}
+        }
+    }
+}
