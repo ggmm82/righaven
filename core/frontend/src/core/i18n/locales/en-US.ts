@@ -612,10 +612,10 @@ export const enUS: Translations = {
 
   // Sidebar
   sidebar: {
-    newChat: "New chat",
+    newChat: "New task",
     chats: "Chats",
     channels: "Channels",
-    recentChats: "Recent chats",
+    recentChats: "Recent tasks",
     demoChats: "Demo chats",
     agents: "Agents",
     scheduledTasks: "Scheduled tasks",
@@ -675,7 +675,7 @@ export const enUS: Translations = {
       "Deleting this project unlinks its chats; chats, their history, and their files are not deleted. Shelf documents move to trash and stay recoverable for the retention window.",
     archived: "Archived",
     empty: "No chats in this project yet.",
-    newChat: "New chat",
+    newChat: "New task",
     create: "Create",
     createFailed: "Failed to create project",
     moveFailed: "Failed to move chat",
@@ -1340,11 +1340,11 @@ export const enUS: Translations = {
 
   // Agents
   agents: {
-    title: "Agents",
+    title: "Team profiles",
     description:
-      "Create and manage custom agents with specialized prompts and capabilities.",
-    newAgent: "New Agent",
-    importAgent: "Import Agent",
+      "Save reusable guidance and skill selections. Project roles are formed dynamically for each goal.",
+    newAgent: "New profile",
+    importAgent: "Import profile",
     importTitle: "Import custom agent",
     importDescription:
       "Choose the local name for this agent. Existing agents are never overwritten.",
@@ -1364,7 +1364,7 @@ export const enUS: Translations = {
     deleteConfirm:
       "Are you sure you want to delete this agent? This action cannot be undone.",
     deleteSuccess: "Agent deleted",
-    newChat: "New chat",
+    newChat: "New task",
     createPageTitle: "Design your Agent",
     createPageSubtitle:
       "Describe the agent you want — I'll help you create it through conversation.",
@@ -1666,7 +1666,7 @@ export const enUS: Translations = {
   pages: {
     appName: "RigHaven",
     chats: "Chats",
-    newChat: "New chat",
+    newChat: "New task",
     untitled: "Untitled",
   },
 

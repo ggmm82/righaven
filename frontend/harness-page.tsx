@@ -63,8 +63,10 @@ export default function ModelsPage() {
         else timer=setTimeout(()=>void poll(),2000);
       }catch(reason){if(alive)setError(String((reason as Error).message));}
     }
+    const cancel=()=>{void authenticatedFetch("/harness/api/login-session/"+sessionId,{method:"DELETE",keepalive:true}).catch(()=>{});};
+    window.addEventListener("pagehide",cancel);
     void poll();
-    return()=>{alive=false;clearTimeout(timer);controller.abort();void authenticatedFetch("/harness/api/login-session/"+sessionId,{method:"DELETE",keepalive:true}).catch(()=>{});};
+    return()=>{alive=false;clearTimeout(timer);controller.abort();window.removeEventListener("pagehide",cancel);cancel();};
   },[sessionId]);
 
   function payload(){return {engine,model,scope,...(key?{api_key:key}:{}),...(engine==="openai"?{base_url:baseUrl,...(connection?{connection_id:connection}:{})}:{})};}

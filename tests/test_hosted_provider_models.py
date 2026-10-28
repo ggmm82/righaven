@@ -29,6 +29,17 @@ class HostedProviderModelsTests(unittest.TestCase):
                 deepseek = HarnessDeepSeekChatModel(model='deepseek-chat')
                 self.assertEqual(deepseek.openai_api_key.get_secret_value(),'private-alice-fixture')
                 self.assertFalse(deepseek.cache)
+                from righaven_core.config.model_config import ModelConfig
+                original = ModelConfig(name='rh-codex', use='righaven.codex_provider:HarnessCodexChatModel',
+                    model='operator-model', api_key='operator-secret', default_headers={'X-Account':'operator'},
+                    base_url='https://operator.example', reasoning=True,
+                    when_thinking_enabled={'reasoning_effort':'max'})
+                private = tenant_profiles.model_config(original, 'rh-codex')
+                self.assertEqual(private.model, 'deepseek-chat')
+                for name in ('api_key','default_headers','base_url'):
+                    self.assertNotIn(name, private.model_dump())
+                self.assertIsNone(private.reasoning)
+                self.assertIsNone(private.when_thinking_enabled)
                 selected = tenant_profiles.save('openai','fixture-model','private-openai-fixture',base_url='https://api.openai.com/v1')
                 compatible = HarnessCompatibleChatModel(model='fixture-model',connection_id=selected['connection_id'])
                 self.assertEqual(compatible.openai_api_key.get_secret_value(),'private-openai-fixture')

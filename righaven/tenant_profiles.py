@@ -113,6 +113,7 @@ def model_config(original, name):
         return original
     provider = {'deepseek':'righaven.deepseek_provider:HarnessDeepSeekChatModel',
                 'openai':'righaven.openai_provider:HarnessCompatibleChatModel'}[selected['engine']]
-    return original.model_copy(update={'use':provider,'model':selected['model'],
-        'connection_id':selected.get('connection_id'), 'supports_thinking':False,
-        'supports_reasoning_effort':False})
+    # A hosted profile must not inherit global credentials, headers, endpoint or
+    # provider-specific reasoning kwargs from the operator's default model.
+    return type(original)(name=original.name, use=provider, model=selected['model'],
+        connection_id=selected.get('connection_id'), request_timeout=300)
