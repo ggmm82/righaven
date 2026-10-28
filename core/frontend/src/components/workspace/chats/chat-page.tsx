@@ -11,7 +11,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { type PromptInputMessage } from "@/components/ai-elements/prompt-input";
-import { SidebarTrigger } from "@/components/ui/sidebar";
 import { ArtifactTrigger } from "@/components/workspace/artifacts";
 import { BrowserTrigger } from "@/components/workspace/browser-view";
 import { ContextUsageBadge } from "@/components/workspace/context-usage-badge";
@@ -482,7 +481,7 @@ export default function ChatPage() {
                   : "bg-background/80 z-30 shadow-xs backdrop-blur",
               )}
             >
-              
+
               <div className="flex min-w-0 flex-1 items-center gap-2 text-sm font-medium">
                 <ThreadTitle
                   threadId={threadId}
