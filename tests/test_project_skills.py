@@ -15,7 +15,8 @@ def role(**changes):
     return dict(id='design', title='Responsabile della soluzione', mission='Risolvere il problema conservando i vincoli',
                 expertise=['Analizzare vincoli e dipendenze specifici'], procedure=['Leggere gli input', 'Confrontare alternative sugli stessi vincoli'],
                 checks=['Confrontare la proposta con ogni vincolo citando evidenze'], deliverables=['Prodotto e sorgenti modificabili'],
-                inputs=[], risks=['Separare ipotesi da fatti'], tools=[], **changes)
+                inputs=[], risks=['Separare ipotesi da fatti'], tools=[],
+                capability_rationale='This fixture produces a plain text proposal and verifies its stated constraints using the base runtime.', **changes)
 
 
 class ProjectSkillTests(unittest.TestCase):

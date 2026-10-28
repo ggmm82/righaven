@@ -162,6 +162,17 @@ class AdaptiveToolTests(unittest.TestCase):
         fixture = patch('righaven.capability_policy.runtime_policy', return_value=self.capabilities)
         fixture.start(); self.addCleanup(fixture.stop)
 
+    def test_planner_requires_an_explicit_reason_for_an_empty_capability_assignment(self):
+        from test_project_skills import role
+        spec=role();spec.pop('capability_rationale')
+        runtime=SimpleNamespace(state={'messages':[SimpleNamespace(type='human',content='Create a text proposal')]})
+        with tempfile.TemporaryDirectory() as directory, patch('righaven.tools.workspace_for',return_value=Path(directory)):
+            with self.assertRaisesRegex(ValueError,'capability_rationale'):
+                harness_plan.func(runtime=runtime,brief='Create a text proposal',roles_json=json.dumps([spec]))
+            spec['capability_rationale']='Base Python is sufficient for a plain text proposal and checking its content.'
+            result=json.loads(harness_plan.func(runtime=runtime,brief='Create a text proposal',roles_json=json.dumps([spec])))
+            self.assertTrue(result['project'])
+
     def test_planner_cannot_assign_a_native_disabled_tool_to_a_new_role(self):
         from test_project_skills import role
         spec = role(); spec['tools'] = ['blender']
