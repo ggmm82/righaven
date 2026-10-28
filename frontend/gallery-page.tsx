@@ -160,12 +160,12 @@ function GalleryContent() {
           className="min-w-64 flex-1 rounded-lg border bg-background px-3 py-2 text-sm"
         />
         <div className="flex flex-wrap gap-2">
-          {[
+          {([
             ["", t("gallery.filter_all")],
             ["environment", t("gallery.filter_environment")],
             ["cli-tool", t("gallery.filter_cli_tool")],
             ["skill", t("gallery.filter_skill")],
-          ].map(([cat, label]) => (
+          ] as const).map(([cat, label]) => (
             <button
               key={cat}
               type="button"
