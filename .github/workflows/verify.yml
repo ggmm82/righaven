@@ -130,7 +130,7 @@ jobs:
           labels: org.opencontainers.image.source=https://github.com/${{ github.repository }}
           load: true
           build-contexts: |
-            righaven_core=https://github.com/bytedance/deer-flow.git#a7d8971078593461e14f9b464eafe6db6388e9d7
+            righaven_core=https://github.com/bytedance/deer-flow.git#0bbcccfeb117a73cdeb7a8366f56ba71c25d6f5d
             ${{ steps.software.outputs.context }}
           cache-from: type=gha,scope=${{ matrix.component }}
           cache-to: type=gha,mode=max,scope=${{ matrix.component }}
@@ -367,7 +367,7 @@ jobs:
           tags: righaven-gateway:0.1.0
           load: true
           build-contexts: |
-            righaven_core=https://github.com/bytedance/deer-flow.git#a7d8971078593461e14f9b464eafe6db6388e9d7
+            righaven_core=https://github.com/bytedance/deer-flow.git#0bbcccfeb117a73cdeb7a8366f56ba71c25d6f5d
           cache-from: type=gha,scope=gateway
       - uses: docker/build-push-action@v6
         if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository
@@ -377,7 +377,7 @@ jobs:
           tags: righaven-frontend:0.1.0
           load: true
           build-contexts: |
-            righaven_core=https://github.com/bytedance/deer-flow.git#a7d8971078593461e14f9b464eafe6db6388e9d7
+            righaven_core=https://github.com/bytedance/deer-flow.git#0bbcccfeb117a73cdeb7a8366f56ba71c25d6f5d
           cache-from: type=gha,scope=frontend
       - uses: docker/build-push-action@v6
         if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository
