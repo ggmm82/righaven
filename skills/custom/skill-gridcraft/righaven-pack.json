@@ -9,9 +9,9 @@
     "skill",
     "reopen-check"
   ],
-  "stars": 77,
-  "forks": 29,
-  "verified": true,
+  "stars": 0,
+  "forks": 0,
+  "verified": false,
   "tools": [
     "gridcraft"
   ],
@@ -30,9 +30,7 @@
     "system_packages": [],
     "python_packages": [],
     "node_packages": [],
-    "nix_packages": [
-      "pkgs.gridcraft"
-    ]
+    "nix_packages": []
   },
   "cli_binaries": [
     {

@@ -56,7 +56,12 @@ class PortableEnvironmentTests(unittest.TestCase):
         self.assertIn('FROM node:',(root/'Dockerfile.software').read_text())
         dockerfile=(root/'Dockerfile').read_text()
         self.assertIn('ARG SOFTWARE_IMAGE=',dockerfile)
-        self.assertIn('--mount=type=bind,source=bundle/harness',dockerfile)
+        import re
+        sources = re.findall(r'--mount=type=bind,source=([^,\s]+)', dockerfile)
+        self.assertTrue(sources)
+        for source in sources:
+            self.assertTrue((root / source).exists(), 'Missing exported mount: ' + source)
+        self.assertTrue((root / 'bundle/righaven-worker/run_agent.py').is_file())
         self.assertIn('/opt/righaven/prepare_environment.py',dockerfile)
         self.assertNotIn('COPY bundle',dockerfile)
         self.assertEqual(json.loads((root/'request.json').read_text()),{'tools':['d2'],'versions':{},'version_packages':{}})

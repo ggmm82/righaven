@@ -66,7 +66,7 @@ def restart():
 
 
 def no_preparer(key):
-    value=subprocess.check_output(['docker','ps','-aq','--filter','label=org.righaven.environment='+key],text=True).strip()
+    value=subprocess.check_output(['docker','compose','exec','-T','runtime-docker','docker','ps','-aq','--filter','label=org.righaven.environment='+key],text=True).strip()
     assert not value,'Preparation container was left behind'
 
 
@@ -131,7 +131,7 @@ def main():
     # Removing an image externally must not leave a false ready status.
     definition.update(mode='on_demand',preload_tools=[])
     owner.request(API+'/'+name,definition,'PUT')
-    subprocess.run(['docker','image','rm','--no-prune',ready['runtime']['image']],check=True,capture_output=True,text=True)
+    subprocess.run(['docker','compose','exec','-T','runtime-docker','docker','image','rm','--no-prune',ready['runtime']['image']],check=True,capture_output=True,text=True)
     assert owner.profile(name)['runtime']['status']=='on_demand'
     owner.request(API+'/'+name+'/prepare',method='POST');ready=owner.ready(name);no_preparer(ready['runtime']['id'])
     record('Stale cache recovery','Missing Docker image is detected and rebuilt instead of being reported ready')

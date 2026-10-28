@@ -51,7 +51,7 @@ def rebuild_files(directory, tools, versions=None):
     from .tool_versions import packages
     versions=versions or {}
     (destination/'request.json').write_text(json.dumps({'tools':tools,'versions':versions,'version_packages':packages(versions)}))
-    mounts.extend(['--mount=type=bind,source=bundle/harness,target=/opt/righaven-worker',
+    mounts.extend(['--mount=type=bind,source=bundle/righaven-worker,target=/opt/righaven-worker',
                    '--mount=type=bind,source=bundle/skills,target=/mnt/skills'])
     (destination/'Dockerfile.software').write_text(dockerfile)
     from .docker_runtime import IMAGE

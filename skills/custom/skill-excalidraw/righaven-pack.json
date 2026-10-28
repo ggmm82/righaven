@@ -9,9 +9,9 @@
     "skill",
     "reopen-check"
   ],
-  "stars": 62,
-  "forks": 14,
-  "verified": true,
+  "stars": 0,
+  "forks": 0,
+  "verified": false,
   "tools": [
     "excalidraw"
   ],
@@ -30,9 +30,7 @@
     "system_packages": [],
     "python_packages": [],
     "node_packages": [],
-    "nix_packages": [
-      "pkgs.excalidraw"
-    ]
+    "nix_packages": []
   },
   "cli_binaries": [
     {

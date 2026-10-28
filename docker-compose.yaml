@@ -67,8 +67,6 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile.gateway
-      additional_contexts:
-        righaven_core: https://github.com/righaven/righaven-core.git#0bbcccfeb117a73cdeb7a8366f56ba71c25d6f5d
     image: righaven-gateway:0.1.0
     mem_limit: 1024m
     stop_grace_period: 30s
@@ -78,7 +76,7 @@ services:
       RIGHAVEN_PASSWORD: ${RIGHAVEN_PASSWORD:?Set a password of at least 16 characters}
       RIGHAVEN_ENVIRONMENT_MODE: dynamic
       RIGHAVEN_DOCKER_SCOPE: internal
-      RIGHAVEN_SANDBOX_IMAGE: ${RIGHAVEN_SANDBOX_IMAGE:-ghcr.io/righaven/righaven-sandbox@sha256:3757b4e43a3368e66dfa64700899af3a91284ac7a9cba6941ad8a9f97b399294}
+      RIGHAVEN_SANDBOX_IMAGE: ${RIGHAVEN_SANDBOX_IMAGE:-righaven-sandbox:0.1.0}
       DOCKER_HOST: unix:///runtime/docker.sock
       RIGHAVEN_STREAM_BRIDGE_REDIS_URL: redis://redis:6379/0
       RIGHAVEN_INTERNAL_GATEWAY_BASE_URL: http://gateway:8001
@@ -110,8 +108,6 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile.frontend
-      additional_contexts:
-        righaven_core: https://github.com/righaven/righaven-core.git#0bbcccfeb117a73cdeb7a8366f56ba71c25d6f5d
     image: righaven-frontend:0.1.0
     mem_limit: 512m
     environment:

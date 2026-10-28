@@ -22,7 +22,7 @@ RUN pnpm config set store-dir ${PNPM_STORE_PATH}
 # Optionally override npm registry for restricted networks (e.g. NPM_REGISTRY=https://registry.npmmirror.com)
 RUN if [ -n "${NPM_REGISTRY}" ]; then pnpm config set registry "${NPM_REGISTRY}"; fi
 WORKDIR /app
-COPY --from=righaven_core /frontend ./frontend
+COPY core/frontend ./frontend
 COPY frontend/locales ./frontend/src/app/workspace/locales
 COPY frontend/i18n.tsx ./frontend/src/app/workspace/i18n.tsx
 COPY frontend/harness-page.tsx ./frontend/src/app/workspace/harness/page.tsx
@@ -35,9 +35,7 @@ COPY frontend/team-onboarding.tsx ./frontend/src/components/workspace/team-onboa
 COPY frontend/model-settings-page.tsx ./frontend/src/components/workspace/settings/model-settings-page.tsx
 COPY frontend/run-start-time.ts ./frontend/src/core/messages/run-start-time.ts
 COPY frontend/delegate-progress.tsx frontend/delegate-progress-state.ts frontend/experience-panel.tsx frontend/conversation-audit.tsx frontend/project-guide.tsx frontend/project-design.tsx ./frontend/src/components/workspace/messages/
-COPY scripts/integrate_frontend.mjs /tmp/integrate_frontend.mjs
 COPY scripts/check_chat_modes.mjs /tmp/check_chat_modes.mjs
-RUN node /tmp/integrate_frontend.mjs
 RUN node --experimental-strip-types /tmp/check_chat_modes.mjs
 
 COPY config/web-terminal /tmp/web-terminal/
@@ -71,20 +69,17 @@ RUN cd /app/frontend && pnpm install --frozen-lockfile
 ARG APP_VERSION=""
 ENV NEXT_PUBLIC_APP_VERSION=$APP_VERSION
 ENV NODE_OPTIONS=--max-old-space-size=2048
+ENV NEXT_CONFIG_BUILD_OUTPUT=standalone
 RUN cd /app/frontend && SKIP_ENV_VALIDATION=1 pnpm build
 
 # ── Prod: minimal runtime with pre-built output ───────────────────────────────
 FROM node:22-alpine AS prod
-ARG PNPM_STORE_PATH
-ARG NPM_REGISTRY
-RUN if [ -n "${NPM_REGISTRY}" ]; then \
-      export COREPACK_NPM_REGISTRY="${NPM_REGISTRY}"; \
-    fi && \
-    corepack enable && corepack install -g pnpm@10.26.2
-RUN pnpm config set store-dir ${PNPM_STORE_PATH}
-RUN if [ -n "${NPM_REGISTRY}" ]; then pnpm config set registry "${NPM_REGISTRY}"; fi
-WORKDIR /app
-COPY --from=builder /app/frontend ./frontend
+WORKDIR /app/frontend
+ENV HOSTNAME=0.0.0.0 PORT=3000 NODE_ENV=production
+COPY --from=builder /app/frontend/.next/standalone ./
+COPY --from=builder /app/frontend/.next/static ./.next/static
+COPY --from=builder /app/frontend/public ./public
+COPY docs/UPSTREAM-LICENSE /app/THIRD-PARTY-NOTICES
 EXPOSE 3000
 COPY docker/frontend-entrypoint.sh /usr/local/bin/rh-frontend
 RUN chmod 755 /usr/local/bin/rh-frontend

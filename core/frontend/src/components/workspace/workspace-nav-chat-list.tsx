@@ -1,0 +1,36 @@
+"use client";
+
+import { Home, MessagesSquare, Layers, Wrench, Library, Users, Settings2 } from "lucide-react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { SidebarGroup, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar";
+import { useI18n } from "@/core/i18n/hooks";
+
+export function WorkspaceNavChatList() {
+  const { locale } = useI18n();
+  const it = locale === "it-IT";
+  const pathname = usePathname();
+  const groups = [
+    { label: it ? "Lavoro" : "Workspace", items: [
+      { href: "/workspace", label: it ? "Panoramica" : "Overview", icon: Home },
+      { href: "/workspace/chats", label: it ? "Attività e risultati" : "Tasks & results", icon: MessagesSquare },
+    ] },
+    { label: it ? "Cassetta degli attrezzi" : "Toolbox", items: [
+      { href: "/workspace/environments", label: it ? "Ambienti" : "Environments", icon: Layers },
+      { href: "/workspace/capabilities", label: it ? "Strumenti e skill" : "Tools & skills", icon: Wrench },
+      { href: "/workspace/agents", label: it ? "Profili della squadra" : "Team profiles", icon: Users },
+      { href: "/workspace/gallery", label: "Community Gallery", icon: Library },
+    ] },
+    { label: it ? "Configurazione" : "Configuration", items: [
+      { href: "/workspace/harness", label: it ? "Modelli e risorse" : "Models & resources", icon: Settings2 },
+    ] },
+  ];
+  return <>{groups.map(group => <SidebarGroup key={group.label}>
+    <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
+    <SidebarMenu>{group.items.map(({href,label,icon:Icon}) => <SidebarMenuItem key={href}>
+      <SidebarMenuButton asChild tooltip={label} isActive={href === "/workspace" ? pathname === href : pathname.startsWith(href)}>
+        <Link href={href}><Icon /><span>{label}</span></Link>
+      </SidebarMenuButton>
+    </SidebarMenuItem>)}</SidebarMenu>
+  </SidebarGroup>)}</>;
+}

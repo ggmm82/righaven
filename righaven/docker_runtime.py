@@ -1,4 +1,4 @@
-"""The trusted Gateway controls RigHaven's private Docker daemon over TLS."""
+"""The trusted Gateway controls RigHaven's private Docker daemon via its Unix socket."""
 import json
 import os
 import subprocess
@@ -342,6 +342,10 @@ def release_prepared_environment(environment, ephemeral):
     except (OSError,ValueError,subprocess.SubprocessError):pass  # Protected/shared/in-use images stay cached.
 
 
+from .organization_limits import organization_job
+
+
+@organization_job
 def delegate(agent_id, task, workspace, tool_call_id=None, on_started=None, requirements=None, purpose='work', acceptance=None, role=None, capability_policy=None):
     from .capability_policy import legacy_policy, native_policy, require_tools, worker_arguments
     policy = capability_policy or legacy_policy()
@@ -448,6 +452,9 @@ def delegate(agent_id, task, workspace, tool_call_id=None, on_started=None, requ
         if engine in ('codex','gemini'):
             from .credential_sessions import CredentialSession
             credentials=CredentialSession(engine,jobs/(name+'-credentials'))
+        elif os.getenv('RIGHAVEN_EDITION', 'community') == 'cloud':
+            from .credential_sessions import ApiCredentialSession
+            credentials=ApiCredentialSession(engine,jobs/(name+'-credentials'),settings.get('connection_id'))
         from .resource_budget import BUDGET
         from .cancellation import requested
         class CancelBudget:
@@ -514,7 +521,7 @@ def delegate(agent_id, task, workspace, tool_call_id=None, on_started=None, requ
         args = base_arguments(name, resources) + runtime_arguments(skills=projection is None) + restrictions + ['--label', f'org.righaven.harness.installation={installation}',
             '--label', f'org.righaven.harness.workspace={workspace_key(workspace)}',
             *staging.mounts(mount, progress),
-            '--mount', (mount(custom_connection_path(settings.get('connection_id')), '/credentials/api.json', True)
+            '--mount', (mount(credentials.directory/'api.json' if credentials is not None else custom_connection_path(settings.get('connection_id')), '/credentials/api.json', True)
                         if engine == 'openai' else mount(credentials.directory if credentials is not None else credential_dir(engine), '/credentials', read_only=engine == 'deepseek')),
             '--mount', mount(job, '/job.json', True),
             runtime_image, 'python3', '/opt/righaven-worker/run_agent.py', '/job.json']

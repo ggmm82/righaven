@@ -43,6 +43,8 @@ jobs:
         with:
           python-version: '3.12'
       - run: pip install -r requirements-dev.txt
+      - name: Verify minimum core frontend imports
+        run: python scripts/check_core_imports.py
       - name: Use the canonical signed Ubuntu mirror on the CI runner
         run: |
           sudo python3 - <<'PYTHON'
@@ -72,6 +74,7 @@ jobs:
           npm install --prefix /tmp/rh-ui-tests --no-audit --no-fund react@19.2.4 react-dom@19.2.4 esbuild@0.25.12 @tailwindcss/cli@4.1.18
           pip install playwright==1.64.1
           python -m playwright install --with-deps chromium
+          python scripts/check_native_models_ui.py --node-modules /tmp/rh-ui-tests/node_modules
           python scripts/check_delegate_progress_ui.py --node-modules /tmp/rh-ui-tests/node_modules
           python scripts/check_runtime_ui.py
           mkdir -p /tmp/design-excalidraw
@@ -130,7 +133,6 @@ jobs:
           labels: org.opencontainers.image.source=https://github.com/${{ github.repository }}
           load: true
           build-contexts: |
-            righaven_core=https://github.com/righaven/righaven-core.git#0bbcccfeb117a73cdeb7a8366f56ba71c25d6f5d
             ${{ steps.software.outputs.context }}
           cache-from: type=gha,scope=${{ matrix.component }}
           cache-to: type=gha,mode=max,scope=${{ matrix.component }}
@@ -211,6 +213,9 @@ jobs:
       - name: Check native environment ownership, CRUD and deployment preferences
         if: matrix.component == 'gateway'
         run: docker run --rm --network=none --entrypoint python -e RIGHAVEN_REQUIRE_GATEWAY_TESTS=1 --mount "type=bind,src=$PWD/tests,dst=/review,readonly" righaven-gateway:0.1.0 -m unittest discover -s /review -p test_environment_routes.py -v
+      - name: Check native hosted identity and real provider credential isolation
+        if: matrix.component == 'gateway'
+        run: docker run --rm --network=none --entrypoint python -e RIGHAVEN_REQUIRE_GATEWAY_TESTS=1 --mount "type=bind,src=$PWD/tests,dst=/review,readonly" righaven-gateway:0.1.0 -m unittest discover -s /review -p test_hosted_provider_models.py -v
       - name: Load the exact published software after full adapter checks
         if: matrix.component == 'sandbox' && steps.software.outputs.reuse == 'true'
         env:
@@ -366,8 +371,6 @@ jobs:
           file: docker/Dockerfile.gateway
           tags: righaven-gateway:0.1.0
           load: true
-          build-contexts: |
-            righaven_core=https://github.com/righaven/righaven-core.git#0bbcccfeb117a73cdeb7a8366f56ba71c25d6f5d
           cache-from: type=gha,scope=gateway
       - uses: docker/build-push-action@v6
         if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository
@@ -376,8 +379,6 @@ jobs:
           file: docker/Dockerfile.frontend
           tags: righaven-frontend:0.1.0
           load: true
-          build-contexts: |
-            righaven_core=https://github.com/righaven/righaven-core.git#0bbcccfeb117a73cdeb7a8366f56ba71c25d6f5d
           cache-from: type=gha,scope=frontend
       - uses: docker/build-push-action@v6
         if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository
@@ -398,6 +399,12 @@ jobs:
           cache-from: type=gha,scope=proxy
       - name: Boot full Compose with the checked runtime images
         run: bash scripts/ci_boot.sh
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: workspace-ui
+          path: reports/ui/
+          if-no-files-found: ignore
       - name: Prepare and seal the verified Hostinger Compose
         if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
         env:

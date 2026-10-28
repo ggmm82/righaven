@@ -61,6 +61,9 @@ def validate_pack_manifest(manifest: dict) -> dict:
         if not isinstance(deps.get(pkg_list, []), list):
             raise ValueError(f'docker_dependencies.{pkg_list} must be a list')
     binaries = manifest.get('cli_binaries')
+    tools = manifest.get('tools', [])
+    if not isinstance(tools, list) or any(not isinstance(tool, str) for tool in tools):
+        raise ValueError('tools must be a list of tool identifiers')
     if not isinstance(binaries, list):
         raise ValueError('cli_binaries must be a list')
     for b in binaries:
@@ -71,6 +74,8 @@ def validate_pack_manifest(manifest: dict) -> dict:
         raise ValueError('security_policy must enforce rootless=true')
     if '$RIGHAVEN_OUTPUT_DIR' not in sec.get('writable_paths', []):
         raise ValueError('security_policy.writable_paths must include $RIGHAVEN_OUTPUT_DIR')
+    if sec.get('network_access') is not False or sec.get('writable_paths') != ['$RIGHAVEN_OUTPUT_DIR']:
+        raise ValueError('Pack permissions must match the isolated runtime contract')
     return {
         'id': pack_id,
         'name': manifest['name'].strip(),
@@ -78,9 +83,9 @@ def validate_pack_manifest(manifest: dict) -> dict:
         'author': manifest['author'].strip(),
         'category': manifest['category'],
         'tags': list(manifest.get('tags', [manifest['category']])),
-        'stars': int(manifest.get('stars', 0)),
-        'forks': int(manifest.get('forks', 0)),
-        'verified': bool(manifest.get('verified', True)),
+        'stars': 0,
+        'forks': 0,
+        'verified': False,
         'tools': list(manifest.get('tools', [])),
         'i18n': i18n,
         'docker_dependencies': deps,
@@ -98,6 +103,11 @@ def _all_packs() -> list[dict]:
     merged = {p['id']: dict(p) for p in builtin}
     for custom in community:
         merged[custom['id']] = dict(custom)
+    from .hub_registry import remote_packs
+    for pack in remote_packs():
+        if pack['id'] in merged:
+            raise ValueError('Remote pack collides with a local identifier')
+        merged[pack['id']] = pack
     return list(merged.values())
 
 
@@ -200,9 +210,25 @@ def activate_pack(pack_id: str, *, user_id: str = 'default', workspace: str | Pa
 
 def publish_pack(manifest: dict, *, locale: str = 'en') -> dict:
     validated = validate_pack_manifest(manifest)
+    if validated['id'].startswith('remote-'):
+        raise ValueError('The remote- namespace is reserved for pinned registries')
     with state.LOCK:
         path = _community_store_path()
         existing = json.loads(path.read_text(encoding='utf-8')) if path.is_file() else []
+        builtins = json.loads(_builtin_catalog_path().read_text())['packs']
+        if any(p['id'] == validated['id'] for p in builtins):
+            raise ValueError('Built-in pack identifiers cannot be overwritten; fork the pack')
+        previous = next((p for p in existing if p['id'] == validated['id']), None)
+        if previous and previous['author'] != validated['author']:
+            raise ValueError('Only the publisher can release a new version')
+        if not re.fullmatch(r'[a-zA-Z0-9][a-zA-Z0-9.+-]{0,63}', validated['version']):
+            raise ValueError('Invalid pack version')
+        version_path = state.STATE / 'gallery-versions' / validated['id'] / (validated['version'] + '.json')
+        if version_path.exists():
+            if json.loads(version_path.read_text()) != validated:
+                raise ValueError('Published versions are immutable; choose a new version')
+        else:
+            state.atomic_json(version_path, validated)
         existing = [p for p in existing if p.get('id') != validated['id']]
         existing.append(validated)
         state.atomic_json(path, existing)
@@ -218,6 +244,13 @@ def publish_pack(manifest: dict, *, locale: str = 'en') -> dict:
 def star_pack(pack_id: str, user_id: str = 'default', locale: str = 'en') -> dict:
     pack = get_pack(pack_id, locale=locale)
     with state.LOCK:
+        votes_path = state.STATE / 'gallery-votes.json'
+        votes = json.loads(votes_path.read_text()) if votes_path.exists() else {}
+        voters = votes.setdefault(pack_id, [])
+        if user_id in voters:
+            return {'ok': True, 'pack_id': pack_id, 'stars': int(pack.get('stars', 0)), 'starred_by': user_id}
+        voters.append(user_id)
+        state.atomic_json(votes_path, votes)
         path = _community_store_path()
         existing = json.loads(path.read_text(encoding='utf-8')) if path.is_file() else []
         updated = dict(pack)

@@ -1,0 +1,14 @@
+import type { Locale } from "./locale";
+import { enUS } from "./locales/en-US";
+import { itIT } from "./locales/it-IT";
+import type { Translations } from "./locales/types";
+import { zhCN } from "./locales/zh-CN";
+
+// Translation dictionaries contain formatter functions, so they must be
+// selected inside a Client Component rather than serialized through an RSC
+// boundary.
+export const clientTranslations: Record<Locale, Translations> = {
+  "en-US": enUS,
+  "it-IT": itIT,
+  "zh-CN": zhCN,
+};

@@ -96,11 +96,14 @@ def initialize():
     if not identifier.exists():
         identifier.write_text(uuid.uuid4().hex)
     key = STATE / 'credentials-key'
-    if not key.exists():
+    if not os.getenv('RIGHAVEN_CREDENTIALS_KEY') and not key.exists():
         import base64
         key.write_text(base64.urlsafe_b64encode(secrets.token_bytes(32)).decode())
         key.chmod(0o600)
-    os.environ['RIGHAVEN_CREDENTIALS_KEY'] = key.read_text().strip()
+    if not os.getenv('RIGHAVEN_CREDENTIALS_KEY'):
+        os.environ['RIGHAVEN_CREDENTIALS_KEY'] = key.read_text().strip()
+    from .tenant_profiles import cipher
+    cipher()  # Validate the standard encryption keys before starting the service.
     os.environ['BETTER_AUTH_SECRET'] = hashlib.sha256(password.encode()).hexdigest()
     path = STATE / 'config.yaml'
     if not path.exists():
@@ -200,6 +203,8 @@ def main():
     migrate_existing_users()
     from .docker_runtime import cleanup_orphans
     cleanup_orphans()
+    from .organization_limits import recover_after_cleanup
+    recover_after_cleanup()
     # exec preserves signal delivery, while the env secrets stay in this process tree.
     os.execvp('uvicorn', ['uvicorn', 'righaven.app:app', '--host', '0.0.0.0',
                         '--port', '8001', '--workers', '1',

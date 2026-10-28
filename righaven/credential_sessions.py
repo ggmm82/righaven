@@ -22,6 +22,21 @@ def expiring_codex(source):
     except (OSError,ValueError,IndexError,TypeError):return False
 
 
+class ApiCredentialSession:
+    """Decrypt an API key only into a private, disposable worker mount."""
+    def __init__(self, engine, destination, connection_id=None):
+        from .state import credential_dir, custom_connection_path, atomic_json
+        from .tenant_profiles import read_secret
+        self.directory = Path(destination)
+        self.directory.mkdir(parents=True, mode=0o700)
+        self.directory.chmod(0o700)
+        source = custom_connection_path(connection_id) if engine == 'openai' else credential_dir(engine)/'api.json'
+        atomic_json(self.directory/'api.json', read_secret(source))
+
+    def close(self):
+        shutil.rmtree(self.directory, ignore_errors=True)
+
+
 class CredentialSession:
     def __init__(self,engine,destination):
         from .docker_runtime import EXECUTION_LOCK,codex_account

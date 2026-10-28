@@ -9,9 +9,9 @@
     "skill",
     "reopen-check"
   ],
-  "stars": 90,
-  "forks": 22,
-  "verified": true,
+  "stars": 0,
+  "forks": 0,
+  "verified": false,
   "tools": [
     "photocraft"
   ],
@@ -30,9 +30,7 @@
     "system_packages": [],
     "python_packages": [],
     "node_packages": [],
-    "nix_packages": [
-      "pkgs.photocraft"
-    ]
+    "nix_packages": []
   },
   "cli_binaries": [
     {

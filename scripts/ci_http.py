@@ -27,12 +27,31 @@ def request(path, payload=None, method=None):
 request('/api/v1/auth/initialize', {'email': 'harness-ci@example.com',
                                    'password': 'CiOnly-Strong-Login-P4ssword!78239'})
 assert any(cookie.name == 'access_token' for cookie in cookies)
-assert b'RigHaven' in request('/righaven/')
+overview = request('/workspace')
+assert b'From objective to outcome.' in overview and b'Build your toolbox' in overview
+assert b'Tasks &amp; results' in overview or b'Tasks &amp;' in overview
+assert b'righaven_core.tech' not in overview
+# The chat welcome depends on browser-initialized composer state; ci_browser.mjs
+# checks its visible heading after hydration instead of inspecting the SSR shell.
+assert b'RigHaven' in request('/workspace/chats/new')
+assert b'Deployment &amp; connections' in request('/workspace/cloud')
+assert b'RigHaven' in request('/harness/')
 # Native Agent management and managed capabilities must be available after login.
 json.loads(request('/api/agents'))
 skills = json.loads(request('/api/skills'))['skills']
 assert any(s['name'] == 'skill-blender' and s['category'] == 'integrations' for s in skills)
 assert len({s['name'] for s in skills}) == len(skills)
+# Gallery activation must create a real native environment owned by this session.
+activated = json.loads(request('/api/v1/gallery/packs/env-architecture-modeling-rig/activate', {}))
+gallery_name = activated['installation']['native_name']
+gallery_agent = json.loads(request('/api/agents/' + gallery_name))
+assert 'skill-d2' in gallery_agent['skills'], gallery_agent
+assert any(p['name'] == gallery_name for p in json.loads(request('/api/harness/environments'))['environments'])
+request('/api/agents/' + gallery_name, method='DELETE')
+for retired in ('auth/oauth/google', 'auth/recover'):
+    try: request('/api/v1/cloud/' + retired, {'email':'unused@example.test','new_password':'must-not-change'})
+    except urllib.error.HTTPError as error: assert error.code == 410, error
+    else: raise AssertionError('Retired preview authentication remains enabled')
 request('/api/agents', {'name':'ci-native-profile','description':'Native capability scope','skills':['skill-freecad']})
 profile = json.loads(request('/api/agents/ci-native-profile'))
 assert profile['skills'] == ['skill-freecad']
@@ -169,11 +188,13 @@ saved = json.loads(request('/harness/api/agents/gridcraft',
 assert saved['engine'] == 'gemini'
 catalog = json.loads(request('/harness/api/catalog'))
 assert catalog['agents']['gridcraft']['instructions'] == 'Preferisci euro'
-assert b'La tua squadra' in request('/workspace/harness')
+assert b'Models &amp; resources' in request('/workspace/harness')
 request('/api/v1/auth/logout', {})
 request('/api/v1/auth/register', {'email': 'harness-ci-user@example.com',
                                  'password': 'CiOnly-Regular-User-P4ssword!78239'})
 for path, payload, method in [('/harness/api/catalog', None, 'GET'),
+                              ('/api/v1/gallery/registries', None, 'GET'),
+                              ('/api/v1/gallery/registries/untrusted', {'url':'https://example.test','sha256':'0'*64}, 'PUT'),
                               ('/harness/api/login/gemini', {}, 'POST'),
                               ('/harness/api/team', {'engine': 'gemini'}, 'PUT')]:
     try:

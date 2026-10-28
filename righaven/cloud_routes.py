@@ -1,184 +1,71 @@
-"""REST API routes for RigHaven Cloud Portal & Dual Edition (/api/v1/cloud)."""
-from fastapi import APIRouter, HTTPException, Request
+"""Hosting information uses the shared core account, never a parallel identity store."""
+from fastapi import APIRouter, Request, HTTPException
+from .identity import current_user
+from .cloud_portal import current_edition
 from pydantic import BaseModel, Field
-from . import cloud_portal as cloud
-from .i18n import resolve_request_locale
 
-if not hasattr(BaseModel, "model_dump"):
-    BaseModel.model_dump = lambda self, **kw: self.dict(**kw)
-
-router = APIRouter(prefix='/api/v1/cloud', tags=['RigHaven Cloud Portal'])
-
-
-class SignUpRequest(BaseModel):
-    username: str = Field(min_length=3, max_length=48)
-    email: str = Field(min_length=5, max_length=120)
-    password: str = Field(min_length=8, max_length=128)
-    locale: str = Field(default='en', max_length=8)
-
-
-class LoginRequest(BaseModel):
-    identifier: str = Field(min_length=3, max_length=120)
-    password: str = Field(min_length=8, max_length=128)
-
-
-class OAuthRequest(BaseModel):
-    username: str = Field(min_length=2, max_length=64)
-    email: str = Field(min_length=5, max_length=120)
-    locale: str = Field(default='en', max_length=8)
-
-
-class RecoverRequest(BaseModel):
-    email: str = Field(min_length=5, max_length=120)
-    new_password: str | None = Field(default=None, max_length=128)
-
-
-class OnboardingRequest(BaseModel):
-    user_id: str = Field(min_length=3, max_length=48)
-    locale: str = Field(default='en', max_length=8)
-    default_engine: str = Field(default='deepseek', max_length=32)
-    starter_pack_id: str = Field(default='env-architecture-modeling-rig', max_length=64)
-
-
-class VaultKeyRequest(BaseModel):
-    api_key: str = Field(min_length=6, max_length=512)
-
-
-class UsageRecordRequest(BaseModel):
-    sandbox_minutes: float = Field(default=0.0, ge=0.0)
-    storage_bytes: int = Field(default=0, ge=0)
-    tokens: int = Field(default=0, ge=0)
-    job_id: str | None = Field(default=None, max_length=64)
-
-
-def _current_user_id(request: Request) -> str:
-    auth = request.headers.get('authorization', '')
-    if auth.lower().startswith('bearer '):
-        token = auth.split(' ', 1)[1].strip()
-        try:
-            return cloud.verify_jwt(token)['sub']
-        except ValueError as exc:
-            raise HTTPException(401, str(exc)) from exc
-    raise HTTPException(401, 'Bearer JWT token required')
-
+router = APIRouter(prefix='/api/v1/cloud', tags=['RigHaven hosting'])
 
 @router.get('/edition')
-def get_edition():
-    return cloud.edition_info()
-
-
-@router.post('/auth/signup', status_code=201)
-def signup(body: SignUpRequest, request: Request):
-    locale = body.locale or resolve_request_locale(request)
-    try:
-        return cloud.signup_user(body.username, body.email, body.password, locale=locale)
-    except ValueError as exc:
-        raise HTTPException(400, str(exc)) from exc
-
-
-@router.post('/auth/login')
-def login(body: LoginRequest):
-    try:
-        return cloud.login_user(body.identifier, body.password)
-    except ValueError as exc:
-        raise HTTPException(401, str(exc)) from exc
-
-
-@router.post('/auth/oauth/{provider}')
-def oauth_callback(provider: str, body: OAuthRequest, request: Request):
-    locale = body.locale or resolve_request_locale(request)
-    try:
-        return cloud.oauth_login(provider, body.username, body.email, locale=locale)
-    except ValueError as exc:
-        raise HTTPException(400, str(exc)) from exc
-
-
-@router.post('/auth/recover')
-def recover_account(body: RecoverRequest):
-    try:
-        return cloud.recover_password(body.email, body.new_password)
-    except KeyError as exc:
-        raise HTTPException(404, str(exc)) from exc
-    except ValueError as exc:
-        raise HTTPException(400, str(exc)) from exc
-
-
-@router.post('/onboarding')
-def onboarding(body: OnboardingRequest):
-    try:
-        return cloud.complete_onboarding(
-            body.user_id,
-            locale=body.locale,
-            default_engine=body.default_engine,
-            starter_pack_id=body.starter_pack_id,
-        )
-    except KeyError as exc:
-        raise HTTPException(404, str(exc)) from exc
-
+def edition():
+    return {'edition': current_edition(), 'is_cloud': current_edition() == 'cloud',
+            'is_community': current_edition() == 'community',
+            'authentication': '/api/v1/auth', 'hosting_status': 'preview',
+            'capabilities': {'private_model_profiles': current_edition() == 'cloud',
+                             'job_admission_limits': current_edition() == 'cloud',
+                             'shared_organizations': False, 'cloud_oauth_signup': False}}
 
 @router.get('/me')
-def get_profile(request: Request):
-    user_id = _current_user_id(request)
-    return {
-        'user': cloud.get_user(user_id),
-        'quotas': cloud.get_tenant_quotas(user_id),
-        'vault': cloud.list_vault_keys(user_id),
-    }
+def me(request: Request):
+    user = current_user(request)
+    return {'user': {'id': str(user.id), 'email': user.email,
+                     'system_role': user.system_role}}
 
+class LimitRequest(BaseModel):
+    user_id: str = Field(min_length=1, max_length=128)
+    max_parallel: int = Field(ge=1, le=64)
+    jobs_per_month: int = Field(ge=0, le=1000000)
 
-@router.get('/workspace')
-def get_workspace(request: Request):
-    user_id = _current_user_id(request)
-    user = cloud.get_user(user_id)
-    from . import gallery
-    return {
-        'user_id': user_id,
-        'workspace_path': user['workspace_path'],
-        'active_gallery_packs': gallery.active_packs_for(user_id),
-        'quotas': cloud.get_tenant_quotas(user_id),
-    }
+class ProviderRequest(BaseModel):
+    engine: str
+    model: str = Field(min_length=1, max_length=200)
+    api_key: str = Field(min_length=1, max_length=4096)
+    scope: str = 'both'
+    base_url: str | None = None
 
-
-@router.get('/vault')
-def list_vault(request: Request):
-    user_id = _current_user_id(request)
-    return cloud.list_vault_keys(user_id)
-
-
-@router.put('/vault/{provider}')
-def save_vault_key(provider: str, body: VaultKeyRequest, request: Request):
-    user_id = _current_user_id(request)
+@router.put('/providers')
+async def configure_provider(body: ProviderRequest, request: Request):
+    current_user(request)
+    from .tenant_profiles import save
     try:
-        return cloud.store_vault_key(user_id, provider, body.api_key)
-    except ValueError as exc:
-        raise HTTPException(400, str(exc)) from exc
+        return save(body.engine, body.model, body.api_key, scope=body.scope, base_url=body.base_url)
+    except ValueError as error:
+        raise HTTPException(422, str(error)) from error
 
+@router.get('/providers')
+def profiles(request: Request):
+    current_user(request)
+    from .tenant_profiles import profile
+    selected = {}
+    for target in ('coordinator', 'squad'):
+        try:
+            selected[target] = profile(target)
+        except ValueError:
+            selected[target] = None
+    return selected
 
-@router.delete('/vault/{provider}')
-def remove_vault_key(provider: str, request: Request):
-    user_id = _current_user_id(request)
-    return cloud.delete_vault_key(user_id, provider)
+@router.get('/limits')
+def limits(request: Request):
+    from .organization_limits import snapshot
+    return snapshot(str(current_user(request).id))
 
+@router.put('/limits')
+async def configure_limits(body: LimitRequest, request: Request):
+    from app.gateway.deps import require_admin_user
+    await require_admin_user(request, detail='Only administrators can change organization allowances')
+    from .organization_limits import configure
+    return configure(body.user_id, body.max_parallel, body.jobs_per_month)
 
-@router.get('/quotas')
-def get_quotas(request: Request):
-    user_id = _current_user_id(request)
-    return cloud.get_tenant_quotas(user_id)
-
-
-@router.post('/quotas/record')
-def record_usage(body: UsageRecordRequest, request: Request):
-    user_id = _current_user_id(request)
-    return cloud.record_tenant_usage(
-        user_id,
-        sandbox_minutes=body.sandbox_minutes,
-        storage_bytes=body.storage_bytes,
-        tokens=body.tokens,
-        job_id=body.job_id,
-    )
-
-
-@router.get('/creators/{username}')
-def creator_profile(username: str, request: Request):
-    locale = resolve_request_locale(request)
-    return cloud.get_creator_profile(username, locale=locale)
+@router.api_route('/{path:path}', methods=['GET', 'POST', 'PUT', 'DELETE'])
+def retired_preview(path: str):
+    raise HTTPException(410, 'Preview Cloud identity, recovery, vault and quota APIs have been removed. Use the shared /api/v1/auth account API.')

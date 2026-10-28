@@ -9,9 +9,9 @@
     "skill",
     "reopen-check"
   ],
-  "stars": 73,
-  "forks": 25,
-  "verified": true,
+  "stars": 0,
+  "forks": 0,
+  "verified": false,
   "tools": [
     "blender"
   ],
@@ -30,9 +30,7 @@
     "system_packages": [],
     "python_packages": [],
     "node_packages": [],
-    "nix_packages": [
-      "pkgs.blender"
-    ]
+    "nix_packages": []
   },
   "cli_binaries": [
     {
