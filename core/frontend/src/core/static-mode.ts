@@ -1,5 +1,4 @@
-import { env } from "@/env";
-
 export function isStaticWebsiteOnly() {
-  return env.NEXT_PUBLIC_STATIC_WEBSITE_ONLY === "true";
+  // RigHaven is an authenticated application, never a fixture-backed showcase.
+  return false;
 }

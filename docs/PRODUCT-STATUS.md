@@ -19,11 +19,14 @@ engine, account identity and permission boundaries.
 - Public directory hosting and publisher-signed distributions. Pinned HTTPS
   catalog synchronization and export are implemented in the Gallery.
 - Generic, reviewed onboarding of CLI tools outside the managed runtime catalog.
-- Organization isolation, provider credentials, admission quotas and usage
-  accounting verified through complete hosted user journeys.
+- Shared organization membership, invitations, commercial plans and token billing.
+  The hosted preview has private encrypted API profiles and a transactional ledger
+  for account job admission, concurrent jobs and monthly starts. This is not yet
+  certification of a public multi-tenant SaaS.
 - Complete Italian localization, including project controls and advanced settings.
-- Dependency-based separation of optional documentation, marketing, channels,
-  terminal UI and alternative sandbox backends from the minimum core build.
+- Further separation of optional channels, terminal UI and alternative sandbox
+  backends. Editorial pages, static demo data and MDX compilation have been removed;
+  production images exclude development dependency groups. See CORE-BOUNDARY.md.
 
 The Cloud preview no longer exposes a second account database, simulated OAuth,
 unchecked password reset or a custom encrypted key store. Those are not substitutes

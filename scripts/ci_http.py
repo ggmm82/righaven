@@ -27,6 +27,12 @@ def request(path, payload=None, method=None):
 request('/api/v1/auth/initialize', {'email': 'harness-ci@example.com',
                                    'password': 'CiOnly-Strong-Login-P4ssword!78239'})
 assert any(cookie.name == 'access_token' for cookie in cookies)
+overview = request('/workspace')
+assert b'From objective to outcome.' in overview and b'Build your toolbox' in overview
+assert b'Tasks &amp; results' in overview or b'Tasks &amp;' in overview
+assert b'righaven_core.tech' not in overview
+assert b'What would you like to achieve?' in request('/workspace/chats/new')
+assert b'Deployment &amp; connections' in request('/workspace/cloud')
 assert b'RigHaven' in request('/harness/')
 # Native Agent management and managed capabilities must be available after login.
 json.loads(request('/api/agents'))

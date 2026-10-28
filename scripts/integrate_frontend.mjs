@@ -1,14 +1,5 @@
 import fs from 'node:fs';
 const root=process.argv[2] ?? '/app/frontend';
-const file=root+'/src/components/workspace/workspace-sidebar.tsx';
-let source=fs.readFileSync(file,'utf8');
-const marker='          <WorkspaceNavChatList />';
-if(!source.includes(marker) || !source.includes('import { ThreadDeleteDialogProvider }'))throw Error('RigHaven sidebar changed; review integration before building');
-source=source.replace(marker, '          <TeamOnboarding />\n'+marker+'\n          <Link href="/workspace/harness" className="mx-3 rounded-md px-3 py-2 text-sm hover:bg-accent">Harness Control</Link>\n          <Link href="/workspace/environments" className="mx-3 rounded-md px-3 py-2 text-sm hover:bg-accent">Environments</Link>\n          <Link href="/workspace/gallery" className="mx-3 rounded-md px-3 py-2 text-sm hover:bg-accent">Community Gallery</Link>\n          <Link href="/workspace/cloud" className="mx-3 rounded-md px-3 py-2 text-sm hover:bg-accent">Cloud Portal</Link>');
-source=source.replace('import { ThreadDeleteDialogProvider }', 'import { TeamOnboarding } from \"./team-onboarding\";\nimport { ThreadDeleteDialogProvider }');
-source=source.replace('"use client";', '"use client";\n\nimport Link from "next/link";');
-fs.writeFileSync(file,source);
-
 // Pro/Ultra select the workflow, independently of provider thinking controls.
 // Patch the shared resolver so selection, saved settings and model switches agree.
 const reasoningFile=root+'/src/core/models/reasoning.ts';

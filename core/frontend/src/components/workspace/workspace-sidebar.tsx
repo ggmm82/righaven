@@ -10,7 +10,6 @@ import {
 } from "@/components/ui/sidebar";
 import { useThreadActivity } from "@/core/threads/activity";
 
-import { WorkspaceChannelsList } from "./channels/workspace-channels-list";
 import { PluginNavigation } from "./plugin-navigation";
 import { ProjectsSection } from "./projects-section";
 import { RecentChatList } from "./recent-chat-list";
@@ -36,7 +35,6 @@ export function WorkspaceSidebar({
         <SidebarContent>
           <WorkspaceNavChatList />
           <PluginNavigation />
-          <WorkspaceChannelsList />
           {isSidebarOpen && (
             <>
               <ProjectsSection />

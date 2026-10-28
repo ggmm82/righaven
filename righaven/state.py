@@ -86,7 +86,8 @@ def update_agent(identifier, value):
 def credential_dir(engine):
     if engine not in ('codex', 'gemini', 'deepseek', 'openai'):
         raise ValueError('Motore sconosciuto')
-    directory = STATE / 'credentials' / ('.' + engine)
+    from .tenant_profiles import root
+    directory = (root() or STATE) / 'credentials' / ('.' + engine)
     directory.mkdir(parents=True, exist_ok=True, mode=0o700)
     return directory
 
@@ -111,6 +112,10 @@ def custom_connection_path(connection_id=None):
 def team(target='coordinator'):
     """Two optional scopes in the same catalog; old installations remain shared."""
     import yaml
+    from .tenant_profiles import profile
+    hosted = profile(target)
+    if hosted is not None:
+        return {**hosted, 'ready': connection_status(hosted['engine'], hosted.get('connection_id'))}
     path = STATE / 'config.yaml'
     with LOCK:
         content = yaml.safe_load(path.read_text()) if path.exists() else {}

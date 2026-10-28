@@ -72,4 +72,6 @@ class GalleryAndCloudTests(unittest.TestCase):
                               ('auth/recover',{'email':'victim@example.test','new_password':'attacker-password'}),
                               ('onboarding',{'user_id':'victim'})]:
             self.assertEqual(self.client.post('/api/v1/cloud/'+endpoint,json=body).status_code,410)
-        self.assertFalse(self.client.get('/api/v1/cloud/edition').json()['capabilities']['resource_quotas'])
+        capabilities = self.client.get('/api/v1/cloud/edition').json()['capabilities']
+        self.assertTrue(capabilities['job_admission_limits'])
+        self.assertFalse(capabilities['shared_organizations'])

@@ -32,17 +32,18 @@ export function CapabilityCenter() {
     clientHydrated,
     serverHydrated,
   );
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
+  const it = locale === "it-IT";
   const params = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
   const requestedTab = params.get("tab");
   const tab =
-    requestedTab === "skills"
-      ? "skills"
+    requestedTab === "plugins"
+      ? "plugins"
       : requestedTab === "extensions"
         ? "extensions"
-        : "plugins";
+        : "skills";
   const [query, setQuery] = useState("");
   function changeTab(value: string) {
     setQuery("");
@@ -61,10 +62,10 @@ export function CapabilityCenter() {
           <header className="mb-8 flex flex-wrap items-end justify-between gap-5">
             <div>
               <h1 className="text-[28px] font-semibold tracking-tight">
-                {t.capabilities.title}
+                {it ? "Strumenti e skill" : "Tools & skills"}
               </h1>
               <p className="text-muted-foreground mt-2 text-sm leading-6">
-                {t.capabilities.description}
+                {it ? "Le skill guidano il lavoro della squadra. Gli ambienti preparano i programmi richiesti; la Gallery aggiunge configurazioni condivise." : "Skills guide your team's work. Environments prepare the required software; Gallery adds shared configurations."}
               </p>
             </div>
             <div className="relative w-full md:w-72">

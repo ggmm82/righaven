@@ -1,114 +1,36 @@
 "use client";
 
-import {
-  BotIcon,
-  CalendarClock,
-  MessagesSquare,
-  BlocksIcon,
-} from "lucide-react";
+import { Home, MessagesSquare, Layers, Wrench, Library, Users, Settings2 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-
-import {
-  SidebarGroup,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-} from "@/components/ui/sidebar";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { useAgentsApiEnabled } from "@/core/agents";
+import { SidebarGroup, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar";
 import { useI18n } from "@/core/i18n/hooks";
 
 export function WorkspaceNavChatList() {
-  const { t } = useI18n();
+  const { locale } = useI18n();
+  const it = locale === "it-IT";
   const pathname = usePathname();
-  const { enabled: agentsEnabled } = useAgentsApiEnabled();
-  return (
-    <SidebarGroup className="pt-1">
-      <SidebarMenu>
-        <SidebarMenuItem>
-          <SidebarMenuButton isActive={pathname === "/workspace/chats"} asChild>
-            <Link className="text-muted-foreground" href="/workspace/chats">
-              <MessagesSquare />
-              <span>{t.sidebar.chats}</span>
-            </Link>
-          </SidebarMenuButton>
-        </SidebarMenuItem>
-        <SidebarMenuItem>
-          {agentsEnabled ? (
-            <SidebarMenuButton
-              isActive={pathname.startsWith("/workspace/agents")}
-              asChild
-            >
-              <Link className="text-muted-foreground" href="/workspace/agents">
-                <BotIcon />
-                <span>{t.sidebar.agents}</span>
-              </Link>
-            </SidebarMenuButton>
-          ) : (
-            // Disabled: aria-disabled drives the sidebar CVA to suppress
-            // pointer events on the button, so wrap it in a hoverable span
-            // that still surfaces the "feature not enabled" tooltip for mouse
-            // users. The button stays in the tab order (no tabIndex={-1}) and
-            // is wired via aria-describedby to a visually-hidden reason, so
-            // keyboard and screen-reader users also learn why it is disabled.
-            <Tooltip>
-              <TooltipTrigger asChild>
-                {/* cursor-not-allowed lives on the span (the element that
-                    still receives pointer events), not the inert button. */}
-                <span className="block w-full cursor-not-allowed">
-                  <SidebarMenuButton
-                    className="text-muted-foreground/50"
-                    aria-disabled
-                    aria-describedby="agents-disabled-reason"
-                  >
-                    <BotIcon />
-                    <span>{t.sidebar.agents}</span>
-                  </SidebarMenuButton>
-                  <span id="agents-disabled-reason" className="sr-only">
-                    {t.sidebar.agentsDisabledTooltip}
-                  </span>
-                </span>
-              </TooltipTrigger>
-              <TooltipContent side="right">
-                {t.sidebar.agentsDisabledTooltip}
-              </TooltipContent>
-            </Tooltip>
-          )}
-        </SidebarMenuItem>
-        <SidebarMenuItem>
-          <SidebarMenuButton
-            isActive={pathname.startsWith("/workspace/scheduled-tasks")}
-            asChild
-          >
-            <Link
-              className="text-muted-foreground"
-              href="/workspace/scheduled-tasks"
-            >
-              <CalendarClock />
-              <span>{t.sidebar.scheduledTasks}</span>
-            </Link>
-          </SidebarMenuButton>
-        </SidebarMenuItem>
-        <SidebarMenuItem>
-          <SidebarMenuButton
-            isActive={pathname.startsWith("/workspace/capabilities")}
-            asChild
-          >
-            <Link
-              className="text-muted-foreground"
-              href="/workspace/capabilities"
-            >
-              <BlocksIcon />
-              <span>{t.capabilities.title}</span>
-            </Link>
-          </SidebarMenuButton>
-        </SidebarMenuItem>
-      </SidebarMenu>
-    </SidebarGroup>
-  );
+  const groups = [
+    { label: it ? "Lavoro" : "Workspace", items: [
+      { href: "/workspace", label: it ? "Panoramica" : "Overview", icon: Home },
+      { href: "/workspace/chats", label: it ? "Attività e risultati" : "Tasks & results", icon: MessagesSquare },
+    ] },
+    { label: it ? "Cassetta degli attrezzi" : "Toolbox", items: [
+      { href: "/workspace/environments", label: it ? "Ambienti" : "Environments", icon: Layers },
+      { href: "/workspace/capabilities", label: it ? "Strumenti e skill" : "Tools & skills", icon: Wrench },
+      { href: "/workspace/agents", label: it ? "Profili della squadra" : "Team profiles", icon: Users },
+      { href: "/workspace/gallery", label: "Community Gallery", icon: Library },
+    ] },
+    { label: it ? "Configurazione" : "Configuration", items: [
+      { href: "/workspace/harness", label: it ? "Modelli e risorse" : "Models & resources", icon: Settings2 },
+    ] },
+  ];
+  return <>{groups.map(group => <SidebarGroup key={group.label}>
+    <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
+    <SidebarMenu>{group.items.map(({href,label,icon:Icon}) => <SidebarMenuItem key={href}>
+      <SidebarMenuButton asChild tooltip={label} isActive={href === "/workspace" ? pathname === href : pathname.startsWith(href)}>
+        <Link href={href}><Icon /><span>{label}</span></Link>
+      </SidebarMenuButton>
+    </SidebarMenuItem>)}</SidebarMenu>
+  </SidebarGroup>)}</>;
 }

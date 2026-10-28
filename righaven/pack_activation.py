@@ -39,7 +39,11 @@ async def install(pack, user_id):
     elif pack['category'] == 'environment':
         from righaven_core.persistence.agents import get_agent_store
         from righaven_core.config.agents_config import load_agent_config
-        if load_agent_config(name, user_id=user_id) is None:
+        try:
+            existing = load_agent_config(name, user_id=user_id)
+        except FileNotFoundError:
+            existing = None
+        if existing is None:
             get_agent_store().create(name, {'name': name, 'description': pack['i18n']['en']['description'],
                                           'skills': ['skill-workspace', *names]},
                                      pack['skill_prompt_template'], user_id=user_id)

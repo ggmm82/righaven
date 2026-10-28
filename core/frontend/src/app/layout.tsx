@@ -8,7 +8,7 @@ import { DEFAULT_LOCALE } from "@/core/i18n/locale";
 
 export const metadata: Metadata = {
   title: "RigHaven",
-  description: "A LangChain-based framework for building super agents.",
+  description: "A home and on-demand toolbox for goal-driven agent teams.",
 };
 
 export default function RootLayout({

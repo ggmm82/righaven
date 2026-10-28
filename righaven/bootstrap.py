@@ -200,6 +200,8 @@ def main():
     migrate_existing_users()
     from .docker_runtime import cleanup_orphans
     cleanup_orphans()
+    from .organization_limits import recover_after_cleanup
+    recover_after_cleanup()
     # exec preserves signal delivery, while the env secrets stay in this process tree.
     os.execvp('uvicorn', ['uvicorn', 'righaven.app:app', '--host', '0.0.0.0',
                         '--port', '8001', '--workers', '1',

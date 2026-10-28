@@ -16,7 +16,7 @@ import { env } from "@/env";
 import { cn } from "@/lib/utils";
 
 export function WorkspaceHeader({ className }: { className?: string }) {
-  const { t } = useI18n();
+  const { locale } = useI18n();
   const { state } = useSidebar();
   const pathname = usePathname();
   return (
@@ -30,7 +30,7 @@ export function WorkspaceHeader({ className }: { className?: string }) {
         {state === "collapsed" ? (
           <div className="group-has-data-[collapsible=icon]/sidebar-wrapper:-translate-y flex w-full cursor-pointer items-center justify-center">
             <div className="text-primary block pt-1 font-serif group-hover/workspace-header:hidden">
-              DF
+              RH
             </div>
             <SidebarTrigger className="hidden pl-2 group-hover/workspace-header:block" />
           </div>
@@ -57,7 +57,7 @@ export function WorkspaceHeader({ className }: { className?: string }) {
           >
             <Link className="text-muted-foreground" href="/workspace/chats/new">
               <MessageSquarePlus size={16} />
-              <span>{t.sidebar.newChat}</span>
+              <span>{locale === "it-IT" ? "Nuovo incarico" : "New task"}</span>
             </Link>
           </SidebarMenuButton>
         </SidebarMenuItem>

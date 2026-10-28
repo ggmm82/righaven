@@ -3,12 +3,9 @@
 import {
   BotIcon,
   BellIcon,
-  CableIcon,
   InfoIcon,
-  BrainIcon,
   PaletteIcon,
   UserCogIcon,
-  UsersRoundIcon,
   UserIcon,
 } from "lucide-react";
 import dynamic from "next/dynamic";
@@ -47,31 +44,10 @@ const AppearanceSettingsPage = dynamic(
     ),
   { loading: SettingsPageLoading },
 );
-const ChannelsSettingsPage = dynamic(
-  () =>
-    import("./channels-settings-page").then(
-      (module) => module.ChannelsSettingsPage,
-    ),
-  { loading: SettingsPageLoading },
-);
-const MemorySettingsPage = dynamic(
-  () =>
-    import("./memory-settings-page").then(
-      (module) => module.MemorySettingsPage,
-    ),
-  { loading: SettingsPageLoading },
-);
 const NotificationSettingsPage = dynamic(
   () =>
     import("./notification-settings-page").then(
       (module) => module.NotificationSettingsPage,
-    ),
-  { loading: SettingsPageLoading },
-);
-const SubagentSettingsPage = dynamic(
-  () =>
-    import("./subagent-settings-page").then(
-      (module) => module.SubagentSettingsPage,
     ),
   { loading: SettingsPageLoading },
 );
@@ -143,21 +119,6 @@ export function SettingsDialog(props: SettingsDialogProps) {
         id: "notification",
         label: t.settings.sections.notification,
         icon: BellIcon,
-      },
-      {
-        id: "channels",
-        label: t.settings.sections.channels,
-        icon: CableIcon,
-      },
-      {
-        id: "memory",
-        label: t.settings.sections.memory,
-        icon: BrainIcon,
-      },
-      {
-        id: "subagents",
-        label: t.settings.sections.subagents,
-        icon: UsersRoundIcon,
       },
       { id: "about", label: t.settings.sections.about, icon: InfoIcon },
     ];
@@ -238,10 +199,7 @@ export function SettingsDialog(props: SettingsDialogProps) {
               {activeId === "users" && <UserSettingsPage />}
               {activeId === "account" && <AccountSettingsPage />}
               {activeId === "appearance" && <AppearanceSettingsPage />}
-              {activeId === "memory" && <MemorySettingsPage />}
-              {activeId === "subagents" && <SubagentSettingsPage />}
               {activeId === "notification" && <NotificationSettingsPage />}
-              {activeId === "channels" && <ChannelsSettingsPage />}
               {activeId === "about" && <AboutSettingsPage />}
             </div>
           </ScrollArea>
