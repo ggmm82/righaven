@@ -871,6 +871,8 @@ def _host_default_llm() -> Any:
     configured) so DeerMem no-ops extraction with a clear error rather than
     crashing startup.
     """
+    if not get_memory_config().enabled:
+        return None
     try:
         from righaven_core.models import create_chat_model
 

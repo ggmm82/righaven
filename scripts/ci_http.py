@@ -31,7 +31,9 @@ overview = request('/workspace')
 assert b'From objective to outcome.' in overview and b'Build your toolbox' in overview
 assert b'Tasks &amp; results' in overview or b'Tasks &amp;' in overview
 assert b'righaven_core.tech' not in overview
-assert b'What would you like to achieve?' in request('/workspace/chats/new')
+# The chat welcome depends on browser-initialized composer state; ci_browser.mjs
+# checks its visible heading after hydration instead of inspecting the SSR shell.
+assert b'RigHaven' in request('/workspace/chats/new')
 assert b'Deployment &amp; connections' in request('/workspace/cloud')
 assert b'RigHaven' in request('/harness/')
 # Native Agent management and managed capabilities must be available after login.

@@ -18,6 +18,13 @@ except ImportError:
 
 @unittest.skipUnless(HarnessCompatibleChatModel, 'Gateway dependency environment required')
 class HostedProviderModelsTests(unittest.TestCase):
+    def test_disabled_profile_memory_does_not_initialize_a_provider(self):
+        from righaven_core.agents.memory import manager
+        with patch.object(manager, 'get_memory_config', return_value=SimpleNamespace(enabled=False)), \
+             patch('righaven_core.models.create_chat_model') as factory:
+            self.assertIsNone(manager._host_default_llm())
+            factory.assert_not_called()
+
     def test_hosted_credentials_never_use_the_default_filesystem_user(self):
         from righaven import tenant_profiles
         with patch.dict(os.environ, {'RIGHAVEN_EDITION':'cloud'}):
