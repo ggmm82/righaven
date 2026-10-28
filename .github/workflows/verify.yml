@@ -212,6 +212,9 @@ jobs:
       - name: Check native environment ownership, CRUD and deployment preferences
         if: matrix.component == 'gateway'
         run: docker run --rm --network=none --entrypoint python -e RIGHAVEN_REQUIRE_GATEWAY_TESTS=1 --mount "type=bind,src=$PWD/tests,dst=/review,readonly" righaven-gateway:0.1.0 -m unittest discover -s /review -p test_environment_routes.py -v
+      - name: Check native hosted identity and real provider credential isolation
+        if: matrix.component == 'gateway'
+        run: docker run --rm --network=none --entrypoint python -e RIGHAVEN_REQUIRE_GATEWAY_TESTS=1 --mount "type=bind,src=$PWD/tests,dst=/review,readonly" righaven-gateway:0.1.0 -m unittest discover -s /review -p test_hosted_provider_models.py -v
       - name: Load the exact published software after full adapter checks
         if: matrix.component == 'sandbox' && steps.software.outputs.reuse == 'true'
         env:
