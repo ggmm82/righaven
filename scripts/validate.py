@@ -80,7 +80,9 @@ def main():
         assert not any('docker.sock' in str(v) for service in compose['services'].values() for v in service.get('volumes',[]))
         assert not any('.env' in str(s.get('env_file','')) for s in compose['services'].values())
     for name in ['gateway','frontend']:
-        assert lock['righaven_core']['commit'] in local['services'][name]['build']['additional_contexts']['righaven_core']
+        assert not local['services'][name]['build'].get('additional_contexts')
+        assert 'COPY core/' in (ROOT/'docker'/('Dockerfile.'+name)).read_text()
+    assert lock['righaven_core']['ownership']=='in-repository'
     custom={'gateway','frontend'}
     assert 'proxy' not in remote['services']
     assert all('build' not in remote['services'][name] for name in custom)

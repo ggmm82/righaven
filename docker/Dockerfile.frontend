@@ -22,7 +22,7 @@ RUN pnpm config set store-dir ${PNPM_STORE_PATH}
 # Optionally override npm registry for restricted networks (e.g. NPM_REGISTRY=https://registry.npmmirror.com)
 RUN if [ -n "${NPM_REGISTRY}" ]; then pnpm config set registry "${NPM_REGISTRY}"; fi
 WORKDIR /app
-COPY --from=righaven_core /frontend ./frontend
+COPY core/frontend ./frontend
 COPY frontend/locales ./frontend/src/app/workspace/locales
 COPY frontend/i18n.tsx ./frontend/src/app/workspace/i18n.tsx
 COPY frontend/harness-page.tsx ./frontend/src/app/workspace/harness/page.tsx

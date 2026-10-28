@@ -52,8 +52,7 @@ COPY --from=uv-source /uv /uvx /usr/local/bin/
 WORKDIR /app
 
 # Copy backend source code
-COPY --from=righaven_core /backend ./backend
-COPY scripts/core_compat.py /tmp/righaven-core-compat.py
+COPY core/backend ./backend
 
 # Install dependencies with cache mount
 # `redis` is always installed because Docker Compose defaults the stream bridge
@@ -73,8 +72,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
         esac; \
         extras_flags="$extras_flags --extra $extra"; \
     done; \
-    UV_INDEX_URL=${UV_INDEX_URL:-https://pypi.org/simple} uv sync --locked --extra redis $extras_flags' \
-    && backend/.venv/bin/python -c 'import shutil, sysconfig; shutil.copyfile("/tmp/righaven-core-compat.py", sysconfig.get_path("purelib") + "/sitecustomize.py")'
+    UV_INDEX_URL=${UV_INDEX_URL:-https://pypi.org/simple} uv sync --locked --extra redis $extras_flags'
 
 # UTF-8 locale prevents UnicodeEncodeError on Chinese/emoji content in minimal
 # containers where locale configuration may be missing and the default encoding is not UTF-8.

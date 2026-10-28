@@ -2,8 +2,8 @@
   "schema_version": 1,
   "verified_date": "2026-10-25",
   "righaven_core": {
-    "repository": "https://github.com/bytedance/deer-flow.git",
-    "commit": "0bbcccfeb117a73cdeb7a8366f56ba71c25d6f5d"
+    "path": "core",
+    "ownership": "in-repository"
   },
   "sandbox_base": "node:22-bookworm-slim",
   "applications": [

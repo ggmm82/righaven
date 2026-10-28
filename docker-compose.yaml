@@ -67,8 +67,6 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile.gateway
-      additional_contexts:
-        righaven_core: https://github.com/bytedance/deer-flow.git#0bbcccfeb117a73cdeb7a8366f56ba71c25d6f5d
     image: righaven-gateway:0.1.0
     mem_limit: 1024m
     stop_grace_period: 30s
@@ -110,8 +108,6 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile.frontend
-      additional_contexts:
-        righaven_core: https://github.com/bytedance/deer-flow.git#0bbcccfeb117a73cdeb7a8366f56ba71c25d6f5d
     image: righaven-frontend:0.1.0
     mem_limit: 512m
     environment:
