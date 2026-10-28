@@ -8,8 +8,8 @@ from . import state
 def cloud_user():
     if os.getenv('RIGHAVEN_EDITION', 'community') != 'cloud':
         return None
-    from righaven_core.runtime.user_context import get_effective_user_id
-    return get_effective_user_id()
+    from righaven_core.runtime.user_context import require_current_user
+    return str(require_current_user().id)
 
 
 def root():

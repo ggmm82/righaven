@@ -18,6 +18,16 @@ except ImportError:
 
 @unittest.skipUnless(HarnessCompatibleChatModel, 'Gateway dependency environment required')
 class HostedProviderModelsTests(unittest.TestCase):
+    def test_hosted_credentials_never_use_the_default_filesystem_user(self):
+        from righaven import tenant_profiles
+        with patch.dict(os.environ, {'RIGHAVEN_EDITION':'cloud'}):
+            token = set_current_user(None)
+            try:
+                with self.assertRaises(RuntimeError):
+                    tenant_profiles.root()
+            finally:
+                reset_current_user(token)
+
     def test_real_models_use_private_encrypted_connections_and_reject_cross_account_reuse(self):
         from cryptography.fernet import Fernet
         from righaven import state, tenant_profiles

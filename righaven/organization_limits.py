@@ -111,7 +111,7 @@ def organization_job(function):
         from .cloud_portal import current_edition
         if current_edition() != 'cloud':
             return function(*args, **kwargs)
-        from righaven_core.runtime.user_context import get_effective_user_id
-        with admission(get_effective_user_id()):
+        from righaven_core.runtime.user_context import require_current_user
+        with admission(str(require_current_user().id)):
             return function(*args, **kwargs)
     return wrapped
