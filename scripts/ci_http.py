@@ -27,7 +27,7 @@ def request(path, payload=None, method=None):
 request('/api/v1/auth/initialize', {'email': 'harness-ci@example.com',
                                    'password': 'CiOnly-Strong-Login-P4ssword!78239'})
 assert any(cookie.name == 'access_token' for cookie in cookies)
-assert b'RigHaven' in request('/righaven/')
+assert b'RigHaven' in request('/harness/')
 # Native Agent management and managed capabilities must be available after login.
 json.loads(request('/api/agents'))
 skills = json.loads(request('/api/skills'))['skills']
@@ -169,7 +169,7 @@ saved = json.loads(request('/harness/api/agents/gridcraft',
 assert saved['engine'] == 'gemini'
 catalog = json.loads(request('/harness/api/catalog'))
 assert catalog['agents']['gridcraft']['instructions'] == 'Preferisci euro'
-assert b'La tua squadra' in request('/workspace/harness')
+assert b'RigHaven Harness Control' in request('/workspace/harness')
 request('/api/v1/auth/logout', {})
 request('/api/v1/auth/register', {'email': 'harness-ci-user@example.com',
                                  'password': 'CiOnly-Regular-User-P4ssword!78239'})
