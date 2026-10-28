@@ -1,9 +1,9 @@
 .git
 .env
-data
-runtime
-research
-reports
+/data
+/runtime
+/research
+/reports
 __pycache__
 *.pyc
 .pytest_cache

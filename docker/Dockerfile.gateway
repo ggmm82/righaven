@@ -53,6 +53,7 @@ WORKDIR /app
 
 # Copy backend source code
 COPY core/backend ./backend
+COPY docs/UPSTREAM-LICENSE /app/THIRD-PARTY-NOTICES
 
 # Install dependencies with cache mount
 # `redis` is always installed because Docker Compose defaults the stream bridge
@@ -121,6 +122,7 @@ WORKDIR /app
 
 # Copy backend with pre-built virtualenv from builder
 COPY --from=builder /app/backend ./backend
+COPY docs/UPSTREAM-LICENSE /app/THIRD-PARTY-NOTICES
 
 # Expose Gateway API port.
 EXPOSE 8001

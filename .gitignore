@@ -1,6 +1,6 @@
 .env
-data/
-runtime/
+/data/
+/runtime/
 __pycache__/
 *.pyc
 reports/
