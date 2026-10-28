@@ -24,6 +24,7 @@ MAX_FILES = 12000
 # They are never executed here: prepare() below is the trusted runtime code.
 # Keep these identities when extending format checks, so existing sources reopen.
 RELEASED_PREPARERS = {
+    '6d050d55f4d4d6ea6b78fb35b0f762cb5cbc114e7ff80fb5e00c0e938efbc1d4',  # RigHaven 0.1.0: preserve source bundles before OOXML verification
     'da376510746c4d49c6ae905a87b49336dc158921c452cc5f3610e2b415ffb6c5',  # main before design tools: keep existing downloaded sources usable
     '12eabd2a5fef37534081cf20cf1b6eba22a9512caae9b857b1cce1d78024ea79',  # main before PR35: preserve existing downloaded sources
     '758746a8222abe6097be5d6a62cd61e1f9f3b14770362e4ec5e39d6940278a5b',  # PR30: keep downloaded source packages compatible
