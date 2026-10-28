@@ -186,7 +186,7 @@ saved = json.loads(request('/harness/api/agents/gridcraft',
 assert saved['engine'] == 'gemini'
 catalog = json.loads(request('/harness/api/catalog'))
 assert catalog['agents']['gridcraft']['instructions'] == 'Preferisci euro'
-assert b'RigHaven Harness Control' in request('/workspace/harness')
+assert b'Models &amp; resources' in request('/workspace/harness')
 request('/api/v1/auth/logout', {})
 request('/api/v1/auth/register', {'email': 'harness-ci-user@example.com',
                                  'password': 'CiOnly-Regular-User-P4ssword!78239'})
