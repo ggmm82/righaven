@@ -64,7 +64,7 @@ def main():
                 for file in progress.parent.iterdir():file.chmod(0o666)
                 job=root/(identifier+'.json');job.write_text(json.dumps({'agent':'workspace','run_id':identifier,'engine':'openai','model':'fixture','skills':[],'instructions':'','task':'Create the test report','timeout':60,'purpose':'work','simulate_failure':failed}));job.chmod(0o644)
                 command=runtime.base_arguments(identifier)+stage.mounts(runtime.mount,progress)+[
-                    '--user',str(os.getuid())+':'+str(os.getgid()),'--mount',runtime.mount(repo/'harness','/opt/righaven-worker',True),'--mount',runtime.mount(job,'/job.json',True),args.image,'python3','-c',CODE]
+                    '--user',str(os.getuid())+':'+str(os.getgid()),'--mount',runtime.mount(repo/'righaven','/opt/righaven-worker',True),'--mount',runtime.mount(job,'/job.json',True),args.image,'python3','-c',CODE]
                 try:
                     result=subprocess.run(['docker',*command],capture_output=True,text=True,timeout=60)
                     runtime.remove(identifier)  # Validation starts only after all writers stop.

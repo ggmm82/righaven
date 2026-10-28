@@ -24,7 +24,7 @@ def main():
         from scripts.software_image import inputs
         for name in [*inputs(repo)['files'],'docker/Dockerfile.sandbox']:
             target=root/name;target.parent.mkdir(parents=True,exist_ok=True);shutil.copy2(repo/name,target)
-        (root/'harness').mkdir();(root/'righaven/run_agent.py').write_text('# changed worker release\n')
+        (root/'righaven').mkdir();(root/'righaven/run_agent.py').write_text('# changed worker release\n')
         (root/'frontend').mkdir();(root/'frontend/new.tsx').write_text('// changed UI\n')
         assert fingerprint(root)==before
         dockerfile=root/'Dockerfile.probe'
