@@ -15,6 +15,16 @@ class SoftwareImageTests(unittest.TestCase):
         for name in [*software.inputs(repo)['files'],'docker/Dockerfile.sandbox','config/software-image.lock.json']:
             target=self.root/name;target.parent.mkdir(parents=True,exist_ok=True);shutil.copy2(repo/name,target)
 
+    def seed_verified_software(self):
+        (self.root/'config/software-image.lock.json').write_text(json.dumps({
+            'version': 1,
+            'bootstrap': {
+                'platform': 'linux/amd64',
+                'fingerprint': software.fingerprint(self.root),
+                'image': 'ghcr.io/ggmm82/righaven-sandbox@sha256:' + '3' * 64,
+            },
+        }))
+
     def test_worker_skills_and_frontend_do_not_invalidate_software(self):
         before=software.fingerprint(self.root)
         for name in ['righaven/run_agent.py','skills/custom/method/SKILL.md','frontend/page.tsx']:
@@ -30,11 +40,12 @@ class SoftwareImageTests(unittest.TestCase):
             self.assertNotEqual(before,software.fingerprint(self.root));path.write_bytes(original)
 
     def test_current_release_is_reused_without_rebuilding_or_switching_digest(self):
+        self.seed_verified_software()
         with patch.object(software,'digest',side_effect=AssertionError('No fallback lookup')):
-            first=software.resolve(self.root,'righaven/righaven')
-            second=software.resolve(self.root,'righaven/righaven')
+            first=software.resolve(self.root,'ggmm82/righaven')
+            second=software.resolve(self.root,'ggmm82/righaven')
         self.assertTrue(first['reuse']);self.assertEqual(first,second)
-        self.assertIn('@sha256:3757b4',first['image'])
+        self.assertIn('@sha256:' + '3' * 64,first['image'])
         self.assertEqual(first['context'],'software=docker-image://'+first['image'])
 
     def test_changed_recipe_uses_a_published_input_key_or_requests_a_new_build(self):
@@ -54,7 +65,8 @@ class SoftwareImageTests(unittest.TestCase):
             self.assertIsNone(software.digest('ghcr.io/repo/image:tag'))
 
     def test_existing_published_software_is_never_overwritten(self):
-        selection=software.resolve(self.root,'righaven/righaven')
+        self.seed_verified_software()
+        selection=software.resolve(self.root,'ggmm82/righaven')
         with patch.object(software,'digest',return_value='sha256:'+'a'*64),patch.object(subprocess,'run') as run:
             with self.assertRaisesRegex(ValueError,'non sovrascrivo'):software.publish(selection,selection['image'])
             run.assert_not_called()

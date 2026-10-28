@@ -84,7 +84,7 @@ def main():
     custom={'gateway','frontend'}
     assert 'proxy' not in remote['services']
     assert all('build' not in remote['services'][name] for name in custom)
-    assert all(remote['services'][name]['image'].startswith('ghcr.io/righaven/righaven-') for name in custom)
+    assert all(remote['services'][name]['image'].startswith('ghcr.io/ggmm82/righaven-') for name in custom)
     assert all(':sha-' in remote['services'][name]['image'] for name in custom)
     assert 'networks' not in remote
     assert not any('traefik.docker.network=' in label for name in ['gateway','frontend'] for label in remote['services'][name]['labels'])

@@ -15,7 +15,7 @@ import yaml
 from scripts.prepare_hostinger import prepare
 from scripts.release_pipeline import assemble, reusable, resolve, validate_bundle, validate_manifest, publish
 
-REPOSITORY = 'righaven/righaven'
+REPOSITORY = 'ggmm82/righaven'
 COMPONENTS = ('gateway', 'frontend', 'sandbox', 'proxy')
 
 

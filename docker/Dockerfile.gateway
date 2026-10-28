@@ -72,7 +72,8 @@ RUN --mount=type=cache,target=/root/.cache/uv \
         esac; \
         extras_flags="$extras_flags --extra $extra"; \
     done; \
-    UV_INDEX_URL=${UV_INDEX_URL:-https://pypi.org/simple} uv sync --locked --extra redis $extras_flags'
+    UV_INDEX_URL=${UV_INDEX_URL:-https://pypi.org/simple} uv sync --locked --extra redis $extras_flags' \
+    && backend/.venv/bin/python -c 'import pathlib, deerflow; package=pathlib.Path(deerflow.__file__).parent; alias=package.parent/"righaven_core"; alias.exists() or alias.symlink_to(package, target_is_directory=True)'
 
 # UTF-8 locale prevents UnicodeEncodeError on Chinese/emoji content in minimal
 # containers where locale configuration may be missing and the default encoding is not UTF-8.

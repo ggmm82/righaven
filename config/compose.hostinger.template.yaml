@@ -1,5 +1,5 @@
 # INTERNAL TEMPLATE: for VPS/Hostinger deployments use the sealed Compose attached to the release.
-# Published commit images: 9176304b6e74433109931b1c75721c1b663c3845
+# These placeholders are replaced by the verified immutable image digests.
 name: ${RIGHAVEN_PROJECT_NAME:-righaven}
 services:
   runtime-docker:
@@ -47,7 +47,7 @@ services:
   gateway:
     restart: unless-stopped
     init: true
-    image: ghcr.io/righaven/righaven-gateway:sha-9176304b6e74433109931b1c75721c1b663c3845
+    image: ghcr.io/ggmm82/righaven-gateway:sha-9176304b6e74433109931b1c75721c1b663c3845
     mem_limit: 1024m
     stop_grace_period: 30s
     environment:
@@ -56,7 +56,7 @@ services:
       RIGHAVEN_PASSWORD: ${RIGHAVEN_PASSWORD:?Set a password of at least 16 characters}
       RIGHAVEN_ENVIRONMENT_MODE: dynamic
       RIGHAVEN_DOCKER_SCOPE: internal
-      RIGHAVEN_SANDBOX_IMAGE: ghcr.io/righaven/righaven-sandbox:sha-9176304b6e74433109931b1c75721c1b663c3845
+      RIGHAVEN_SANDBOX_IMAGE: ghcr.io/ggmm82/righaven-sandbox:sha-9176304b6e74433109931b1c75721c1b663c3845
       DOCKER_HOST: unix:///runtime/docker.sock
       RIGHAVEN_STREAM_BRIDGE_REDIS_URL: redis://redis:6379/0
       RIGHAVEN_INTERNAL_GATEWAY_BASE_URL: http://gateway:8001
@@ -105,7 +105,7 @@ services:
   frontend:
     restart: unless-stopped
     init: true
-    image: ghcr.io/righaven/righaven-frontend:sha-9176304b6e74433109931b1c75721c1b663c3845
+    image: ghcr.io/ggmm82/righaven-frontend:sha-9176304b6e74433109931b1c75721c1b663c3845
     mem_limit: 512m
     environment:
       RIGHAVEN_EDITION: ${RIGHAVEN_EDITION:-community}
