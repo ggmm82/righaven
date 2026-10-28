@@ -61,7 +61,8 @@ class PackageTests(unittest.TestCase):
         archive = self.archive({'project.fcproj': json.dumps(self.film()), 'Media/movie.mp4': 'movie',
                                'PREPARA_SORGENTI.py': 'declared historical fixture; never executed'})
         real_digest = packages.digest
-        for old_hash in ('dc64bb7d149025adba6c380ab676d0d19bbb74ea0779f70e0e514dd1a8b4c73a',
+        for old_hash in ('6d050d55f4d4d6ea6b78fb35b0f762cb5cbc114e7ff80fb5e00c0e938efbc1d4',
+                         'dc64bb7d149025adba6c380ab676d0d19bbb74ea0779f70e0e514dd1a8b4c73a',
                          '12eabd2a5fef37534081cf20cf1b6eba22a9512caae9b857b1cce1d78024ea79'):
             def historical(path):
                 return old_hash if Path(path).name == 'PREPARA_SORGENTI.py' else real_digest(path)

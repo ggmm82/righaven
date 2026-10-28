@@ -44,7 +44,8 @@ def inventory(policy,query='',limit=12):
                        'tools':required,'available':not error and set(required).issubset(policy['allowed']),
                        'issue':error or ('Strumento richiesto escluso dal profilo' if set(required)-set(policy['allowed']) else '')})
     result.sort(key=lambda item:({'method':0,'protocol':1,'tool':2}[item['kind']],item['name']))
-    return {'skills':result[:limit],'total':len(result),'more':len(result)>limit}
+    return {'skills':result[:limit],'total':len(result),'more':len(result)>limit,
+            'tools':[{'id':a['id'],'description':a['description']} for a in applications() if a['id'] in policy['allowed']]}
 
 
 def bind(spec,policy=None,previous=None):
@@ -126,3 +127,25 @@ def verify_recovery(previous,current,role=None):
         verify(role,current)
     elif set(previous['allowed'])!=set(current['allowed']):
         raise ValueError('Capacità cambiate durante la sessione')
+
+
+def environment_inventory(policy):
+    """Discover only this owner's profiles, intersected with current authority."""
+    if not policy.get('user_id'):
+        return []
+    from righaven_core.config.agents_config import list_custom_agents
+    from . import environments
+    result = []
+    for agent in list_custom_agents(user_id=policy['user_id']):
+        try:
+            profile = environments.profile(policy['user_id'], agent)
+            tools = sorted(set(profile['tools']) & set(policy['allowed']))
+            if not tools:
+                continue
+            # No preparation, version refresh, credential access or policy elevation.
+            result.append({'name':agent.name, 'purpose':profile['purpose'],
+                'tools':tools, 'skills': [name for name in profile['active_skills'] if name in policy.get('skill_names',[])],
+                'deployment':profile['deployment']['mode']})
+        except (ValueError, FileNotFoundError):
+            continue
+    return result

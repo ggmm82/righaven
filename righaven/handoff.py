@@ -11,6 +11,7 @@ DELIVERY_SCHEMA = {
         'files': {'type': 'array', 'minItems': 1, 'items': {
             'type': 'object', 'properties': {
                 'path': {'type': 'string'},
+                'primary': {'type': 'boolean'},
                 'role': {'type': 'string', 'enum': ['editable_source', 'source_archive', 'export', 'dependency', 'preview', 'report']},
                 'format': {'type': 'string', 'minLength': 1},
                 'open_with': {'type': 'string', 'minLength': 1},
@@ -48,7 +49,7 @@ HANDOFF_SCHEMA = {'type': 'object', 'properties': {
         'previews': {'type': 'array', 'items': {'type': 'string'}},
         'checks': {'type': 'array', 'minItems': 1, 'items': {'type': 'object', 'properties': {
             'name': {'type': 'string'}, 'status': {'type': 'string', 'enum': ['passed', 'failed', 'not_run']},
-            'evidence': {'type': 'string'}, 'scope': {'type':'string','enum':['current','historical']},
+            'evidence': {'type': 'string'}, 'scope': {'type':'string','enum':['current','historical','environment']},
             'superseded_by': {'type':'string','minLength':1}}, 'required': ['name', 'status', 'evidence'], 'additionalProperties': False}},
         'warnings': {'type': 'array', 'items': {'type': 'string'}}},
         'required': ['task', 'source_files', 'output_files', 'previews', 'checks', 'warnings', 'delivery'],
@@ -64,6 +65,8 @@ def validate_delivery(value):
     files = delivery.get('files')
     if not isinstance(files, list) or not files:
         raise ValueError('handoff.json: delivery.files obbligatorio')
+    if sum(item.get('primary') is True for item in files if isinstance(item,dict)) > 1:
+        raise ValueError('handoff.json: seleziona un solo prodotto primario')
     outputs = set(value['output_files'])
     allowed = outputs | set(value.get('previews', []))
     seen, sources, unverified = set(), [], False
@@ -74,6 +77,8 @@ def validate_delivery(value):
         if not isinstance(path, str) or path not in allowed or path in seen:
             raise ValueError('handoff.json: delivery.path deve essere unico e già elencato negli output o anteprime')
         seen.add(path)
+        if 'primary' in item and (type(item['primary']) is not bool or item['primary'] and item.get('role') not in ('export','editable_source','source_archive')):
+            raise ValueError('handoff.json: primary deve identificare un prodotto o un sorgente scaricabile')
         if item.get('role') not in ('editable_source', 'source_archive', 'export', 'dependency', 'preview', 'report'):
             raise ValueError('handoff.json: ruolo di consegna non valido')
         for field in ('format', 'open_with', 'editability'):
@@ -166,8 +171,8 @@ def validate_handoff(output_dir, workspace, *, require_delivery=False):
                 or not isinstance(check.get('name'), str) or not check['name'].strip()
                 or not isinstance(check.get('evidence'), str) or not check['evidence'].strip()):
             raise ValueError('handoff.json: check richiede name, status e evidence')
-        if check.get('scope', 'current') not in ('current', 'historical'):
-            raise ValueError('handoff.json: check.scope deve essere current o historical')
+        if check.get('scope', 'current') not in ('current', 'historical', 'environment'):
+            raise ValueError('handoff.json: check.scope deve essere current, historical o environment')
         replacement = check.get('superseded_by')
         if check.get('scope') == 'historical':
             matches = [c for c in checks if isinstance(c, dict) and c.get('name') == replacement
@@ -214,10 +219,25 @@ def blocking_checks(checks):
     for check in checks:
         if check.get('status') != 'failed':
             continue
+        if check.get('scope') == 'environment':
+            continue
         replacements = [c for c in checks if c.get('name') == check.get('superseded_by')
                         and c.get('scope', 'current') == 'current' and c.get('status') == 'passed']
         if check.get('scope') != 'historical' or len(replacements) != 1 or check.get('superseded_by') == check.get('name'):
             yield check
+
+
+def product_files(files):
+    """A product may also be its editable source; reports never become products."""
+    eligible = [item for item in files if item.get('role') in ('export','editable_source','source_archive') and item.get('primary') is not False]
+    explicit = [item for item in eligible if item.get('primary') is True]
+    if explicit:
+        return explicit
+    exports = [item for item in eligible if item.get('role') == 'export']
+    if exports:
+        return exports
+    editable = [item for item in eligible if item.get('role') == 'editable_source']
+    return editable if len(editable) == 1 else []
 
 
 def main():

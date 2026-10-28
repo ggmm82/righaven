@@ -15,6 +15,7 @@ from .progress import JOB_ID, clean_summary, job_path, read_status, update, utcn
 from .work_results import failure_info, partial_files
 from .state import applications, atomic_json
 from .source_packages import digest
+from .handoff import product_files
 from .acceptance import contract, fingerprint
 from .project_skills import compact_acceptance, save_requests, read_document, scoped_file, validate_roles, compile_role, ROLE_ID, redact_memory
 from .project_brief import validate_outcome, briefing_issue, orientation
@@ -140,11 +141,11 @@ def delivery_summary(record):
     if not record:
         return None
     return {**{k: record.get(k) for k in ('id', 'title', 'purpose', 'technical_status', 'requirements', 'verified_products', 'source_status')},
-        **{k:record[k] for k in ('source_coverage','timing','finalization_pending','source_package_status','reused_archive_checks','early_delivery','quality_status') if record.get(k)},
+        **{k:record[k] for k in ('environment_checks','source_coverage','timing','finalization_pending','source_package_status','reused_archive_checks','early_delivery','quality_status') if record.get(k)},
         'historical_checks': [{k:clean_summary(c.get(k, '')) for k in ('name','status','evidence','scope','superseded_by')}
                               for c in record.get('historical_checks', [])[:8]],
         'issues': [clean_summary(s) for s in record.get('issues', [])[:8]],
-        'files': [{**{k: f.get(k) for k in ('path', 'sha256', 'role')},
+        'files': [{**{k: f.get(k) for k in ('path', 'sha256', 'role', 'primary')},
                    **{k: clean_summary(f.get(k, '')) for k in ('open_with', 'editability')},
                    'limitations': [clean_summary(s) for s in f.get('limitations', [])[:3]]}
                   for f in record.get('files', [])[:40]]}
@@ -444,7 +445,7 @@ def read_project(workspace):
 
 
 def create_plan(workspace, brief, steps, project_type='', omissions=None, *, summary='', next_action='',
-                status='', product_path='', requirements=None, outcome=None, strategy=None, source_turn=''):
+                status='', product_path='', requirements=None, outcome=None, strategy=None, source_turn='', require_settled=False):
     """Update an evolving brief and activity board, preserving work and versions."""
     if project_type not in ('', 'custom', 'animated_video'):
         raise ValueError('Tipo di progetto non valido')
@@ -544,6 +545,9 @@ def create_plan(workspace, brief, steps, project_type='', omissions=None, *, sum
             if value.get('status') == 'blocked' and value['strategy']['state'] != 'needs_user':
                 value['status'] = 'review'
         if status == 'ready':
+            if require_settled and (not (value.get('acceptance') or {}).get('user_requests') or any(
+                    step['status'] in ('pending','running','paused','needs_revision') for step in value['steps'])):
+                raise ValueError('Completamento automatico sospeso: richiesta o attività ancora da verificare')
             if value.get('outcome') and briefing_issue(value['outcome']):
                 raise ValueError('Rispondi prima alle domande sul risultato atteso')
             acceptance = value.get('acceptance') or {}
@@ -598,8 +602,26 @@ def create_plan(workspace, brief, steps, project_type='', omissions=None, *, sum
     return read_project(workspace)
 
 
+def reconcile_completion(workspace):
+    """Publish only through the same hash/contract/source gates as explicit completion."""
+    with locked(workspace) as folder:
+        value = load(folder, workspace)
+        if not value or value.get('status') in ('ready','clarifying') or not value.get('product_path'):
+            return False
+        if any(step['status'] in ('pending','running','paused','needs_revision') for step in value['steps']):
+            return False
+    try:
+        create_plan(workspace, '', [], status='ready', require_settled=True,
+            summary='Risultato verificato e consegnato.', next_action='Apri il risultato o richiedi una revisione.')
+    except ValueError:
+        return False
+    return True
+
+
 def mark_incomplete_turn(workspace):
     """Never leave an exhausted completion guard looking like task success."""
+    if reconcile_completion(workspace):
+        return
     with locked(workspace) as folder:
         value = load(folder, workspace)
         if not value or value.get('status') == 'ready':
@@ -828,7 +850,7 @@ def execute_step(workspace, agent, task, step_id, invoke, *, provider=None, purp
         if purpose == 'delivery' and result.get('ok') and not stale_contract and not newer_version:
             value['selected_version_number']=attempt.get('version_number',0)
             exports = result.get('verified_products') or [f['path'] for f in
-                (result.get('delivery_record') or {}).get('files', []) if f.get('role') == 'export']
+                product_files((result.get('delivery_record') or {}).get('files', []))]
             if exports:
                 value['product_path'] = exports[0]
             issues = (result.get('delivery_record') or {}).get('issues', [])
@@ -860,6 +882,8 @@ def execute_step(workspace, agent, task, step_id, invoke, *, provider=None, purp
         if (value.get('user_control') or {}).get('deliver_now'):
             value.update(summary='Consegna richiesta: file disponibili con i limiti registrati' if result.get('ok') else 'Chiusura richiesta: nessun nuovo prodotto verificato',next_action='Presenta i risultati disponibili e attendi nuove istruzioni dell’utente')
         atomic_json(folder / 'project.json', value)
+    if result.get('quality_review', {}).get('status') == 'passed' and not stale_contract and not newer_version:
+        reconcile_completion(workspace)
     if result.get('user_requested_delivery'):
         result['instruction']='L’utente ha chiesto la consegna: presenta file e limiti e fermati senza nuove deleghe.'
     result.update(activity={'id': sid, 'status': step['status']}, review_notes=notes)

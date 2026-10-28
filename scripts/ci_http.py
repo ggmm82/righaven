@@ -20,8 +20,12 @@ def request(path, payload=None, method=None):
             headers['X-CSRF-Token'] = cookie.value
     data = None if payload is None else json.dumps(payload).encode()
     req = urllib.request.Request(base + path, data=data, headers=headers, method=method)
-    with client.open(req, timeout=30) as response:
-        return response.read()
+    try:
+        with client.open(req, timeout=30) as response:
+            return response.read()
+    except urllib.error.HTTPError as error:
+        error.add_note(path + ': ' + error.read(2000).decode('utf-8', errors='replace'))
+        raise
 
 
 request('/api/v1/auth/initialize', {'email': 'harness-ci@example.com',
@@ -109,17 +113,41 @@ for attempt in range(60):
     time.sleep(2)
 assert status=='ready' and prepared['preloaded_tools']==['d2'],prepared['runtime']
 # Regression: a clean first boot never reads persisted AgentConfig preloads.
-# Restart with a real native agent + SOUL.md + ready software already stored.
+# Recreate the container: restart alone cannot detect an ephemeral SQLite database.
 from ci_environment_lifecycle import restart
 before_restart=prepared
-restart()
+identity_before=json.loads(request('/api/v1/auth/me'))['id']
+persistent_thread=json.loads(request('/api/threads',{'metadata':{'title':'Container recreation persistence'}}))['thread_id']
+persistent_message='This checkpoint must survive replacing the Gateway container.'
+request('/api/threads/'+persistent_thread+'/state',{'values':{'messages':[{'role':'user','content':persistent_message}]}})
+restart(recreate=True)
+assert json.loads(request('/api/v1/auth/me'))['id']==identity_before
+assert json.loads(request('/api/threads/'+persistent_thread))['metadata']['title']=='Container recreation persistence'
+recovered_state=json.loads(request('/api/threads/'+persistent_thread+'/state'))
+assert any(message.get('content')==persistent_message for message in recovered_state['values']['messages']),recovered_state
 restored=next(p for p in json.loads(request('/api/harness/environments'))['environments'] if p['name']=='ci-custom-environment')
 assert restored['runtime']['status']=='ready',restored
 assert restored['runtime']['id']==before_restart['runtime']['id'],restored
 assert restored['runtime']['image_id']==before_restart['runtime']['image_id'],restored
 assert restored['instructions']==definition['instructions'],restored
 assert restored['revision']==before_restart['revision'],restored
-print('Persisted preload restart OK: native AgentConfig instructions preserved, same ready Docker image reused, authenticated API available.')
+print('Persistent container recreation OK: native AgentConfig instructions preserved, same ready Docker image reused, authenticated API available.')
+def wait_for_terminal_cleanup(identifiers, timeout=20):
+    """DELETE acknowledges cancellation; finished confirms container/resource cleanup."""
+    pending=set(identifiers)
+    deadline=time.monotonic()+timeout
+    observed={}
+    while pending and time.monotonic()<deadline:
+        for identifier in list(pending):
+            status=json.loads(request('/api/harness/environments/terminals/'+identifier+'/status'))
+            observed[identifier]=status
+            if status['finished']:
+                assert not status.get('error'),status
+                pending.remove(identifier)
+        if pending:time.sleep(.1)
+    assert not pending, {'message':'Terminal resources were not released','sessions':observed}
+
+
 # Real interactive PTY through the authenticated proxy, not only browser fixtures.
 import base64
 terminal=json.loads(request('/api/harness/environments/ci-custom-environment/terminal',{},method='POST'))
@@ -136,11 +164,7 @@ try:
     print('Authenticated HTTP terminal OK: separate page/assets routed to frontend; actual PTY input/output and resize passed')
 finally:
     request(terminal_base,method='DELETE')
-    for _ in range(30):
-        state=json.loads(request(terminal_base+'/status'))
-        if state['finished']:break
-        time.sleep(.1)
-    assert state['finished'] and not state.get('error'),state
+    wait_for_terminal_cleanup([terminal['id']])
 
 # Per-window ownership and pending-start cancellation through real auth/CSRF.
 import uuid
@@ -158,6 +182,7 @@ try:
     assert not other['finished'] and not other['closing'],other
 finally:
     for value in owned:request('/api/harness/environments/terminals/'+value['id'],method='DELETE')
+    wait_for_terminal_cleanup([value['id'] for value in owned])
 late=uuid.uuid4().hex
 request('/api/harness/environments/terminal-clients/'+late+'/close',{},method='POST')
 try:request('/api/harness/environments/ci-custom-environment/terminal',{'client_id':late},method='POST')

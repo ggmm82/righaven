@@ -33,6 +33,20 @@ class EnvironmentInstallerTests(unittest.TestCase):
         self.file('docs/craft-cli',b'#!/bin/sh\nnot the app')
         with self.assertRaises(RuntimeError):select_binary(self.destination,'craft-cli')
 
+    def test_missing_release_is_not_misreported_as_a_native_verification_failure(self):
+        result=diagnosis('Installazione musescore v4.7.5 (amd64)\nurllib.error.HTTPError: HTTP Error 404: Not Found')
+        self.assertEqual(result['kind'],'release_missing')
+        self.assertEqual(result['tool'],'musescore')
+        self.assertIn('404',result['message'])
+
+    def test_official_musescore_asset_identity_is_not_rebranded(self):
+        import json
+        catalog=json.loads((Path(__file__).resolve().parents[1]/'versions.lock.json').read_text())
+        app=next(a for a in catalog['applications'] if a['id']=='musescore')
+        for asset in app['assets'].values():
+            self.assertTrue(asset['name'].startswith('MuseScore-Studio-'))
+            self.assertTrue(asset['url'].endswith('/'+asset['name']))
+
     def test_package_layout_failure_is_named_before_native_checks_start(self):
         result=diagnosis('Installazione photocraft v0.16.0 (amd64)\nRuntimeError: Atteso un eseguibile interno photocraft-cli, trovati [...]')
         self.assertEqual(result['tool'],'photocraft');self.assertEqual(result['kind'],'package_layout')

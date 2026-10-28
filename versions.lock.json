@@ -1057,7 +1057,7 @@
     },
     {
       "id": "musescore",
-      "name": "MuseScore RigHaven",
+      "name": "MuseScore Studio",
       "role": "Notazione e composizione musicale",
       "description": "Partiture, arrangiamenti e melodia esplicita; SoundCraft resta responsabile del mix.",
       "repository": "https://github.com/musescore/MuseScore",
@@ -1071,14 +1071,14 @@
       ],
       "assets": {
         "amd64": {
-          "name": "MuseScore-RigHaven-4.7.5.260831071-x86_64.AppImage",
-          "url": "https://github.com/musescore/MuseScore/releases/download/v4.7.5/MuseScore-RigHaven-4.7.5.260831071-x86_64.AppImage",
+          "name": "MuseScore-Studio-4.7.5.260831071-x86_64.AppImage",
+          "url": "https://github.com/musescore/MuseScore/releases/download/v4.7.5/MuseScore-Studio-4.7.5.260831071-x86_64.AppImage",
           "sha256": "a31b2da2dbcc2191bcc98beb7be5c15f2f517bedb3444def96fe3088b74d3a1e",
           "size_bytes": 194411000
         },
         "arm64": {
-          "name": "MuseScore-RigHaven-4.7.5.260831071-aarch64.AppImage",
-          "url": "https://github.com/musescore/MuseScore/releases/download/v4.7.5/MuseScore-RigHaven-4.7.5.260831071-aarch64.AppImage",
+          "name": "MuseScore-Studio-4.7.5.260831071-aarch64.AppImage",
+          "url": "https://github.com/musescore/MuseScore/releases/download/v4.7.5/MuseScore-Studio-4.7.5.260831071-aarch64.AppImage",
           "sha256": "034f0257fd21ed6b7d4863714dbf8e97cc86d454beb79aaa845a5ade3ff99e36",
           "size_bytes": 190441992
         }

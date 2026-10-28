@@ -99,7 +99,7 @@ def required_tools(explicit):
     return [tool for tool in closure(explicit) if tool!='playwright' or tool in explicit]
 
 
-def resolve_skills(user_id, names):
+def resolve_skills(user_id, names, *, strict=True):
     inventory = {s.name:s for s in skill_inventory(user_id)}
     if names is None:
         names = [s.name for s in inventory.values() if s.enabled]
@@ -117,12 +117,15 @@ def resolve_skills(user_id, names):
             disabled.append(name)
             continue
         required = skill_requirements(skill)
+        unavailable = [tool for tool in required if inventory.get('skill-'+tool) is None or not inventory['skill-'+tool].enabled]
+        if unavailable:
+            if strict:
+                raise ValueError('La skill '+name+' richiede uno strumento disabilitato: '+unavailable[0])
+            disabled.append(name)
+            continue
         for tool in required:
-            dependency = inventory.get('skill-'+tool)
-            if dependency is None or not dependency.enabled:
-                raise ValueError('La skill '+name+' richiede uno strumento disabilitato: '+tool)
             tools.add(tool)
-            extra.append(dependency.name)
+            extra.append(inventory['skill-'+tool].name)
     # Scope retains explicitly selected disabled skills, but cannot execute them.
     return {'skills':list(dict.fromkeys([*selected,*extra])), 'tools':sorted(tools), 'disabled':disabled}
 
@@ -143,9 +146,9 @@ def agent_instructions(user_id, agent):
 
 
 def profile(user_id, agent):
-    resolved = resolve_skills(user_id, agent.skills)
+    resolved = resolve_skills(user_id, agent.skills, strict=False)
     prefs = preferences(user_id).get(agent.name, {'mode':'on_demand','ephemeral':False})
-    identity = {'name':agent.name, 'purpose':agent.description, 'instructions':agent_instructions(user_id,agent), 'skills':resolved['skills']}
+    identity = {'name':agent.name, 'purpose':agent.description, 'instructions':agent_instructions(user_id,agent), 'skills':resolved['skills'], 'active_skills':[name for name in resolved['skills'] if name not in resolved['disabled']], 'active_tools':resolved['tools']}
     return {**identity, 'tools':resolved['tools'], 'disabled':resolved['disabled'],
             'display_name':agent.display_name or agent.name, 'deployment':prefs,
             'revision':hashlib.sha256(json.dumps(identity,sort_keys=True).encode()).hexdigest()}

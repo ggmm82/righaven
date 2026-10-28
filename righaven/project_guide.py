@@ -1,5 +1,6 @@
 """Version-bound project instructions from retained records, never a new LLM run."""
 import hashlib
+from .handoff import product_files
 import json
 from pathlib import Path
 import tempfile
@@ -67,7 +68,7 @@ def build(workspace, delivery_id=None):
             continue
         seen.add(public)
         relative = path.relative_to(directory).as_posix() if directory and path.is_relative_to(directory) else public.removeprefix('/mnt/user-data/outputs/')
-        files.append({'path': public, 'name': text(relative), 'role': text(item.get('role')),
+        files.append({'path': public, 'name': text(relative), 'role': text(item.get('role')), 'primary':item.get('primary'),
             'open_with': text(item.get('open_with')), 'editability': text(item.get('editability')),
             'limitations': strings(item.get('limitations')), 'sha256': item.get('sha256', ''),
             'bundle_path': 'File/' + relative, 'size_bytes': path.stat().st_size})
@@ -116,8 +117,8 @@ def build(workspace, delivery_id=None):
                     'selected': run is attempt, 'approach': text(source['approach']),
                     'steps': strings(source.get('steps'), 12), 'path': source_path})
         delivery = run.get('delivery_record') or {}
-        exports = tuple(sorted(f.get('sha256', '') for f in delivery.get('files', [])
-                               if f.get('role') == 'export' and f.get('sha256')))
+        exports = tuple(sorted(f.get('sha256', '') for f in product_files(delivery.get('files', []))
+                               if f.get('sha256')))
         change = 'not_recorded'
         if exports and purpose != 'review':
             change = 'identical_export' if exports == previous_exports else 'different_export'
@@ -144,7 +145,7 @@ def build(workspace, delivery_id=None):
                    'version': text(versions.get(c.get('tool'))), 'status': text(c.get('status'))}
                   for c in coverage.get('components', [])[:12] if isinstance(c, dict)]
     reports = []
-    export_hashes = {f['sha256'] for f in files if f['role'] == 'export' and f['sha256']}
+    export_hashes = {f['sha256'] for f in product_files(files) if f['sha256']}
     source_hashes = {f['sha256'] for f in files if f['role'] in ('editable_source', 'source_archive') and f['sha256']}
     for _, run in attempts:
         review = run.get('quality_review') or {}
@@ -161,7 +162,7 @@ def build(workspace, delivery_id=None):
     if omitted:
         history = history[:5] + history[-55:]
     purpose=attempt.get('context',{}).get('purpose','work')
-    exports=[f['path'] for f in files if f['role']=='export']
+    exports=[f['path'] for f in product_files(files)]
     primary=project.get('product_path') if project.get('product_path') in exports else next(iter(exports),None)
     package_status=record.get('source_package_status','not_verified')
     return {'schema_version': 1, 'project_id': project['id'], 'delivery_id': selected_id,

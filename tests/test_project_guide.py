@@ -51,6 +51,16 @@ class GuideTests(unittest.TestCase):
         projects.execute_step(self.root, 'workspace', 'Build usable result', identifier, lambda *a: json.dumps(result), purpose=purpose)
         return folder
 
+    def test_explicit_editable_primary_survives_guide_projection(self):
+        folder=self.production('source-product')
+        with projects.locked(self.root) as root:
+            value=projects.load(root,self.root)
+            for file in value['steps'][0]['attempts'][0]['delivery_record']['files']:
+                if file['role']=='editable_source':file['primary']=True
+            projects.atomic_json(root/'project.json',value)
+        guide=build(self.root,'source-product')
+        self.assertTrue(guide['delivery']['primary_path'].endswith('source.txt'))
+
     def test_sample_package_has_an_entrypoint_without_claiming_final_or_portable_sources(self):
         folder=self.production('sample',purpose='preview',source_package_status='incomplete',finalization_pending=['Linked media must be packaged'])
         guide=build(self.root,'sample')

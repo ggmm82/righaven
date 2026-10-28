@@ -29,6 +29,21 @@ class SkillCompositionTests(unittest.TestCase):
         projects.sync_project_context(self.root,[self.spec],skill_policy=self.policy)
         return projects.read_project(self.root)['roles'][0]
 
+    def test_environment_discovery_is_owner_scoped_and_cannot_expand_tool_authority(self):
+        from types import SimpleNamespace
+        from righaven.skill_composition import environment_inventory
+        agent=SimpleNamespace(name='prepared-documents')
+        native=SimpleNamespace(list_custom_agents=lambda **kwargs: [agent] if kwargs=={'user_id':'owner'} else [])
+        profile={'tools':['soundcraft','disabled-tool'], 'purpose':'Prepared purpose',
+                 'active_skills':['method-a','foreign-skill'], 'deployment':{'mode':'preload'}}
+        with patch.dict('sys.modules',{'righaven_core.config.agents_config':native}),patch('righaven.environments.profile',return_value=profile) as read:
+            result=environment_inventory({**self.policy,'user_id':'owner'})
+            self.assertEqual(result[0]['tools'],['soundcraft'])
+            self.assertEqual(result[0]['skills'],['method-a'])
+            read.assert_called_once_with('owner',agent)
+            self.assertEqual(environment_inventory({**self.policy,'user_id':'owner','allowed':[]}),[])
+        self.assertEqual(environment_inventory(self.policy),[])
+
     def test_method_only_role_needs_no_native_app_and_does_not_load_all_profile_skills(self):
         role=self.compile();self.assertEqual(role['tools'],[])
         self.assertEqual(execution_skills({'skills':['skill-workspace','skill-blender']},role,self.policy),['skill-workspace','method-a'])
