@@ -55,13 +55,19 @@ arbitrary community CLI tools remain under development.
 
 Both editions use the same core authentication and execution engine.
 `RIGHAVEN_EDITION=cloud` identifies a hosted deployment, not a completed SaaS
-service. Public Cloud onboarding, organization quotas, billing and per-tenant
-provider provisioning remain under development.
+service. The preview includes encrypted private API connections (DeepSeek and
+approved OpenAI-compatible endpoints), separate coordinator/team assignments,
+and transactional account job limits. Shared organizations, commercial plans,
+token billing and complete hosted journeys remain under development.
 
 The former preview's separate users, JWTs, simulated Google/GitHub login,
 password reset and custom encrypted vault have been removed.
 Authentication uses `/api/v1/auth` and configured native OIDC providers.
 No endpoint may reset a password merely from an email address.
+
+The workspace opens on an operational overview with tasks, projects and a toolbox.
+See [core boundary](docs/CORE-BOUNDARY.md) for removed demo/editorial components
+and [workspace guide](docs/WORKSPACE.md) for the user journey.
 
 ## Languages
 

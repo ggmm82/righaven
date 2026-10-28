@@ -2,7 +2,7 @@ import { cookies } from "next/headers";
 import { Toaster } from "sonner";
 
 import { QueryClientProvider } from "@/components/query-client-provider";
-import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { CommandPalette } from "@/components/workspace/command-palette";
 import { GatewayOfflineBanner } from "@/components/workspace/gateway-offline-banner";
 import { ModelLoadErrorBanner } from "@/components/workspace/model-load-error-banner";
@@ -39,6 +39,7 @@ export async function WorkspaceContent({
         <SidebarProvider className="h-screen" defaultOpen={initialSidebarOpen}>
           <WorkspaceSidebar />
           <SidebarInset className="min-w-0">
+            <div className="flex shrink-0 items-center gap-3 border-b px-4 py-2 md:hidden"><SidebarTrigger aria-label="Open navigation" /><span className="font-semibold">RigHaven</span></div>
             <GatewayOfflineBanner gatewayUnavailable={gatewayUnavailable} />
             <ModelLoadErrorBanner gatewayUnavailable={gatewayUnavailable} />
             {children}

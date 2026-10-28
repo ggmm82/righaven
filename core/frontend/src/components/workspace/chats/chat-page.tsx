@@ -1,5 +1,8 @@
 "use client";
 
+import { DelegateProgress } from "@/components/workspace/messages/delegate-progress";
+import { hasPendingDelegate } from "@/components/workspace/messages/delegate-progress-state";
+
 import { useQueryClient } from "@tanstack/react-query";
 import { Folder } from "lucide-react";
 import Link from "next/link";
@@ -479,7 +482,7 @@ export default function ChatPage() {
                   : "bg-background/80 z-30 shadow-xs backdrop-blur",
               )}
             >
-              {!isMock && <SidebarTrigger className="md:hidden" />}
+              
               <div className="flex min-w-0 flex-1 items-center gap-2 text-sm font-medium">
                 <ThreadTitle
                   threadId={threadId}
@@ -595,6 +598,7 @@ export default function ChatPage() {
                       : "max-w-(--container-width-md)",
                   )}
                 >
+                  {!isNewThread && !isMock && <DelegateProgress threadId={threadId} active={thread.isLoading} pending={thread.isLoading && hasPendingDelegate(thread.messages)} coordinatorError={!!thread.error} onPause={() => thread.stop()} onContinue={(message) => handleSubmit({ text: message ?? "Riprendi il progetto dal punto attuale. Considera le mie risposte e le scelte aperte sul risultato, conserva i file validi e procedi con la prossima attività utile.", files: [] })} />}
                   {(hasGoal || goalOutcome !== null || hasTodos) && (
                     <div
                       className={cn(

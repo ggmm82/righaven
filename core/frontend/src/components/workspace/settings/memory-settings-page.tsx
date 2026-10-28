@@ -499,8 +499,8 @@ export function MemorySettingsPage() {
   return (
     <>
       <SettingsSection
-        title={t.settings.memory.title}
-        description={t.settings.memory.description}
+        title="Memoria personale"
+        description="In questa versione l’apprendimento automatico e l’uso di questa memoria nelle risposte sono disattivati. Puoi conservare ed esportare annotazioni personali. La memoria dei progetti, le revisioni e le skills compilate sono conservate separatamente nei dati delle conversazioni: questa schermata vuota non indica che siano state perse."
       >
         {isLoading ? (
           <div className="text-muted-foreground text-sm">

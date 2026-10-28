@@ -57,7 +57,6 @@ import {
   type PromptInputMessage,
 } from "@/components/ai-elements/prompt-input";
 import { Button } from "@/components/ui/button";
-import { ConfettiButton } from "@/components/ui/confetti-button";
 import {
   Dialog,
   DialogContent,
@@ -3681,65 +3680,22 @@ function VoiceInputButton({
   );
 }
 
-function SuggestionList({
-  onSelectPlaceholder,
-}: {
-  onSelectPlaceholder: (newText: string) => void;
-}) {
-  const { t } = useI18n();
+function SuggestionList({ onSelectPlaceholder }: { onSelectPlaceholder: (text: string) => void }) {
+  const { locale } = useI18n();
   const { textInput } = usePromptInputController();
-  const handleSuggestionClick = useCallback(
-    (prompt: string | undefined) => {
-      if (!prompt) return;
-      textInput.setInput(prompt);
-      onSelectPlaceholder(prompt);
-    },
-    [textInput, onSelectPlaceholder],
-  );
-  return (
-    <Suggestions className="min-h-16 w-full max-w-full justify-center px-4 sm:w-fit sm:px-0">
-      <ConfettiButton
-        className="text-muted-foreground cursor-pointer rounded-full px-4 text-xs font-normal"
-        variant="outline"
-        size="sm"
-        onClick={() => handleSuggestionClick(t.inputBox.surpriseMePrompt)}
-      >
-        <SparklesIcon className="size-4" /> {t.inputBox.surpriseMe}
-      </ConfettiButton>
-      {t.inputBox.suggestions.map((suggestion) => (
-        <Suggestion
-          key={suggestion.suggestion}
-          icon={suggestion.icon}
-          suggestion={suggestion.suggestion}
-          onClick={() => handleSuggestionClick(suggestion.prompt)}
-        />
-      ))}
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Suggestion icon={PlusIcon} suggestion={t.common.create} />
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="start">
-          <DropdownMenuGroup>
-            {t.inputBox.suggestionsCreate.map((suggestion, index) =>
-              "type" in suggestion && suggestion.type === "separator" ? (
-                <DropdownMenuSeparator key={index} />
-              ) : (
-                !("type" in suggestion) && (
-                  <DropdownMenuItem
-                    key={suggestion.suggestion}
-                    onClick={() => handleSuggestionClick(suggestion.prompt)}
-                  >
-                    {suggestion.icon && <suggestion.icon className="size-4" />}
-                    {suggestion.suggestion}
-                  </DropdownMenuItem>
-                )
-              ),
-            )}
-          </DropdownMenuGroup>
-        </DropdownMenuContent>
-      </DropdownMenu>
-    </Suggestions>
-  );
+  const it = locale === "it-IT";
+  const options = it ? [
+    ["Definisci il risultato", "Voglio realizzare [risultato] per [destinatari]. La consegna deve essere [formato]. Prima di iniziare chiarisci con me i requisiti mancanti."],
+    ["Migliora un progetto", "Voglio migliorare [progetto o file allegato]. L’obiettivo è [miglioramento]. Conserva i sorgenti validi e verifica il cambiamento rispetto alla versione precedente."],
+    ["Valuta un’idea", "Aiutami a valutare [idea]. Il risultato che mi serve è [decisione o documento]. Chiarisci i vincoli e proponi un metodo proporzionato all’obiettivo."],
+  ] : [
+    ["Define an outcome", "I want to create [outcome] for [audience]. Delivery format: [format]. Clarify missing requirements with me before starting."],
+    ["Improve a project", "Improve [project or attached file]. The goal is [improvement]. Preserve valid sources and verify the change against the previous version."],
+    ["Explore an idea", "Help me evaluate [idea]. I need [decision or document]. Clarify constraints and propose a method proportionate to the goal."],
+  ];
+  return <Suggestions className="w-full max-w-full justify-center px-4">{options.map(([label,prompt]) =>
+    <Suggestion key={label} suggestion={label!} onClick={() => { textInput.setInput(prompt!); onSelectPlaceholder(prompt!); }} />
+  )}</Suggestions>;
 }
 
 function AddAttachmentsButton({

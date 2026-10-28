@@ -349,7 +349,7 @@ export function MessageList({
   className?: string;
   testId?: string;
   threadId: string;
-  thread: BaseStream<AgentThreadState>;
+  thread: BaseStream<AgentThreadState> & { harnessRunStartedAt?: number | null };
   paddingBottom?: number;
   tokenUsageInlineMode?: TokenUsageInlineMode;
   hasMoreHistory?: boolean;
@@ -489,22 +489,29 @@ export function MessageList({
   const browserView = useMaybeBrowserView();
   const pushBrowserFrame = browserView?.pushFrame;
   const messageCount = messages.length;
-  // The backend exposes no live start timestamp, so a mid-run mount measures
-  // from mount until authoritative persisted turn_duration replaces it.
+  // Reconnects use the persisted run clock, not the time this page mounted.
+  const serverStartTime = thread.harnessRunStartedAt ?? null;
   const [turnStartTime, setTurnStartTime] = useState<number | null>(() =>
-    thread.isLoading ? Date.now() : null,
+    thread.isLoading ? (serverStartTime ?? Date.now()) : null,
   );
   const turnStartTimeRef = useRef(turnStartTime);
   const [clientDurationsByGroupId, setClientDurationsByGroupId] = useState<
     ReadonlyMap<string, number>
   >(() => new Map());
   const prevIsLoading = useRef(thread.isLoading);
+  const timerThreadRef = useRef(threadId);
 
   useEffect(() => {
-    if (thread.isLoading && !prevIsLoading.current) {
-      const now = Date.now();
-      turnStartTimeRef.current = now;
-      setTurnStartTime(now);
+    if (timerThreadRef.current !== threadId) {
+      timerThreadRef.current = threadId;
+      turnStartTimeRef.current = null;
+    }
+    if (thread.isLoading) {
+      const start = serverStartTime ?? turnStartTimeRef.current ?? Date.now();
+      if (turnStartTimeRef.current !== start) {
+        turnStartTimeRef.current = start;
+        setTurnStartTime(start);
+      }
     } else if (!thread.isLoading && prevIsLoading.current) {
       const startTime = turnStartTimeRef.current;
       const lastAssistantGroup = [...groupedMessages]
@@ -526,7 +533,7 @@ export function MessageList({
       setTurnStartTime(null);
     }
     prevIsLoading.current = thread.isLoading;
-  }, [groupedMessages, thread.error, thread.isLoading, threadId]);
+  }, [groupedMessages, thread.error, thread.isLoading, threadId, serverStartTime]);
 
   useEffect(() => {
     // Only the primary chat surface drives the shared browser panel. The

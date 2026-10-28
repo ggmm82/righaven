@@ -43,6 +43,8 @@ jobs:
         with:
           python-version: '3.12'
       - run: pip install -r requirements-dev.txt
+      - name: Verify minimum core frontend imports
+        run: python scripts/check_core_imports.py
       - name: Use the canonical signed Ubuntu mirror on the CI runner
         run: |
           sudo python3 - <<'PYTHON'
@@ -393,6 +395,12 @@ jobs:
           cache-from: type=gha,scope=proxy
       - name: Boot full Compose with the checked runtime images
         run: bash scripts/ci_boot.sh
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: workspace-ui
+          path: reports/ui/
+          if-no-files-found: ignore
       - name: Prepare and seal the verified Hostinger Compose
         if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
         env:

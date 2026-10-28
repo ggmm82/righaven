@@ -17,9 +17,13 @@ RigHaven ships one authenticated application, not an embedded product showcase.
 - Nextra documentation compilation and unused animation dependencies.
 - Duplicate backend documentation and standalone development/migration scripts.
 - Development dependency groups and the unrelated Lark CLI from production images.
+- Always-installed IM-channel SDKs and alternative sandbox/memory SDKs. Operators
+  can opt into the `channels`, `aio`, `e2b` and `openviking` extras explicitly.
 
 Frontend dependencies are resolved in the committed lockfile. The Gateway installs
 only runtime dependencies plus configured extension groups and optional extras.
+The frontend production image uses Next.js standalone output, rather than copying
+the entire source tree and development node_modules into the final container.
 
 The engine still contains optional channel and sandbox adapters. They are not
 primary RigHaven UI surfaces. Removing their Python modules requires separating

@@ -20,6 +20,7 @@ import { fetch } from "../api/fetcher";
 import { getBackendBaseURL } from "../config";
 import { useI18n } from "../i18n/hooks";
 import { getMessageRunId } from "../messages/run-duration";
+import { getRunStartTime } from "../messages/run-start-time";
 import {
   hasContent,
   hasToolCalls,
@@ -2140,6 +2141,7 @@ export function useThreadStream({
     throttle: true,
     onCreated(meta) {
       submittedRunIdRef.current = meta.run_id;
+      void queryClient.invalidateQueries({ queryKey: ["thread", meta.thread_id], exact: true });
       handleStreamStart(meta.thread_id, meta.run_id);
       const now = new Date().toISOString();
       upsertThreadInSearchCache(queryClient, {
@@ -2765,6 +2767,7 @@ export function useThreadStream({
             // No streamSubgraphs: subtask progress arrives via root-namespace
             // custom events, while subgraph frames would leak a delegated
             // subagent's values/messages into the thread view (#4399).
+            onDisconnect: "continue",
             streamResumable: true,
             config: {
               recursion_limit: 1000,
@@ -2904,7 +2907,8 @@ export function useThreadStream({
           checkpoint: prepared.checkpoint,
           metadata: prepared.metadata,
           // No streamSubgraphs — same contract as the main submit path (#4399).
-          streamResumable: true,
+          onDisconnect: "continue",
+            streamResumable: true,
           config: {
             recursion_limit: 1000,
           },
@@ -3234,9 +3238,10 @@ export function useThreadStream({
   const mergedThread = {
     ...thread,
     stop: stopThread,
+    harnessRunStartedAt: getRunStartTime(runsQuery.data, submittedRunIdRef.current, currentViewThreadId),
     values: hasVisibleStreamState ? thread.values : EMPTY_THREAD_VALUES,
     messages: mergedMessages,
-  } as typeof thread;
+  } as typeof thread & { harnessRunStartedAt: number | null };
 
   return {
     thread: mergedThread,

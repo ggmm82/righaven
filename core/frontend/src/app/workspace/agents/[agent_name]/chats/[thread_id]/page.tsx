@@ -1,5 +1,8 @@
 "use client";
 
+import { DelegateProgress } from "@/components/workspace/messages/delegate-progress";
+import { hasPendingDelegate } from "@/components/workspace/messages/delegate-progress-state";
+
 import { BotIcon, PlusSquare } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -378,7 +381,7 @@ export default function AgentChatPage() {
                   : "bg-background/80 z-30 shadow-xs backdrop-blur",
               )}
             >
-              <SidebarTrigger className="md:hidden" />
+              
               {/* Agent badge */}
               <div className="flex min-w-0 shrink-0 items-center gap-1.5 rounded-md border px-2 py-1">
                 <BotIcon className="text-primary h-3.5 w-3.5" />
@@ -504,6 +507,7 @@ export default function AgentChatPage() {
                       : "max-w-(--container-width-md)",
                   )}
                 >
+                  {!isNewThread && !isMock && <DelegateProgress threadId={threadId} active={thread.isLoading} pending={thread.isLoading && hasPendingDelegate(thread.messages)} coordinatorError={!!thread.error} onPause={() => thread.stop()} onContinue={(message) => handleSubmit({ text: message ?? "Riprendi il progetto dal punto attuale. Considera le mie risposte e le scelte aperte sul risultato, conserva i file validi e procedi con la prossima attività utile.", files: [] })} />}
                   {(hasGoal || goalOutcome !== null || hasTodos) && (
                     <div
                       className={cn(

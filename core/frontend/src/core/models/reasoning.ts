@@ -118,7 +118,8 @@ export function getResolvedMode(
 ): InputMode {
   const { thinking } = getReasoningCapabilities(model);
   if (thinking === "unsupported") {
-    return "flash";
+    // Workflow modes do not require a provider-level thinking toggle.
+    return mode === "pro" || mode === "ultra" ? mode : "flash";
   }
   if (thinking === "required") {
     if (mode === "flash") {
