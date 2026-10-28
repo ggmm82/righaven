@@ -46,8 +46,13 @@ async def configure_provider(body: ProviderRequest, request: Request):
 def profiles(request: Request):
     current_user(request)
     from .tenant_profiles import profile
-    try: return {target: profile(target) for target in ('coordinator','squad')}
-    except ValueError: return {'coordinator':None,'squad':None}
+    selected = {}
+    for target in ('coordinator', 'squad'):
+        try:
+            selected[target] = profile(target)
+        except ValueError:
+            selected[target] = None
+    return selected
 
 @router.get('/limits')
 def limits(request: Request):

@@ -74,7 +74,10 @@ def profile(target):
     if not path.exists():
         raise ValueError('Configure your private model connection before starting a hosted job')
     profiles = json.loads(path.read_text())
-    return profiles.get(target) or profiles.get('coordinator')
+    selected = profiles.get(target) or profiles.get('coordinator')
+    if selected is None:
+        raise ValueError('Configure your private coordinator model before starting a hosted job')
+    return selected
 
 
 def save(engine, model, api_key, *, scope='both', base_url=None):

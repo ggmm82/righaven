@@ -18,6 +18,14 @@ class TenantProfilesTests(unittest.TestCase):
                   patch.dict(os.environ,{'RIGHAVEN_CREDENTIALS_KEY':Fernet.generate_key().decode()})):
             p.start();self.addCleanup(p.stop)
 
+    def test_team_only_configuration_never_falls_back_to_an_operator_coordinator(self):
+        tenants.save('deepseek','deepseek-chat','team-only-secret',scope='squad')
+        self.assertEqual(tenants.profile('squad')['model'],'deepseek-chat')
+        with self.assertRaisesRegex(ValueError,'private coordinator'):
+            tenants.profile('coordinator')
+        with self.assertRaisesRegex(ValueError,'private coordinator'):
+            state.team('coordinator')
+
     def test_private_profiles_and_encrypted_keys_do_not_fall_back_to_another_account(self):
         tenants.save('deepseek','deepseek-chat','alice-secret-api-key')
         alice=state.credential_dir('deepseek')/'api.json'
