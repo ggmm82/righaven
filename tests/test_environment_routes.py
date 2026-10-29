@@ -140,7 +140,7 @@ class EnvironmentRouteTests(unittest.TestCase):
                 return {'runtime':{'status':'ready' if agent.name=='ready' else 'on_demand','id':'a'*64},'selected_versions':{'d2':'latest'}}
             with patch.object(state,'STATE',root/'state'),patch('righaven_core.config.paths.get_paths',return_value=SimpleNamespace(base_dir=root)),patch('righaven_core.config.agents_config.load_agent_config',side_effect=lambda name,**kw:SimpleNamespace(name=name)),patch.object(routes.runtimes,'enabled',return_value=True),patch.object(routes.runtimes,'reconcile'),patch.object(routes.runtimes,'STOPPING',threading.Event()),patch.object(environment_transfers,'recover'),patch.object(tool_versions,'recover_jobs'),patch.object(routes.profiles,'preferences',return_value={'ready':{'mode':'preload'},'missing':{'mode':'preload'},'on-demand':{'mode':'on_demand'}}),patch.object(routes,'summary',side_effect=current),patch.object(routes,'schedule') as schedule:
                 routes.preload_startup()
-                schedule.assert_called_once_with('owner','missing',refresh_versions=False)
+                schedule.assert_called_once_with('owner','missing',refresh_versions=False,trigger='startup')
                 self.assertEqual(routes.preparation.read('owner','ready')['phase'],'ready')
 
     def test_owner_identity_is_forwarded_to_native_agent_listing(self):
@@ -340,5 +340,5 @@ class EnvironmentRouteTests(unittest.TestCase):
             preferences={'docs':{'mode':'preload'},'fixed':{'mode':'preload','tool_versions':{'d2':'builtin'}},'later':{'mode':'on_demand'}}
             with patch('righaven_core.config.paths.get_paths',return_value=SimpleNamespace(base_dir=root)),patch('righaven_core.config.agents_config.load_agent_config',return_value=SimpleNamespace(skills=['skill-d2'])),patch.object(routes.profiles,'preferences',return_value=preferences),patch.object(routes.profiles,'resolve_skills',return_value={'tools':['d2']}),patch.object(state,'team',return_value={'engine':'deepseek'}),patch.object(routes,'schedule') as schedule:
                 self.assertEqual(routes.schedule_affected('d2'),1)
-                schedule.assert_called_once_with('owner','docs',reschedule=True)
+                schedule.assert_called_once_with('owner','docs',reschedule=True,trigger='version_change',trigger_tool='d2')
                 schedule.reset_mock();self.assertEqual(routes.schedule_affected('calibre'),0);schedule.assert_not_called()
