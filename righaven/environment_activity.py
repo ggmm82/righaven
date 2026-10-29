@@ -44,6 +44,7 @@ def collect(user):
         jobs.append({'thread_id':thread,'job_id':name,'environment_id':(status.get('environment') or {}).get('id'),
             'profile':status.get('environment_profile',''),'role':status['role_title'] or status['agent'],'summary':status['work_summary'] or status['summary'],
             'tools':(status.get('environment') or {}).get('assigned_tools') or (status.get('environment') or {}).get('tools') or [],
+            'versions':(status.get('environment') or {}).get('versions') or {},
             'phase':status['phase'],'observed_running':running,'heartbeat_at':status['heartbeat_at'],
             'last_activity_at':status['last_activity_at'],'cleanup':status['phase'] in TERMINAL})
     from .environment_terminal import SESSIONS

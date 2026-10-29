@@ -66,8 +66,23 @@ def summary(user,agent,identity=None,cache=None):
         if previous and set(target).issubset(previous.get('tools',[])) and runtimes.image_exists(previous):
             value['runtime']={**previous,'update_available':True,'requested_id':value['runtime']['id']}
     current=not stored or stored.get('selection',{})==value.get('selected_versions',{})
-    status=preparation.snapshot(user,agent.name,value['runtime'],active) if current or active else None
+    status=preparation.snapshot(user,agent.name,value['runtime'],active)
     if status:status['pending_changes']=not current
+    if stored and not current:
+        old=stored.get('selection',{});new=value.get('selected_versions',{})
+        providers={'provider-agy':'Antigravity','provider-codex':'Codex','provider-claude':'Claude Code'}
+        before=[providers[k] for k in providers if k in old]
+        after=[providers[k] for k in providers if k in new]
+        provider_changed=before!=after
+        previous=runtimes.read(retained) if retained else None
+        preserved=bool(previous and runtimes.image_exists(previous,cache))
+        message=('Il motore della squadra è cambiato: '+(', '.join(before) or 'CLI inclusa')+' → '+(', '.join(after) or 'CLI inclusa')+'.' if provider_changed else 'Le versioni selezionate per questo ambiente sono cambiate.')
+        message+=(' La variante precedente è ancora conservata.' if preserved else 'Il registro precedente è conservato; la sua immagine non risulta disponibile.')
+        value['configuration_change']={'code':'provider_changed' if provider_changed else 'selection_changed','message':message,'previous_available':preserved,'previous_providers':before,'requested_providers':after}
+        if previous and preserved:value['previous_runtime']={k:previous[k] for k in ('id','tools','version_names','installed_versions') if k in previous}
+        if status and not active:
+            status.update(phase='configuration_changed',label='Configurazione da aggiornare',active=False,historical=True)
+        if value['runtime']['status']!='ready' and not active:value['runtime']['preparation_reason']=value['configuration_change']
     if status:
         # During release verification there is no final image ID yet. Never hide
         # this work behind a generic "version pending" state.
@@ -408,9 +423,11 @@ async def preparation_log(name:str,request:Request):
     value=await checked_summary(get_effective_user_id(),agent)
     user=get_effective_user_id();record=preparation.read(user,name)
     key=record.get('environment_id') or value['runtime'].get('id')
-    since=record.get('started_at') if value.get('preparation',{}).get('active') else None
+    since=record.get('started_at') if (value.get('preparation') or {}).get('active') else None
     detail=await run_in_threadpool(runtimes.preparation_text,key,since=since) if key else ''
     observation=await run_in_threadpool(runtimes.preparation_observation,key,since=since)
+    if value.get('configuration_change') and not (value.get('preparation') or {}).get('active'):
+        observation={**observation,'phase':'configuration_changed','historical':True,'recent_output':'','waiting_on':None}
     if record.get('phase') in ('resolving_versions','checking_versions') and not record.get('environment_id'):
         observation['phase']='resolving_versions' if record.get('version_state')=='resolving' and record.get('version_operation')!='queued' else 'queued'
         if observation['phase']!='queued':observation.pop('waiting_on',None)

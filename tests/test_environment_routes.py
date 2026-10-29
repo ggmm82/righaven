@@ -34,6 +34,34 @@ class EnvironmentRouteTests(unittest.TestCase):
         self.assertTrue(result['runtime']['update_available'])
         self.assertEqual(result['runtime']['requested_id'],'b'*64)
 
+    def test_provider_change_keeps_preparation_history_without_claiming_new_runtime_ready(self):
+        for image_present in (True,False):
+            with self.subTest(image_present=image_present):
+                agent=SimpleNamespace(name='docs')
+                profile={'name':'docs','tools':['d2'],'deployment':{'mode':'preload'}}
+                old={'id':'a'*64,'status':'ready','tools':['d2'],'version_names':{'provider-agy':'1.4.10'}}
+                selected={'provider-codex':'latest'}
+                with patch.object(routes.profiles,'profile',return_value=profile), \
+                     patch.object(routes.profiles,'preloaded_tools',return_value=['d2']), \
+                     patch.object(routes.runtimes,'enabled',return_value=True), \
+                     patch('righaven.tool_versions.selections',return_value=selected), \
+                     patch('righaven.tool_versions.resolved',return_value={}), \
+                     patch('righaven.state.team',return_value={'engine':'codex'}), \
+                     patch.object(routes.runtimes,'available',return_value={'id':'b'*64,'status':'on_demand','tools':['d2']}), \
+                     patch.object(routes.preparation,'read',return_value={'ready_id':'a'*64,'selection':{'provider-agy':'latest'}}), \
+                     patch.object(routes.runtimes,'read',return_value=old), \
+                     patch.object(routes.runtimes,'image_exists',return_value=image_present), \
+                     patch.object(routes.preparation,'snapshot',return_value={'phase':'ready','label':'Pronto','active':False}):
+                    result=routes.summary('owner',agent)
+                self.assertEqual(result['runtime']['status'],'on_demand')
+                self.assertEqual(result['configuration_change']['code'],'provider_changed')
+                self.assertEqual(result['configuration_change']['previous_available'],image_present)
+                self.assertEqual(result['configuration_change']['previous_providers'],['Antigravity'])
+                self.assertEqual(result['configuration_change']['requested_providers'],['Codex'])
+                self.assertEqual(result['preparation']['phase'],'configuration_changed')
+                self.assertTrue(result['preparation']['historical'])
+                self.assertEqual('previous_runtime' in result,image_present)
+
     def test_native_config_loads_owner_scoped_soul_without_assuming_http_response_fields(self):
         from righaven_core.config.agents_config import AgentConfig
         config=AgentConfig(name='preloaded',description='Purpose',skills=[])

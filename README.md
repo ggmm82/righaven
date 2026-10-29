@@ -37,14 +37,21 @@ the objective. See [optional environments](docs/OPTIONAL-ENVIRONMENTS.md).
 
 ### Prepare an environment for recurring work
 
-Open **Environments**, choose a preset or create a custom configuration, describe
-its purpose, and select the relevant skills. Keep occasional tools **on demand**,
+Open **Environments → Add environment** to start from a Gallery pack, a starter
+template, or a blank configuration. Describe its purpose and select its skills.
+Gallery packs and templates are starting points, not already running machines. Keep occasional tools **on demand**,
 or preload selected programs for repeated use. Preparation runs native workflow
 checks before reporting programs ready.
 
 You can edit or clone a configuration and select verified program versions,
 including `latest` for the compatible stable release. A new version may require a
 new software variant; preparation details explain the trigger and observed change.
+The page separates available profiles, configuration updates, first-use preparation,
+and failed checks. Active temporary environments assembled for a chat appear
+separately with their tools and a link to the assignment, even without a saved
+profile. Changing the team model provider explains the new runtime requirement
+and retains the previous preparation history.
+
 The terminal is a disposable inspection session: shell edits do not automatically
 update the prepared image or its reproducible recipe.
 

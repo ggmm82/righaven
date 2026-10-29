@@ -33,6 +33,7 @@ function GalleryContent() {
   const { locale, t } = useI18n();
   const [packs, setPacks] = useState<GalleryPack[]>([]);
   const [category, setCategory] = useState<string>("");
+  useEffect(()=>{const value=new URLSearchParams(location.search).get("category");if(value&&["environment","cli-tool","skill"].includes(value))setCategory(value);},[]);
   const [query, setQuery] = useState<string>("");
   const [statusMessage, setStatusMessage] = useState<string>("");
   const [selectedPack, setSelectedPack] = useState<GalleryPack | null>(null);
