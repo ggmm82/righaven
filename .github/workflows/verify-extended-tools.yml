@@ -3,6 +3,11 @@ on:
   pull_request:
     paths:
       - 'scripts/extended_*'
+      - 'scripts/data_*'
+      - 'scripts/claude.lock.json'
+      - 'scripts/check_claude_runtime.py'
+      - 'scripts/apply_tool_versions.py'
+      - 'scripts/acceptance_data.py'
       - 'scripts/acceptance_extended.py'
       - 'scripts/install_extended.py'
       - 'config/toolkit/**'
@@ -22,6 +27,12 @@ jobs:
       max-parallel: 4
       matrix:
         include:
+          - environment: claude-code
+            tools: ""
+          - environment: data-connectors
+            tools: usql sqlglot schemacrawler dlt
+          - environment: data-modeling
+            tools: sqlmesh
           - environment: data
             tools: duckdb jupyter quarto
           - environment: documents
@@ -55,7 +66,11 @@ jobs:
           SELECTED_TOOLS: ${{ matrix.tools }}
         run: |
           python -m pip install PyYAML==6.0.3
-          python scripts/check_environment_runtime.py --tools $SELECTED_TOOLS --verification-dependencies
+          if [ "${{ matrix.environment }}" = "claude-code" ]; then
+            python scripts/check_claude_runtime.py
+          else
+            python scripts/check_environment_runtime.py --tools $SELECTED_TOOLS --verification-dependencies
+          fi
       - name: Preserve failure diagnostics
         if: failure()
         run: docker ps -a && docker images

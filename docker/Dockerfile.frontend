@@ -25,14 +25,17 @@ WORKDIR /app
 COPY core/frontend ./frontend
 COPY frontend/locales ./frontend/src/app/workspace/locales
 COPY frontend/i18n.tsx ./frontend/src/app/workspace/i18n.tsx
+COPY frontend/maintenance-page.tsx ./frontend/src/app/workspace/maintenance/page.tsx
 COPY frontend/harness-page.tsx ./frontend/src/app/workspace/harness/page.tsx
 COPY frontend/gallery-feedback.tsx ./frontend/src/app/workspace/gallery/gallery-feedback.tsx
+COPY frontend/environment-inventory.tsx ./frontend/src/app/workspace/environments/environment-inventory.tsx
 COPY frontend/environment-lifecycle.tsx ./frontend/src/app/workspace/environments/environment-lifecycle.tsx
 COPY frontend/gallery-page.tsx ./frontend/src/app/workspace/gallery/page.tsx
 COPY frontend/cloud-portal-page.tsx ./frontend/src/app/workspace/cloud/page.tsx
 COPY frontend/environments-page.tsx ./frontend/src/app/workspace/environments/page.tsx
 COPY frontend/tool-versions.tsx ./frontend/src/app/workspace/environments/tool-versions.tsx
 COPY frontend/environment-terminal-page.tsx ./frontend/src/app/terminal/page.tsx
+COPY frontend/skill-instructions.tsx ./frontend/src/components/workspace/capabilities/skill-instructions.tsx
 COPY frontend/team-onboarding.tsx ./frontend/src/components/workspace/team-onboarding.tsx
 COPY frontend/model-settings-page.tsx ./frontend/src/components/workspace/settings/model-settings-page.tsx
 COPY frontend/run-start-time.ts ./frontend/src/core/messages/run-start-time.ts

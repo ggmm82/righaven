@@ -9,7 +9,7 @@ gets an isolated working area; other roles consume deliberately published
 contributions. Prepared software can be reused without sharing private project
 files or reusing a previous assignment's writable workspace.
 
-The managed catalog contains **57 tools** for documents, graphics, audio/video,
+The managed catalog contains **62 tools** for documents, graphics, audio/video,
 CAD, diagrams, data analysis, PDF/OCR checks, GIS, software testing, security,
 simulation, electronics and print preparation. Skills describe methods and tool
 expertise; environments combine software capabilities; roles are composed for
@@ -21,7 +21,7 @@ the objective. See [optional environments](docs/OPTIONAL-ENVIRONMENTS.md).
    administrator has enabled registration. The initial setup creates the first
    administrator; later registrations create ordinary users.
 2. In Community installations, the administrator connects the AI providers under
-   **Models & resources**. OpenAI Codex, Antigravity CLI, DeepSeek and custom
+   **Models & resources**. OpenAI Codex, Antigravity CLI, Claude Code CLI, DeepSeek and custom
    OpenAI-compatible endpoints are supported. Choose models for the coordinator,
    the executing team or both. Ordinary users use the configured shared service.
 3. Select **New task**. Describe the result, audience, delivery format, references
@@ -101,6 +101,56 @@ capacity and trusted software-image imports. Users can manage their own tasks
 and environments, export configuration or prepared software, and propose reusable
 Gallery content. Software-image import and registry administration require an
 administrator. Software reuse does not publish another user's files or lessons.
+
+## Account administration, instructions and reset
+
+Administrators use **User administration** to create accounts with a temporary
+password, assign configured roles, suspend or reactivate access, reset passwords,
+and revoke existing login sessions. The last active administrator is protected.
+Changing SSO passwords remains the identity provider's responsibility.
+
+**Tools & skills → select a skill → Full instructions** shows the actual Markdown
+and reference files. Saving validates and scans the content and creates a
+personal copy, retaining references and the enabled/disabled state. Other users'
+instructions remain unchanged. New assignments load the copy without reinstalling
+software. Write purpose, procedure, editable deliverables and observable checks;
+do not put credentials in skill text. Restore shipped instructions through
+**Maintenance & reset**.
+
+**Environments → Manage** separates **Programs & versions** from **Skills &
+instructions**. Installed versions come from the prepared software manifest;
+requested versions and available updates are shown separately. Older images may
+need **Detect installed versions**, which reads their manifest without installing
+software. A skill is an instruction package, not an installed program. The
+advanced native profile editor edits the same environment configurations; it is
+not another team. Project roles remain dynamic.
+
+**Maintenance & reset** lets you select one item or a category: conversations and
+project files, environment profiles, personal skill overrides, or version choices.
+Administrators can also reset shared model assignments and global version choices.
+A preview lists affected items and requires its exact typed confirmation. Tokens
+expire after ten minutes and are single-use; changed targets require a new
+preview. Active work must finish first. Accounts, provider credentials and shared
+software images are retained. Export project files before deleting conversations.
+
+## Data engineering
+
+Choose **Environments → Examples → Data Engineering**, or activate **Data
+Engineering Rig** from the Gallery. Prepare only the tools needed for the task:
+
+| Need | Capability |
+| --- | --- |
+| Multi-database queries | usql; private, authorized read-only connections |
+| Reverse engineering | SchemaCrawler JDBC metadata; declared keys and constraints |
+| Extraction and discovery | dlt with SQLAlchemy/MongoDB; bounded snapshots and reconciliation |
+| SQL dialects and lineage | SQLGlot using actual SQL and optional observed schema |
+| Tested transformations | SQLMesh in an isolated local DuckDB project |
+| Python exploration | Jupyter notebooks and DuckDB |
+| Interactive or paginated reports | Quarto HTML and Typst PDF, retaining editable sources |
+
+See [data engineering guide](docs/DATA-ENGINEERING.md) for connection setup,
+workflow, source delivery and verification limits. Driver availability does not
+certify an untested remote connection; inferred relationships are hypotheses.
 
 ## Gallery and portability
 

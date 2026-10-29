@@ -46,7 +46,11 @@
     "acceptance_extended.py": "scripts/acceptance_extended.py",
     "install_extended.py": "scripts/install_extended.py",
     "install_righaven.py": "scripts/install_righaven.py",
-    "install_system_packages.py": "scripts/install_system_packages.py"
+    "install_system_packages.py": "scripts/install_system_packages.py",
+    "data_specs.py": "scripts/data_specs.py",
+    "data_tools.py": "scripts/data_tools.py",
+    "data_job.py": "scripts/data_job.py",
+    "acceptance_data.py": "scripts/acceptance_data.py"
   },
   "righaven-worker": {
     "run_agent.py": "righaven/run_agent.py",
@@ -72,6 +76,7 @@
     "revision.py": "righaven/revision.py",
     "component_sources.py": "righaven/component_sources.py",
     "timing.py": "righaven/timing.py",
-    "early_delivery.py": "righaven/early_delivery.py"
+    "early_delivery.py": "righaven/early_delivery.py",
+    "claude_cli.py": "righaven/claude_cli.py"
   }
 }

@@ -21,6 +21,12 @@ def main():
                             '--print-timeout', '--dangerously-skip-permissions']),
         (['agy', 'models', '--help'], ['List available models']),
     ]
+    import shutil
+    if shutil.which('claude'):
+        expected=json.loads((Path('/opt/righaven/catalog.lock.json') if Path('/opt/righaven/catalog.lock.json').exists() else lock).read_text()).get('cli_runtimes',{}).get('claude')
+        contracts += [(['claude','--version'],[expected] if expected else []),
+            (['claude','--help'],['--print','--output-format','--json-schema','--strict-mcp-config','--setting-sources','--no-session-persistence','--allowedTools']),
+            (['claude','auth','login','--help'],['login'])]
     for command, expected in contracts:
         result = subprocess.run(command, check=True, capture_output=True, text=True, timeout=90)
         text = result.stdout + result.stderr

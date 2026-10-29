@@ -1,8 +1,51 @@
 {
   "schema_version": "1.0.0",
   "hub_name": "RigHaven Hub",
-  "total_packs": 113,
+  "total_packs": 119,
   "packs": [
+    {
+      "id": "env-data-engineering-rig",
+      "name": "Data Engineering Rig",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "environment",
+      "tags": [
+        "data-engineering",
+        "sql",
+        "notebooks",
+        "lineage",
+        "reports"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "usql",
+        "schemacrawler",
+        "dlt",
+        "sqlglot",
+        "sqlmesh",
+        "duckdb",
+        "jupyter",
+        "quarto",
+        "typst"
+      ],
+      "skills": [
+        "skill-quality-review"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Data Engineering Rig",
+          "description": "Authorized database discovery, schema reverse engineering, SQL lineage, reproducible transformations, Python notebooks and interactive or paginated reports."
+        },
+        "it": {
+          "title": "Ambiente Data Engineering",
+          "description": "Esplorazione autorizzata dei database, reverse engineering dello schema, lineage SQL, trasformazioni riproducibili, notebook Python e report interattivi o impaginati."
+        }
+      },
+      "skill_prompt_template": "Start with the analytical question, authorized source systems, grain, snapshot and expected deliverables. Use read-only source accounts; retain declared constraints separately from inferred relationships. Reconcile representative known totals before reporting. Choose only tools needed by this project; credentials never enter published instructions or editable sources.",
+      "verification_command": "craft capabilities dlt && craft capabilities sqlglot && craft capabilities quarto"
+    },
     {
       "id": "env-architecture-modeling-rig",
       "name": "Architecture & Modeling Rig",
@@ -6906,6 +6949,171 @@
           "$RIGHAVEN_OUTPUT_DIR"
         ]
       }
+    },
+    {
+      "id": "tool-usql",
+      "name": "usql",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "tool",
+      "tags": [
+        "data-engineering",
+        "database",
+        "usql"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "usql"
+      ],
+      "skills": [
+        "skill-usql"
+      ],
+      "i18n": {
+        "en": {
+          "title": "usql",
+          "description": "Read authorized databases through one native SQL shell; discover available drivers and retain read-only queries."
+        },
+        "it": {
+          "title": "usql",
+          "description": "Read authorized databases through one native SQL shell; discover available drivers and retain read-only queries."
+        }
+      },
+      "skill_prompt_template": "Use skill-usql; inspect craft capabilities usql. Preserve editable sources and validate actual data; never include credentials in deliverables.",
+      "verification_command": "craft capabilities usql"
+    },
+    {
+      "id": "tool-schemacrawler",
+      "name": "SchemaCrawler",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "tool",
+      "tags": [
+        "data-engineering",
+        "database",
+        "schemacrawler"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "schemacrawler"
+      ],
+      "skills": [
+        "skill-schemacrawler"
+      ],
+      "i18n": {
+        "en": {
+          "title": "SchemaCrawler",
+          "description": "Inspect schema, declared keys, constraints, metadata, lint and relationship diagrams with real JDBC metadata."
+        },
+        "it": {
+          "title": "SchemaCrawler",
+          "description": "Inspect schema, declared keys, constraints, metadata, lint and relationship diagrams with real JDBC metadata."
+        }
+      },
+      "skill_prompt_template": "Use skill-schemacrawler; inspect craft capabilities schemacrawler. Preserve editable sources and validate actual data; never include credentials in deliverables.",
+      "verification_command": "craft capabilities schemacrawler"
+    },
+    {
+      "id": "tool-dlt",
+      "name": "dlt",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "tool",
+      "tags": [
+        "data-engineering",
+        "database",
+        "dlt"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "dlt"
+      ],
+      "skills": [
+        "skill-dlt"
+      ],
+      "i18n": {
+        "en": {
+          "title": "dlt",
+          "description": "Extract and reconcile SQL, document and file sources into isolated analytical datasets, retaining a reproducible Python pipeline."
+        },
+        "it": {
+          "title": "dlt",
+          "description": "Extract and reconcile SQL, document and file sources into isolated analytical datasets, retaining a reproducible Python pipeline."
+        }
+      },
+      "skill_prompt_template": "Use skill-dlt; inspect craft capabilities dlt. Preserve editable sources and validate actual data; never include credentials in deliverables.",
+      "verification_command": "craft capabilities dlt"
+    },
+    {
+      "id": "tool-sqlmesh",
+      "name": "SQLMesh",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "tool",
+      "tags": [
+        "data-engineering",
+        "database",
+        "sqlmesh"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "sqlmesh"
+      ],
+      "skills": [
+        "skill-sqlmesh"
+      ],
+      "i18n": {
+        "en": {
+          "title": "SQLMesh",
+          "description": "Plan and test local analytical transformations, preserve models, audits, Python and SQL sources and dependencies."
+        },
+        "it": {
+          "title": "SQLMesh",
+          "description": "Plan and test local analytical transformations, preserve models, audits, Python and SQL sources and dependencies."
+        }
+      },
+      "skill_prompt_template": "Use skill-sqlmesh; inspect craft capabilities sqlmesh. Preserve editable sources and validate actual data; never include credentials in deliverables.",
+      "verification_command": "craft capabilities sqlmesh"
+    },
+    {
+      "id": "tool-sqlglot",
+      "name": "SQLGlot",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "tool",
+      "tags": [
+        "data-engineering",
+        "database",
+        "sqlglot"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "sqlglot"
+      ],
+      "skills": [
+        "skill-sqlglot"
+      ],
+      "i18n": {
+        "en": {
+          "title": "SQLGlot",
+          "description": "Parse SQL and derive table/column lineage from actual expressions and supplied schemas without executing queries."
+        },
+        "it": {
+          "title": "SQLGlot",
+          "description": "Parse SQL and derive table/column lineage from actual expressions and supplied schemas without executing queries."
+        }
+      },
+      "skill_prompt_template": "Use skill-sqlglot; inspect craft capabilities sqlglot. Preserve editable sources and validate actual data; never include credentials in deliverables.",
+      "verification_command": "craft capabilities sqlglot"
     }
   ]
 }

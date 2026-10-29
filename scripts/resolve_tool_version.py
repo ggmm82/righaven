@@ -12,7 +12,7 @@ import urllib.request
 
 ROOT=Path('/opt/righaven')
 NPM={'playwright':'@playwright/test','mermaid':'@mermaid-js/mermaid-cli','excalidraw':'@excalidraw/excalidraw','bpmn':'bpmn-to-image','provider-codex':'@openai/codex','axe-core':'@axe-core/playwright'}
-PYPI={'ifcopenshell':'ifcopenshell','manim':'manim','opentimelineio':'opentimelineio','pymeshlab':'pymeshlab','schemathesis':'schemathesis'}
+PYPI={'dlt':'dlt','sqlmesh':'sqlmesh','sqlglot':'sqlglot','ifcopenshell':'ifcopenshell','manim':'manim','opentimelineio':'opentimelineio','pymeshlab':'pymeshlab','schemathesis':'schemathesis'}
 
 
 def fetch(url,path):
@@ -46,7 +46,9 @@ def resolve(spec):
         with tempfile.TemporaryDirectory() as directory:
             folder=Path(directory);venv=folder/'venv';subprocess.run([sys.executable,'-m','venv',str(venv)],check=True)
             report=folder/'report.json'
-            subprocess.run([str(venv/'bin/python'),'-m','pip','install','--dry-run','--ignore-installed','--report',str(report),PYPI[tool]+'=='+version],check=True,timeout=1200)
+            requirements=[PYPI[tool]+'=='+version]
+            if tool=='dlt':requirements=['dlt[duckdb,sql_database]=='+version,'sqlglot','psycopg[binary]','pymysql','pymongo','pymssql']
+            subprocess.run([str(venv/'bin/python'),'-m','pip','install','--dry-run','--ignore-installed','--report',str(report),*requirements],check=True,timeout=1200)
             rows=json.loads(report.read_text())['install'];lines=[]
             for row in rows:
                 name=row['metadata']['name'];resolved=row['metadata']['version'];info=row['download_info'];url=info['url']

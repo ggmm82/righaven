@@ -22,7 +22,7 @@ COPY config/tool-capabilities.json /opt/righaven/tool-capabilities.json
 RUN ln -s /opt/righaven/craft.py /usr/local/bin/craft \
     && ln -s /opt/righaven/blender_cli.py /usr/local/bin/blender-cli \
     && ln -s /opt/righaven/calibre_cli.py /usr/local/bin/calibre-cli \
-    && for app in playwright aubio fluidsynth epubcheck pandoc typst freecad whisper-cpp ffmpeg musescore ifcopenshell manim opentimelineio pymeshlab d2 plantuml mermaid excalidraw bpmn structurizr opengrep trivy duckdb jupyter quarto poppler qpdf verapdf ocrmypdf tesseract gdal qgis schemathesis k6 axe-core zap gitleaks openmodelica highs kicad ngspice prusaslicer; do ln -s /opt/righaven/toolkit_cli.py "/usr/local/bin/$app-cli"; done
+    && for app in playwright aubio fluidsynth epubcheck pandoc typst freecad whisper-cpp ffmpeg musescore ifcopenshell manim opentimelineio pymeshlab d2 plantuml mermaid excalidraw bpmn structurizr opengrep trivy duckdb jupyter quarto poppler qpdf verapdf ocrmypdf tesseract gdal qgis schemathesis k6 axe-core zap gitleaks openmodelica highs kicad ngspice prusaslicer usql schemacrawler dlt sqlmesh sqlglot; do ln -s /opt/righaven/toolkit_cli.py "/usr/local/bin/$app-cli"; done
 ENV TZ=Europe/Rome LANG=C.UTF-8 LC_ALL=C.UTF-8 NO_BROWSER=true
 ENV PLAYWRIGHT_BROWSERS_PATH=/opt/righaven/playwright-browsers
 WORKDIR /mnt/user-data
@@ -35,6 +35,7 @@ CMD ["python3", "-c", "print('RigHaven Core ready; on-demand tools available')"]
 
 
 FROM software AS core
+COPY scripts/data_specs.py scripts/data_tools.py scripts/data_job.py scripts/acceptance_data.py /opt/righaven/
 COPY scripts/extended_specs.py scripts/extended_tools.py scripts/extended_runner.py scripts/extended_axe.cjs scripts/acceptance_extended.py scripts/install_extended.py /opt/righaven/
 COPY scripts/runtime_policy.py scripts/security_specs.py scripts/security_tools.py /opt/righaven/
 COPY scripts/craft.py scripts/smoke.py scripts/acceptance.py scripts/acceptance_toolkit.py scripts/acceptance_production.py scripts/acceptance_design.py scripts/acceptance_security.py /opt/righaven/

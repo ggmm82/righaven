@@ -1340,9 +1340,9 @@ export const enUS: Translations = {
 
   // Agents
   agents: {
-    title: "Team profiles",
+    title: "Advanced environment profiles",
     description:
-      "Save reusable guidance and skill selections. Project roles are formed dynamically for each goal.",
+      "Edit the same environment profiles through the native advanced editor. Project roles remain dynamic.",
     newAgent: "New profile",
     importAgent: "Import profile",
     importTitle: "Import custom agent",

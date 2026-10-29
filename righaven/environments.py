@@ -8,6 +8,7 @@ from .state import atomic_json, applications
 
 MODES = {'on_demand', 'preload'}
 PRESETS = [
+    {'id':'data-engineering','name':'Data Engineering','purpose':'Connect authorized SQL/document sources, reverse engineer actual schemas, test SQL/Python transformations and deliver reconciled interactive or paginated reports with editable sources.','tools':['usql','schemacrawler','dlt','sqlglot','sqlmesh','duckdb','jupyter','quarto','typst']},
     {'id':'base','name':'Base: documenti e schemi','purpose':'Produrre testi, documenti e diagrammi modificabili con un insieme piccolo di strumenti. Python e Node sono sempre nel core; aggiungere solo le capacità necessarie.','tools':['pandoc','d2']},
     {'id':'documenti','name':'Documentale','purpose':'Scrivere, impaginare e revisionare documenti, libri e presentazioni con sorgenti modificabili e consegna portabile.','tools':['wordcraft','pdfcraft','deckcraft','pandoc','typst','calibre','epubcheck']},
     {'id':'progettazione','name':'Progettazione','purpose':'Trasformare idee in modelli, diagrammi e specifiche verificabili. Scegliere la notazione adatta e conservare i sorgenti editabili.','tools':['d2','plantuml','mermaid','excalidraw','bpmn','structurizr','typst']},

@@ -42,7 +42,7 @@
       "checks": [
         "Ispeziona dimensioni, profilo colore, livelli e trasparenza prima delle modifiche.",
         "Conserva il sorgente con livelli e salva gli export separatamente.",
-        "Verifica l’anteprima, il ritaglio e la leggibilità alla risoluzione di consegna."
+        "Verifica l\u2019anteprima, il ritaglio e la leggibilit\u00e0 alla risoluzione di consegna."
       ],
       "examples": [
         "photocraft-cli info input.psd",
@@ -85,7 +85,7 @@
       "checks": [
         "Definisci dimensioni delle tavole, palette e tipografia.",
         "Mantieni tracciati e testo modificabili nel sorgente.",
-        "Controlla viewBox, margini, font e rasterizzazioni nell’export SVG/PDF."
+        "Controlla viewBox, margini, font e rasterizzazioni nell\u2019export SVG/PDF."
       ],
       "examples": [
         "vectorcraft-cli commands",
@@ -163,7 +163,7 @@
       "checks": [
         "Mantieni gli originali e gli eventuali sidecar intatti.",
         "Controlla esposizione, bilanciamento del bianco e clipping sui campioni.",
-        "Applica elaborazioni in serie solo dopo avere verificato un’immagine campione."
+        "Applica elaborazioni in serie solo dopo avere verificato un\u2019immagine campione."
       ],
       "examples": [
         "lightcraft-cli commands --json",
@@ -203,7 +203,7 @@
       "checks": [
         "Rileva pagine, testo, moduli e restrizioni del documento.",
         "Controlla le pagine coinvolte e verifica il numero pagine dopo le modifiche.",
-        "Non dichiarare una redazione sicura soltanto perché il testo è coperto visivamente: verifica il contenuto estratto."
+        "Non dichiarare una redazione sicura soltanto perch\u00e9 il testo \u00e8 coperto visivamente: verifica il contenuto estratto."
       ],
       "examples": [
         "pdfcraft-cli info input.pdf",
@@ -324,7 +324,7 @@
         }
       },
       "checks": [
-        "Conserva i valori numerici come numeri; unità e descrizioni nelle intestazioni.",
+        "Conserva i valori numerici come numeri; unit\u00e0 e descrizioni nelle intestazioni.",
         "Presenta numeri con convenzioni italiane; nelle API mantieni la sintassi canonica richiesta dalla CLI.",
         "Controlla formule, riferimenti, totali e valori di errore dopo il ricalcolo.",
         "Consegna XLSX con formule e, se richiesto, CSV UTF-8 con separatore esplicito."
@@ -413,7 +413,7 @@
       "checks": [
         "Definisci pubblico, obiettivo e formato prima delle slide.",
         "Usa dati e asset verificati dagli altri specialisti.",
-        "Controlla tutte le slide renderizzate per tagli, sovrapposizioni e leggibilità."
+        "Controlla tutte le slide renderizzate per tagli, sovrapposizioni e leggibilit\u00e0."
       ],
       "examples": [
         "deckcraft-cli commands",
@@ -451,9 +451,9 @@
         }
       },
       "checks": [
-        "Dichiara unità, scala, origine e tolleranze del disegno.",
-        "Controlla dimensioni geometriche e quote, non soltanto l’immagine.",
-        "Registra eventuali perdite di dati nell’import/export dei formati."
+        "Dichiara unit\u00e0, scala, origine e tolleranze del disegno.",
+        "Controlla dimensioni geometriche e quote, non soltanto l\u2019immagine.",
+        "Registra eventuali perdite di dati nell\u2019import/export dei formati."
       ],
       "examples": [
         "cadcraft-cli commands",
@@ -496,7 +496,7 @@
       "checks": [
         "Rileva frequenza di campionamento, canali e durata delle sorgenti.",
         "Mantieni margine di livello, evita clipping e conserva il progetto multitraccia.",
-        "Controlla durata, picchi e formato; non dichiarare ascolto o qualità percettiva verificati senza un controllo audio reale."
+        "Controlla durata, picchi e formato; non dichiarare ascolto o qualit\u00e0 percettiva verificati senza un controllo audio reale."
       ],
       "examples": [
         "soundcraft-cli commands",
@@ -535,7 +535,7 @@
       "checks": [
         "Definisci viewport, griglia, componenti e stili condivisi.",
         "Verifica spaziature, vincoli, stati e contrasto dei componenti.",
-        "Consegna sorgente modificabile e anteprime; segnala i limiti dell’export .fig."
+        "Consegna sorgente modificabile e anteprime; segnala i limiti dell\u2019export .fig."
       ],
       "examples": [
         "figcraft-cli commands --json",
@@ -678,7 +678,7 @@
       "id": "aubio",
       "name": "aubio",
       "role": "Analisi temporale e musicale",
-      "description": "Stima di attacchi, battiti, altezza e note dal segnale audio, con unità esplicite.",
+      "description": "Stima di attacchi, battiti, altezza e note dal segnale audio, con unit\u00e0 esplicite.",
       "repository": "https://github.com/aubio/aubio",
       "version": "0.4.9",
       "license": "GPL-3.0-or-later",
@@ -784,7 +784,7 @@
     {
       "id": "epubcheck",
       "name": "EPUBCheck",
-      "role": "Conformità EPUB",
+      "role": "Conformit\u00e0 EPUB",
       "description": "Controllo indipendente EPUB di contenitori, manifest, risorse e markup; errori distinti dagli avvisi.",
       "repository": "https://github.com/w3c/epubcheck",
       "version": "v5.4.0",
@@ -1089,8 +1089,8 @@
       "download_base": "https://github.com/musescore/MuseScore/releases/download/v4.7.5/",
       "license": "GPL-3.0",
       "checks": [
-        "Conserva sorgente e dipendenze, verifica la riapertura e l’export reale.",
-        "Non sostituisce il montaggio o il mix SoundCraft. Il banco offline MuseScore Basic non è MuseSounds. La presenza di note non prova somiglianza musicale o qualità percettiva."
+        "Conserva sorgente e dipendenze, verifica la riapertura e l\u2019export reale.",
+        "Non sostituisce il montaggio o il mix SoundCraft. Il banco offline MuseScore Basic non \u00e8 MuseSounds. La presenza di note non prova somiglianza musicale o qualit\u00e0 percettiva."
       ],
       "examples": [
         "musescore-cli commands",
@@ -1132,7 +1132,7 @@
       "download_base": "https://files.pythonhosted.org/",
       "license": "LGPL-3.0",
       "checks": [
-        "Conserva sorgente e dipendenze, verifica la riapertura e l’export reale.",
+        "Conserva sorgente e dipendenze, verifica la riapertura e l\u2019export reale.",
         "La validazione dello schema non certifica geometria, normativa o sicurezza strutturale. Non richiede Blender e non ricostruisce uno storico CAD da una mesh."
       ],
       "examples": [
@@ -1176,8 +1176,8 @@
       "download_base": "https://files.pythonhosted.org/",
       "license": "MIT",
       "checks": [
-        "Conserva sorgente e dipendenze, verifica la riapertura e l’export reale.",
-        "Renderer Cairo CPU. LaTeX non incluso: usare SVG generati con Typst già disponibile per formule. Non è un editor video né un sostituto di rig e animazione organica."
+        "Conserva sorgente e dipendenze, verifica la riapertura e l\u2019export reale.",
+        "Renderer Cairo CPU. LaTeX non incluso: usare SVG generati con Typst gi\u00e0 disponibile per formule. Non \u00e8 un editor video n\u00e9 un sostituto di rig e animazione organica."
       ],
       "examples": [
         "manim-cli commands",
@@ -1189,7 +1189,7 @@
       "id": "opentimelineio",
       "name": "OpenTimelineIO",
       "role": "Controllo e trasporto timeline",
-      "description": "Ispezione di tempi razionali, riferimenti e pacchetti media portabili; FilmCraft resta l’editor e FFmpeg il motore codec.",
+      "description": "Ispezione di tempi razionali, riferimenti e pacchetti media portabili; FilmCraft resta l\u2019editor e FFmpeg il motore codec.",
       "repository": "https://github.com/AcademySoftwareFoundation/OpenTimelineIO",
       "version": "0.18.1",
       "executable": "opentimelineio-cli",
@@ -1219,7 +1219,7 @@
       "download_base": "https://files.pythonhosted.org/",
       "license": "Apache-2.0",
       "checks": [
-        "Conserva sorgente e dipendenze, verifica la riapertura e l’export reale.",
+        "Conserva sorgente e dipendenze, verifica la riapertura e l\u2019export reale.",
         "Solo adapter core OTIO JSON/OTIOD/OTIOZ disponibili; il wrapper accetta OTIO e produce OTIOD. Nessun plugin AAF/Maya aggiuntivo. Non renderizza e non certifica sincronizzazione percettiva. Il controllo supporta riferimenti locali a file, non generatori o sequenze implicite."
       ],
       "examples": [
@@ -1232,7 +1232,7 @@
       "id": "pymeshlab",
       "name": "PyMeshLab",
       "role": "Analisi e riparazione mesh",
-      "description": "Misura, pulizia e filtri di mesh esistenti; FreeCAD resta il CAD parametrico e Blender l’authoring organico.",
+      "description": "Misura, pulizia e filtri di mesh esistenti; FreeCAD resta il CAD parametrico e Blender l\u2019authoring organico.",
       "repository": "https://github.com/cnr-isti-vclab/PyMeshLab",
       "version": "2025.7.post1",
       "executable": "pymeshlab-cli",
@@ -1262,8 +1262,8 @@
       "download_base": "https://files.pythonhosted.org/",
       "license": "GPL-3.0",
       "checks": [
-        "Conserva sorgente e dipendenze, verifica la riapertura e l’export reale.",
-        "Non ricostruisce automaticamente CAD parametrico, rig o texture. L’adattatore apply produce una mesh PLY: per asset texturizzati preservare risorse e usare uno script esplicito con verifica delle UV. Un filtro registrato non è una prova di efficacia."
+        "Conserva sorgente e dipendenze, verifica la riapertura e l\u2019export reale.",
+        "Non ricostruisce automaticamente CAD parametrico, rig o texture. L\u2019adattatore apply produce una mesh PLY: per asset texturizzati preservare risorse e usare uno script esplicito con verifica delle UV. Un filtro registrato non \u00e8 una prova di efficacia."
       ],
       "examples": [
         "pymeshlab-cli commands",
@@ -1318,7 +1318,7 @@
       "id": "plantuml",
       "name": "PlantUML",
       "role": "Modellazione UML formale",
-      "description": "Classi, sequenze, attività e stati quando la semantica UML è utile; D2 resta la scelta per schemi generali.",
+      "description": "Classi, sequenze, attivit\u00e0 e stati quando la semantica UML \u00e8 utile; D2 resta la scelta per schemi generali.",
       "repository": "https://github.com/plantuml/plantuml",
       "version": "v1.2026.9",
       "executable": "plantuml-cli",
@@ -1361,7 +1361,7 @@
       "id": "mermaid",
       "name": "Mermaid",
       "role": "Diagrammi nella documentazione",
-      "description": "Flussi, sequenze, stati e mappe nella chat e nel Markdown; valorizza il renderer Mermaid già presente in RigHaven.",
+      "description": "Flussi, sequenze, stati e mappe nella chat e nel Markdown; valorizza il renderer Mermaid gi\u00e0 presente in RigHaven.",
       "repository": "https://github.com/mermaid-js/mermaid-cli",
       "version": "12.0.0",
       "executable": "mermaid-cli",
@@ -1398,7 +1398,7 @@
       "id": "excalidraw",
       "name": "Excalidraw",
       "role": "Lavagna visuale modificabile",
-      "description": "Brainstorming, mappe e schizzi condivisi; la lavagna resta modificabile dall’utente. VectorCraft resta l’editor vettoriale di produzione.",
+      "description": "Brainstorming, mappe e schizzi condivisi; la lavagna resta modificabile dall\u2019utente. VectorCraft resta l\u2019editor vettoriale di produzione.",
       "repository": "https://github.com/excalidraw/excalidraw",
       "version": "0.18.1",
       "executable": "excalidraw-cli",
@@ -1435,7 +1435,7 @@
       "id": "bpmn",
       "name": "BPMN / bpmn.io",
       "role": "Modellazione dei processi",
-      "description": "Processi con eventi, responsabilità, decisioni ed eccezioni in BPMN 2.0; non è un nuovo esecutore dei lavori.",
+      "description": "Processi con eventi, responsabilit\u00e0, decisioni ed eccezioni in BPMN 2.0; non \u00e8 un nuovo esecutore dei lavori.",
       "repository": "https://github.com/bpmn-io/bpmn-to-image",
       "version": "0.10.0",
       "executable": "bpmn-cli",
@@ -1497,7 +1497,7 @@
       "download_base": "https://repo.maven.apache.org/maven2/",
       "license": "Apache-2.0",
       "checks": [
-        "Sorgenti autonomi: niente include remoti, script, plugin o risorse esterne non impacchettate. Verifica nativa di sintassi/import e render; non certifica correttezza del progetto. Usa una prova leggibile e controlla relazioni, etichette e coerenza con il brief. Modalità ristretta delle librerie DSL 6.2.3, Java 21 isolato; nessun server o servizio enterprise. Export testuali, non un renderer aggiuntivo.",
+        "Sorgenti autonomi: niente include remoti, script, plugin o risorse esterne non impacchettate. Verifica nativa di sintassi/import e render; non certifica correttezza del progetto. Usa una prova leggibile e controlla relazioni, etichette e coerenza con il brief. Modalit\u00e0 ristretta delle librerie DSL 6.2.3, Java 21 isolato; nessun server o servizio enterprise. Export testuali, non un renderer aggiuntivo.",
         "Conserva il sorgente modificabile, i riferimenti al progetto e una ricetta ripetibile."
       ],
       "examples": [
@@ -1550,7 +1550,7 @@
       "id": "trivy",
       "name": "Trivy",
       "role": "Dipendenze e configurazioni",
-      "description": "Inventario software, configurazioni e vulnerabilità con database identificato.",
+      "description": "Inventario software, configurazioni e vulnerabilit\u00e0 con database identificato.",
       "repository": "https://github.com/aquasecurity/trivy",
       "version": "v0.76.1",
       "license": "Apache-2.0",
@@ -2523,6 +2523,226 @@
       "install": {
         "kind": "debian",
         "native_path": "/usr/bin/prusa-slicer"
+      }
+    },
+    {
+      "id": "usql",
+      "name": "usql",
+      "role": "Universal database SQL client",
+      "description": "Read authorized databases through one native SQL shell; discover available drivers and retain read-only queries.",
+      "repository": "https://github.com/xo/usql",
+      "executable": "usql-cli",
+      "registry_args": [
+        "commands"
+      ],
+      "mcp_args": [
+        "mcp"
+      ],
+      "adapter": "toolkit",
+      "license": "MIT",
+      "checks": [
+        "Preserve editable sources and reconciliation evidence.",
+        "Use read-only authorized database credentials. Never put secrets into prompts, logs or delivery archives. Distinguish declared constraints, sampled statistics and inferred business hypotheses."
+      ],
+      "examples": [
+        "usql-cli commands",
+        "usql-cli tools"
+      ],
+      "version": "v0.21.6",
+      "assets": {
+        "amd64": {
+          "name": "usql-0.21.6-linux-amd64.tar.bz2",
+          "url": "https://github.com/xo/usql/releases/download/v0.21.6/usql-0.21.6-linux-amd64.tar.bz2",
+          "sha256": "b3046140f8f2add0e2afaaa595b824d445e933d400a00d50a1c038760d4ce13c",
+          "size_bytes": 73066497
+        },
+        "arm64": {
+          "name": "usql-0.21.6-linux-arm64.tar.bz2",
+          "url": "https://github.com/xo/usql/releases/download/v0.21.6/usql-0.21.6-linux-arm64.tar.bz2",
+          "sha256": "52bb8a1b9d1643ccdb79348d63626b75694d9fd3667b3f62f97f43cf51be0bab",
+          "size_bytes": 49732813
+        }
+      },
+      "install": {
+        "kind": "extended-native",
+        "native_binary": "usql",
+        "native_path": "/usr/local/bin/usql"
+      }
+    },
+    {
+      "id": "schemacrawler",
+      "name": "SchemaCrawler",
+      "role": "Database reverse engineering",
+      "description": "Inspect schema, declared keys, constraints, metadata, lint and relationship diagrams with real JDBC metadata.",
+      "repository": "https://github.com/schemacrawler/SchemaCrawler",
+      "executable": "schemacrawler-cli",
+      "registry_args": [
+        "commands"
+      ],
+      "mcp_args": [
+        "mcp"
+      ],
+      "adapter": "toolkit",
+      "license": "GPL v3 (bundled JDBC distribution)",
+      "checks": [
+        "Preserve editable sources and reconciliation evidence.",
+        "Use read-only authorized database credentials. Never put secrets into prompts, logs or delivery archives. Distinguish declared constraints, sampled statistics and inferred business hypotheses."
+      ],
+      "examples": [
+        "schemacrawler-cli commands",
+        "schemacrawler-cli tools"
+      ],
+      "version": "v17.16.0",
+      "assets": {
+        "amd64": {
+          "name": "schemacrawler-17.16.0-bin.zip",
+          "url": "https://github.com/schemacrawler/SchemaCrawler/releases/download/v17.16.0/schemacrawler-17.16.0-bin.zip",
+          "sha256": "06f4572f4b90c9c3246bc15c99897fcf4ee92bccf73ada168df32502b650e4d9",
+          "size_bytes": 297693400
+        },
+        "arm64": {
+          "name": "schemacrawler-17.16.0-bin.zip",
+          "url": "https://github.com/schemacrawler/SchemaCrawler/releases/download/v17.16.0/schemacrawler-17.16.0-bin.zip",
+          "sha256": "06f4572f4b90c9c3246bc15c99897fcf4ee92bccf73ada168df32502b650e4d9",
+          "size_bytes": 297693400
+        }
+      },
+      "install": {
+        "kind": "extended-native",
+        "native_binary": "schemacrawler.sh",
+        "native_path": "/usr/local/bin/schemacrawler.sh"
+      }
+    },
+    {
+      "id": "dlt",
+      "name": "dlt",
+      "role": "Data extraction and schema discovery",
+      "description": "Extract and reconcile SQL, document and file sources into isolated analytical datasets, retaining a reproducible Python pipeline.",
+      "repository": "https://github.com/dlt-hub/dlt",
+      "executable": "dlt-cli",
+      "registry_args": [
+        "commands"
+      ],
+      "mcp_args": [
+        "mcp"
+      ],
+      "adapter": "toolkit",
+      "license": "Apache-2.0",
+      "checks": [
+        "Preserve editable sources and reconciliation evidence.",
+        "Use read-only authorized database credentials. Never put secrets into prompts, logs or delivery archives. Distinguish declared constraints, sampled statistics and inferred business hypotheses."
+      ],
+      "examples": [
+        "dlt-cli commands",
+        "dlt-cli tools"
+      ],
+      "version": "1.31.0",
+      "assets": {
+        "amd64": {
+          "name": "dlt-1.31.0-py3-none-any.whl",
+          "url": "https://files.pythonhosted.org/packages/fb/64/add1dced8cbd5a5eb453886b2f52cb52f939cfadae6f60b472481523c43b/dlt-1.31.0-py3-none-any.whl",
+          "sha256": "4264984207bc0ebd8e5bd3b55104db863b590e4e86ff32b8c8e00ae11c32aee3",
+          "size_bytes": 1536970
+        },
+        "arm64": {
+          "name": "dlt-1.31.0-py3-none-any.whl",
+          "url": "https://files.pythonhosted.org/packages/fb/64/add1dced8cbd5a5eb453886b2f52cb52f939cfadae6f60b472481523c43b/dlt-1.31.0-py3-none-any.whl",
+          "sha256": "4264984207bc0ebd8e5bd3b55104db863b590e4e86ff32b8c8e00ae11c32aee3",
+          "size_bytes": 1536970
+        }
+      },
+      "download_base": "https://files.pythonhosted.org/",
+      "install": {
+        "kind": "pip-native",
+        "native_commands": []
+      }
+    },
+    {
+      "id": "sqlmesh",
+      "name": "SQLMesh",
+      "role": "Tested SQL and Python transformations",
+      "description": "Plan and test local analytical transformations, preserve models, audits, Python and SQL sources and dependencies.",
+      "repository": "https://github.com/TobikoData/sqlmesh",
+      "executable": "sqlmesh-cli",
+      "registry_args": [
+        "commands"
+      ],
+      "mcp_args": [
+        "mcp"
+      ],
+      "adapter": "toolkit",
+      "license": "Apache-2.0",
+      "checks": [
+        "Preserve editable sources and reconciliation evidence.",
+        "Use read-only authorized database credentials. Never put secrets into prompts, logs or delivery archives. Distinguish declared constraints, sampled statistics and inferred business hypotheses."
+      ],
+      "examples": [
+        "sqlmesh-cli commands",
+        "sqlmesh-cli tools"
+      ],
+      "version": "0.236.4",
+      "assets": {
+        "amd64": {
+          "name": "sqlmesh-0.236.4-py3-none-any.whl",
+          "url": "https://files.pythonhosted.org/packages/c4/70/811692fe1c79ebe5c94497fb9a9ab14e3da48792fe354eec4369b94b9dba/sqlmesh-0.236.4-py3-none-any.whl",
+          "sha256": "b20e2e70a58c16e0ef80955daec351518db1d5b12ae3f04b417fe446a21fcaf0",
+          "size_bytes": 5690413
+        },
+        "arm64": {
+          "name": "sqlmesh-0.236.4-py3-none-any.whl",
+          "url": "https://files.pythonhosted.org/packages/c4/70/811692fe1c79ebe5c94497fb9a9ab14e3da48792fe354eec4369b94b9dba/sqlmesh-0.236.4-py3-none-any.whl",
+          "sha256": "b20e2e70a58c16e0ef80955daec351518db1d5b12ae3f04b417fe446a21fcaf0",
+          "size_bytes": 5690413
+        }
+      },
+      "download_base": "https://files.pythonhosted.org/",
+      "install": {
+        "kind": "pip-native",
+        "native_commands": []
+      }
+    },
+    {
+      "id": "sqlglot",
+      "name": "SQLGlot",
+      "role": "SQL dialect analysis and lineage",
+      "description": "Parse SQL and derive table/column lineage from actual expressions and supplied schemas without executing queries.",
+      "repository": "https://github.com/tobymao/sqlglot",
+      "executable": "sqlglot-cli",
+      "registry_args": [
+        "commands"
+      ],
+      "mcp_args": [
+        "mcp"
+      ],
+      "adapter": "toolkit",
+      "license": "MIT",
+      "checks": [
+        "Preserve editable sources and reconciliation evidence.",
+        "Use read-only authorized database credentials. Never put secrets into prompts, logs or delivery archives. Distinguish declared constraints, sampled statistics and inferred business hypotheses."
+      ],
+      "examples": [
+        "sqlglot-cli commands",
+        "sqlglot-cli tools"
+      ],
+      "version": "30.25.0",
+      "assets": {
+        "amd64": {
+          "name": "sqlglot-30.25.0-py3-none-any.whl",
+          "url": "https://files.pythonhosted.org/packages/5f/44/a510d696c082e245832348bcfca5de9adfefd65829cd96fa5bf39244ca7b/sqlglot-30.25.0-py3-none-any.whl",
+          "sha256": "7d5a292d5f61b7fc860e65a8fa41083c726db0e27fb6efb224cca63c3a5980f7",
+          "size_bytes": 798009
+        },
+        "arm64": {
+          "name": "sqlglot-30.25.0-py3-none-any.whl",
+          "url": "https://files.pythonhosted.org/packages/5f/44/a510d696c082e245832348bcfca5de9adfefd65829cd96fa5bf39244ca7b/sqlglot-30.25.0-py3-none-any.whl",
+          "sha256": "7d5a292d5f61b7fc860e65a8fa41083c726db0e27fb6efb224cca63c3a5980f7",
+          "size_bytes": 798009
+        }
+      },
+      "download_base": "https://files.pythonhosted.org/",
+      "install": {
+        "kind": "pip-native",
+        "native_commands": []
       }
     }
   ],

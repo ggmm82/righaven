@@ -9204,6 +9204,129 @@
           "evidence": "registered"
         }
       ]
+    },
+    {
+      "id": "usql",
+      "version": "v0.21.6",
+      "catalog_count": 1,
+      "catalog_ids": [
+        "usql.query"
+      ],
+      "ids_sha256": "e09188454477b97769fca15937d2937cdd422ef042bb32e8139e4326595e3c40",
+      "catalog_sha256": "f28c1e723d261cc91d251fdf99145767f7e541a059e19cd90bd119b062b5ff9d",
+      "choose_for": "Use one SQL client across supported relational database drivers for explicit read-only queries.",
+      "sources": "SQL, bounded result JSON and local database snapshot or external-source requirements.",
+      "limits": "Validate one SELECT, confirm the real driver and use read-only database credentials. Client driver availability does not prove a remote connection was tested.",
+      "reference": "https://github.com/xo/usql",
+      "groups": [
+        {
+          "goal": "Run a validated SELECT with the native universal SQL client. Use a read-only connection; retain SQL and result JSON, never connection secrets.",
+          "commands": [
+            "usql.query"
+          ],
+          "evidence": "registered"
+        }
+      ]
+    },
+    {
+      "id": "schemacrawler",
+      "version": "v17.16.0",
+      "catalog_count": 1,
+      "catalog_ids": [
+        "schemacrawler.inspect"
+      ],
+      "ids_sha256": "c29f582135a0cb8982336e91cd2d5e4b71f616936bebc4dc1964dae51f95d25a",
+      "catalog_sha256": "6c5f20b9dee57b611bb980a66bdeb214211d67fb3604936b0fb2b4928bdd6d61",
+      "choose_for": "Reverse engineer real keys, constraints, table relationships and schema metadata through JDBC.",
+      "sources": "Schema JSON/HTML/DOT, database snapshot or connection requirements, diagrams and interpretation notes.",
+      "limits": "Separate declared constraints from inferred associations and sampled data. Validate business meaning with the owner; do not invent tables or relationships from names. The bundled distribution uses GPL v3 and retains JDBC notices.",
+      "reference": "https://github.com/schemacrawler/SchemaCrawler",
+      "groups": [
+        {
+          "goal": "Reverse engineer actual database schema, keys, constraints and associations with JDBC. Inferred relations remain hypotheses.",
+          "commands": [
+            "schemacrawler.inspect"
+          ],
+          "evidence": "registered"
+        }
+      ]
+    },
+    {
+      "id": "dlt",
+      "version": "1.31.0",
+      "catalog_count": 2,
+      "catalog_ids": [
+        "dlt.discover",
+        "dlt.extract"
+      ],
+      "ids_sha256": "5a17fbf2d5babdb462962d5630062592e0f2a99b3ec18e341fc53e45aa717f35",
+      "catalog_sha256": "2d0f7aebfdf4dc85c530e515fcdba4c8fc46399bad6b3ffa851a6469b1e0b337",
+      "choose_for": "Discover SQL/document source metadata and extract bounded data into a reproducible local pipeline.",
+      "sources": "Python pipeline, schema YAML/JSON, query/inputs, portable JSONL, DuckDB snapshot and row reconciliation.",
+      "limits": "Separate SQL metadata, sampled document fields and business hypotheses. Keep pipeline state private per job, preserve type/null semantics and reconcile counts. External reads require authorized read-only credentials; no source-system writes are performed.",
+      "reference": "https://github.com/dlt-hub/dlt",
+      "groups": [
+        {
+          "goal": "Inspect SQL metadata with SQLAlchemy or MongoDB collection structure. Produce editable schema JSON; sampling is not complete semantic understanding.",
+          "commands": [
+            "dlt.discover"
+          ],
+          "evidence": "registered"
+        },
+        {
+          "goal": "Extract bounded local JSON/CSV or authorized read-only SQL/MongoDB data into a private DuckDB pipeline. Preserve pipeline, schema, receipt and reconciliation.",
+          "commands": [
+            "dlt.extract"
+          ],
+          "evidence": "registered"
+        }
+      ]
+    },
+    {
+      "id": "sqlglot",
+      "version": "30.25.0",
+      "catalog_count": 1,
+      "catalog_ids": [
+        "sqlglot.analyze"
+      ],
+      "ids_sha256": "4e37bb9a0f15be6d17f57063a0ce0bb1f5eefc2134a8e7c89fae5f430be861c1",
+      "catalog_sha256": "6987964ecdf470692b65ea532d79697dd538c0887b64ab6dd3217007cc798c73",
+      "choose_for": "Parse SQL dialects and derive table/column lineage using real expressions and actual supplied schemas.",
+      "sources": "Original SQL, actual schema dictionary, normalized SQL, lineage JSON and limits.",
+      "limits": "Parsing does not execute SQL or prove database semantics. Unknown columns, wildcard expansion, dynamic SQL and missing schema remain explicit limits; never invent lineage. Use SchemaCrawler/dlt for live metadata and SQLMesh for executable model plans.",
+      "reference": "https://github.com/tobymao/sqlglot",
+      "groups": [
+        {
+          "goal": "Parse and normalize SQL and derive actual table/column lineage where schema is available; do not invent business meaning or execute SQL.",
+          "commands": [
+            "sqlglot.analyze"
+          ],
+          "evidence": "registered"
+        }
+      ]
+    },
+    {
+      "id": "sqlmesh",
+      "version": "0.236.4",
+      "catalog_count": 1,
+      "catalog_ids": [
+        "sqlmesh.plan"
+      ],
+      "ids_sha256": "e6db1d268b86fad9946f658b7ff5d7d5c32350cb7456addabbeacd1e8c90de5c",
+      "catalog_sha256": "28f9bf84c2a3a9df63da3b70d76eb8ef3a9a42e39a1e8ed4a2d44d9b355c5174",
+      "choose_for": "Plan, test and explain SQL/Python analytical transformations using an isolated local DuckDB project.",
+      "sources": "SQL/Python models, tests, configuration, copied project, DuckDB results and plan/audit evidence.",
+      "limits": "Explain the actual graph and reconcile known totals. Apply only when apply_local=true, in the isolated copied project. This adapter does not deploy to remote production. Exchange JSONL/CSV/Parquet rather than assuming all DuckDB file versions interoperate.",
+      "reference": "https://github.com/TobikoData/sqlmesh",
+      "groups": [
+        {
+          "goal": "Validate tests and explain a SQL/Python transformation project in an isolated local DuckDB environment. Apply only with apply_local=true; never auto-apply to a remote database.",
+          "commands": [
+            "sqlmesh.plan"
+          ],
+          "evidence": "registered"
+        }
+      ]
     }
   ]
 }

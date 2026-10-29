@@ -886,5 +886,15 @@
   "prusaslicer": [
     "xvfb",
     "xauth"
-  ]
+  ],
+  "usql": [
+    "libsqlite3-0"
+  ],
+  "schemacrawler": [
+    "openjdk-17-jre-headless",
+    "graphviz"
+  ],
+  "dlt": [],
+  "sqlmesh": [],
+  "sqlglot": []
 }

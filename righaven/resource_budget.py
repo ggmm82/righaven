@@ -178,7 +178,7 @@ class ResourceBudget:
 
     def release(self, owner):
         with self.condition:
-            self.leases.pop(owner, None)
+            if self.leases.pop(owner, None) is None:return
             if self.elastic:self._rebalance_locked()
             self.condition.notify_all()
 

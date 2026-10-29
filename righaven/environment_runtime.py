@@ -13,7 +13,7 @@ from . import state
 from .state import atomic_json, applications
 
 RECIPE = 1
-DEPS = {'mermaid':['playwright'],'excalidraw':['playwright'],'bpmn':['playwright'], 'axe-core':['playwright'], 'ocrmypdf':['tesseract'],
+DEPS = {'usql':['sqlglot'],'mermaid':['playwright'],'excalidraw':['playwright'],'bpmn':['playwright'], 'axe-core':['playwright'], 'ocrmypdf':['tesseract'],
         'aubio':['ffmpeg'],'whisper':['ffmpeg'],'manim':['ffmpeg'],'opentimelineio':['ffmpeg'],
         **{tool:['ffmpeg'] for tool in ('filmcraft','soundcraft','effectcraft','fluidsynth','musescore')}}
 PREPARING = set()
@@ -415,10 +415,10 @@ def _prepare(key,spec, *, acquire,progress,exact,cancel,cache_dependencies,deadl
                     check_cancel(cancel)
                     if progress:
                         from .cancellation import requested
-                        from .progress import update
+                        from .progress import update,utcnow
                         if requested() or any(read_status(progress).get(k) for k in ('cancel_requested','finish_requested')):
                             raise RuntimeError('Preparazione annullata; i file del progetto sono conservati')
-                        update(progress,heartbeat_at=__import__('harness.progress',fromlist=['utcnow']).utcnow())
+                        update(progress,heartbeat_at=utcnow())
                     if time.monotonic()>deadline:raise TimeoutError('Tempo di preparazione ambiente esaurito')
                     # select keeps cancellation and heartbeat responsive during quiet compiler commands.
                     import select
@@ -454,7 +454,12 @@ def _prepare(key,spec, *, acquire,progress,exact,cancel,cache_dependencies,deadl
                 except (ValueError,subprocess.SubprocessError):parent_size=None
             remove(name)
             cleaned=True
-            result=save(key,status='ready',image=image,image_id=inspected['Id'],size_bytes=inspected['Size'],
+            observed_versions={}
+            for line in log.read_text(errors='replace').splitlines():
+                try:event=json.loads(line)
+                except ValueError:continue
+                if isinstance(event,dict) and event.get('phase')=='verified':observed_versions=event.get('installed_versions',{})
+            result=save(key,installed_versions=observed_versions,status='ready',image=image,image_id=inspected['Id'],size_bytes=inspected['Size'],
                 last_used=time.time(),container='',tools=spec['tools'],core=spec['core'],error='',failure={},
                 base_image_id=base_image,reused_tools=base['tools'] if base else [],versions=spec.get('versions',{}),version_names={k:v['app']['version'] for k,v in packages(spec.get('versions',{})).items()})
             if parent_size is not None:

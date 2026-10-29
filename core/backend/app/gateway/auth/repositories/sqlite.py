@@ -362,6 +362,22 @@ class SQLiteUserRepository(UserRepository):
         else:
             raise RuntimeError(f"no role-mutation serialization strategy for dialect {dialect!r}")
 
+    async def manage_credentials(self, user_id: str, password_hash: str | None = None) -> User:
+        """Admin credential rotation: serialized fields and monotonic token revocation."""
+        async with self._sf() as session:
+            await self._serialize_account_role_mutation(session)
+            row = await session.get(UserRow, user_id)
+            if row is None:
+                raise UserNotFoundError(f"User {user_id} no longer exists")
+            if password_hash is not None:
+                if row.oauth_provider:
+                    raise ValueError("Manage this account's password at its identity provider")
+                row.password_hash = password_hash
+                row.needs_setup = True
+            row.token_version += 1
+            await session.commit()
+            return self._row_to_user(row)
+
     async def update_user(self, user: User) -> User:
         async with self._sf() as session:
             row = await session.get(UserRow, str(user.id))
@@ -404,7 +420,7 @@ class SQLiteUserRepository(UserRepository):
             row.oauth_provider = user.oauth_provider
             row.oauth_id = user.oauth_id
             row.needs_setup = user.needs_setup
-            row.token_version = user.token_version
+            row.token_version = max(row.token_version, user.token_version)
             await session.commit()
         return user
 

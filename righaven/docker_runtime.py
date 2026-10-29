@@ -199,6 +199,33 @@ def generate_gemini(payload, timeout=1800):
         EXECUTION_LOCK.release()
 
 
+
+def generate_claude(payload,timeout=1800):
+    if not connection_status('claude'):raise ValueError('Connect Claude Code in Models & resources')
+    if not EXECUTION_LOCK.acquire(timeout=120):raise RuntimeError('Provider credential session is busy; retry shortly')
+    name='rh-claude-'+uuid.uuid4().hex[:12]
+    try:
+        jobs=STATE/'jobs';jobs.mkdir(exist_ok=True);job=jobs/(name+'.json')
+        from .state import atomic_json
+        atomic_json(job,payload)
+        image=provider_image('claude',claim=name)
+        args=base_arguments(name)+runtime_arguments()+['--mount',mount(credential_dir('claude'),'/credentials'),
+             '--mount',mount(job,'/job.json',True),image,'python3','/opt/righaven-worker/claude_cli.py','/job.json']
+        result=subprocess.run(['docker',*args],capture_output=True,text=True,timeout=timeout+60)
+        try:body=json.loads(result.stdout)
+        except ValueError:raise RuntimeError('Invalid official Claude Code response') from None
+        if result.returncode or body.get('ok') is not True:raise RuntimeError(body.get('error','Claude Code did not complete'))
+        return body['response']
+    finally:
+        close_provider(name)
+        if 'job' in locals():job.unlink(missing_ok=True)
+        EXECUTION_LOCK.release()
+
+
+def claude_models():
+    # Official CLI aliases, not a fabricated account-specific model inventory.
+    return [{'id':alias,'label':alias,'default':alias=='sonnet'} for alias in ('sonnet','opus','haiku')]
+
 def antigravity_models():
     if not connection_status('gemini'):
         raise ValueError('Collega prima Antigravity con il tuo account Google')
@@ -449,7 +476,7 @@ def delegate(agent_id, task, workspace, tool_call_id=None, on_started=None, requ
             task_tools=required_tools(needed) if runtime_environment is not None else role['tools']
             policy=execution_policy(role,policy,task_tools)
         credentials=None
-        if engine in ('codex','gemini'):
+        if engine in ('codex','gemini','claude'):
             from .credential_sessions import CredentialSession
             credentials=CredentialSession(engine,jobs/(name+'-credentials'))
         elif os.getenv('RIGHAVEN_EDITION', 'community') == 'cloud':

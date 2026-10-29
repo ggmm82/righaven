@@ -15,9 +15,9 @@ BIN=Path('/usr/local/bin')
 def reset_providers(defaults):
     """Reset only overridden CLIs, retaining the inherited application layers."""
     for tool,app in defaults.items():
-        if tool!=app.get('id') or tool not in ('provider-agy','provider-codex'):
+        if tool!=app.get('id') or tool not in ('provider-agy','provider-codex','provider-claude'):
             raise ValueError('Ripristino CLI non valido')
-        if tool=='provider-agy':
+        if tool in ('provider-agy','provider-claude'):
             apply({tool:{'app':app,'files':{}}})
         else:
             # Custom Codex installs live under provider-clis, so npm's original
@@ -52,7 +52,7 @@ def apply(packages):
                 subprocess.run(['npm','ci','--prefix',str(destination),'--ignore-scripts','--no-audit','--no-fund'],check=True)
                 binary=destination/'node_modules/.bin/codex'
                 catalog['cli_runtimes']['codex']=app['version']
-            elif provider=='agy':
+            elif provider in ('agy','claude'):
                 import platform
                 arch={'x86_64':'amd64','aarch64':'arm64'}[platform.machine()]
                 asset=app['assets'][arch]
@@ -61,14 +61,16 @@ def apply(packages):
                     with urllib.request.urlopen(asset['url'],timeout=120) as source,archive.open('wb') as target:shutil.copyfileobj(source,target)
                     if hashlib.sha256(archive.read_bytes()).hexdigest()!=asset['sha256']:raise ValueError('Distribuzione CLI modificata')
                     with tarfile.open(archive) as payload:
-                        member=payload.getmember('antigravity')
+                        member=payload.getmember('package/claude' if provider=='claude' else 'antigravity')
                         if not member.isfile() or member.size>512*1024**2:raise ValueError('Eseguibile CLI non valido')
-                        binary=destination/'agy'
+                        binary=destination/provider
                         with payload.extractfile(member) as source,binary.open('wb') as target:shutil.copyfileobj(source,target)
                         binary.chmod(0o755)
                 lock={'version':app['version'],'source':app['repository']+'/releases/tag/'+app['version'],'platforms':app['assets']}
-                catalog['cli_runtimes'].update(antigravity=app['version'],gemini=app['version'])
-                (ROOT/'antigravity.lock.json').write_text(json.dumps(lock))
+                if provider=='claude':catalog['cli_runtimes']['claude']=app['version']
+                else:
+                    catalog['cli_runtimes'].update(antigravity=app['version'],gemini=app['version'])
+                    (ROOT/'antigravity.lock.json').write_text(json.dumps(lock))
             else:raise ValueError('Provider sconosciuto')
             link=BIN/provider
             if link.exists() or link.is_symlink():link.unlink()

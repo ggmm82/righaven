@@ -195,3 +195,7 @@ def prusaslicer(c):
     text=(out/'print.gcode').read_text();c.check('Native slicer produces extrusion paths and preserves printer settings','G1 ' in text and ' E' in text and (out/'Sources/printer.ini').is_file(),'actual G-code; no physical print claimed')
 
 CASES={name:globals()[name.replace('-','_')] for name in ('duckdb','jupyter','quarto','poppler','qpdf','verapdf','ocrmypdf','tesseract','gdal','qgis','schemathesis','k6','axe-core','zap','gitleaks','openmodelica','highs','kicad','ngspice','prusaslicer')}
+
+try:from .acceptance_data import CASES as DATA_CASES
+except ImportError:from acceptance_data import CASES as DATA_CASES
+CASES.update(DATA_CASES)

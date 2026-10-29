@@ -7,7 +7,7 @@ METHODS = {'content', 'visual', 'listening', 'structural', 'functional', 'refere
 
 def capabilities(engine):
     return {'content': True, 'structural': True, 'functional': True, 'reference': True,
-            'technical': True, 'visual': engine in ('codex', 'gemini'), 'listening': False}
+            'technical': True, 'visual': engine in ('codex', 'gemini','claude'), 'listening': False}
 
 
 def generation_capabilities(engine, direction=None):

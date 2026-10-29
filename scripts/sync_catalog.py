@@ -29,10 +29,11 @@ def sync(root=ROOT):
     content['subagents']['custom_agents'] = {
         app['id']: {
             'description': f"{app['role']}: {app['description']} Usa {app['executable']}.",
-            'system_prompt': f"Sei lo specialista {app['id']}. Per eseguire il lavoro invoca "
-                f"harness_delegate con agent=\"{app['id']}\", includendo input, percorsi, sorgenti modificabili, app di apertura e criteri "
-                'di accettazione. Eredita il modello unico della squadra. Non eseguire CLI nel '
-                'Gateway. Riporta risultati e limiti della delega.',
+            'system_prompt': f"This is the {app['id']} tool integration, not a fixed professional role. "
+                f"Use harness_delegate with agent=\"{app['id']}\" and include inputs, paths, "
+                'editable sources, opening application and observable acceptance checks. '
+                'Inherit the executing team model; do not run CLIs in the Gateway. '
+                'Report real results and limitations. Project roles are assigned dynamically.',
             'skills': ['skill-workspace', 'skill-' + app['id']],
             'model': 'inherit', 'max_turns': 50, 'timeout_seconds': 1800,
             'disallowed_tools': ['task', 'ask_clarification', 'present_files'],

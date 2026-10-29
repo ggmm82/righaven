@@ -8,6 +8,14 @@ class TerminalText:
     def __init__(self):
         self.decoder = codecs.getincrementaldecoder('utf-8')('replace')
         self.state = 'text'
+        self.osc = ''
+
+    def hyperlink(self,result):
+        if self.osc.startswith('8;;https://'):
+            url=self.osc[3:];parsed=urlsplit(url)
+            if parsed.netloc in ('claude.ai','console.anthropic.com','platform.claude.com') and parsed.path.startswith('/oauth'):
+                result.append(' '+url+' ')
+        self.osc=''
 
     def feed(self, data):
         result = []
@@ -19,16 +27,19 @@ class TerminalText:
                     result.append(char)
             elif self.state == 'escape':
                 self.state = {'[': 'csi', ']': 'osc', '(': 'charset', ')': 'charset'}.get(char, 'text')
+                if self.state=='osc':self.osc=''
             elif self.state == 'csi':
                 if '@' <= char <= '~':
                     self.state = 'text'
             elif self.state == 'osc':
                 if char == '\x07':
-                    self.state = 'text'
+                    self.hyperlink(result);self.state = 'text'
                 elif char == '\x1b':
                     self.state = 'osc_escape'
+                elif len(self.osc)<12000:self.osc+=char
             elif self.state == 'osc_escape':
-                self.state = 'text' if char == '\\' else 'osc'
+                if char=='\\':self.hyperlink(result);self.state='text'
+                else:self.state='osc'
             elif self.state == 'charset':
                 self.state = 'text'
         return ''.join(result)
@@ -41,6 +52,8 @@ def authorization_url(text, engine):
         url = match.group(0)
         parsed = urlsplit(url)
         if engine == 'codex' and parsed.netloc == 'auth.openai.com':
+            valid.append(url)
+        if engine == 'claude' and parsed.netloc in ('claude.ai','console.anthropic.com','platform.claude.com') and parsed.path.startswith('/oauth'):
             valid.append(url)
         if engine == 'gemini' and parsed.netloc == 'accounts.google.com' and match.end() < len(text):
             query = parse_qs(parsed.query)

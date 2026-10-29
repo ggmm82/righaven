@@ -1,113 +1,35 @@
 "use client";
-
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
-
-import { Button } from "@/components/ui/button";
-import { GatewayApiError } from "@/core/api/errors";
-import {
-  loadAdminUsers,
-  updateUserAccount,
-  type AdminUser,
-} from "@/core/auth/admin-users";
-import { useAuth } from "@/core/auth/AuthProvider";
-import { useI18n } from "@/core/i18n/hooks";
-import { isStaticWebsiteOnly } from "@/core/static-mode";
-
-import { SettingsSection } from "./settings-section";
-
-/**
- * Admin-only user management (RFC #4063 gap 3): list every account and
- * suspend/restore it. Role is displayed read-only — role assignment stays
- * an operator/API concern in this slice.
- */
-export function UserSettingsPage() {
-  const { user } = useAuth();
-  const { t } = useI18n();
-  const text = t.settings.users;
-  const client = useQueryClient();
-  // The static-website demo user is nominally an admin with no Gateway behind
-  // it, so the demo shows the admin-only note instead of a doomed query.
-  const canManage = user?.system_role === "admin" && !isStaticWebsiteOnly();
-  const users = useQuery({
-    queryKey: ["admin-users", user?.id],
-    queryFn: ({ signal }) => loadAdminUsers(signal),
-    enabled: canManage,
-  });
-  const [pending, setPending] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  async function toggleDisabled(target: AdminUser) {
-    setPending(true);
-    setError(null);
-    try {
-      await updateUserAccount(target.id, { disabled: !target.disabled });
-      await client.invalidateQueries({ queryKey: ["admin-users"] });
-    } catch (err) {
-      // The Gateway's own detail text (the last-active-admin 409 in
-      // particular) is the most actionable message available; anything
-      // else (network failure, a malformed 200 body failing the schema)
-      // falls back to the localized copy instead of a raw exception blob.
-      setError(
-        err instanceof GatewayApiError && err.message
-          ? err.message
-          : text.updateFailed,
-      );
-    } finally {
-      setPending(false);
-    }
-  }
-
-  return (
-    <SettingsSection title={text.title} description={text.description}>
-      {!canManage ? (
-        <p>{text.adminOnly}</p>
-      ) : (
-        <div className="space-y-4">
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              disabled={users.isFetching}
-              onClick={() => void users.refetch()}
-            >
-              {text.reload}
-            </Button>
-          </div>
-          {users.isLoading && <p role="status">{text.loading}</p>}
-          {(users.error ?? error) && (
-            // One region, one verdict: a failed list load outranks a stale
-            // toggle error; react-query clears `users.error` on a successful
-            // refetch, so the banners cannot stack.
-            <div role="alert" className="text-sm text-red-500">
-              <p>{users.error ? text.failed : error}</p>
-            </div>
-          )}
-          {users.data?.length === 0 && <p>{text.empty}</p>}
-          <ul className="space-y-3">
-            {users.data?.map((row) => (
-              <li
-                key={row.id}
-                className="flex flex-wrap items-center justify-between gap-3 rounded-lg border p-4"
-              >
-                <div>
-                  <p className="font-medium">{row.email}</p>
-                  <p className="text-muted-foreground text-sm">
-                    {text.role}: {row.system_role} ·{" "}
-                    {row.disabled ? text.disabled : text.active}
-                  </p>
-                </div>
-                <Button
-                  variant="outline"
-                  disabled={pending}
-                  onClick={() => void toggleDisabled(row)}
-                >
-                  {row.disabled ? text.enable : text.disable}
-                </Button>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-    </SettingsSection>
-  );
+import {useEffect,useState} from "react";
+import {useAuth} from "@/core/auth/AuthProvider";
+import {useI18n} from "@/core/i18n/hooks";
+import {fetch} from "@/core/api/fetcher";
+import {getBackendBaseURL} from "@/core/config";
+import type {AdminUser} from "@/core/auth/admin-users";
+import {SettingsSection} from "./settings-section";
+const field="w-full rounded border bg-background p-2 text-sm";
+const button="rounded border px-3 py-2 text-sm disabled:opacity-50";
+export function UserSettingsPage(){
+ const {user}=useAuth(),{locale}=useI18n();const it=locale==="it-IT";
+ const [users,setUsers]=useState<AdminUser[]>([]),[roles,setRoles]=useState<string[]>([]),[query,setQuery]=useState("");
+ const [busy,setBusy]=useState(false),[error,setError]=useState(""),[notice,setNotice]=useState("");
+ const [create,setCreate]=useState(false),[email,setEmail]=useState(""),[password,setPassword]=useState(""),[role,setRole]=useState("user");
+ const [action,setAction]=useState<{user:AdminUser;kind:"role"|"status"|"password"|"sessions";role?:string}|null>(null),[confirmation,setConfirmation]=useState("");
+ const base=getBackendBaseURL()+"/api/v1/admin/users";
+ async function request(path:string,method="GET",body?:unknown){const response=await fetch(base+path,{method,...(body?{headers:{"Content-Type":"application/json"},body:JSON.stringify(body)}:{})});const data=await response.json();if(!response.ok)throw Error(typeof data.detail==="string"?data.detail:it?"Operazione non riuscita":"Operation failed");return data;}
+ async function load(){const [accounts,allowed]=await Promise.all([request(""),request("/roles")]);setUsers(accounts);setRoles(allowed.roles);}
+ useEffect(()=>{if(user?.system_role==="admin")void load().catch(e=>setError(String(e)));},[user?.id]);
+ async function perform(work:()=>Promise<void>){setBusy(true);setError("");setNotice("");try{await work();await load();setNotice(it?"Account aggiornato":"Account updated");}catch(e){setError(e instanceof Error?e.message:String(e));}finally{setBusy(false);}}
+ function choose(target:AdminUser,kind:"role"|"status"|"password"|"sessions",chosenRole?:string){setAction({user:target,kind,role:chosenRole});setConfirmation("");setPassword("");setCreate(false);setError("");}
+ async function apply(){if(!action)return;await perform(async()=>{if(action.kind==="role"||action.kind==="status")await request("/"+action.user.id,"PATCH",action.kind==="role"?{system_role:action.role}:{disabled:!action.user.disabled});else await request("/"+action.user.id+"/credentials","POST",{confirmation,...(action.kind==="password"?{new_password:password}:{})});setAction(null);setPassword("");});}
+ const names={role:it?"Cambia ruolo":"Change role",status:it?"Cambia stato":"Change status",password:it?"Reimposta password":"Reset password",sessions:it?"Revoca sessioni":"Revoke sessions"};
+ return <SettingsSection title={it?"Gestione utenti":"User administration"} description={it?"Crea account, assegna permessi, gestisci accesso e sessioni. I lavori e i file personali restano separati.":"Create accounts, assign roles and manage access and sessions. Personal work and files remain isolated."}>
+  {user?.system_role!=="admin"?<p>{it?"Riservato agli amministratori":"Administrators only"}</p>:<div className="space-y-4">
+   <div className="flex gap-2"><input className={field} type="search" aria-label={it?"Cerca utenti":"Search users"} placeholder={it?"Email, ruolo o stato":"Email, role or status"} value={query} onChange={e=>setQuery(e.target.value)}/><button disabled={busy} className={button} onClick={()=>void perform(load)}>{it?"Aggiorna":"Refresh"}</button><button className={button} onClick={()=>{setCreate(true);setAction(null);setEmail("");setPassword("");}}>{it?"Crea utente":"Create user"}</button></div>
+   <p className="text-sm">{users.length} {it?"account":"accounts"} · {users.filter(u=>!u.disabled).length} {it?"attivi":"active"}</p>
+   {create&&<form className="space-y-3 rounded border p-3" onSubmit={e=>{e.preventDefault();void perform(async()=>{await request("","POST",{email,password,system_role:role});setCreate(false);setPassword("");});}}><h3 className="font-semibold">{it?"Nuovo account":"New account"}</h3><label className="block">Email<input required type="email" className={field} value={email} onChange={e=>setEmail(e.target.value)}/></label><label className="block">{it?"Password temporanea":"Temporary password"}<input required minLength={8} type="password" autoComplete="new-password" className={field} value={password} onChange={e=>setPassword(e.target.value)}/></label><select aria-label={it?"Ruolo nuovo utente":"New user role"} className={field} value={role} onChange={e=>setRole(e.target.value)}>{roles.map(r=><option key={r}>{r}</option>)}</select><p className="text-xs">{it?"Il primo accesso richiederà una nuova password. Comunica la password temporanea attraverso un canale fidato.":"The first login requires a new password. Share the temporary password through a trusted channel."}</p><button disabled={busy} className={button}>{it?"Crea account":"Create account"}</button><button type="button" className={button} onClick={()=>{setCreate(false);setPassword("");}}>{it?"Annulla":"Cancel"}</button></form>}
+   {action&&<form role="region" aria-label={it?"Conferma amministrazione account":"Confirm account action"} className="space-y-3 rounded border p-3" onSubmit={e=>{e.preventDefault();void apply();}}><h3 className="font-semibold">{names[action.kind]} · {action.user.email}</h3><p>{action.kind==="role"?`${action.user.system_role} → ${action.role}`:action.kind==="status"?(action.user.disabled?(it?"Riattiva l’accesso":"Restore access"):(it?"Blocca l’accesso, conserva account e dati":"Block access, retain account and data")):it?"Le sessioni precedenti smetteranno di funzionare. La password temporanea, se impostata, deve essere cambiata al primo accesso.":"Existing sessions will stop working. A temporary password must be changed at the next login."}</p>{action.kind==="password"&&<label className="block">{it?"Nuova password temporanea":"New temporary password"}<input type="password" required minLength={8} autoComplete="new-password" className={field} value={password} onChange={e=>setPassword(e.target.value)}/></label>}<label className="block">{it?"Digita l’email esatta per confermare":"Type the exact email to confirm"}<input required className={field} value={confirmation} onChange={e=>setConfirmation(e.target.value)}/></label><button disabled={busy||confirmation!==action.user.email} className={button}>{it?"Conferma":"Confirm"}</button><button type="button" className={button} onClick={()=>{setAction(null);setPassword("");}}>{it?"Annulla":"Cancel"}</button></form>}
+   <ul className="space-y-3">{users.filter(u=>`${u.email} ${u.system_role} ${u.disabled?"disabled sospeso":"active attivo"}`.toLowerCase().includes(query.toLowerCase())).map(account=><li className="space-y-3 rounded border p-3" key={account.id}><p className="font-medium">{account.email}{account.id===user.id?(it?" · Tu":" · You"):""}</p><p className="text-xs">{account.system_role} · {account.disabled?(it?"Sospeso":"Suspended"):(it?"Attivo":"Active")}{account.needs_setup?(it?" · Primo accesso da completare":" · Setup required"):""}{account.oauth_provider?` · SSO: ${account.oauth_provider}`:""}</p><div className="flex flex-wrap gap-2"><select aria-label={`${it?"Ruolo":"Role"} ${account.email}`} className={button} disabled={busy} value={account.system_role} onChange={e=>choose(account,"role",e.target.value)}>{roles.map(r=><option key={r}>{r}</option>)}</select><button disabled={busy} className={button} onClick={()=>choose(account,"status")}>{account.disabled?(it?"Riattiva":"Enable"):(it?"Sospendi":"Suspend")}</button>{!account.oauth_provider&&<button disabled={busy} className={button} onClick={()=>choose(account,"password")}>{names.password}</button>}<button disabled={busy} className={button} onClick={()=>choose(account,"sessions")}>{names.sessions}</button></div></li>)}</ul>
+   <p className="text-xs text-muted-foreground">{it?"Non puoi sospendere o rimuovere il ruolo dell’ultimo amministratore attivo. Le password SSO si gestiscono presso il relativo provider.":"The last active administrator cannot be suspended or demoted. SSO passwords are managed by the identity provider."}</p>
+  </div>}{error&&<p role="alert" className="text-red-600">{error}</p>}{notice&&<p role="status">{notice}</p>}
+ </SettingsSection>;
 }

@@ -10,8 +10,8 @@ import urllib.request
 import xml.etree.ElementTree as ET
 
 VERSION=re.compile(r'[0-9A-Za-z][0-9A-Za-z.+:~_-]{0,100}\Z')
-NPM={'playwright':'@playwright/test','mermaid':'@mermaid-js/mermaid-cli','excalidraw':'@excalidraw/excalidraw','bpmn':'bpmn-to-image','provider-codex':'@openai/codex','axe-core':'@axe-core/playwright'}
-PYPI={'ifcopenshell':'ifcopenshell','manim':'manim','opentimelineio':'opentimelineio','pymeshlab':'pymeshlab','schemathesis':'schemathesis'}
+NPM={'playwright':'@playwright/test','mermaid':'@mermaid-js/mermaid-cli','excalidraw':'@excalidraw/excalidraw','bpmn':'bpmn-to-image','provider-codex':'@openai/codex','provider-claude':'@anthropic-ai/claude-code','axe-core':'@axe-core/playwright'}
+PYPI={'dlt':'dlt','sqlmesh':'sqlmesh','sqlglot':'sqlglot','ifcopenshell':'ifcopenshell','manim':'manim','opentimelineio':'opentimelineio','pymeshlab':'pymeshlab','schemathesis':'schemathesis'}
 
 
 def read(url,limit=8*1024**2,accept="application/json"):
@@ -101,6 +101,12 @@ def candidate(base,version,arch):
         return {'app':app,'requested':version,'arch':arch,'resolve_dependencies':False}
     if tool in PYPI or kind=='debian' or tool=='structurizr':
         return {'app':app,'requested':version,'arch':arch,'resolve_dependencies':True}
+    if tool=='provider-claude':
+        package='@anthropic-ai/claude-code-linux-'+{'amd64':'x64','arm64':'arm64'}[arch]
+        metadata=data('https://registry.npmjs.org/'+package+'/'+urllib.parse.quote(version,safe=''))
+        url=metadata['dist']['tarball'];sha,size=sha_asset(url)
+        app['assets']={arch:{'url':url,'sha256':sha,'size_bytes':size,'member':'package/claude'}}
+        return {'app':app,'requested':version,'arch':arch,'resolve_dependencies':False}
     if tool in NPM:
         metadata=data('https://registry.npmjs.org/'+urllib.parse.quote(NPM[tool],safe='@/')+'/'+urllib.parse.quote(version,safe=''))
         app['version']=metadata['version']
@@ -147,6 +153,7 @@ def candidate(base,version,arch):
 
 def latest(app):
     tool=app['id'];repo=gh_repository(app)
+    if tool=='provider-claude':return data('https://registry.npmjs.org/@anthropic-ai/claude-code/latest')['version']
     if tool in NPM:
         value=data('https://registry.npmjs.org/'+urllib.parse.quote(NPM[tool],safe='@/')+'/latest')['version']
         if not prerelease(value) and '-' not in value.split('+',1)[0]:return value

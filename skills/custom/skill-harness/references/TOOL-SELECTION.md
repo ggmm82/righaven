@@ -64,6 +64,11 @@ Un comando registrato non è un workflow collaudato: verifica prerequisiti, dati
 | [kicad](../../skill-kicad/references/CAPABILITIES.md) | Export native electronic schematics and PCBs using headless KiCad CLI | KICAD_PRO, KICAD_SCH, KICAD_PCB and any custom symbol/footprint libraries, plus fabrication exports when requested |
 | [ngspice](../../skill-ngspice/references/CAPABILITIES.md) | Simulate explicit SPICE netlists and preserve actual raw results | Netlist, included component models, stimuli, analysis settings and raw simulation data |
 | [prusaslicer](../../skill-prusaslicer/references/CAPABILITIES.md) | Slice existing models using explicit printer and material settings | Original mesh or 3MF project, printer/material INI, slicing recipe and G-code |
+| [usql](../../skill-usql/references/CAPABILITIES.md) | Use one SQL client across supported relational database drivers for explicit read-only queries. | SQL, bounded result JSON and local database snapshot or external-source requirements. |
+| [schemacrawler](../../skill-schemacrawler/references/CAPABILITIES.md) | Reverse engineer real keys, constraints, table relationships and schema metadata through JDBC. | Schema JSON/HTML/DOT, database snapshot or connection requirements, diagrams and interpretation notes. |
+| [dlt](../../skill-dlt/references/CAPABILITIES.md) | Discover SQL/document source metadata and extract bounded data into a reproducible local pipeline. | Python pipeline, schema YAML/JSON, query/inputs, portable JSONL, DuckDB snapshot and row reconciliation. |
+| [sqlglot](../../skill-sqlglot/references/CAPABILITIES.md) | Parse SQL dialects and derive table/column lineage using real expressions and actual supplied schemas. | Original SQL, actual schema dictionary, normalized SQL, lineage JSON and limits. |
+| [sqlmesh](../../skill-sqlmesh/references/CAPABILITIES.md) | Plan, test and explain SQL/Python analytical transformations using an isolated local DuckDB project. | SQL/Python models, tests, configuration, copied project, DuckDB results and plan/audit evidence. |
 
 ## Passaggi tra strumenti
 

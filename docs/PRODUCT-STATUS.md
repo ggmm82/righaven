@@ -14,6 +14,25 @@ engine, account identity and permission boundaries.
   the authenticated session, never a submitted author or workspace path.
 - Personal workspace language preferences also control Gallery and hosting pages.
 
+## Workspace management
+
+Administrators can create accounts, assign configured roles, suspend/reactivate
+access, reset temporary passwords and revoke sessions. Ordinary users can inspect
+all visible skill instructions and create scanned personal overrides, including
+reference edits. The environment detail view separates observed program versions
+from requested choices and links to the skill instructions it uses. The former
+Team Profiles surface is the advanced editor of those same native profiles,
+not a separate store or a mandatory static team.
+
+Reset operations are owner-scoped, previewed and require an expiring single-use
+typed confirmation. Shared model/version resets remain administrator-only.
+Accounts, credentials and shared software images are retained.
+
+Claude Code is an optional official CLI provider, prepared on demand rather than
+preloaded into every software environment. The data-engineering preset combines
+usql, SchemaCrawler, dlt, SQLMesh and SQLGlot with existing notebook/report tools.
+See DATA-ENGINEERING.md for connection handling and verification limits.
+
 ## Outstanding delivery requirements
 
 - Public directory hosting and publisher-signed distributions. Pinned HTTPS

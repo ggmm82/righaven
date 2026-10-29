@@ -10,6 +10,11 @@ APPS=set(TOOLS)
 
 
 def binary(app,cli):
+    if app in ('dlt','sqlmesh'):return str(cli.INSTALL/'apps'/app/'venv/bin'/app)
+    if app=='schemacrawler':
+        matches=list((cli.INSTALL/'apps/schemacrawler').rglob('schemacrawler.sh'))
+        if len(matches)!=1:raise RuntimeError('SchemaCrawler executable missing')
+        return str(matches[0])
     if app=='schemathesis':return str(cli.INSTALL/'apps/schemathesis/venv/bin/schemathesis')
     if app=='verapdf':return str(cli.INSTALL/'apps/verapdf/runtime/verapdf')
     if app=='zap':
@@ -22,7 +27,9 @@ def binary(app,cli):
 
 def version(app,cli):
     native=binary(app,cli)
-    if app=='axe-core':
+    if app=='sqlglot':
+        native=str(cli.INSTALL/'apps/sqlglot/venv/bin/python');flags=['-c','import sqlglot; print(sqlglot.__version__)']
+    elif app=='axe-core':
         library=cli.INSTALL/'apps/axe-core/node_modules/@axe-core/playwright'
         native='node'
         flags=['-e','require('+json.dumps(str(library))+'); console.log(require('+json.dumps(str(library/'package.json'))+').version)']
@@ -53,6 +60,10 @@ def retain(source,output,resource,cli):
 
 
 def invoke(app,action,args,cli):
+    if app in ('usql','schemacrawler','dlt','sqlmesh','sqlglot'):
+        try:from .data_tools import invoke as data_invoke
+        except ImportError:from data_tools import invoke as data_invoke
+        return data_invoke(app,action,args,cli)
     # Schemas validated by toolkit_cli before reaching the native dispatcher.
     if app in ('schemathesis','k6','axe-core','zap') and args.get('authorized') is not True:
         raise ValueError('Explicit target authorization is required')

@@ -63,7 +63,7 @@ def catalog():
 def update_agent(identifier, value):
     if identifier not in {a['id'] for a in applications()}:
         raise ValueError('Specialista sconosciuto')
-    if value['engine'] not in ('inherit', 'codex', 'gemini', 'deepseek', 'openai'):
+    if value['engine'] not in ('inherit', 'codex', 'gemini', 'deepseek', 'openai', 'claude'):
         raise ValueError('Motore sconosciuto')
     model = value.get('model', '').strip()
     if len(model) > 200 or any(ord(c) < 32 for c in model):
@@ -84,7 +84,7 @@ def update_agent(identifier, value):
 
 
 def credential_dir(engine):
-    if engine not in ('codex', 'gemini', 'deepseek', 'openai'):
+    if engine not in ('codex', 'gemini', 'deepseek', 'openai', 'claude'):
         raise ValueError('Motore sconosciuto')
     from .tenant_profiles import root
     directory = (root() or STATE) / 'credentials' / ('.' + engine)
@@ -98,7 +98,7 @@ def connection_status(engine, connection_id=None):
     if engine == 'gemini':
         return all((credential_dir(engine) / name).is_file() for name in (
             'antigravity-cli/antigravity-oauth-token', 'antigravity-account.json'))
-    filename = {'codex': 'auth.json', 'deepseek': 'api.json'}[engine]
+    filename = {'codex': 'auth.json', 'deepseek': 'api.json','claude':'.credentials.json'}[engine]
     return (credential_dir(engine) / filename).is_file()
 
 
@@ -124,6 +124,7 @@ def team(target='coordinator'):
         profile = profile or next(iter(profiles), {})
         engine = {'righaven.deepseek_provider:HarnessDeepSeekChatModel': 'deepseek',
                   'righaven.gemini_provider:HarnessGeminiChatModel': 'gemini',
+                  'righaven.claude_provider:HarnessClaudeChatModel': 'claude',
                   'righaven.openai_provider:HarnessCompatibleChatModel': 'openai'}.get(profile.get('use'), 'codex')
         result = {'engine': engine, 'model': profile.get('model', 'gpt-6.1-sol'),
                   'ready': connection_status(engine, profile.get('connection_id'))}

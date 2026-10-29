@@ -371,6 +371,18 @@ class Reporter:
                     path.chmod(0o600)
             except (OSError, ValueError):
                 pass
+        if engine=='claude':
+            message=event.get('message') or {}
+            for block in message.get('content',[]) if isinstance(message,dict) else []:
+                if not isinstance(block,dict):continue
+                if block.get('type')=='tool_use':
+                    parameters=block.get('input') or {}
+                    self.emit('running_tool',tool_label(parameters.get('command')),
+                        operation_details=self.command_event({'id':block.get('id'),'command':parameters.get('command'),'tool':block.get('name')}))
+                elif block.get('type')=='tool_result':
+                    self.emit('waiting_model','Strumento concluso; elaborazione del risultato',operation_details=self.command_event({'id':block.get('tool_use_id')},completed=True))
+            if event.get('type')=='result':self.emit('finalizing')
+            return
         kind = event.get('type') if engine == 'codex' else event.get('event')
         if engine == 'codex' and kind not in ('item.started', 'item.completed', 'turn.started', 'turn.completed'):
             return

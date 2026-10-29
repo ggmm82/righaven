@@ -2,6 +2,7 @@
 import asyncio
 import json
 import logging
+import subprocess
 import threading
 from fastapi import APIRouter, Request, Response, HTTPException, Query
 from pydantic import BaseModel, Field
@@ -24,7 +25,7 @@ class Definition(BaseModel):
     skills:list[str]=Field(max_length=200)
     mode:str=Field(default='on_demand',pattern='^(on_demand|preload)$')
     ephemeral:bool=False
-    tool_versions:dict[str,str]=Field(default_factory=dict,max_length=64)
+    tool_versions:dict[str,str]=Field(default_factory=dict,max_length=128)
     preload_tools:list[str]|None=Field(default=None,max_length=64)
 
 
@@ -94,6 +95,8 @@ def summary(user,agent,identity=None,cache=None):
         value['runtime'].update(failure=failure,error=failure['message'])
     if value['runtime']['status']=='version_pending':value['runtime']['error']=''
 
+    from . import environment_versions,tool_versions
+    value['version_inventory']=environment_versions.inventory(value,tool_versions.builtins(),tool_versions.defaults(),tool_versions.latest_pointers(),tool_versions.read)
     return value
 
 
@@ -190,7 +193,7 @@ async def write_definition(value,request,create):
     try:
         resolved=await run_in_threadpool(profiles.resolve_skills,user,value.skills)
         if value.preload_tools is not None and set(value.preload_tools)-set(resolved['tools']):raise ValueError('Precarica soltanto strumenti delle skill selezionate')
-        if set(value.tool_versions)-set(runtimes.closure(resolved['tools']))-{'provider-agy','provider-codex'}:raise ValueError('Scegli versioni solo degli strumenti selezionati nell’ambiente')
+        if set(value.tool_versions)-set(runtimes.closure(resolved['tools']))-{'provider-agy','provider-codex','provider-claude'}:raise ValueError('Scegli versioni solo degli strumenti selezionati nell’ambiente')
         if value.mode=='preload' and value.ephemeral:raise ValueError('Il predeploy non può essere temporaneo')
         from .tool_versions import check_selection
         check_selection(value.tool_versions)  # Validate before changing native configuration.
@@ -660,3 +663,28 @@ async def share_environment(name:str,value:ShareDefinition,request:Request):
         if value.preview_hash!=digest:raise HTTPException(409,'Sharing preview changed; inspect it again before publishing')
         return gallery.publish_pack(manifest)
     except ValueError as error:raise HTTPException(422,str(error)) from error
+
+
+@router.post('/{name}/inspect-versions')
+@require_permission('agents','read')
+async def inspect_versions(name:str,request:Request):
+    same_origin(request);user=get_effective_user_id()
+    value=await checked_summary(user,await native_agent(request,name))
+    runtime=value['runtime']
+    if runtime['status']!='ready':raise HTTPException(409,'Prepare the environment before inspecting installed software')
+    def inspect():
+        import subprocess,uuid
+        from .docker_runtime import base_arguments,remove
+        label='rh-inspect-'+uuid.uuid4().hex[:12]
+        script="import json;from pathlib import Path;r=Path('/opt/righaven');v={x['id']:x['version'] for x in json.loads((r/'installed.json').read_text())};v.update({'provider-'+k:z for k,z in json.loads((r/'catalog.lock.json').read_text()).get('cli_runtimes',{}).items() if k in ('codex','claude')});a=r/'antigravity.lock.json';v.update({'provider-agy':json.loads(a.read_text())['version']} if a.exists() else {});print(json.dumps(v))"
+        try:
+            args=base_arguments(label)+['--network=none','--entrypoint','python3',runtime.get('image_id') or runtime['image'],'-c',script]
+            result=subprocess.run(['docker',*args],capture_output=True,text=True,timeout=60)
+            if result.returncode:raise ValueError('Cannot read the prepared software manifest; inspect preparation details')
+            versions=json.loads(result.stdout)
+            runtimes.save(runtime['id'],installed_versions=versions)
+        finally:remove(label)
+    try:await run_in_threadpool(inspect)
+    except (ValueError,OSError) as error:raise HTTPException(409,str(error)) from None
+    except subprocess.TimeoutExpired:raise HTTPException(409,'Version inspection timed out; retry or inspect preparation details') from None
+    return await checked_summary(user,await native_agent(request,name))

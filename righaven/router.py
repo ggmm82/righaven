@@ -43,11 +43,11 @@ def get_catalog():
         for a in applications()], 'connections': {
             engine: {'credentials_present': connection_status(engine), **(
                 {k: custom.get(k, '') for k in ('base_url', 'connection_id')} if engine == 'openai' else {})}
-            for engine in ('codex', 'gemini', 'deepseek', 'openai')}}
+            for engine in ('codex', 'gemini', 'deepseek', 'openai','claude')}}
 
 
 class AgentConfig(BaseModel):
-    engine: str = Field(default='inherit', pattern='^(inherit|codex|gemini|deepseek|openai)$')
+    engine: str = Field(default='inherit', pattern='^(inherit|codex|gemini|deepseek|openai|claude)$')
     model: str = Field(default='', max_length=200)
     instructions: str = Field(default='', max_length=20000)
     enabled: bool | None = None
@@ -82,7 +82,7 @@ async def save_agent(identifier: str, value: AgentConfig, request: Request):
 @router.post('/api/login/{engine}')
 def begin_login(engine: str, request: Request):
     same_origin(request)
-    if engine not in ('codex', 'gemini'):
+    if engine not in ('codex', 'gemini','claude'):
         raise HTTPException(400, 'Motore sconosciuto')
     try:
         return login.start(engine)
@@ -125,7 +125,7 @@ def cancel_login(identifier: str, request: Request):
 
 
 class TeamConfig(BaseModel):
-    engine: str = Field(pattern='^(codex|deepseek|gemini|openai)$')
+    engine: str = Field(pattern='^(codex|deepseek|gemini|openai|claude)$')
     model: str = Field(default='', max_length=200)
     api_key: SecretStr | None = None
     scope: str = Field(default='both', pattern='^(both|coordinator|squad)$')
@@ -192,7 +192,10 @@ def team_models(engine: str = 'deepseek', connection_id: str | None = None):
             raise HTTPException(400, str(error)) from None
         except RuntimeError as error:
             raise HTTPException(502, str(error)) from None
-    if engine in ('codex', 'gemini'):
+    if engine=='claude':
+        from .docker_runtime import claude_models
+        return {'models':[item['id'] for item in claude_models()],'hint':'Official Claude Code aliases; account/model availability is checked when saving.'}
+    if engine in ('codex', 'gemini','claude'):
         if not connection_status(engine):
             raise HTTPException(400, 'Collega prima ' + ('Antigravity' if engine == 'gemini' else 'Codex'))
         from .docker_runtime import codex_models, antigravity_models
@@ -243,7 +246,7 @@ def save_team(value: TeamConfig, request: Request):
                 key = json.loads(path.read_text())['api_key']
             chosen, available = validated_deepseek(key, chosen)
         elif not connection_status(value.engine):
-            raise ValueError('Collega prima il tuo account ' + ('Antigravity' if value.engine == 'gemini' else 'Codex'))
+            raise ValueError('Collega prima il tuo account ' + {'gemini':'Antigravity','claude':'Claude Code','codex':'Codex'}[value.engine])
         else:
             if value.engine == 'codex':
                 from .docker_runtime import codex_models
@@ -257,6 +260,11 @@ def save_team(value: TeamConfig, request: Request):
                 if chosen not in [item['id'] for item in entries]:
                     raise ValueError('Scegli un modello dall’elenco del tuo account Codex')
                 available = [item['id'] for item in entries]
+            elif value.engine=='claude':
+                from .docker_runtime import claude_models,generate_claude
+                chosen=chosen or 'sonnet';available=[item['id'] for item in claude_models()]
+                if chosen not in available and not chosen.startswith('claude-'):raise ValueError('Use an official Claude model alias or ID')
+                generate_claude({'model':chosen,'prompt':'Return content Connected and tool_calls [].','schema':{'type':'object','properties':{'content':{'type':'string'},'tool_calls':{'type':'array','maxItems':0,'items':{'type':'object'}}},'required':['content','tool_calls']}},timeout=180)
             else:
                 from .docker_runtime import antigravity_models
                 entries = antigravity_models()

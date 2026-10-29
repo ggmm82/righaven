@@ -25,8 +25,14 @@ class HarnessGeminiChatModel(BaseChatModel):
         return self.bind(tools=[convert_to_openai_tool(t) for t in tools],
                          tool_choice=tool_choice, **kwargs)
 
-    def _generate(self, messages, stop=None, run_manager=None, **kwargs: Any):
+    @property
+    def wire_protocol(self):return antigravity_protocol
+
+    def invoke_cli(self,payload):
         from .docker_runtime import generate_gemini
+        return generate_gemini(payload,timeout=min(self.request_timeout,1800))
+
+    def _generate(self, messages, stop=None, run_manager=None, **kwargs: Any):
         records = []
         for message in messages:
             value = {'type': message.type, 'content': message.content}
@@ -36,9 +42,9 @@ class HarnessGeminiChatModel(BaseChatModel):
                 value['tool_call_id'] = message.tool_call_id
             records.append(value)
         tools = kwargs.get('tools', [])
-        payload = antigravity_protocol.request(records, self.model, tools, kwargs.get('tool_choice'))
-        result = generate_gemini(payload, timeout=min(self.request_timeout, 1800))
-        parsed = antigravity_protocol.response(result, tools)
+        payload = self.wire_protocol.request(records, self.model, tools, kwargs.get('tool_choice'))
+        result = self.invoke_cli(payload)
+        parsed = self.wire_protocol.response(result, tools)
         usage = result.get('usage', {})
         input_tokens = usage.get('input_tokens', 0)
         output_tokens = usage.get('output_tokens', 0)

@@ -33,3 +33,7 @@ TOOLS={
  'ngspice':[operation('ngspice','simulate','Run a local SPICE netlist in batch mode, preserving models, netlist and native results.',{'resource_dir':STRING})],
  'prusaslicer':[operation('prusaslicer','slice','Slice a local mesh using an explicit printer/material configuration; preserve model, configuration and G-code. Does not certify printer safety.',{'config':STRING},['input','output','config'])],
 }
+
+try:from .data_specs import TOOLS as DATA_TOOLS
+except ImportError:from data_specs import TOOLS as DATA_TOOLS
+TOOLS.update(DATA_TOOLS)
