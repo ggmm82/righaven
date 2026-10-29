@@ -164,5 +164,16 @@ skills, prepared environments, output fixtures, portability and container
 replacement. A passing technical fixture does not certify artistic quality,
 engineering safety or a complete public SaaS service.
 
-RigHaven is MIT licensed. Incorporated source notices are preserved in
+RigHaven is [MIT licensed](LICENSE). Incorporated source notices are preserved in
 [docs/UPSTREAM-LICENSE](docs/UPSTREAM-LICENSE).
+
+---
+
+## 👤 Author
+
+**Marco Gramuglia**  
+*Computer Engineer | Data Engineer | Analytics & AI | IT Service Management*
+
+- 📍 Rome, Italy
+- 💼 LinkedIn: [linkedin.com/in/marco-gramuglia-2686bb30](https://www.linkedin.com/in/marco-gramuglia-2686bb30)
+- 🐙 GitHub: [@ggmm82](https://github.com/ggmm82)
