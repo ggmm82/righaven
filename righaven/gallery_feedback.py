@@ -14,7 +14,8 @@ def database():
     os.chmod(state.STATE / "gallery-feedback.sqlite3", 0o600)
     connection.row_factory = sqlite3.Row
     try:
-        connection.execute('PRAGMA journal_mode=WAL')
+        # Keep SQLite's default journal: concurrent first-use connections must not
+        # race to change journal mode before their busy timeout can serialize writes.
         connection.executescript('''
         CREATE TABLE IF NOT EXISTS handles (owner TEXT PRIMARY KEY, handle TEXT NOT NULL);
         CREATE TABLE IF NOT EXISTS feedback (

@@ -67,6 +67,20 @@ class EnvironmentCommunityTests(unittest.TestCase):
         self.assertEqual(len(first['items']), 20); self.assertEqual(len(second['items']), 6)
         self.assertFalse({r['id'] for r in first['items']} & {r['id'] for r in second['items']})
 
+    def test_separate_gateway_processes_share_rating_transaction(self):
+        import os,subprocess,sys
+        self.pack()
+        code="from righaven import gallery_feedback as f;f.write('community-test','1.0.0','same-user','Concurrent Gateway process',4)"
+        children=[subprocess.Popen([sys.executable,'-c',code],env={**os.environ,'RIGHAVEN_STATE':str(self.root)},stdout=subprocess.PIPE,stderr=subprocess.PIPE) for _ in range(6)]
+        try:
+            for child in children:
+                output,error=child.communicate(timeout=30)
+                self.assertEqual(child.returncode,0,error.decode())
+        finally:
+            for child in children:
+                if child.poll() is None:child.kill();child.wait()
+        self.assertEqual(feedback.list_feedback('community-test','viewer')['ratings'][0]['count'],1)
+
     def profile(self):
         return {'name':'diagrams','display_name':'Diagrams','purpose':'Editable diagrams',
                 'instructions':'Keep layout readable', 'skills':['skill-workspace','skill-d2','skill-quality-review'],
