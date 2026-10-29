@@ -44,7 +44,8 @@ def inventory(policy,query='',limit=12):
                        'tools':required,'available':not error and set(required).issubset(policy['allowed']),
                        'issue':error or ('Strumento richiesto escluso dal profilo' if set(required)-set(policy['allowed']) else '')})
     result.sort(key=lambda item:({'method':0,'protocol':1,'tool':2}[item['kind']],item['name']))
-    return {'skills':result[:limit],'total':len(result),'more':len(result)>limit,
+    return {'selection_guidance':'Choose capabilities for the content and editable model before the delivery format. Compare relevant owner environments; distinguish authoring, layout/export and verification where needed. Explain the choice in each role capability_rationale. Reuse prepared compatible software without loading unrelated tools or imposing fixed roles.',
+            'skills':result[:limit],'total':len(result),'more':len(result)>limit,
             'tools':[{'id':a['id'],'description':a['description']} for a in applications() if a['id'] in policy['allowed']]}
 
 

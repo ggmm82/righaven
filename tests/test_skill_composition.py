@@ -51,6 +51,13 @@ class SkillCompositionTests(unittest.TestCase):
         from righaven.environment_runtime import recipe
         self.assertEqual(recipe(role['tools'],identity='sha256:core'),recipe([],identity='sha256:core'))
 
+    def test_worker_receives_the_capability_decision_and_cannot_treat_it_as_quality_evidence(self):
+        self.spec['capability_rationale']='Model content with the relevant authoring capability; layout is a separate responsibility.'
+        role=self.compile()
+        mandate=load_compiled(self.root,role)
+        self.assertIn(self.spec['capability_rationale'],mandate)
+        self.assertIn('prima di sostituire il metodo',mandate)
+
     def test_selected_method_resolves_cli_dependencies_but_never_reenables_a_disabled_tool(self):
         self.spec['skills']=['method-b'];role=self.compile()
         self.assertEqual(role['tools'],['ffmpeg','soundcraft'])

@@ -173,6 +173,17 @@ class AdaptiveToolTests(unittest.TestCase):
             result=json.loads(harness_plan.func(runtime=runtime,brief='Create a text proposal',roles_json=json.dumps([spec])))
             self.assertTrue(result['project'])
 
+    def test_planner_requires_a_capability_reason_even_with_an_authoring_tool(self):
+        from test_project_skills import role
+        spec=role();spec['tools']=['typst'];spec.pop('capability_rationale')
+        runtime=SimpleNamespace(state={'messages':[SimpleNamespace(type='human',content='Create an explanatory PDF')]})
+        with tempfile.TemporaryDirectory() as directory,patch('righaven.tools.workspace_for',return_value=Path(directory)):
+            with self.assertRaisesRegex(ValueError,'capability_rationale'):
+                harness_plan.func(runtime=runtime,brief='Create an explanatory PDF',roles_json=json.dumps([spec]))
+            spec['capability_rationale']='This role lays out supplied diagrams and text in Typst; semantic modeling and native sources belong to the modeling contribution. It does not recreate those diagrams as decorative shapes.'
+            result=json.loads(harness_plan.func(runtime=runtime,brief='Create an explanatory PDF',roles_json=json.dumps([spec])))
+            self.assertTrue(result['project'])
+
     def test_planner_cannot_assign_a_native_disabled_tool_to_a_new_role(self):
         from test_project_skills import role
         spec = role(); spec['tools'] = ['blender']

@@ -35,6 +35,12 @@ the objective. See [optional environments](docs/OPTIONAL-ENVIRONMENTS.md).
    remaining checks, then accept the result or request a focused revision.
    A technically valid file is not automatically an approved final product.
 
+The coordinator records a capability rationale for each new role: why its tools
+can create the requested content or editable model, not just export the final
+format. The team view exposes this choice under **Why these tools**. Architecture
+and process models can use C4/Structurizr or BPMN, then be integrated into a PDF;
+simple informal diagrams can use a simpler method when it meets the brief.
+
 ### Prepare an environment for recurring work
 
 Open **Environments → Add environment** to start from a Gallery pack, a starter

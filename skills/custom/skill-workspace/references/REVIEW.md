@@ -78,3 +78,10 @@ Split structural correctness and visual legibility into separate observations. I
 ```
 
 A criterion waiting for another observation can declare `blocked_by: "visual"` (or another actual method). This never approves it or removes a genuine failure. The coordinator should present saved files and the specific missing check, preserve all valid sources, and avoid repeating the same unsupported verification. Report quota/authentication failures separately from defects in the product.
+
+
+## Idoneità del metodo e dei sorgenti
+
+Confronta il prodotto con la richiesta e con `capability_rationale` del ruolo, non con il solo formato esportato. Una compilazione riuscita prova la produzione del file, non la correttezza semantica di architetture, processi, geometrie, musica o analisi. Quando la richiesta implica un modello modificabile, verifica i sorgenti pertinenti e la coerenza con ciò che è rappresentato: un impaginato o una conversione non li sostituiscono.
+
+Non richiedere una CLI o una notazione per il solo nome: una soluzione semplice che soddisfa i requisiti resta valida. Se la semplificazione ha perso significato, relazioni, dati o modificabilità richiesti, descrivi la perdita concreta e chiedi una correzione del metodo; non limitarti a suggerire colori o spaziature. Distingui requisiti dell’utente da preferenze del revisore e non imporre una nuova pipeline.

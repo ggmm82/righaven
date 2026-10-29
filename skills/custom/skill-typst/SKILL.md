@@ -32,3 +32,8 @@ Proponi soltanto lezioni generali sostenute da una prova: problema, metodo corre
 ## Fonte
 
 https://typst.app/docs/reference/
+
+
+## Confine fra modelli e impaginazione
+
+Typst può disegnare schemi semplici, ma la consegna PDF non autorizza a sostituire modelli di architettura, processi, dati o disegni tecnici con forme decorative. Quando il mandato richiede quella semantica, integra gli export dagli strumenti di modellazione assegnati e conserva i loro sorgenti. Se il ruolo non dispone delle capacità necessarie, segnala il limite al coordinatore prima di semplificare il prodotto. Non usare C4/BPMN per ogni illustrazione: scegli in base al significato richiesto.

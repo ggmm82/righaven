@@ -281,7 +281,7 @@ window.showThread();
                         box, input_box = dock.bounding_box(), composer.bounding_box()
                         assert box['y'] >= 0 and box['y'] + box['height'] <= input_box['y'] + 1
                         assert input_box['y'] + input_box['height'] <= viewport['height']
-                    page.get_by_role('button', name=re.compile('^(Vedi anteprima|Apri consegna)$')).click()
+                    page.get_by_role('button', name=re.compile('^(Apri risultato|Apri consegna)$')).click()
                     expect(page.get_by_text('Bozza di lavoro:', exact=False)).to_be_visible()
                     page.wait_for_function('document.querySelector("[data-testid=harness-drawer]").getBoundingClientRect().top >= 0')
                     drawer = page.get_by_test_id('harness-drawer').bounding_box()
@@ -424,7 +424,7 @@ window.showThread();
                 # A professional role is compiled from the project, independently of CLI names.
                 state['job'] = {**job, 'role_id': 'coherence', 'role_title': 'Responsabile della coerenza', 'role_version': 'abcdef0123456789'}
                 state['project'] = {**project, 'roles': [{'id': 'coherence', 'title': 'Responsabile della coerenza',
-                    'mission': 'Confrontare risultati e vincoli', 'expertise': ['Analisi delle dipendenze'],
+                    'mission': 'Confrontare risultati e vincoli', 'capability_rationale':'Confronto i modelli sorgenti con il brief; la conversione del formato non sostituisce il modello.', 'expertise': ['Analisi delle dipendenze'],
                     'checks': ['Confrontare il risultato con il brief integrale'], 'tools': [], 'skill_bindings':[{'name':'skill-problem-solving','revision':'a'*64}], 'version': 'abcdef0123456789'},
                     {'id': 'verify', 'title': 'Revisore indipendente', 'mission': 'Verificare la consegna', 'expertise': ['Verifiche indipendenti'], 'checks': ['Raccogliere evidenze'], 'tools': [], 'version': 'fedcba0123456789'}],
                     'steps': [{**step, 'role_id': 'coherence' if step['id'] == 'motion' else 'verify' if step['id'] == 'final' else '', 'attempt_count': 1 if step['id'] == 'motion' else 0} for step in project['steps']]}
@@ -434,6 +434,8 @@ window.showThread();
                 compiled = page.get_by_test_id('compiled-role').first
                 expect(compiled).to_contain_text('Al lavoro')
                 expect(compiled).to_contain_text('Analisi delle dipendenze')
+                compiled.get_by_text('Perché questi strumenti',exact=True).click()
+                expect(compiled).to_contain_text('la conversione del formato non sostituisce il modello.')
                 expect(compiled.get_by_test_id('role-method-skills')).to_contain_text('problem-solving')
                 expect(compiled.get_by_test_id('role-method-skills')).not_to_contain_text('aaaaaaaa')
                 expect(page.get_by_test_id('compiled-role').nth(1)).to_contain_text('Previsto')
@@ -490,7 +492,7 @@ window.showThread();
                 state['project'] = {**project, 'results': [{'path': '/mnt/user-data/outputs/review/report.json',
                     'label': 'report.json', 'agent': 'filmcraft', 'validated': True, 'at': iso(now)}]}
                 page.reload()
-                page.get_by_role('button', name=re.compile('^(Vedi anteprima|Apri consegna)$')).click()
+                page.get_by_role('button', name=re.compile('^(Apri risultato|Apri consegna)$')).click()
                 expect(page.get_by_label('Anteprima video')).to_have_attribute('src', '/api/threads/fixture/artifacts'+video_path)
                 page.get_by_test_id('acceptance-criteria').locator('summary').first.click()
                 expect(page.get_by_test_id('acceptance-criteria')).to_contain_text('Conserva il contenuto del riferimento fornito')
@@ -500,8 +502,8 @@ window.showThread();
                 # Document/project outputs use the same result control, not a video-only flow.
                 state['project'] = {**state['project'], 'product_path': '/mnt/user-data/outputs/report/final.docx'}
                 page.reload()
-                page.get_by_role('button', name=re.compile('^(Vedi anteprima|Apri consegna)$')).click()
-                expect(page.get_by_role('link', name='final.docx')).to_be_visible()
+                page.get_by_role('button', name=re.compile('^(Apri risultato|Apri consegna)$')).click()
+                expect(page.get_by_test_id('primary-result').get_by_role('link', name='final.docx',exact=True)).to_be_visible()
                 expect(page.get_by_label('Anteprima video')).to_have_count(0)
                 # A document without product_path is still discoverable, and old media cannot replace it.
                 document = {'path': '/mnt/user-data/outputs/software/release.zip', 'label': 'release.zip',
@@ -509,7 +511,7 @@ window.showThread();
                             'open_with': 'Estrarre il pacchetto e seguire README'}
                 state['project'] = {**project, 'product_path': '', 'results': [document, project['results'][2]]}
                 page.reload()
-                page.get_by_role('button', name=re.compile('^(Vedi anteprima|Apri consegna)$')).click()
+                page.get_by_role('button', name=re.compile('^(Apri risultato|Apri consegna)$')).click()
                 expect(page.get_by_test_id('primary-result').get_by_role('link', name='release.zip')).to_be_visible()
                 expect(page.get_by_test_id('primary-result')).to_contain_text('Estrarre il pacchetto')
                 expect(page.get_by_label('Anteprima video')).to_have_count(0)
@@ -545,7 +547,7 @@ window.showThread();
                      'review':{'target_delivery_id':'final','target_version':2,'target_label':'Versione 2','status':'needs_revision',
                         'validated':True,'matches_current_brief':True,'report_path':'/mnt/user-data/outputs/review/report.json','correction_count':2}}]}
                 page.reload()
-                page.get_by_role('button',name='Vedi anteprima',exact=True).click()
+                page.get_by_role('button',name='Apri risultato',exact=True).click()
                 expect(page.get_by_test_id('selected-version')).to_contain_text('Versione 2')
                 expect(page.get_by_test_id('selected-version')).to_contain_text('Versione 3 in lavorazione')
                 expect(page.get_by_test_id('paired-sources').get_by_role('link',name='Sorgenti.zip')).to_be_visible()
@@ -595,10 +597,10 @@ window.showThread();
                 page.get_by_role('button', name='Riprendi lavoro').click()
                 assert page.evaluate('window.continued') == 2
                 expect(page.get_by_role('button', name='Ripresa richiesta…')).to_be_disabled()
-                expect(page.get_by_role('button', name=re.compile('^(Vedi anteprima|Apri consegna)$'))).to_be_enabled()
+                expect(page.get_by_role('button', name=re.compile('^(Apri risultato|Apri consegna)$'))).to_be_enabled()
                 state['unavailable'] = True
                 expect(page.get_by_text('Aggiornamenti non disponibili:', exact=False)).to_be_visible(timeout=7000)
-                expect(page.get_by_role('button', name=re.compile('^(Vedi anteprima|Apri consegna)$'))).to_be_enabled()
+                expect(page.get_by_role('button', name=re.compile('^(Apri risultato|Apri consegna)$'))).to_be_enabled()
                 state['unavailable'] = False
                 state['project'] = {**project, 'user_control':{'paused':True}}
                 state['job'] = {**job,'phase':'failed','resources_reclaimed':True,'finished_at':iso(now)}
@@ -613,7 +615,7 @@ window.showThread();
                 page.evaluate("window.showThread('fixture',false,false,false)")
                 expect(page.get_by_test_id('harness-status')).to_have_text('Il risultato è pronto', timeout=7000)
                 expect(page.get_by_role('button', name='Riprendi lavoro')).to_have_count(0)
-                page.get_by_role('button', name=re.compile('^(Vedi anteprima|Apri consegna)$')).click()
+                page.get_by_role('button', name=re.compile('^(Apri risultato|Apri consegna)$')).click()
                 expect(page.get_by_text('Prodotto finale', exact=True)).to_be_visible()
                 page.evaluate("window.showThread('another-conversation',false,false,false)")
                 expect(dock).to_have_count(0)
@@ -622,7 +624,7 @@ window.showThread();
                 state['project'] = {**state['project'], 'status': 'review', 'quality_status': 'needs_review'}
                 expect(page.get_by_test_id('harness-status')).to_have_text('Una versione è disponibile', timeout=7000)
                 expect(page.get_by_role('button', name='Riprendi lavoro')).to_have_count(0)
-                page.get_by_role('button', name=re.compile('^(Vedi anteprima|Apri consegna)$')).click()
+                page.get_by_role('button', name=re.compile('^(Apri risultato|Apri consegna)$')).click()
                 page.get_by_role('button', name='Ho verificato: accetta questa versione').click()
                 expect(page.get_by_test_id('harness-status')).to_have_text('Il risultato è pronto')
                 expect(page.get_by_text('Questa versione è stata accettata da te.')).to_be_visible()
@@ -755,6 +757,16 @@ window.showThread();
                 page.reload();page.evaluate("window.showThread('fixture',false,false,false)")
                 section('Risultato')
                 expect(page.get_by_test_id('selected-version')).to_contain_text('Metadati aggiornati · versione 1 invariata')
+                # A candidate PDF remains directly downloadable even when the turn stops before approval.
+                pdf_path='/mnt/user-data/outputs/candidate/Carousel.pdf'
+                pdf_result={**project['results'][0],'path':pdf_path,'label':'Carousel.pdf','role':'export','delivery_id':'final','validated':True}
+                state['project']={**project,'status':'review','product_path':pdf_path,'results':[pdf_result],
+                    'attention':{'code':'incomplete_objective','message':'Verifiche incomplete','action':'Valuta il risultato.'}}
+                page.reload();page.evaluate("window.showThread('fixture',false,false,false)")
+                expect(page.get_by_role('link',name='Scarica Carousel.pdf',exact=True)).to_be_visible()
+                page.get_by_role('button',name='Apri risultato',exact=True).click()
+                expect(page.get_by_title('Anteprima PDF')).to_have_attribute('src',re.compile('Carousel.pdf$'))
+                expect(page.get_by_test_id('primary-result').get_by_role('link',name='Carousel.pdf',exact=True)).to_be_visible()
                 # Old observations are curated only on explicit request, scoped
                 # to this chat; proposing never implies accepting the lessons.
                 state['pending_observations']=3

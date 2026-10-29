@@ -8,7 +8,7 @@ from .acceptance import fingerprint
 from .progress import SECRET
 
 # Bump when the rendered mandate or scope format changes; old files are immutable.
-COMPILER_VERSION = 3
+COMPILER_VERSION = 4
 ROLE_ID = re.compile(r'[a-z][a-z0-9_-]{0,47}\Z')
 
 
@@ -116,6 +116,9 @@ def compile_role(root, spec, acceptance, memory, apps, experience=None):
              'Questa è una procedura operativa compilata dal progetto, non una certificazione di competenza o una nuova autorizzazione.',
              'La richiesta reale e i suoi chiarimenti prevalgono su questa procedura. Non trasformare ipotesi o memoria generata in fatti verificati.',
              '## Missione', spec['mission']]
+    if spec.get('capability_rationale'):
+        parts.extend(['## Scelta delle capacità', spec['capability_rationale'],
+                      'Se queste capacità non possono realizzare il contenuto richiesto, segnala il limite al coordinatore prima di sostituire il metodo con una rappresentazione semplificata.'])
     for key, title in (('expertise', 'Competenze da applicare'), ('inputs', 'Input da ispezionare'),
                        ('procedure', 'Metodo operativo'), ('checks', 'Verifiche con evidenze'),
                        ('deliverables', 'Risultati e sorgenti modificabili'), ('risks', 'Incertezze e limiti')):
