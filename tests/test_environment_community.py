@@ -37,6 +37,29 @@ class EnvironmentCommunityTests(unittest.TestCase):
         self.assertEqual(feedback.list_feedback('community-test', 'alice', '1.0.0')['total'], 2)
         with self.assertRaises(ValueError): feedback.write('community-test', 'unknown', 'alice', 'Wrong version', 4)
 
+    def test_reviewed_builtin_version_survives_catalog_upgrade(self):
+        pack=gallery.get_pack('skill-d2')
+        first=feedback.write(pack['id'],pack['version'],'reader','Original catalog release',4)
+        upgraded={**pack,'version':'99.0.0'}
+        with patch.object(gallery,'get_pack',return_value=upgraded):
+            edited=feedback.write(pack['id'],pack['version'],'reader','Updated review of the original release',5)
+            self.assertEqual(first['id'],edited['id'])
+            self.assertEqual(edited['version'],pack['version'])
+            result=feedback.list_feedback(pack['id'],'reader')
+            self.assertIn(pack['version'],result['versions'])
+            self.assertIn('99.0.0',result['versions'])
+            self.assertEqual(result['ratings'][0]['version'],pack['version'])
+
+    def test_catalog_origin_is_retained_but_edits_are_labelled_modified(self):
+        from righaven import environments
+        def owner_path(user):return self.root/user/'righaven-environments.json'
+        with patch.object(environments,'preferences_path',side_effect=owner_path):
+            environments.set_deployment('reader','diagrams','on_demand')
+            environments.set_source('reader','diagrams',{'id':'community-test','version':'1.0.0'})
+            environments.set_deployment('reader','diagrams','preload')
+            source=environments.preferences('reader')['diagrams']['source_pack']
+            self.assertEqual(source['version'],'1.0.0');self.assertTrue(source['modified'])
+
     def test_discussion_author_reply_report_and_moderation(self):
         self.pack()
         review = feedback.write('community-test', '1.0.0', 'reader', 'Instructions missing', 2)

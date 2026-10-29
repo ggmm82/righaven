@@ -15,12 +15,14 @@ def main():
         root=Path(directory);previous=state.STATE;state.STATE=root/'state'
         pack=dict(gallery.get_pack('skill-d2'));pack.update(id='review-fixture',author='publisher',version='1.0.0');gallery.publish_pack(pack)
         (root/'fetch.ts').write_text('export const fetch=window.fetch.bind(window);')
-        entry=root/'entry.tsx';entry.write_text('import React from "react";import{createRoot}from"react-dom/client";import Page from '+json.dumps(str(repo/'frontend/gallery-feedback.tsx'))+';createRoot(document.getElementById("root")!).render(<Page base="/api/v1/gallery" pack="review-fixture" version="1.0.0" locale="en"/>);')
+        entry=root/'entry.tsx';entry.write_text('import React from "react";import{createRoot}from"react-dom/client";import Page from '+json.dumps(str(repo/'frontend/gallery-feedback.tsx'))+';createRoot(document.getElementById("root")!).render(<Page base="/api/v1/gallery" pack="review-fixture" version={new URLSearchParams(location.search).get("version")??"1.0.0"} locale="en"/>);')
         build='require('+json.dumps(str(modules/'esbuild'))+').buildSync('+json.dumps({'entryPoints':[str(entry)],'outfile':str(root/'app.js'),'bundle':True,'jsx':'automatic','nodePaths':[str(modules)],'alias':{'@/core/api/fetcher':str(root/'fetch.ts')}})+');';subprocess.run(['node','-e',build],check=True)
         class Handler(BaseHTTPRequestHandler):
             def log_message(self,*args):pass
             def send(self,value,kind='application/json',code=200):
-                self.send_response(code);self.send_header('Content-Type',kind);self.end_headers();self.wfile.write(value if isinstance(value,bytes) else value.encode())
+                self.send_response(code);self.send_header('Content-Type',kind);self.end_headers()
+                try:self.wfile.write(value if isinstance(value,bytes) else value.encode())
+                except BrokenPipeError:pass  # A deliberate browser reload aborts in-flight fetches.
             def do_GET(self):
                 parts=urlsplit(self.path);params=parse_qs(parts.query)
                 if '/feedback' in parts.path:
@@ -52,9 +54,22 @@ def main():
                 page.get_by_role('button',name='Report',exact=True).click();page.get_by_role('textbox',name='Report reason').fill('Please check this response');page.get_by_role('button',name='Send to moderator').click()
                 expect(page.get_by_role('textbox',name='Report reason')).to_have_count(0);assert gallery_feedback.reports()[0]['reports']==1
                 page.get_by_role('button',name='Reply',exact=True).click();page.get_by_role('textbox',name='Your experience').fill('A follow-up comment');page.get_by_role('button',name='Post',exact=True).click();expect(page.get_by_text('A follow-up comment',exact=True)).to_be_visible()
+                # Editing an older review must never rate the current release instead.
+                pack['version']='2.0.0';gallery.publish_pack(pack)
+                page.goto(f'http://127.0.0.1:{server.server_port}/?version=2.0.0')
+                expect(page.get_by_text('No reviews for this version',exact=False)).to_be_visible()
+                page.get_by_role('checkbox',name='Include other versions').check()
+                page.get_by_role('button',name='Edit review').click()
+                expect(page.get_by_role('combobox',name='Version tested')).to_have_value('1.0.0')
+                page.get_by_role('combobox',name='Rating',exact=True).select_option('3')
+                page.get_by_role('textbox',name='Your experience').fill('Revised rating of the version I actually tried')
+                page.get_by_role('button',name='Post',exact=True).click()
+                expect(page.get_by_text('Revised rating of the version I actually tried',exact=True)).to_be_visible()
+                ratings=gallery_feedback.list_feedback('review-fixture','reader')['ratings']
+                assert len(ratings)==1 and ratings[0]['version']=='1.0.0' and ratings[0]['average']==3,ratings
                 assert not errors,errors
                 browser.close()
-            print('Gallery review UI passed: rating update, version label, publisher reply, report and threaded comment; persistent real storage')
+            print('Gallery review UI passed: rating update, old-version editing, publisher reply, report and threaded comment; persistent real storage')
         finally:server.shutdown();server.server_close();state.STATE=previous
 
 

@@ -36,6 +36,11 @@ function GalleryContent() {
   const [query, setQuery] = useState<string>("");
   const [statusMessage, setStatusMessage] = useState<string>("");
   const [selectedPack, setSelectedPack] = useState<GalleryPack | null>(null);
+  const [feedbackVersion,setFeedbackVersion]=useState("");
+  const [sourceLink,setSourceLink]=useState<{id:string;version:string}|null>(null);
+  useEffect(()=>{const params=new URLSearchParams(location.search);const id=params.get("pack");if(id)setSourceLink({id,version:params.get("version")??""});},[]);
+  useEffect(()=>{if(!sourceLink)return;const pack=packs.find(p=>p.id===sourceLink.id);if(pack){setSelectedPack(pack);setFeedbackVersion(sourceLink.version||pack.version);setSourceLink(null);}},[packs,sourceLink]);
+  function selectPack(pack:GalleryPack){setSelectedPack(pack);setFeedbackVersion(pack.version);}
   const [showPublish, setShowPublish] = useState<boolean>(false);
   const [publishJson, setPublishJson] = useState<string>("");
   const base = `${getBackendBaseURL()}/api/v1/gallery`;
@@ -205,7 +210,7 @@ function GalleryContent() {
                 <span className="text-xs text-muted-foreground">{pack.version}</span>
               </div>
               <h3 className="text-base font-semibold">{pack.display_title}</h3>
-              <button className="text-xs underline" onClick={()=>setSelectedPack(pack)}>{pack.rating_count?`★ ${pack.rating_average?.toFixed(1)} / 5 (${pack.rating_count})`:(locale==="it"?"Nessuna recensione":"No reviews yet")}</button>
+              <button className="text-xs underline" onClick={()=>selectPack(pack)}>{pack.rating_count?`★ ${pack.rating_average?.toFixed(1)} / 5 (${pack.rating_count})`:(locale==="it"?"Nessuna recensione":"No reviews yet")}</button>
               <p className="text-xs text-muted-foreground">{pack.display_description}</p>
               <div className="flex flex-wrap gap-1 pt-1">
                 {pack.tags?.slice(0, 4).map((tag) => (
@@ -227,7 +232,7 @@ function GalleryContent() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setSelectedPack(pack)}
+                  onClick={() => selectPack(pack)}
                   className="rounded border px-2 py-1 hover:bg-muted"
                 >
                   {locale==="it"?"Dettagli e recensioni":"Details and reviews"}
@@ -255,7 +260,7 @@ function GalleryContent() {
             </button>
           </div>
           <p className="mt-2 font-medium">{t("gallery.reopen_verification")}: <code>{selectedPack.verification_command}</code></p>
-          <GalleryFeedback key={selectedPack.id+selectedPack.version} base={base} pack={selectedPack.id} version={selectedPack.version} locale={locale}/>
+          <GalleryFeedback key={selectedPack.id+selectedPack.version} base={base} pack={selectedPack.id} version={feedbackVersion||selectedPack.version} locale={locale}/>
           <details><summary>{locale==="it"?"Manifest tecnico":"Technical manifest"}</summary><pre className="mt-2 max-h-64 overflow-auto rounded bg-muted/40 p-3">
             {JSON.stringify(selectedPack, null, 2)}
           </pre></details>

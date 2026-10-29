@@ -63,7 +63,8 @@ def set_deployment(user_id, name, mode, ephemeral=False, preload_tools=None, too
     from .state import LOCK
     with LOCK:
         value = preferences(user_id)
-        value[name] = {'mode':mode, 'ephemeral':ephemeral, 'preload_tools':sorted(set(preload_tools)) if preload_tools is not None else None,'tool_versions':versions}
+        source=value.get(name,{}).get('source_pack')
+        value[name] = {**({'source_pack':{**source,'modified':True}} if source else {}), 'mode':mode, 'ephemeral':ephemeral, 'preload_tools':sorted(set(preload_tools)) if preload_tools is not None else None,'tool_versions':versions}
         atomic_json(preferences_path(user_id), value)
     return value[name]
 
@@ -165,3 +166,12 @@ def preloaded_tools(prefs, allowed):
     if prefs.get('mode')!='preload':return []
     selected=prefs.get('preload_tools')
     return sorted(set(allowed) & set(allowed if selected is None else selected))
+
+
+def set_source(user_id, name, pack):
+    """Trusted activation provenance, never accepted from configuration request fields."""
+    from .state import LOCK
+    with LOCK:
+        value=preferences(user_id)
+        value[name]['source_pack']={'id':pack['id'],'version':pack['version'],'modified':False}
+        atomic_json(preferences_path(user_id),value)

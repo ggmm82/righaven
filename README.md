@@ -127,7 +127,8 @@ verified stable release, so restoring configuration is not an image rollback.
 
 Gallery details include **1–5 star reviews, comments and publisher replies**.
 Ratings belong to a published version, with one editable rating per account and
-version; favorites are separate. Experiences are self-reported, not certifications.
+version; favorites are separate. Imported environments retain their catalog origin
+and link directly to feedback for that version, even after a newer release appears. Experiences are self-reported, not certifications.
 Review authors can delete their own content. Reports go to administrator moderation
 and do not automatically hide a review. Public discussion uses pseudonyms instead
 of exposing account IDs or email addresses.

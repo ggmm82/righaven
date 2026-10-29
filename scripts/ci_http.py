@@ -115,6 +115,8 @@ assert published['published'] and not published['pack']['verified']
 assert 'skill-quality-review' in published['pack']['skills']
 shared=json.loads(request('/api/v1/gallery/packs/ci-shared-environment/activate',{}))
 assert 'skill-quality-review' in json.loads(request('/api/agents/'+shared['installation']['native_name']))['skills']
+shared_profile=next(item for item in json.loads(request('/api/harness/environments'))['environments'] if item['name']==shared['installation']['native_name'])
+assert shared_profile['deployment']['source_pack']['version']=='1.0.0'
 request('/api/agents/'+shared['installation']['native_name'],method='DELETE')
 publisher_comment=json.loads(request('/api/v1/gallery/packs/ci-shared-environment/feedback',{'version':'1.0.0','body':'Please share your experience'}))
 assert publisher_comment['author_reply'] and publisher_comment['score'] is None

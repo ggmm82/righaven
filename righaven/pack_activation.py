@@ -8,7 +8,7 @@ import yaml
 
 async def install(pack, user_id):
     from .state import applications
-    from .environments import resolve_skills, set_deployment
+    from .environments import resolve_skills, set_deployment, set_source
     from righaven_core.skills.storage import get_or_new_user_skill_storage
     known = {item['id'] for item in applications()}
     tools = pack.get('tools', [])
@@ -50,6 +50,7 @@ async def install(pack, user_id):
                                      pack['skill_prompt_template'], user_id=user_id)
         if existing is None:
             set_deployment(user_id, name, 'on_demand', tool_versions=pack.get('environment', {}).get('tool_versions', {}))
+            set_source(user_id,name,pack)
     else:
         if not tools:
             raise ValueError('CLI packs must declare a supported tool')

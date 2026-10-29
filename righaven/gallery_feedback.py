@@ -1,5 +1,6 @@
 """Versioned community reviews and discussion, isolated from favorites and project data."""
 import contextlib
+import json
 import sqlite3
 import os
 import time
@@ -24,6 +25,7 @@ def database():
           hidden INTEGER NOT NULL DEFAULT 0, moderation TEXT NOT NULL DEFAULT '');
         CREATE UNIQUE INDEX IF NOT EXISTS rating_per_version ON feedback(pack,version,owner) WHERE score IS NOT NULL;
         CREATE INDEX IF NOT EXISTS discussion ON feedback(pack,version,created);
+        CREATE TABLE IF NOT EXISTS versions (pack TEXT NOT NULL, version TEXT NOT NULL, manifest TEXT NOT NULL, PRIMARY KEY(pack,version));
         CREATE TABLE IF NOT EXISTS reports (
           feedback TEXT NOT NULL, owner TEXT NOT NULL, reason TEXT NOT NULL, created REAL NOT NULL,
           PRIMARY KEY(feedback,owner));
@@ -36,17 +38,20 @@ def database():
 
 
 def version_exists(pack, version):
-    current = gallery.get_pack(pack)
-    if current['version'] == version:
-        return current
     import re
     if not re.fullmatch(r'[a-zA-Z0-9][a-zA-Z0-9.+-]{0,63}', version):
         raise ValueError('Invalid version')
+    current = gallery.get_pack(pack)
+    if current['version'] == version:
+        return current
     path = state.STATE / 'gallery-versions' / pack / (version + '.json')
-    if not path.is_file():
-        raise ValueError('This pack version is not published')
-    import json
-    return json.loads(path.read_text())
+    if path.is_file():
+        return json.loads(path.read_text())
+    # Keep reviewed built-in/remote versions available after a catalog upgrade.
+    with database() as db:
+        archived = db.execute('SELECT manifest FROM versions WHERE pack=? AND version=?', (pack,version)).fetchone()
+        if archived:return json.loads(archived['manifest'])
+    raise ValueError('This pack version is not published')
 
 
 def _public(db, row, viewer, publisher):
@@ -69,7 +74,10 @@ def list_feedback(pack, viewer, version=None, offset=0, limit=20):
         total = db.execute('SELECT COUNT(*) FROM feedback WHERE ' + where, args).fetchone()[0]
         rows = db.execute('SELECT * FROM feedback WHERE ' + where + ' ORDER BY created DESC,id LIMIT ? OFFSET ?', (*args, limit, offset)).fetchall()
         ratings = db.execute('SELECT version,COUNT(*) AS count,AVG(score) AS average FROM feedback WHERE pack=? AND hidden=0 AND score IS NOT NULL GROUP BY version', (pack,)).fetchall()
-        return {'items': [_public(db, row, viewer, current['author']) for row in rows],
+        versions = {current['version'], *[row['version'] for row in ratings]}
+        versions.update(row[0] for row in db.execute('SELECT version FROM versions WHERE pack=?',(pack,)))
+        versions.update(path.stem for path in (state.STATE/'gallery-versions'/pack).glob('*.json'))
+        return {'versions':sorted(versions), 'items': [_public(db, row, viewer, current['author']) for row in rows],
                 'total': total, 'offset': offset, 'limit': limit, 'current_version': current['version'],
                 'ratings': [dict(row) for row in ratings]}
 
@@ -83,6 +91,7 @@ def write(pack, version, owner, body, score=None, parent=None):
     if score is not None and (parent or owner == published['author']):
         raise ValueError('Replies and publishers cannot rate their own pack')
     with database() as db:
+        db.execute('INSERT OR IGNORE INTO versions VALUES(?,?,?)',(pack,version,json.dumps(published)))
         if parent:
             target = db.execute('SELECT * FROM feedback WHERE id=? AND pack=? AND version=? AND hidden=0', (parent, pack, version)).fetchone()
             if not target or target['parent']:
