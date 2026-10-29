@@ -127,13 +127,13 @@ class AdminAccountCreate(BaseModel):
 
 @router.get('/roles')
 async def list_assignable_roles(request: Request):
-    await require_admin_user(request)
+    await require_admin_user(request, detail="user administration requires an admin credential")
     return {'roles': sorted(assignable_role_names())}
 
 
 @router.post('',status_code=201)
 async def create_account(body: AdminAccountCreate,request: Request):
-    await require_admin_user(request)
+    await require_admin_user(request, detail="user administration requires an admin credential")
     from app.gateway.deps import get_local_provider
     from app.gateway.routers.auth import _validate_strong_password
     if body.system_role not in assignable_role_names():
@@ -154,7 +154,7 @@ class AccountCredentialAction(BaseModel):
 @router.post('/{user_id}/credentials')
 async def manage_account_credentials(user_id:UUID,body:AccountCredentialAction,request:Request,
                                      repository:SQLiteUserRepository=Depends(get_user_repository)):
-    await require_admin_user(request)
+    await require_admin_user(request, detail="user administration requires an admin credential")
     user=await repository.get_user_by_id(str(user_id))
     if not user:raise HTTPException(404,'Account not found')
     if body.confirmation!=str(user.email):raise HTTPException(409,'Type the exact account email to confirm')

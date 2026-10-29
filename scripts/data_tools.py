@@ -115,17 +115,19 @@ def invoke(app,action,args,cli):
             fmt=args.get('format','json');target=output/('schema.'+fmt)
             argv=[str(candidates[0]),'--url='+jdbc,'--user='+username,'--password='+password,'--info-level=standard','--command='+('serialize' if fmt=='json' else 'schema'),'--output-format='+fmt,'--output-file='+str(target),'--no-info']
             if args.get('schemas'):argv+=['--schemas='+args['schemas']]
-            run(argv,output,output,env,[*values,password])
+            run(argv,output,output,env,[*values,password,username])
             if not target.is_file() or not target.stat().st_size:raise RuntimeError('SchemaCrawler did not create schema output')
-            target.write_text(redact(target.read_text(),[v for v in (password,) if v]))
+            target.write_text(redact(target.read_text(),[*values,password,username]))
         elif app=='sqlmesh':
             if not actual or actual.suffix.lower() not in ('.yaml','.yml'):raise ValueError('Use a local SQLMesh YAML configuration and its project resource directory')
-            import yaml
-            config=yaml.safe_load(actual.read_text()) or {}
+            parser="import json,sys;from pathlib import Path;from ruamel.yaml import YAML;print(json.dumps(YAML(typ='safe').load(Path(sys.argv[1]).read_text()) or {},default=str))"
+            try:config=json.loads(subprocess.check_output([str(cli.INSTALL/'apps/sqlmesh/venv/bin/python'),'-c',parser,str(actual)],stderr=subprocess.PIPE,text=True,timeout=30))
+            except (subprocess.CalledProcessError,ValueError):raise ValueError('Cannot parse the local SQLMesh YAML configuration') from None
             gateways=config.get('gateways')
             if not isinstance(gateways,dict) or not gateways:raise ValueError('Declare an explicit local DuckDB gateway')
             if (sources/'config.py').exists():raise ValueError('Use YAML configuration for the isolated local SQLMesh adapter')
             for gateway in gateways.values():
+                if not isinstance(gateway,dict):raise ValueError('Each SQLMesh gateway must be a local connection mapping')
                 for key in ('state_connection','test_connection'):
                     if gateway.get(key):raise ValueError('Use the local gateway for state and test connections')
                 connection=gateway.get('connection') or {}

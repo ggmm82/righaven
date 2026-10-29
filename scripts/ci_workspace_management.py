@@ -40,6 +40,13 @@ def main():
     assert changed['needs_setup']
     record('Native user administration','Create, roles, suspend/reactivate, exact credential confirmation, session revocation and temporary password; non-admin denied')
 
+    activated=user.request('/api/v1/gallery/packs/env-data-engineering-rig/activate',{})
+    native_name=activated['installation']['native_name']
+    profile=user.request('/api/agents/'+native_name)
+    assert {'skill-usql','skill-dlt','skill-jupyter','skill-quarto','skill-typst'}.issubset(profile['skills'])
+    user.request('/api/agents/'+native_name,method='DELETE')
+    record('Data engineering Gallery activation','Native private profile includes managed connections, notebooks and reporting without eager software installation')
+
     # Integration instructions become personal copies, including referenced files.
     endpoint='/api/harness/skills/skill-d2/instructions'
     original=user.request(endpoint);admin_original=admin.request(endpoint)
