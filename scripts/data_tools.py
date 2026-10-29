@@ -38,6 +38,10 @@ def usql_url(url):
     scheme,separator,tail=url.partition('://')
     if not separator:raise ValueError('Expected a database connection URL')
     scheme=scheme.split('+',1)[0]
+    if scheme in ('sqlite','sqlite3'):
+        parsed=urlsplit(url);path=parsed.path
+        if path.startswith('//'):path=path[1:]
+        return 'sqlite3://'+path+('?' + parsed.query if parsed.query else '')
     return {'mssql':'sqlserver','postgres':'postgresql'}.get(scheme,scheme)+separator+tail
 
 

@@ -72,6 +72,7 @@ class DataBoundaryTests(unittest.TestCase):
     def test_shared_connection_url_normalizes_driver_without_exposing_secrets(self):
         self.assertEqual(usql_url('postgresql+psycopg://name:secret@host/db'),'postgresql://name:secret@host/db')
         self.assertEqual(usql_url('mssql+pymssql://name:secret@host/db'),'sqlserver://name:secret@host/db')
+        self.assertEqual(usql_url('sqlite:////tmp/snapshot.sqlite'),'sqlite3:///tmp/snapshot.sqlite')
         self.assertNotIn('secret',redact('connection failed: secret',['secret']))
 
     def test_all_data_skills_have_resolvable_sources_and_registered_operations(self):

@@ -33,7 +33,7 @@ def install(app,archive,destination,root,bin_dir,arch,base):
         if app['id']=='zap':
             # Distribution scripts locate their jars relative to their actual path.
             return str(binary)
-        link=bin_dir/name
+        link=bin_dir/('usql' if app['id']=='usql' else name)
         if link.exists() or link.is_symlink():raise ValueError('Existing native executable: '+str(link))
         link.symlink_to(binary);return str(binary)
     if kind=='verapdf-installer':
