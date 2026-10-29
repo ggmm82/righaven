@@ -1,11 +1,12 @@
 # Optional open-source environments
 
-RigHaven's managed catalog contains 57 tools. Tool availability is not an instruction to use every tool: roles are compiled from the project's outcome, enabled skills and available environments. The core still installs no optional application. Existing environments and user-selected skills are not silently expanded when the catalog grows.
+RigHaven's managed catalog contains 62 tools. Tool availability is not an instruction to use every tool: roles are compiled from the project's outcome, enabled skills and available environments. The core still installs no optional application. Existing environments and user-selected skills are not silently expanded when the catalog grows.
 
 ## New capabilities
 
 | Environment | Managed tools | Native inputs and outputs |
 |---|---|---|
+| Data Engineering | usql, SchemaCrawler, dlt, SQLMesh, SQLGlot, DuckDB, Jupyter, Quarto, Typst | Authorized metadata and queries → schema/lineage, bounded extracts, tested local transformations and editable reports |
 | Data and notebooks | DuckDB, Jupyter, Quarto | SQL and datasets → database/CSV; IPYNB → executed IPYNB; QMD → HTML |
 | PDF verification | Poppler, qpdf, veraPDF | Actual PDF → page PNGs, extracted text, syntax diagnostics and explicit PDF/A report |
 | Scans and archives | OCRmyPDF, Tesseract | Original PDF/image → searchable PDF, text and coordinate/confidence TSV |

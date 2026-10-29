@@ -37,8 +37,8 @@ def main():
                 if args.incremental_check:
                     assert {'d2','pandoc'}.issubset(selected)
                     parent=factory.ensure(['d2']);made.append(parent)
-                from righaven.progress import update
-                progress=root/'foreground-progress.json';update(progress,'planning')
+                from righaven.progress import update,workspace_key
+                progress=root/'foreground-progress.json';update(progress,'planning',workspace_key=workspace_key(root))
                 try:ready=factory.ensure(selected,progress=progress)
                 except Exception:
                     for log in (root/'environments').glob('*.log'):
