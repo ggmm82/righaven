@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0.0",
   "hub_name": "RigHaven Hub",
-  "total_packs": 84,
+  "total_packs": 113,
   "packs": [
     {
       "id": "env-architecture-modeling-rig",
@@ -5218,6 +5218,1693 @@
           "ALL"
         ],
         "no_new_privileges": true
+      }
+    },
+    {
+      "id": "cli-duckdb",
+      "name": "DuckDB",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "cli-tool",
+      "tags": [
+        "cli-tool",
+        "duckdb"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "duckdb"
+      ],
+      "i18n": {
+        "en": {
+          "title": "DuckDB",
+          "description": "Query CSV, JSON and Parquet with SQL and a local analytical database."
+        },
+        "it": {
+          "title": "DuckDB",
+          "description": "Query CSV, JSON and Parquet with SQL and a local analytical database."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "duckdb",
+          "executable": "/usr/local/bin/duckdb-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities duckdb"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Query CSV, JSON and Parquet with SQL and a local analytical database.",
+      "verification_command": "craft capabilities duckdb",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "cli-jupyter",
+      "name": "Jupyter",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "cli-tool",
+      "tags": [
+        "cli-tool",
+        "jupyter"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "jupyter"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Jupyter",
+          "description": "Combine explanations, executable Python and actual analytical results in a notebook."
+        },
+        "it": {
+          "title": "Jupyter",
+          "description": "Combine explanations, executable Python and actual analytical results in a notebook."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "jupyter",
+          "executable": "/usr/local/bin/jupyter-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities jupyter"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Combine explanations, executable Python and actual analytical results in a notebook.",
+      "verification_command": "craft capabilities jupyter",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "cli-quarto",
+      "name": "Quarto",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "cli-tool",
+      "tags": [
+        "cli-tool",
+        "quarto"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "quarto"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Quarto",
+          "description": "Publish analytical narratives and notebooks as standalone HTML reports."
+        },
+        "it": {
+          "title": "Quarto",
+          "description": "Publish analytical narratives and notebooks as standalone HTML reports."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "quarto",
+          "executable": "/usr/local/bin/quarto-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities quarto"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Publish analytical narratives and notebooks as standalone HTML reports.",
+      "verification_command": "craft capabilities quarto",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "cli-poppler",
+      "name": "Poppler",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "cli-tool",
+      "tags": [
+        "cli-tool",
+        "poppler"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "poppler"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Poppler",
+          "description": "Rasterize the final PDF and extract its actual text for independent review."
+        },
+        "it": {
+          "title": "Poppler",
+          "description": "Rasterize the final PDF and extract its actual text for independent review."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "poppler",
+          "executable": "/usr/local/bin/poppler-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities poppler"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Rasterize the final PDF and extract its actual text for independent review.",
+      "verification_command": "craft capabilities poppler",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "cli-qpdf",
+      "name": "qpdf",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "cli-tool",
+      "tags": [
+        "cli-tool",
+        "qpdf"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "qpdf"
+      ],
+      "i18n": {
+        "en": {
+          "title": "qpdf",
+          "description": "Check PDF syntax, cross references and recoverability independently of the authoring tool."
+        },
+        "it": {
+          "title": "qpdf",
+          "description": "Check PDF syntax, cross references and recoverability independently of the authoring tool."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "qpdf",
+          "executable": "/usr/local/bin/qpdf-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities qpdf"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Check PDF syntax, cross references and recoverability independently of the authoring tool.",
+      "verification_command": "craft capabilities qpdf",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "cli-verapdf",
+      "name": "veraPDF",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "cli-tool",
+      "tags": [
+        "cli-tool",
+        "verapdf"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "verapdf"
+      ],
+      "i18n": {
+        "en": {
+          "title": "veraPDF",
+          "description": "Validate delivered PDFs against an explicitly chosen PDF/A profile."
+        },
+        "it": {
+          "title": "veraPDF",
+          "description": "Validate delivered PDFs against an explicitly chosen PDF/A profile."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "verapdf",
+          "executable": "/usr/local/bin/verapdf-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities verapdf"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Validate delivered PDFs against an explicitly chosen PDF/A profile.",
+      "verification_command": "craft capabilities verapdf",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "cli-ocrmypdf",
+      "name": "OCRmyPDF",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "cli-tool",
+      "tags": [
+        "cli-tool",
+        "ocrmypdf"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "ocrmypdf"
+      ],
+      "i18n": {
+        "en": {
+          "title": "OCRmyPDF",
+          "description": "Add an OCR text layer and text sidecar to scanned PDFs while preserving the original."
+        },
+        "it": {
+          "title": "OCRmyPDF",
+          "description": "Add an OCR text layer and text sidecar to scanned PDFs while preserving the original."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "ocrmypdf",
+          "executable": "/usr/local/bin/ocrmypdf-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities ocrmypdf"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Add an OCR text layer and text sidecar to scanned PDFs while preserving the original.",
+      "verification_command": "craft capabilities ocrmypdf",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "cli-tesseract",
+      "name": "Tesseract",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "cli-tool",
+      "tags": [
+        "cli-tool",
+        "tesseract"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "tesseract"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Tesseract",
+          "description": "Recognize text in local images with coordinates and confidence evidence."
+        },
+        "it": {
+          "title": "Tesseract",
+          "description": "Recognize text in local images with coordinates and confidence evidence."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "tesseract",
+          "executable": "/usr/local/bin/tesseract-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities tesseract"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Recognize text in local images with coordinates and confidence evidence.",
+      "verification_command": "craft capabilities tesseract",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "cli-gdal",
+      "name": "GDAL",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "cli-tool",
+      "tags": [
+        "cli-tool",
+        "gdal"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "gdal"
+      ],
+      "i18n": {
+        "en": {
+          "title": "GDAL",
+          "description": "Inspect raster georeferencing and convert raster datasets to GeoTIFF."
+        },
+        "it": {
+          "title": "GDAL",
+          "description": "Inspect raster georeferencing and convert raster datasets to GeoTIFF."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "gdal",
+          "executable": "/usr/local/bin/gdal-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities gdal"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Inspect raster georeferencing and convert raster datasets to GeoTIFF.",
+      "verification_command": "craft capabilities gdal",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "cli-qgis",
+      "name": "QGIS Processing",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "cli-tool",
+      "tags": [
+        "cli-tool",
+        "qgis"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "qgis"
+      ],
+      "i18n": {
+        "en": {
+          "title": "QGIS Processing",
+          "description": "Run explicit native Processing algorithms on local geographic data."
+        },
+        "it": {
+          "title": "QGIS Processing",
+          "description": "Run explicit native Processing algorithms on local geographic data."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "qgis",
+          "executable": "/usr/local/bin/qgis-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities qgis"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Run explicit native Processing algorithms on local geographic data.",
+      "verification_command": "craft capabilities qgis",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "cli-schemathesis",
+      "name": "Schemathesis",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "cli-tool",
+      "tags": [
+        "cli-tool",
+        "schemathesis"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "schemathesis"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Schemathesis",
+          "description": "Exercise authorized test APIs against a saved OpenAPI contract."
+        },
+        "it": {
+          "title": "Schemathesis",
+          "description": "Exercise authorized test APIs against a saved OpenAPI contract."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "schemathesis",
+          "executable": "/usr/local/bin/schemathesis-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities schemathesis"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Exercise authorized test APIs against a saved OpenAPI contract.",
+      "verification_command": "craft capabilities schemathesis",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "cli-k6",
+      "name": "k6",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "cli-tool",
+      "tags": [
+        "cli-tool",
+        "k6"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "k6"
+      ],
+      "i18n": {
+        "en": {
+          "title": "k6",
+          "description": "Run explicit small load tests with thresholds and native metric summaries."
+        },
+        "it": {
+          "title": "k6",
+          "description": "Run explicit small load tests with thresholds and native metric summaries."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "k6",
+          "executable": "/usr/local/bin/k6-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities k6"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Run explicit small load tests with thresholds and native metric summaries.",
+      "verification_command": "craft capabilities k6",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "cli-axe-core",
+      "name": "axe-core",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "cli-tool",
+      "tags": [
+        "cli-tool",
+        "axe-core"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "axe-core"
+      ],
+      "i18n": {
+        "en": {
+          "title": "axe-core",
+          "description": "Inspect actual browser pages for axe accessibility rules."
+        },
+        "it": {
+          "title": "axe-core",
+          "description": "Inspect actual browser pages for axe accessibility rules."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "axe-core",
+          "executable": "/usr/local/bin/axe-core-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities axe-core"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Inspect actual browser pages for axe accessibility rules.",
+      "verification_command": "craft capabilities axe-core",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "cli-zap",
+      "name": "OWASP ZAP",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "cli-tool",
+      "tags": [
+        "cli-tool",
+        "zap"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "zap"
+      ],
+      "i18n": {
+        "en": {
+          "title": "OWASP ZAP",
+          "description": "Spider an authorized application and collect passive security findings with an explicit automation plan."
+        },
+        "it": {
+          "title": "OWASP ZAP",
+          "description": "Spider an authorized application and collect passive security findings with an explicit automation plan."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "zap",
+          "executable": "/usr/local/bin/zap-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities zap"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Spider an authorized application and collect passive security findings with an explicit automation plan.",
+      "verification_command": "craft capabilities zap",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "cli-gitleaks",
+      "name": "Gitleaks",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "cli-tool",
+      "tags": [
+        "cli-tool",
+        "gitleaks"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "gitleaks"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Gitleaks",
+          "description": "Scan local source directories for leaked credentials without executing the source."
+        },
+        "it": {
+          "title": "Gitleaks",
+          "description": "Scan local source directories for leaked credentials without executing the source."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "gitleaks",
+          "executable": "/usr/local/bin/gitleaks-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities gitleaks"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Scan local source directories for leaked credentials without executing the source.",
+      "verification_command": "craft capabilities gitleaks",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "cli-openmodelica",
+      "name": "OpenModelica",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "cli-tool",
+      "tags": [
+        "cli-tool",
+        "openmodelica"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "openmodelica"
+      ],
+      "i18n": {
+        "en": {
+          "title": "OpenModelica",
+          "description": "Compile and simulate explicit Modelica models and MOS recipes on CPU."
+        },
+        "it": {
+          "title": "OpenModelica",
+          "description": "Compile and simulate explicit Modelica models and MOS recipes on CPU."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "openmodelica",
+          "executable": "/usr/local/bin/openmodelica-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities openmodelica"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Compile and simulate explicit Modelica models and MOS recipes on CPU.",
+      "verification_command": "craft capabilities openmodelica",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "cli-highs",
+      "name": "HiGHS",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "cli-tool",
+      "tags": [
+        "cli-tool",
+        "highs"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "highs"
+      ],
+      "i18n": {
+        "en": {
+          "title": "HiGHS",
+          "description": "Solve explicit LP and MPS optimization models."
+        },
+        "it": {
+          "title": "HiGHS",
+          "description": "Solve explicit LP and MPS optimization models."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "highs",
+          "executable": "/usr/local/bin/highs-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities highs"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Solve explicit LP and MPS optimization models.",
+      "verification_command": "craft capabilities highs",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "cli-kicad",
+      "name": "KiCad",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "cli-tool",
+      "tags": [
+        "cli-tool",
+        "kicad"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "kicad"
+      ],
+      "i18n": {
+        "en": {
+          "title": "KiCad",
+          "description": "Export native electronic schematics and PCBs using headless KiCad CLI."
+        },
+        "it": {
+          "title": "KiCad",
+          "description": "Export native electronic schematics and PCBs using headless KiCad CLI."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "kicad",
+          "executable": "/usr/local/bin/kicad-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities kicad"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Export native electronic schematics and PCBs using headless KiCad CLI.",
+      "verification_command": "craft capabilities kicad",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "cli-ngspice",
+      "name": "ngspice",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "cli-tool",
+      "tags": [
+        "cli-tool",
+        "ngspice"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "ngspice"
+      ],
+      "i18n": {
+        "en": {
+          "title": "ngspice",
+          "description": "Simulate explicit SPICE netlists and preserve actual raw results."
+        },
+        "it": {
+          "title": "ngspice",
+          "description": "Simulate explicit SPICE netlists and preserve actual raw results."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "ngspice",
+          "executable": "/usr/local/bin/ngspice-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities ngspice"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Simulate explicit SPICE netlists and preserve actual raw results.",
+      "verification_command": "craft capabilities ngspice",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "cli-prusaslicer",
+      "name": "PrusaSlicer",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "cli-tool",
+      "tags": [
+        "cli-tool",
+        "prusaslicer"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "prusaslicer"
+      ],
+      "i18n": {
+        "en": {
+          "title": "PrusaSlicer",
+          "description": "Slice existing models using explicit printer and material settings."
+        },
+        "it": {
+          "title": "PrusaSlicer",
+          "description": "Slice existing models using explicit printer and material settings."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "prusaslicer",
+          "executable": "/usr/local/bin/prusaslicer-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities prusaslicer"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Slice existing models using explicit printer and material settings.",
+      "verification_command": "craft capabilities prusaslicer",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "env-verifica-pdf",
+      "name": "PDF Verification Rig",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "environment",
+      "tags": [
+        "environment",
+        "poppler",
+        "qpdf",
+        "verapdf"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "poppler",
+        "qpdf",
+        "verapdf"
+      ],
+      "i18n": {
+        "en": {
+          "title": "PDF Verification Rig",
+          "description": "Inspect the actual delivered PDF with independent rendering, syntax and explicit PDF/A checks."
+        },
+        "it": {
+          "title": "PDF: rendering e conformità",
+          "description": "Controllare il PDF finale con rendering indipendente, controlli strutturali e profilo PDF/A esplicito. La validità tecnica non sostituisce la revisione visiva."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "poppler",
+          "executable": "/usr/local/bin/poppler-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities poppler"
+        },
+        {
+          "name": "qpdf",
+          "executable": "/usr/local/bin/qpdf-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities qpdf"
+        },
+        {
+          "name": "verapdf",
+          "executable": "/usr/local/bin/verapdf-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities verapdf"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Inspect the actual delivered PDF with independent rendering, syntax and explicit PDF/A checks.",
+      "verification_command": "craft capabilities poppler",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "env-ocr-archivi",
+      "name": "Scans & Archives Rig",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "environment",
+      "tags": [
+        "environment",
+        "ocrmypdf",
+        "tesseract",
+        "qpdf"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "ocrmypdf",
+        "tesseract",
+        "qpdf"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Scans & Archives Rig",
+          "description": "Create searchable scans while retaining original images and reviewing recognition accuracy."
+        },
+        "it": {
+          "title": "Scansioni e archivi",
+          "description": "Rendere ricercabili scansioni preservando gli originali e verificando testo, numeri, lingua e ordine di lettura."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "ocrmypdf",
+          "executable": "/usr/local/bin/ocrmypdf-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities ocrmypdf"
+        },
+        {
+          "name": "tesseract",
+          "executable": "/usr/local/bin/tesseract-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities tesseract"
+        },
+        {
+          "name": "qpdf",
+          "executable": "/usr/local/bin/qpdf-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities qpdf"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Create searchable scans while retaining original images and reviewing recognition accuracy.",
+      "verification_command": "craft capabilities ocrmypdf",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "env-territorio-gis",
+      "name": "Geospatial Rig",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "environment",
+      "tags": [
+        "environment",
+        "gdal",
+        "qgis"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "gdal",
+        "qgis"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Geospatial Rig",
+          "description": "Inspect and process geographic datasets with explicit CRS, units and retained source layers."
+        },
+        "it": {
+          "title": "Mappe e territorio",
+          "description": "Analizzare dati geografici con coordinate, CRS e unità verificati; conservare dati, parametri e sorgenti di progetto pertinenti."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "gdal",
+          "executable": "/usr/local/bin/gdal-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities gdal"
+        },
+        {
+          "name": "qgis",
+          "executable": "/usr/local/bin/qgis-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities qgis"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Inspect and process geographic datasets with explicit CRS, units and retained source layers.",
+      "verification_command": "craft capabilities gdal",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "env-collaudo-api",
+      "name": "API & Web Testing Rig",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "environment",
+      "tags": [
+        "environment",
+        "schemathesis",
+        "k6",
+        "playwright",
+        "axe-core"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "schemathesis",
+        "k6",
+        "playwright",
+        "axe-core"
+      ],
+      "i18n": {
+        "en": {
+          "title": "API & Web Testing Rig",
+          "description": "Test authorized APIs, bounded load and browser accessibility with actual reports."
+        },
+        "it": {
+          "title": "Collaudo API e prestazioni",
+          "description": "Collaudare API e piccoli carichi su sistemi autorizzati e verificare accessibilità nel browser. Conservare contratti, scenari e risultati misurati."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "schemathesis",
+          "executable": "/usr/local/bin/schemathesis-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities schemathesis"
+        },
+        {
+          "name": "k6",
+          "executable": "/usr/local/bin/k6-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities k6"
+        },
+        {
+          "name": "playwright",
+          "executable": "/usr/local/bin/playwright-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities playwright"
+        },
+        {
+          "name": "axe-core",
+          "executable": "/usr/local/bin/axe-core-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities axe-core"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Test authorized APIs, bounded load and browser accessibility with actual reports.",
+      "verification_command": "craft capabilities schemathesis",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "env-simulazione",
+      "name": "Simulation & Optimization Rig",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "environment",
+      "tags": [
+        "environment",
+        "openmodelica",
+        "highs"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "openmodelica",
+        "highs"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Simulation & Optimization Rig",
+          "description": "Simulate explicit dynamic models and solve optimization problems with reproducible inputs."
+        },
+        "it": {
+          "title": "Simulazione e ottimizzazione",
+          "description": "Simulare modelli dinamici e ottimizzare vincoli e risorse con modelli, unità e ipotesi esplicite. Distinguere risultato numerico e validità del modello."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "openmodelica",
+          "executable": "/usr/local/bin/openmodelica-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities openmodelica"
+        },
+        {
+          "name": "highs",
+          "executable": "/usr/local/bin/highs-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities highs"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Simulate explicit dynamic models and solve optimization problems with reproducible inputs.",
+      "verification_command": "craft capabilities openmodelica",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "env-elettronica",
+      "name": "Electronics Rig",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "environment",
+      "tags": [
+        "environment",
+        "kicad",
+        "ngspice"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "kicad",
+        "ngspice"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Electronics Rig",
+          "description": "Retain editable circuit sources and simulate local SPICE models."
+        },
+        "it": {
+          "title": "Elettronica e circuiti",
+          "description": "Progettare circuiti modificabili e simularne il comportamento, mantenendo librerie, netlist e limiti delle verifiche."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "kicad",
+          "executable": "/usr/local/bin/kicad-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities kicad"
+        },
+        {
+          "name": "ngspice",
+          "executable": "/usr/local/bin/ngspice-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities ngspice"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Retain editable circuit sources and simulate local SPICE models.",
+      "verification_command": "craft capabilities kicad",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "env-stampa-3d",
+      "name": "3D Print Preparation Rig",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "environment",
+      "tags": [
+        "environment",
+        "prusaslicer"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "prusaslicer"
+      ],
+      "i18n": {
+        "en": {
+          "title": "3D Print Preparation Rig",
+          "description": "Slice existing models with an explicit printer and material profile; retain geometry and settings."
+        },
+        "it": {
+          "title": "Preparazione stampa 3D",
+          "description": "Preparare modelli esistenti per una stampante e un materiale definiti, conservando geometria, profilo e parametri. Non equivale a una stampa fisica collaudata."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "prusaslicer",
+          "executable": "/usr/local/bin/prusaslicer-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities prusaslicer"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Slice existing models with an explicit printer and material profile; retain geometry and settings.",
+      "verification_command": "craft capabilities prusaslicer",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "env-data-notebooks",
+      "name": "Data & Notebooks Rig",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "environment",
+      "tags": [
+        "environment",
+        "duckdb",
+        "jupyter",
+        "quarto"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "duckdb",
+        "jupyter",
+        "quarto"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Data & Notebooks Rig",
+          "description": "Query data and publish executed notebooks and analytical HTML reports."
+        },
+        "it": {
+          "title": "Dati e notebook",
+          "description": "Analizzare dati e pubblicare notebook eseguiti e rapporti HTML riproducibili."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "duckdb",
+          "executable": "/usr/local/bin/duckdb-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities duckdb"
+        },
+        {
+          "name": "jupyter",
+          "executable": "/usr/local/bin/jupyter-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities jupyter"
+        },
+        {
+          "name": "quarto",
+          "executable": "/usr/local/bin/quarto-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities quarto"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Query data and publish executed notebooks and analytical HTML reports.",
+      "verification_command": "craft capabilities duckdb",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "env-passive-security",
+      "name": "Source & Passive Security Rig",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "environment",
+      "tags": [
+        "environment",
+        "opengrep",
+        "trivy",
+        "gitleaks",
+        "zap"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "opengrep",
+        "trivy",
+        "gitleaks",
+        "zap"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Source & Passive Security Rig",
+          "description": "Combine source rules, dependency checks, redacted secret detection and authorized passive web scanning."
+        },
+        "it": {
+          "title": "Sicurezza codice e web",
+          "description": "Integrare analisi codice, dipendenze, segreti oscurati e scansione web passiva autorizzata."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "opengrep",
+          "executable": "/usr/local/bin/opengrep-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities opengrep"
+        },
+        {
+          "name": "trivy",
+          "executable": "/usr/local/bin/trivy-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities trivy"
+        },
+        {
+          "name": "gitleaks",
+          "executable": "/usr/local/bin/gitleaks-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities gitleaks"
+        },
+        {
+          "name": "zap",
+          "executable": "/usr/local/bin/zap-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities zap"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Combine source rules, dependency checks, redacted secret detection and authorized passive web scanning.",
+      "verification_command": "craft capabilities opengrep",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
       }
     }
   ]

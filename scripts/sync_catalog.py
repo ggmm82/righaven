@@ -37,7 +37,8 @@ def sync(root=ROOT):
             'model': 'inherit', 'max_turns': 50, 'timeout_seconds': 1800,
             'disallowed_tools': ['task', 'ask_clarification', 'present_files'],
         } for app in apps}
-    content['subagents']['max_total_per_run'] = max(content['subagents']['max_total_per_run'], len(apps) + 3)
+    # A tool catalog is not a task budget. Preserve the administrator's native
+    # run limit; increasing available tools must never invalidate AppConfig.
     # Append dynamic routing rather than relying exclusively on the historical list.
     overlay = content['lead_prompt_overlay']['append'].split('\nCatalogo operativo aggiornato:')[0]
     content['lead_prompt_overlay']['append'] = overlay + '\nCatalogo operativo aggiornato: ' + '; '.join(

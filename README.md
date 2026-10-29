@@ -33,7 +33,7 @@ for the project; an environment supplies capabilities rather than fixing a role.
 
 ## Gallery
 
-The Gallery catalogs environments, CLI tools and skills. Activation uses the
+The Gallery catalogs environments, CLI tools and skills. The managed runtime includes 57 tools; see [optional environments](docs/OPTIONAL-ENVIRONMENTS.md) for data, verification, GIS, testing and engineering capabilities. Activation uses the
 signed-in core account. An environment pack creates a native Agent configuration
 with on-demand deployment; a skill pack goes through the native skill archive
 scanner before it becomes usable. Disabled native tools remain disabled.

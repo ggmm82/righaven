@@ -1745,26 +1745,26 @@
         "poppler-cli commands",
         "poppler-cli call render '{...}'"
       ],
-      "version": "22.12.0-2+deb12u2",
+      "version": "22.12.0-2+deb12u3",
       "assets": {
         "amd64": {
-          "name": "poppler-utils_22.12.0-2+deb12u2_amd64.deb",
-          "url": "https://deb.debian.org/debian/pool/main/p/poppler/poppler-utils_22.12.0-2+deb12u2_amd64.deb",
-          "sha256": "237d8ae3012bb0b275b681bb7fbd00ee591215e9dc276231d7e4f7bb64efacea",
-          "size_bytes": 191800,
+          "name": "poppler-utils_22.12.0-2+deb12u3_amd64.deb",
+          "url": "https://deb.debian.org/debian-security/pool/updates/main/p/poppler/poppler-utils_22.12.0-2+deb12u3_amd64.deb",
+          "sha256": "7e328919d626d9d988832eb1e4adff4ceed275abcdabcb61ec0b3bf2dc64260d",
+          "size_bytes": 191936,
           "package": "poppler-utils",
-          "package_version": "22.12.0-2+deb12u2"
+          "package_version": "22.12.0-2+deb12u3"
         },
         "arm64": {
-          "name": "poppler-utils_22.12.0-2+deb12u2_arm64.deb",
-          "url": "https://deb.debian.org/debian/pool/main/p/poppler/poppler-utils_22.12.0-2+deb12u2_arm64.deb",
-          "sha256": "5ce2be51446798ffc64f74ddd662129b7b3175a85f1b1d5fdb3169ab5823db3b",
-          "size_bytes": 176644,
+          "name": "poppler-utils_22.12.0-2+deb12u3_arm64.deb",
+          "url": "https://deb.debian.org/debian-security/pool/updates/main/p/poppler/poppler-utils_22.12.0-2+deb12u3_arm64.deb",
+          "sha256": "71f3d1203f4cf1a981915e6ef960765e29173fc8d949e8b8e28aab414a8d7d38",
+          "size_bytes": 177336,
           "package": "poppler-utils",
-          "package_version": "22.12.0-2+deb12u2"
+          "package_version": "22.12.0-2+deb12u3"
         }
       },
-      "download_base": "https://deb.debian.org/debian/",
+      "download_base": "https://deb.debian.org/",
       "install": {
         "kind": "debian",
         "native_path": "/usr/bin/pdftoppm"

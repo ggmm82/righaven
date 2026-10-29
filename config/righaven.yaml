@@ -50,7 +50,7 @@ skills:
   path: /app/skill-catalog
   container_path: /mnt/skills
 subagents:
-  max_total_per_run: 60
+  max_total_per_run: 40
   custom_agents:
     photocraft:
       description: 'Immagini e ritocco: Ritocco, compositing raster e texture con

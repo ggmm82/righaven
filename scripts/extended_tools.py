@@ -17,12 +17,17 @@ def binary(app,cli):
         if len(paths)!=1:raise ValueError('Expected one ZAP installation')
         return str(paths[0])
     return {'jupyter':'jupyter-nbconvert','poppler':'pdftoppm','tesseract':'tesseract',
-        'gdal':'gdalinfo','qgis':'qgis_process','openmodelica':'omc','kicad':'kicad-cli','prusaslicer':'prusa-slicer'}.get(app,app)
+        'gdal':'gdalinfo','qgis':'/usr/bin/qgis_process.bin' if Path('/usr/bin/qgis_process.bin').exists() else '/usr/bin/qgis_process','openmodelica':'omc','kicad':'/usr/bin/kicad-cli','prusaslicer':'prusa-slicer'}.get(app,app)
 
 
 def version(app,cli):
     native=binary(app,cli)
-    flags={'poppler':['-v'],'tesseract':['--version'],'zap':['-cmd','-version'],'ngspice':['--version']}.get(app,['--version'])
+    if app=='axe-core':
+        library=cli.INSTALL/'apps/axe-core/node_modules/@axe-core/playwright'
+        native='node'
+        flags=['-e','require('+json.dumps(str(library))+'); console.log(require('+json.dumps(str(library/'package.json'))+').version)']
+    else:flags=None
+    flags=flags or {'prusaslicer':['--help'],'poppler':['-v'],'tesseract':['--version'],'zap':['-cmd','-version'],'ngspice':['--version']}.get(app,['--version'])
     result=subprocess.run([native,*flags],capture_output=True,text=True,timeout=120,
         env={**os.environ,'QT_QPA_PLATFORM':'offscreen','QGIS_NO_OVERRIDE_IMPORT':'1'})
     if result.returncode:raise RuntimeError((result.stdout+result.stderr)[-2000:])
@@ -107,6 +112,8 @@ def invoke(app,action,args,cli):
         converted={}
         for key,value in params.items():
             if not re.fullmatch(r'[A-Z][A-Z0-9_]*',key):raise ValueError('Invalid Processing parameter name')
+            if isinstance(value,str) and (Path(value).is_absolute() or '..' in Path(value).parts or '://' in value):
+                raise ValueError('Use relative local Processing resources within the retained source folder')
             if isinstance(value,str) and key in ('OUTPUT','DESTINATION'):
                 path=Path(value)
                 if path.is_absolute() or '..' in path.parts:raise ValueError('Use relative QGIS outputs')
@@ -114,7 +121,7 @@ def invoke(app,action,args,cli):
             elif isinstance(value,str) and (actual.parent/value).is_file():converted[key]=str((actual.parent/value).resolve())
             else:converted[key]=value
         if not expected:raise ValueError('Declare a local OUTPUT or DESTINATION')
-        argv=[native,'--json','--skip-loading-plugins','run',args['algorithm'],'--',*[k+'='+str(v) for k,v in converted.items()]]
+        argv=[native,'--json','run',args['algorithm'],'--',*[k+'='+str(v) for k,v in converted.items()]]
     elif app=='schemathesis':
         argv=[native,'run',str(actual),'--url',target,'--max-examples',str(args.get('max_examples',3)),
           '--workers','1','--phases','fuzzing','--report','junit','--report-junit-path',str(output/'junit.xml')];expected=[output/'junit.xml']
@@ -141,7 +148,7 @@ def invoke(app,action,args,cli):
         if source.suffix.lower()!=expected_suffix:raise ValueError('Input does not match the selected KiCad document kind')
         render=output/'SVG';render.mkdir()
         argv=[native,args['kind'],'export','svg','--output',str(render)+os.sep]
-        if args['kind']=='pcb':argv+=['--layers','F.Cu,Edge.Cuts']
+        if args['kind']=='pcb':argv+=['--mode-multi','--layers','F.Cu,Edge.Cuts']
         argv.append(str(actual))
     elif app=='ngspice':argv=[native,'-b','-r',str(output/'simulation.raw'),str(actual)];expected=[output/'simulation.raw']
     elif app=='prusaslicer':
@@ -160,6 +167,10 @@ def invoke(app,action,args,cli):
     if any(not path.is_file() or not path.stat().st_size for path in expected):
         raise RuntimeError('Native workflow did not produce expected artifacts: '+str(expected))
     if app=='duckdb':shutil.copy2(stdout,output/'results.csv')
+    if app=='openmodelica':
+        log=stdout.read_text(errors='replace')+stderr.read_text(errors='replace')
+        if 'Error:' in log or not any(actual.parent.glob('*_res.*')):
+            raise RuntimeError('OpenModelica did not produce successful native simulation results: '+log[-2000:])
     if app=='poppler' and action=='render' and not list(output.glob('page-*.png')):raise RuntimeError('No PDF pages rendered')
     if app=='kicad' and not list((output/'SVG').glob('*.svg')):raise RuntimeError('No KiCad SVG exported')
     if app=='qpdf':result['status']='passed' if code==0 else 'uncertain' if code==3 else 'failed'

@@ -55,7 +55,9 @@ def resolve(spec):
                 if not sha or not re.fullmatch(r'[a-f0-9]{64}',sha):raise ValueError('Dipendenza senza checksum')
                 lines.append(name+'=='+resolved+' --hash=sha256:'+sha)
                 if name.lower().replace('-','').replace('_','')==PYPI[tool].replace('-','').replace('_',''):
-                    app['version']=resolved;app['assets']={arch:{'name':url.rsplit('/',1)[1],'url':url,'sha256':sha,'size_bytes':0}}
+                    metadata=json.load(urllib.request.urlopen('https://pypi.org/pypi/'+PYPI[tool]+'/'+resolved+'/json',timeout=60))
+                    artifact=next(item for item in metadata['urls'] if item['url']==url and item['digests']['sha256']==sha)
+                    app['version']=resolved;app['assets']={arch:{'name':url.rsplit('/',1)[1],'url':url,'sha256':sha,'size_bytes':artifact['size']}}
             files['toolkit-lock/python/'+tool+'.txt']='\n'.join(lines)+'\n'
     elif app.get('install',{}).get('kind')=='debian':
         from install_extended import repository
@@ -70,8 +72,13 @@ def resolve(spec):
             version=match[1];app['version']=version
         metadata=subprocess.check_output(['apt-cache','show',package+'='+version],text=True)
         fields=dict(line.split(': ',1) for line in metadata.split('\n\n')[0].splitlines() if ': ' in line and not line.startswith(' '))
-        repository=app.get('install',{}).get('apt_repository',{}).get('url','https://deb.debian.org/debian')
-        source=repository.rstrip('/')+'/'+fields['Filename']
+        uris=subprocess.check_output(['apt-get','--print-uris','download',package+'='+version],text=True)
+        match=re.search(r"^'([^']+)'",uris,re.M)
+        if not match:raise ValueError('APT did not identify an official package distribution')
+        source=match[1].replace('http://','https://',1)
+        allowed=('https://deb.debian.org/debian/','https://deb.debian.org/debian-security/',
+                 'https://build.openmodelica.org/apt/')
+        if not source.startswith(allowed):raise ValueError('Package distribution is outside reviewed repositories')
         app['assets']={arch:{'name':Path(fields['Filename']).name,'url':source,'sha256':fields['SHA256'],'size_bytes':int(fields['Size']),'package':package,'package_version':fields['Version']}}
     elif tool=='structurizr':
         subprocess.run(['apt-get','update'],check=True);subprocess.run(['apt-get','install','-y','--no-install-recommends','maven'],check=True)

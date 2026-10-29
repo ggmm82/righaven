@@ -1,6 +1,6 @@
 # Capacità operative: poppler
 
-Versione esaminata: **22.12.0-2+deb12u2**. Audit del catalogo nativo: 2026-10-25.
+Versione esaminata: **22.12.0-2+deb12u3**. Audit del catalogo nativo: 2026-10-25.
 
 **Sceglilo per:** Rasterize the final PDF and extract its actual text for independent review.
 **Sorgenti:** Original PDF, numbered page PNGs, extracted text and rendering settings.

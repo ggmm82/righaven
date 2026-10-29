@@ -109,9 +109,9 @@ class Handler(http.server.BaseHTTPRequestHandler):
 
 @contextlib.contextmanager
 def server():
-    http=http.server.ThreadingHTTPServer(('127.0.0.1',0),Handler);thread=threading.Thread(target=http.serve_forever,daemon=True);thread.start()
-    try:yield 'http://127.0.0.1:'+str(http.server_port)
-    finally:http.shutdown();http.server_close();thread.join()
+    server_instance=http.server.ThreadingHTTPServer(('127.0.0.1',0),Handler);thread=threading.Thread(target=server_instance.serve_forever,daemon=True);thread.start()
+    try:yield 'http://127.0.0.1:'+str(server_instance.server_port)
+    finally:server_instance.shutdown();server_instance.server_close();thread.join()
 
 
 def schemathesis(c):
