@@ -25,6 +25,7 @@ except ImportError:  # Direct invocation inside the worker image.
 
 ALLOWED_AUTH = {
     'codex': ('auth.json',),
+    'claude': ('.credentials.json',),
     'deepseek': ('api.json',),
 }
 
@@ -66,6 +67,10 @@ def copy_credentials(source, destination, engine):
 
 
 def command(engine, model, prompt, output):
+    if engine == 'claude':
+        try:from .claude_cli import command as native
+        except ImportError:from claude_cli import command as native
+        return native(model,{'type':'object','properties':{'summary':{'type':'string'}},'required':['summary']},worker=True)
     if engine == 'gemini':
         args = ['agy', '--dangerously-skip-permissions', '--input-format', 'stream-json', '--output-format', 'stream-json',
                 '--add-dir', '/mnt/user-data', '--print-timeout', '25m',
@@ -256,6 +261,12 @@ def main():
         except ImportError:
             from antigravity_cli import prepare_home, cli_env, result_envelope
         prepare_home()
+    if engine == 'claude':
+        try:from .claude_cli import environment as cli_env
+        except ImportError:
+            from claude_cli import environment as cli_env
+        try:from .claude_cli import envelope as result_envelope
+        except ImportError:from claude_cli import envelope as result_envelope
     output_dir = Path('/mnt/user-data/outputs') / job['agent'] / job['run_id']
     output_dir.mkdir(parents=True, exist_ok=True)
     if output_dir.is_symlink() or any(output_dir.iterdir()):
@@ -264,7 +275,7 @@ def main():
     (output_dir / 'previews').mkdir()
     selected = []
     verify_project_context(job)
-    skills_root = Path('/root/.agents/skills') if engine == 'codex' else auth / 'antigravity-cli/skills'
+    skills_root = Path('/root/.agents/skills') if engine == 'codex' else auth / ('skills' if engine=='claude' else 'antigravity-cli/skills')
     for name in job['skills']:
         if not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.-]{0,127}', name) or name in ('.', '..'):
             raise ValueError('Nome skill non valido')
@@ -342,7 +353,7 @@ def main():
             reporter.emit('waiting_model')
             result = run_cli(command(engine, job['model'], prompt, final), cwd=output_dir,
                                 input=(json.dumps({'event': 'user', 'message': {'content': prompt}}) + '\n') if engine == 'gemini' else prompt,
-                                env={**(cli_env() if engine == 'gemini' else os.environ), 'RIGHAVEN_OUTPUT_DIR': str(output_dir)},
+                                env={**(cli_env() if engine in ('gemini','claude') else os.environ), 'RIGHAVEN_OUTPUT_DIR': str(output_dir)},
                                 timeout=job['timeout'], on_event=lambda event: reporter.cli_event(engine, event),
                                 model_wait_seconds=(job.get('resources') or {}).get('model_wait_seconds', 0),
                                 waiting_model=lambda: reporter.execution_state == 'model')
@@ -361,7 +372,7 @@ def main():
                 raise RuntimeError(result_error(parsed))
             message = parsed.get('structured_output', {}).get('summary')
             if not isinstance(message, str) or not message.strip():
-                raise RuntimeError('Antigravity: manca la chiusura strutturata dello specialista')
+                raise RuntimeError(engine+': manca la chiusura strutturata dello specialista')
         reporter.emit('checking')
         result = finalize_saved(job, output_dir, Path('/mnt/user-data'))
         reporter.emit('completed')

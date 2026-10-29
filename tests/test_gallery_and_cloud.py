@@ -66,6 +66,22 @@ class GalleryAndCloudTests(unittest.TestCase):
         self.assertEqual(self.client.post('/api/v1/gallery/packs/publish',json=pack).status_code,201)
         self.assertTrue((Path(self.temp.name)/'gallery-versions/skill-custom-diagram/1.0.0.json').is_file())
 
+    def test_review_http_boundaries_and_session_owned_updates(self):
+        endpoint='/api/v1/gallery/packs/skill-d2/feedback'
+        body={'version':self.gallery.get_pack('skill-d2')['version'],'body':'Works for simple diagrams','score':4}
+        self.assertEqual(self.client.get(endpoint,headers={'x-test-anonymous':'1'}).status_code,401)
+        self.assertEqual(self.client.post(endpoint,json=body,headers={'origin':'https://untrusted.example'}).status_code,403)
+        self.assertEqual(self.client.post(endpoint,json={**body,'score':True}).status_code,422)
+        result=self.client.post(endpoint,json=body)
+        self.assertEqual(result.status_code,201,result.text)
+        key=result.json()['id']
+        self.assertNotIn('owner',result.json())
+        self.assertEqual(self.client.post(endpoint,json={**body,'owner':'victim'}).status_code,422)
+        self.client.delete('/api/v1/gallery/feedback/'+key,headers={'x-test-user':'bob'})
+        self.assertEqual(self.client.get(endpoint).json()['total'],1)
+        self.client.delete('/api/v1/gallery/feedback/'+key)
+        self.assertEqual(self.client.get(endpoint).json()['total'],0)
+
     def test_cloud_uses_native_identity_and_rejects_unsafe_preview_endpoints(self):
         self.assertEqual(self.client.get('/api/v1/cloud/me').json()['user']['id'],'alice')
         for endpoint,body in [('auth/oauth/google',{'username':'victim','email':'victim@example.test'}),

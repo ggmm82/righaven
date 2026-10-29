@@ -35,6 +35,7 @@ case "$status" in
   *) cat /tmp/rh-http; exit 1 ;;
 esac
 python scripts/ci_http.py
+python scripts/ci_workspace_management.py
 npm install --prefix /tmp/righaven-browser --no-audit --no-fund playwright@1.59.1
 /tmp/righaven-browser/node_modules/.bin/playwright install --with-deps chromium
 # Resolve the browser package beside the script without adding it to app runtime.

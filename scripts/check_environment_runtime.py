@@ -37,7 +37,9 @@ def main():
                 if args.incremental_check:
                     assert {'d2','pandoc'}.issubset(selected)
                     parent=factory.ensure(['d2']);made.append(parent)
-                try:ready=factory.ensure(selected)
+                from righaven.progress import update,workspace_key
+                progress=root/'foreground-progress.json';update(progress,'planning',workspace_key=workspace_key(root))
+                try:ready=factory.ensure(selected,progress=progress)
                 except Exception:
                     for log in (root/'environments').glob('*.log'):
                         print(log.read_text()[-12000:],file=sys.stderr)
@@ -70,6 +72,9 @@ def main():
                 if args.recovery_check:
                     repo=Path(__file__).resolve().parents[1]
                     subprocess.run(['docker','run','--rm','--init','--network=none','--memory=1536m','--cpus=1.5','--pids-limit=256','--cap-drop=ALL','--security-opt=no-new-privileges','--entrypoint','python3','--mount','type=bind,src='+str(repo/'scripts')+',dst=/review,readonly',ready['image_id'],'/review/check_artifact_recovery.py'],check=True)
+
+                if 'axe-core' in requested:
+                    subprocess.run([sys.executable,str(Path(__file__).with_name('check_extended_worker_scope.py')),ready['image_id']],check=True)
 
                 assert factory.evict(ready['id'])['removed']
                 if args.incremental_check:assert factory.evict(parent['id'])['removed']

@@ -58,7 +58,7 @@ def main():
         assert (skill.parent/'references/CLI-RECIPE.md').is_file()
         assert (skill.parent/'references/CAPABILITIES.md').is_file(), f'Mappa capacità mancante: {skill}'
         assert (skill.parent/'references/QUALITY.md').is_file(), f'Criteri professionali mancanti: {skill}'
-        assert '## Consegna: sorgenti modificabili e compatibilità' in skill.read_text(), f'Contratto sorgenti mancante: {skill}'
+        assert any(h in skill.read_text() for h in ('## Consegna: sorgenti modificabili e compatibilità','## Delivery: editable sources and compatibility')), f'Contratto sorgenti mancante: {skill}'
         assert 'delivery' in (skill.parent/'references/CLI-RECIPE.md').read_text()
         front=yaml.safe_load(skill.read_text().split('---',2)[1])
         assert front['name']==skill.parent.name and front['description']

@@ -15,7 +15,7 @@ from .state import STATE, ROOT, catalog
 def configure_team(engine, model, api_key=None, *, scope='both', base_url=None, connection_id=None, token_limit_param='max_tokens', tool_choice='specified', reasoning=False, vision=False):
     """Apply a profile to coordinator, production workers, or both in one catalog."""
     from .state import LOCK, atomic_json, credential_dir, custom_connection_path, applications
-    if engine not in ('codex', 'deepseek', 'gemini', 'openai') or scope not in ('both', 'coordinator', 'squad'):
+    if engine not in ('codex', 'deepseek', 'gemini', 'openai','claude') or scope not in ('both', 'coordinator', 'squad'):
         raise ValueError('Servizio o destinazione non disponibile')
     if tool_choice not in ('specified', 'required', 'auto'):
         raise ValueError('Modalità tool_choice non supportata')
@@ -32,6 +32,7 @@ def configure_team(engine, model, api_key=None, *, scope='both', base_url=None, 
                  'use': {'deepseek': 'righaven.deepseek_provider:HarnessDeepSeekChatModel',
                          'codex': 'righaven.codex_provider:HarnessCodexChatModel',
                          'gemini': 'righaven.gemini_provider:HarnessGeminiChatModel',
+                         'claude':'righaven.claude_provider:HarnessClaudeChatModel',
                          'openai': 'righaven.openai_provider:HarnessCompatibleChatModel'}[engine],
                  'model': model, 'supports_thinking': engine == 'codex',
                  'supports_reasoning_effort': engine == 'codex', 'request_timeout': 1800}

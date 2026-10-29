@@ -36,11 +36,21 @@ def read_review(handoff, output_dir, workspace, engine, acceptance=None):
     if not isinstance(criteria, list) or not 1 <= len(criteria) <= 20:
         raise ValueError('Revisione: specificare criteri concreti del brief')
     reference_hashes = {}
+    limits=value.get('observation_limits',[])
+    if (not isinstance(limits,list) or len(limits)>7 or any(not isinstance(item,dict)
+            or item.get('method') not in METHODS or any(not isinstance(item.get(k),str) or not item[k].strip()
+            or len(item[k])>800 for k in ('reason','next_action')) for item in limits)):
+        raise ValueError('Observation limits require method, reason and a concrete next_action.')
+    unavailable={item['method'] for item in limits}
     for criterion in criteria:
         if (not isinstance(criterion, dict) or not criterion.get('criterion') or not criterion.get('evidence')
                 or criterion.get('status') not in ('passed', 'failed', 'not_run')
                 or criterion.get('method') not in METHODS):
             raise ValueError('Revisione: criterio, metodo, stato ed evidenza obbligatori')
+        if criterion.get('blocked_by') is not None and criterion['blocked_by'] not in METHODS:
+            raise ValueError('blocked_by must identify an observation method.')
+        if criterion.get('status')!='failed' and (criterion['method'] in unavailable or criterion.get('blocked_by') in unavailable):
+            criterion['status']='not_run'
         if criterion.get('method') == 'reference' and criterion.get('status') == 'passed':
             rule = next((r for r in (acceptance or {}).get('criteria', []) if r['id'] == criterion.get('requirement_id')), {})
             paths = rule.get('reference_paths', [])
@@ -78,7 +88,8 @@ def read_review(handoff, output_dir, workspace, engine, acceptance=None):
     return {'product_path': str(target), 'sha256': digest(target), 'criteria': criteria,
             'status': status, 'checkpoint': checkpoint, 'findings': observations,
             'unavailable_methods': sorted({c['method'] for c in criteria if c['status'] == 'not_run'
-                                           and not capabilities(engine).get(c['method'], False)}),
+                                           and not capabilities(engine).get(c['method'], False)}|unavailable),
+            'observation_limits':limits,
             'input_hashes': {str(Path(p).resolve()): digest(p) for p in handoff.get('source_files', [])
                              if Path(p).is_file() and Path(p).resolve().is_relative_to(Path(workspace).resolve())},
             'revision_actions': corrections, 'comparison': compared,

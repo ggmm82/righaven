@@ -1,0 +1,1 @@
+sqlglot==30.25.0 --hash=sha256:7d5a292d5f61b7fc860e65a8fa41083c726db0e27fb6efb224cca63c3a5980f7

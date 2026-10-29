@@ -20,6 +20,7 @@ def login_command(engine):
     if engine == 'gemini':
         # Official CLI auth only: interactive OAuth, no paid generation or /quit.
         return ['python3', '/opt/righaven-worker/antigravity_cli.py', '--login']
+    if engine == 'claude':return ['claude','auth','login']
     if engine == 'codex':
         return ['codex', 'login', '--device-auth']
     raise ValueError('Motore sconosciuto')
@@ -27,7 +28,7 @@ def login_command(engine):
 
 class LoginSession:
     def __init__(self, engine):
-        if engine not in ('codex', 'gemini'):
+        if engine not in ('codex', 'gemini','claude'):
             raise ValueError('Motore sconosciuto')
         if not EXECUTION_LOCK.acquire(blocking=False):
             raise RuntimeError('Un lavoro o un login è già attivo')
@@ -60,7 +61,7 @@ class LoginSession:
             args = base_arguments(self.name) + runtime_arguments() + ['-it', '--label',
                     f'org.righaven.harness.installation={installation}', '--mount',
                     mount(credentials, '/root/.codex' if engine == 'codex' else '/credentials'),
-                    selected_image, *cli]
+                    *(['--env','CLAUDE_CONFIG_DIR=/credentials','--env','DISABLE_AUTOUPDATER=1'] if engine=='claude' else []),selected_image, *cli]
             self.process = subprocess.Popen(['docker', *args], stdin=slave, stdout=slave,
                                             stderr=slave, start_new_session=True)
         except Exception:
@@ -128,7 +129,7 @@ class LoginSession:
             raise ValueError('Input non valido')
         text = text.strip()
         if not text:
-            raise ValueError('Incolla il codice restituito da Google')
+            raise ValueError('Incolla il codice restituito dal provider')
         os.write(self.fd, (text + '\n').encode())
         self.input_sent = True
 

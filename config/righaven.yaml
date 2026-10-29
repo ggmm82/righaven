@@ -55,11 +55,11 @@ subagents:
     photocraft:
       description: 'Immagini e ritocco: Ritocco, compositing raster e texture con
         livelli e maschere. Usa photocraft-cli.'
-      system_prompt: Sei lo specialista photocraft. Per eseguire il lavoro invoca
-        harness_delegate con agent="photocraft", includendo input, percorsi, sorgenti
-        modificabili, app di apertura e criteri di accettazione. Eredita il modello
-        unico della squadra. Non eseguire CLI nel Gateway. Riporta risultati e limiti
-        della delega.
+      system_prompt: This is the photocraft tool integration, not a fixed professional
+        role. Use harness_delegate with agent="photocraft" and include inputs, paths,
+        editable sources, opening application and observable acceptance checks. Inherit
+        the executing team model; do not run CLIs in the Gateway. Report real results
+        and limitations. Project roles are assigned dynamically.
       skills:
       - skill-workspace
       - skill-photocraft
@@ -73,11 +73,11 @@ subagents:
     vectorcraft:
       description: 'Grafica vettoriale: Illustrazione vettoriale, loghi, icone, lettering
         e diagrammi modificabili. Usa vectorcraft-cli.'
-      system_prompt: Sei lo specialista vectorcraft. Per eseguire il lavoro invoca
-        harness_delegate con agent="vectorcraft", includendo input, percorsi, sorgenti
-        modificabili, app di apertura e criteri di accettazione. Eredita il modello
-        unico della squadra. Non eseguire CLI nel Gateway. Riporta risultati e limiti
-        della delega.
+      system_prompt: This is the vectorcraft tool integration, not a fixed professional
+        role. Use harness_delegate with agent="vectorcraft" and include inputs, paths,
+        editable sources, opening application and observable acceptance checks. Inherit
+        the executing team model; do not run CLIs in the Gateway. Report real results
+        and limitations. Project roles are assigned dynamically.
       skills:
       - skill-workspace
       - skill-vectorcraft
@@ -91,10 +91,11 @@ subagents:
     filmcraft:
       description: 'Montaggio video: Montaggio, sequenze, composizione di contributi,
         colore e master audiovisivo. Usa filmcraft-cli.'
-      system_prompt: Sei lo specialista filmcraft. Per eseguire il lavoro invoca harness_delegate
-        con agent="filmcraft", includendo input, percorsi, sorgenti modificabili,
-        app di apertura e criteri di accettazione. Eredita il modello unico della
-        squadra. Non eseguire CLI nel Gateway. Riporta risultati e limiti della delega.
+      system_prompt: This is the filmcraft tool integration, not a fixed professional
+        role. Use harness_delegate with agent="filmcraft" and include inputs, paths,
+        editable sources, opening application and observable acceptance checks. Inherit
+        the executing team model; do not run CLIs in the Gateway. Report real results
+        and limitations. Project roles are assigned dynamically.
       skills:
       - skill-workspace
       - skill-filmcraft
@@ -108,11 +109,11 @@ subagents:
     lightcraft:
       description: 'Fotografia e RAW: Sviluppo fotografico/RAW, catalogazione, correzioni
         locali e serie coerenti. Usa lightcraft-cli.'
-      system_prompt: Sei lo specialista lightcraft. Per eseguire il lavoro invoca
-        harness_delegate con agent="lightcraft", includendo input, percorsi, sorgenti
-        modificabili, app di apertura e criteri di accettazione. Eredita il modello
-        unico della squadra. Non eseguire CLI nel Gateway. Riporta risultati e limiti
-        della delega.
+      system_prompt: This is the lightcraft tool integration, not a fixed professional
+        role. Use harness_delegate with agent="lightcraft" and include inputs, paths,
+        editable sources, opening application and observable acceptance checks. Inherit
+        the executing team model; do not run CLIs in the Gateway. Report real results
+        and limitations. Project roles are assigned dynamically.
       skills:
       - skill-workspace
       - skill-lightcraft
@@ -126,10 +127,11 @@ subagents:
     pdfcraft:
       description: 'Documenti PDF: Ispezione e modifica PDF, pagine, testo, moduli,
         OCR e prestampa. Usa pdfcraft-cli.'
-      system_prompt: Sei lo specialista pdfcraft. Per eseguire il lavoro invoca harness_delegate
-        con agent="pdfcraft", includendo input, percorsi, sorgenti modificabili, app
-        di apertura e criteri di accettazione. Eredita il modello unico della squadra.
-        Non eseguire CLI nel Gateway. Riporta risultati e limiti della delega.
+      system_prompt: This is the pdfcraft tool integration, not a fixed professional
+        role. Use harness_delegate with agent="pdfcraft" and include inputs, paths,
+        editable sources, opening application and observable acceptance checks. Inherit
+        the executing team model; do not run CLIs in the Gateway. Report real results
+        and limitations. Project roles are assigned dynamically.
       skills:
       - skill-workspace
       - skill-pdfcraft
@@ -143,11 +145,11 @@ subagents:
     effectcraft:
       description: 'Animazione ed effetti: Animazione 2D/3D, motion graphics, compositing,
         camera/luci ed effetti. Usa effectcraft-cli.'
-      system_prompt: Sei lo specialista effectcraft. Per eseguire il lavoro invoca
-        harness_delegate con agent="effectcraft", includendo input, percorsi, sorgenti
-        modificabili, app di apertura e criteri di accettazione. Eredita il modello
-        unico della squadra. Non eseguire CLI nel Gateway. Riporta risultati e limiti
-        della delega.
+      system_prompt: This is the effectcraft tool integration, not a fixed professional
+        role. Use harness_delegate with agent="effectcraft" and include inputs, paths,
+        editable sources, opening application and observable acceptance checks. Inherit
+        the executing team model; do not run CLIs in the Gateway. Report real results
+        and limitations. Project roles are assigned dynamically.
       skills:
       - skill-workspace
       - skill-effectcraft
@@ -161,11 +163,11 @@ subagents:
     designcraft:
       description: 'Impaginazione editoriale: Impaginazione multipagina, libri, riviste,
         fumetti e prestampa. Usa designcraft-cli.'
-      system_prompt: Sei lo specialista designcraft. Per eseguire il lavoro invoca
-        harness_delegate con agent="designcraft", includendo input, percorsi, sorgenti
-        modificabili, app di apertura e criteri di accettazione. Eredita il modello
-        unico della squadra. Non eseguire CLI nel Gateway. Riporta risultati e limiti
-        della delega.
+      system_prompt: This is the designcraft tool integration, not a fixed professional
+        role. Use harness_delegate with agent="designcraft" and include inputs, paths,
+        editable sources, opening application and observable acceptance checks. Inherit
+        the executing team model; do not run CLIs in the Gateway. Report real results
+        and limitations. Project roles are assigned dynamically.
       skills:
       - skill-workspace
       - skill-designcraft
@@ -179,10 +181,11 @@ subagents:
     gridcraft:
       description: 'Fogli di calcolo: Fogli di calcolo, formule, tabelle, grafici,
         analisi e reporting. Usa gridcraft-cli.'
-      system_prompt: Sei lo specialista gridcraft. Per eseguire il lavoro invoca harness_delegate
-        con agent="gridcraft", includendo input, percorsi, sorgenti modificabili,
-        app di apertura e criteri di accettazione. Eredita il modello unico della
-        squadra. Non eseguire CLI nel Gateway. Riporta risultati e limiti della delega.
+      system_prompt: This is the gridcraft tool integration, not a fixed professional
+        role. Use harness_delegate with agent="gridcraft" and include inputs, paths,
+        editable sources, opening application and observable acceptance checks. Inherit
+        the executing team model; do not run CLIs in the Gateway. Report real results
+        and limitations. Project roles are assigned dynamically.
       skills:
       - skill-workspace
       - skill-gridcraft
@@ -196,10 +199,11 @@ subagents:
     wordcraft:
       description: 'Testi e documenti: Scrittura strutturata, documenti lunghi, revisioni
         e apparati editoriali. Usa wordcraft-cli.'
-      system_prompt: Sei lo specialista wordcraft. Per eseguire il lavoro invoca harness_delegate
-        con agent="wordcraft", includendo input, percorsi, sorgenti modificabili,
-        app di apertura e criteri di accettazione. Eredita il modello unico della
-        squadra. Non eseguire CLI nel Gateway. Riporta risultati e limiti della delega.
+      system_prompt: This is the wordcraft tool integration, not a fixed professional
+        role. Use harness_delegate with agent="wordcraft" and include inputs, paths,
+        editable sources, opening application and observable acceptance checks. Inherit
+        the executing team model; do not run CLIs in the Gateway. Report real results
+        and limitations. Project roles are assigned dynamically.
       skills:
       - skill-workspace
       - skill-wordcraft
@@ -213,10 +217,11 @@ subagents:
     deckcraft:
       description: 'Presentazioni: Presentazioni editabili, sistemi di slide, diagrammi,
         media e animazioni. Usa deckcraft-cli.'
-      system_prompt: Sei lo specialista deckcraft. Per eseguire il lavoro invoca harness_delegate
-        con agent="deckcraft", includendo input, percorsi, sorgenti modificabili,
-        app di apertura e criteri di accettazione. Eredita il modello unico della
-        squadra. Non eseguire CLI nel Gateway. Riporta risultati e limiti della delega.
+      system_prompt: This is the deckcraft tool integration, not a fixed professional
+        role. Use harness_delegate with agent="deckcraft" and include inputs, paths,
+        editable sources, opening application and observable acceptance checks. Inherit
+        the executing team model; do not run CLIs in the Gateway. Report real results
+        and limitations. Project roles are assigned dynamically.
       skills:
       - skill-workspace
       - skill-deckcraft
@@ -230,10 +235,11 @@ subagents:
     cadcraft:
       description: 'Disegno CAD: Disegno tecnico, quote, blocchi, geometrie CAD e
         tavole di progetto. Usa cadcraft-cli.'
-      system_prompt: Sei lo specialista cadcraft. Per eseguire il lavoro invoca harness_delegate
-        con agent="cadcraft", includendo input, percorsi, sorgenti modificabili, app
-        di apertura e criteri di accettazione. Eredita il modello unico della squadra.
-        Non eseguire CLI nel Gateway. Riporta risultati e limiti della delega.
+      system_prompt: This is the cadcraft tool integration, not a fixed professional
+        role. Use harness_delegate with agent="cadcraft" and include inputs, paths,
+        editable sources, opening application and observable acceptance checks. Inherit
+        the executing team model; do not run CLIs in the Gateway. Report real results
+        and limitations. Project roles are assigned dynamically.
       skills:
       - skill-workspace
       - skill-cadcraft
@@ -247,11 +253,11 @@ subagents:
     soundcraft:
       description: 'Produzione audio: Composizione MIDI, sintesi, sound design, montaggio
         e mix modificabile. Usa soundcraft-cli.'
-      system_prompt: Sei lo specialista soundcraft. Per eseguire il lavoro invoca
-        harness_delegate con agent="soundcraft", includendo input, percorsi, sorgenti
-        modificabili, app di apertura e criteri di accettazione. Eredita il modello
-        unico della squadra. Non eseguire CLI nel Gateway. Riporta risultati e limiti
-        della delega.
+      system_prompt: This is the soundcraft tool integration, not a fixed professional
+        role. Use harness_delegate with agent="soundcraft" and include inputs, paths,
+        editable sources, opening application and observable acceptance checks. Inherit
+        the executing team model; do not run CLIs in the Gateway. Report real results
+        and limitations. Project roles are assigned dynamically.
       skills:
       - skill-workspace
       - skill-soundcraft
@@ -265,10 +271,11 @@ subagents:
     figcraft:
       description: 'Interfacce e prototipi: Design di interfacce, componenti, layout
         adattivi e prototipi. Usa figcraft-cli.'
-      system_prompt: Sei lo specialista figcraft. Per eseguire il lavoro invoca harness_delegate
-        con agent="figcraft", includendo input, percorsi, sorgenti modificabili, app
-        di apertura e criteri di accettazione. Eredita il modello unico della squadra.
-        Non eseguire CLI nel Gateway. Riporta risultati e limiti della delega.
+      system_prompt: This is the figcraft tool integration, not a fixed professional
+        role. Use harness_delegate with agent="figcraft" and include inputs, paths,
+        editable sources, opening application and observable acceptance checks. Inherit
+        the executing team model; do not run CLIs in the Gateway. Report real results
+        and limitations. Project roles are assigned dynamically.
       skills:
       - skill-workspace
       - skill-figcraft
@@ -282,10 +289,11 @@ subagents:
     blender:
       description: 'Modellazione e animazione 3D: Modellazione 3D, rig, materiali,
         simulazioni, animazione e rendering. Usa blender-cli.'
-      system_prompt: Sei lo specialista blender. Per eseguire il lavoro invoca harness_delegate
-        con agent="blender", includendo input, percorsi, sorgenti modificabili, app
-        di apertura e criteri di accettazione. Eredita il modello unico della squadra.
-        Non eseguire CLI nel Gateway. Riporta risultati e limiti della delega.
+      system_prompt: This is the blender tool integration, not a fixed professional
+        role. Use harness_delegate with agent="blender" and include inputs, paths,
+        editable sources, opening application and observable acceptance checks. Inherit
+        the executing team model; do not run CLIs in the Gateway. Report real results
+        and limitations. Project roles are assigned dynamically.
       skills:
       - skill-workspace
       - skill-blender
@@ -299,10 +307,11 @@ subagents:
     calibre:
       description: 'Conversione e controllo delle pubblicazioni digitali: Produzione
         e conversione editoriale, EPUB/AZW3, metadati, risorse e librerie. Usa calibre-cli.'
-      system_prompt: Sei lo specialista calibre. Per eseguire il lavoro invoca harness_delegate
-        con agent="calibre", includendo input, percorsi, sorgenti modificabili, app
-        di apertura e criteri di accettazione. Eredita il modello unico della squadra.
-        Non eseguire CLI nel Gateway. Riporta risultati e limiti della delega.
+      system_prompt: This is the calibre tool integration, not a fixed professional
+        role. Use harness_delegate with agent="calibre" and include inputs, paths,
+        editable sources, opening application and observable acceptance checks. Inherit
+        the executing team model; do not run CLIs in the Gateway. Report real results
+        and limitations. Project roles are assigned dynamically.
       skills:
       - skill-workspace
       - skill-calibre
@@ -316,11 +325,11 @@ subagents:
     playwright:
       description: 'Collaudo browser e interfacce: Automazione browser, test di interazione,
         screenshot e trace su applicazioni web reali. Usa playwright-cli.'
-      system_prompt: Sei lo specialista playwright. Per eseguire il lavoro invoca
-        harness_delegate con agent="playwright", includendo input, percorsi, sorgenti
-        modificabili, app di apertura e criteri di accettazione. Eredita il modello
-        unico della squadra. Non eseguire CLI nel Gateway. Riporta risultati e limiti
-        della delega.
+      system_prompt: This is the playwright tool integration, not a fixed professional
+        role. Use harness_delegate with agent="playwright" and include inputs, paths,
+        editable sources, opening application and observable acceptance checks. Inherit
+        the executing team model; do not run CLIs in the Gateway. Report real results
+        and limitations. Project roles are assigned dynamically.
       skills:
       - skill-workspace
       - skill-playwright
@@ -334,10 +343,11 @@ subagents:
     aubio:
       description: 'Analisi temporale e musicale: Stima di attacchi, battiti, altezza
         e note dal segnale audio, con unità esplicite. Usa aubio-cli.'
-      system_prompt: Sei lo specialista aubio. Per eseguire il lavoro invoca harness_delegate
-        con agent="aubio", includendo input, percorsi, sorgenti modificabili, app
-        di apertura e criteri di accettazione. Eredita il modello unico della squadra.
-        Non eseguire CLI nel Gateway. Riporta risultati e limiti della delega.
+      system_prompt: This is the aubio tool integration, not a fixed professional
+        role. Use harness_delegate with agent="aubio" and include inputs, paths, editable
+        sources, opening application and observable acceptance checks. Inherit the
+        executing team model; do not run CLIs in the Gateway. Report real results
+        and limitations. Project roles are assigned dynamically.
       skills:
       - skill-workspace
       - skill-aubio
@@ -351,11 +361,11 @@ subagents:
     fluidsynth:
       description: 'Sintesi MIDI e SoundFont: Rendering offline MIDI con strumenti
         SF2, partitura e banca conservate per la riproduzione. Usa fluidsynth-cli.'
-      system_prompt: Sei lo specialista fluidsynth. Per eseguire il lavoro invoca
-        harness_delegate con agent="fluidsynth", includendo input, percorsi, sorgenti
-        modificabili, app di apertura e criteri di accettazione. Eredita il modello
-        unico della squadra. Non eseguire CLI nel Gateway. Riporta risultati e limiti
-        della delega.
+      system_prompt: This is the fluidsynth tool integration, not a fixed professional
+        role. Use harness_delegate with agent="fluidsynth" and include inputs, paths,
+        editable sources, opening application and observable acceptance checks. Inherit
+        the executing team model; do not run CLIs in the Gateway. Report real results
+        and limitations. Project roles are assigned dynamically.
       skills:
       - skill-workspace
       - skill-fluidsynth
@@ -369,10 +379,11 @@ subagents:
     epubcheck:
       description: 'Conformità EPUB: Controllo indipendente EPUB di contenitori, manifest,
         risorse e markup; errori distinti dagli avvisi. Usa epubcheck-cli.'
-      system_prompt: Sei lo specialista epubcheck. Per eseguire il lavoro invoca harness_delegate
-        con agent="epubcheck", includendo input, percorsi, sorgenti modificabili,
-        app di apertura e criteri di accettazione. Eredita il modello unico della
-        squadra. Non eseguire CLI nel Gateway. Riporta risultati e limiti della delega.
+      system_prompt: This is the epubcheck tool integration, not a fixed professional
+        role. Use harness_delegate with agent="epubcheck" and include inputs, paths,
+        editable sources, opening application and observable acceptance checks. Inherit
+        the executing team model; do not run CLIs in the Gateway. Report real results
+        and limitations. Project roles are assigned dynamically.
       skills:
       - skill-workspace
       - skill-epubcheck
@@ -386,10 +397,11 @@ subagents:
     pandoc:
       description: 'Conversione di documenti strutturati: Conversione Markdown, DOCX,
         EPUB, HTML e altri formati, con bibliografia e template espliciti. Usa pandoc-cli.'
-      system_prompt: Sei lo specialista pandoc. Per eseguire il lavoro invoca harness_delegate
-        con agent="pandoc", includendo input, percorsi, sorgenti modificabili, app
-        di apertura e criteri di accettazione. Eredita il modello unico della squadra.
-        Non eseguire CLI nel Gateway. Riporta risultati e limiti della delega.
+      system_prompt: This is the pandoc tool integration, not a fixed professional
+        role. Use harness_delegate with agent="pandoc" and include inputs, paths,
+        editable sources, opening application and observable acceptance checks. Inherit
+        the executing team model; do not run CLIs in the Gateway. Report real results
+        and limitations. Project roles are assigned dynamically.
       skills:
       - skill-workspace
       - skill-pandoc
@@ -403,10 +415,11 @@ subagents:
     typst:
       description: 'Impaginazione programmabile: Composizione tipografica riproducibile
         in PDF, SVG o PNG da sorgenti .typ, font e risorse. Usa typst-cli.'
-      system_prompt: Sei lo specialista typst. Per eseguire il lavoro invoca harness_delegate
-        con agent="typst", includendo input, percorsi, sorgenti modificabili, app
-        di apertura e criteri di accettazione. Eredita il modello unico della squadra.
-        Non eseguire CLI nel Gateway. Riporta risultati e limiti della delega.
+      system_prompt: This is the typst tool integration, not a fixed professional
+        role. Use harness_delegate with agent="typst" and include inputs, paths, editable
+        sources, opening application and observable acceptance checks. Inherit the
+        executing team model; do not run CLIs in the Gateway. Report real results
+        and limitations. Project roles are assigned dynamically.
       skills:
       - skill-workspace
       - skill-typst
@@ -420,10 +433,11 @@ subagents:
     freecad:
       description: 'CAD parametrico tridimensionale: Authoring parametrico .FCStd,
         misure geometriche e scambio STEP tramite motore headless nativo. Usa freecad-cli.'
-      system_prompt: Sei lo specialista freecad. Per eseguire il lavoro invoca harness_delegate
-        con agent="freecad", includendo input, percorsi, sorgenti modificabili, app
-        di apertura e criteri di accettazione. Eredita il modello unico della squadra.
-        Non eseguire CLI nel Gateway. Riporta risultati e limiti della delega.
+      system_prompt: This is the freecad tool integration, not a fixed professional
+        role. Use harness_delegate with agent="freecad" and include inputs, paths,
+        editable sources, opening application and observable acceptance checks. Inherit
+        the executing team model; do not run CLIs in the Gateway. Report real results
+        and limitations. Project roles are assigned dynamically.
       skills:
       - skill-workspace
       - skill-freecad
@@ -437,10 +451,11 @@ subagents:
     whisper:
       description: 'Trascrizione e sottotitoli: Trascrizione parlato CPU multilingue
         in TXT, SRT e JSON con modello tiny fissato e disponibile offline. Usa whisper-cpp-cli.'
-      system_prompt: Sei lo specialista whisper. Per eseguire il lavoro invoca harness_delegate
-        con agent="whisper", includendo input, percorsi, sorgenti modificabili, app
-        di apertura e criteri di accettazione. Eredita il modello unico della squadra.
-        Non eseguire CLI nel Gateway. Riporta risultati e limiti della delega.
+      system_prompt: This is the whisper tool integration, not a fixed professional
+        role. Use harness_delegate with agent="whisper" and include inputs, paths,
+        editable sources, opening application and observable acceptance checks. Inherit
+        the executing team model; do not run CLIs in the Gateway. Report real results
+        and limitations. Project roles are assigned dynamically.
       skills:
       - skill-workspace
       - skill-whisper
@@ -454,10 +469,11 @@ subagents:
     ffmpeg:
       description: 'Conversione e verifica audio/video: Probe dei flussi, conversione
         codec e formati, estrazione audio e mux con parametri espliciti. Usa ffmpeg-cli.'
-      system_prompt: Sei lo specialista ffmpeg. Per eseguire il lavoro invoca harness_delegate
-        con agent="ffmpeg", includendo input, percorsi, sorgenti modificabili, app
-        di apertura e criteri di accettazione. Eredita il modello unico della squadra.
-        Non eseguire CLI nel Gateway. Riporta risultati e limiti della delega.
+      system_prompt: This is the ffmpeg tool integration, not a fixed professional
+        role. Use harness_delegate with agent="ffmpeg" and include inputs, paths,
+        editable sources, opening application and observable acceptance checks. Inherit
+        the executing team model; do not run CLIs in the Gateway. Report real results
+        and limitations. Project roles are assigned dynamically.
       skills:
       - skill-workspace
       - skill-ffmpeg
@@ -471,10 +487,11 @@ subagents:
     musescore:
       description: 'Notazione e composizione musicale: Partiture, arrangiamenti e
         melodia esplicita; SoundCraft resta responsabile del mix. Usa musescore-cli.'
-      system_prompt: Sei lo specialista musescore. Per eseguire il lavoro invoca harness_delegate
-        con agent="musescore", includendo input, percorsi, sorgenti modificabili,
-        app di apertura e criteri di accettazione. Eredita il modello unico della
-        squadra. Non eseguire CLI nel Gateway. Riporta risultati e limiti della delega.
+      system_prompt: This is the musescore tool integration, not a fixed professional
+        role. Use harness_delegate with agent="musescore" and include inputs, paths,
+        editable sources, opening application and observable acceptance checks. Inherit
+        the executing team model; do not run CLIs in the Gateway. Report real results
+        and limitations. Project roles are assigned dynamically.
       skills:
       - skill-workspace
       - skill-musescore
@@ -488,11 +505,11 @@ subagents:
     ifcopenshell:
       description: 'BIM e controllo IFC: Authoring semantico BIM e validazione IFC;
         FreeCAD resta il modellatore CAD parametrico. Usa ifcopenshell-cli.'
-      system_prompt: Sei lo specialista ifcopenshell. Per eseguire il lavoro invoca
-        harness_delegate con agent="ifcopenshell", includendo input, percorsi, sorgenti
-        modificabili, app di apertura e criteri di accettazione. Eredita il modello
-        unico della squadra. Non eseguire CLI nel Gateway. Riporta risultati e limiti
-        della delega.
+      system_prompt: This is the ifcopenshell tool integration, not a fixed professional
+        role. Use harness_delegate with agent="ifcopenshell" and include inputs, paths,
+        editable sources, opening application and observable acceptance checks. Inherit
+        the executing team model; do not run CLIs in the Gateway. Report real results
+        and limitations. Project roles are assigned dynamically.
       skills:
       - skill-workspace
       - skill-ifcopenshell
@@ -507,10 +524,11 @@ subagents:
       description: 'Animazioni esplicative programmatiche: Animazioni didattiche,
         matematiche e dati costruite con Scene Python; EffectCraft resta il compositore
         generale. Usa manim-cli.'
-      system_prompt: Sei lo specialista manim. Per eseguire il lavoro invoca harness_delegate
-        con agent="manim", includendo input, percorsi, sorgenti modificabili, app
-        di apertura e criteri di accettazione. Eredita il modello unico della squadra.
-        Non eseguire CLI nel Gateway. Riporta risultati e limiti della delega.
+      system_prompt: This is the manim tool integration, not a fixed professional
+        role. Use harness_delegate with agent="manim" and include inputs, paths, editable
+        sources, opening application and observable acceptance checks. Inherit the
+        executing team model; do not run CLIs in the Gateway. Report real results
+        and limitations. Project roles are assigned dynamically.
       skills:
       - skill-workspace
       - skill-manim
@@ -525,11 +543,11 @@ subagents:
       description: 'Controllo e trasporto timeline: Ispezione di tempi razionali,
         riferimenti e pacchetti media portabili; FilmCraft resta l’editor e FFmpeg
         il motore codec. Usa opentimelineio-cli.'
-      system_prompt: Sei lo specialista opentimelineio. Per eseguire il lavoro invoca
-        harness_delegate con agent="opentimelineio", includendo input, percorsi, sorgenti
-        modificabili, app di apertura e criteri di accettazione. Eredita il modello
-        unico della squadra. Non eseguire CLI nel Gateway. Riporta risultati e limiti
-        della delega.
+      system_prompt: This is the opentimelineio tool integration, not a fixed professional
+        role. Use harness_delegate with agent="opentimelineio" and include inputs,
+        paths, editable sources, opening application and observable acceptance checks.
+        Inherit the executing team model; do not run CLIs in the Gateway. Report real
+        results and limitations. Project roles are assigned dynamically.
       skills:
       - skill-workspace
       - skill-opentimelineio
@@ -543,10 +561,11 @@ subagents:
     pymeshlab:
       description: 'Analisi e riparazione mesh: Misura, pulizia e filtri di mesh esistenti;
         FreeCAD resta il CAD parametrico e Blender l’authoring organico. Usa pymeshlab-cli.'
-      system_prompt: Sei lo specialista pymeshlab. Per eseguire il lavoro invoca harness_delegate
-        con agent="pymeshlab", includendo input, percorsi, sorgenti modificabili,
-        app di apertura e criteri di accettazione. Eredita il modello unico della
-        squadra. Non eseguire CLI nel Gateway. Riporta risultati e limiti della delega.
+      system_prompt: This is the pymeshlab tool integration, not a fixed professional
+        role. Use harness_delegate with agent="pymeshlab" and include inputs, paths,
+        editable sources, opening application and observable acceptance checks. Inherit
+        the executing team model; do not run CLIs in the Gateway. Report real results
+        and limitations. Project roles are assigned dynamically.
       skills:
       - skill-workspace
       - skill-pymeshlab
@@ -560,10 +579,11 @@ subagents:
     d2:
       description: 'Schemi strutturati moderni: Flussi, relazioni e dipendenze con
         layout automatico; non richiede UML o professioni fisse. Usa d2-cli.'
-      system_prompt: Sei lo specialista d2. Per eseguire il lavoro invoca harness_delegate
-        con agent="d2", includendo input, percorsi, sorgenti modificabili, app di
-        apertura e criteri di accettazione. Eredita il modello unico della squadra.
-        Non eseguire CLI nel Gateway. Riporta risultati e limiti della delega.
+      system_prompt: This is the d2 tool integration, not a fixed professional role.
+        Use harness_delegate with agent="d2" and include inputs, paths, editable sources,
+        opening application and observable acceptance checks. Inherit the executing
+        team model; do not run CLIs in the Gateway. Report real results and limitations.
+        Project roles are assigned dynamically.
       skills:
       - skill-workspace
       - skill-d2
@@ -577,10 +597,11 @@ subagents:
     plantuml:
       description: 'Modellazione UML formale: Classi, sequenze, attività e stati quando
         la semantica UML è utile; D2 resta la scelta per schemi generali. Usa plantuml-cli.'
-      system_prompt: Sei lo specialista plantuml. Per eseguire il lavoro invoca harness_delegate
-        con agent="plantuml", includendo input, percorsi, sorgenti modificabili, app
-        di apertura e criteri di accettazione. Eredita il modello unico della squadra.
-        Non eseguire CLI nel Gateway. Riporta risultati e limiti della delega.
+      system_prompt: This is the plantuml tool integration, not a fixed professional
+        role. Use harness_delegate with agent="plantuml" and include inputs, paths,
+        editable sources, opening application and observable acceptance checks. Inherit
+        the executing team model; do not run CLIs in the Gateway. Report real results
+        and limitations. Project roles are assigned dynamically.
       skills:
       - skill-workspace
       - skill-plantuml
@@ -595,10 +616,11 @@ subagents:
       description: 'Diagrammi nella documentazione: Flussi, sequenze, stati e mappe
         nella chat e nel Markdown; valorizza il renderer Mermaid già presente in RigHaven.
         Usa mermaid-cli.'
-      system_prompt: Sei lo specialista mermaid. Per eseguire il lavoro invoca harness_delegate
-        con agent="mermaid", includendo input, percorsi, sorgenti modificabili, app
-        di apertura e criteri di accettazione. Eredita il modello unico della squadra.
-        Non eseguire CLI nel Gateway. Riporta risultati e limiti della delega.
+      system_prompt: This is the mermaid tool integration, not a fixed professional
+        role. Use harness_delegate with agent="mermaid" and include inputs, paths,
+        editable sources, opening application and observable acceptance checks. Inherit
+        the executing team model; do not run CLIs in the Gateway. Report real results
+        and limitations. Project roles are assigned dynamically.
       skills:
       - skill-workspace
       - skill-mermaid
@@ -613,11 +635,11 @@ subagents:
       description: 'Lavagna visuale modificabile: Brainstorming, mappe e schizzi condivisi;
         la lavagna resta modificabile dall’utente. VectorCraft resta l’editor vettoriale
         di produzione. Usa excalidraw-cli.'
-      system_prompt: Sei lo specialista excalidraw. Per eseguire il lavoro invoca
-        harness_delegate con agent="excalidraw", includendo input, percorsi, sorgenti
-        modificabili, app di apertura e criteri di accettazione. Eredita il modello
-        unico della squadra. Non eseguire CLI nel Gateway. Riporta risultati e limiti
-        della delega.
+      system_prompt: This is the excalidraw tool integration, not a fixed professional
+        role. Use harness_delegate with agent="excalidraw" and include inputs, paths,
+        editable sources, opening application and observable acceptance checks. Inherit
+        the executing team model; do not run CLIs in the Gateway. Report real results
+        and limitations. Project roles are assigned dynamically.
       skills:
       - skill-workspace
       - skill-excalidraw
@@ -632,10 +654,11 @@ subagents:
       description: 'Modellazione dei processi: Processi con eventi, responsabilità,
         decisioni ed eccezioni in BPMN 2.0; non è un nuovo esecutore dei lavori. Usa
         bpmn-cli.'
-      system_prompt: Sei lo specialista bpmn. Per eseguire il lavoro invoca harness_delegate
-        con agent="bpmn", includendo input, percorsi, sorgenti modificabili, app di
-        apertura e criteri di accettazione. Eredita il modello unico della squadra.
-        Non eseguire CLI nel Gateway. Riporta risultati e limiti della delega.
+      system_prompt: This is the bpmn tool integration, not a fixed professional role.
+        Use harness_delegate with agent="bpmn" and include inputs, paths, editable
+        sources, opening application and observable acceptance checks. Inherit the
+        executing team model; do not run CLIs in the Gateway. Report real results
+        and limitations. Project roles are assigned dynamically.
       skills:
       - skill-workspace
       - skill-bpmn
@@ -650,11 +673,11 @@ subagents:
       description: 'Architetture C4 da un modello: Viste coerenti di architettura
         software da un unico modello C4. Usa le librerie mantenute, non la vecchia
         CLI dismessa. Usa structurizr-cli.'
-      system_prompt: Sei lo specialista structurizr. Per eseguire il lavoro invoca
-        harness_delegate con agent="structurizr", includendo input, percorsi, sorgenti
-        modificabili, app di apertura e criteri di accettazione. Eredita il modello
-        unico della squadra. Non eseguire CLI nel Gateway. Riporta risultati e limiti
-        della delega.
+      system_prompt: This is the structurizr tool integration, not a fixed professional
+        role. Use harness_delegate with agent="structurizr" and include inputs, paths,
+        editable sources, opening application and observable acceptance checks. Inherit
+        the executing team model; do not run CLIs in the Gateway. Report real results
+        and limitations. Project roles are assigned dynamically.
       skills:
       - skill-workspace
       - skill-structurizr
@@ -668,10 +691,11 @@ subagents:
     opengrep:
       description: 'Analisi statica del codice: Controlli semantici su codice locale
         con regole esplicite e report ripetibili. Usa opengrep-cli.'
-      system_prompt: Sei lo specialista opengrep. Per eseguire il lavoro invoca harness_delegate
-        con agent="opengrep", includendo input, percorsi, sorgenti modificabili, app
-        di apertura e criteri di accettazione. Eredita il modello unico della squadra.
-        Non eseguire CLI nel Gateway. Riporta risultati e limiti della delega.
+      system_prompt: This is the opengrep tool integration, not a fixed professional
+        role. Use harness_delegate with agent="opengrep" and include inputs, paths,
+        editable sources, opening application and observable acceptance checks. Inherit
+        the executing team model; do not run CLIs in the Gateway. Report real results
+        and limitations. Project roles are assigned dynamically.
       skills:
       - skill-workspace
       - skill-opengrep
@@ -685,13 +709,469 @@ subagents:
     trivy:
       description: 'Dipendenze e configurazioni: Inventario software, configurazioni
         e vulnerabilità con database identificato. Usa trivy-cli.'
-      system_prompt: Sei lo specialista trivy. Per eseguire il lavoro invoca harness_delegate
-        con agent="trivy", includendo input, percorsi, sorgenti modificabili, app
-        di apertura e criteri di accettazione. Eredita il modello unico della squadra.
-        Non eseguire CLI nel Gateway. Riporta risultati e limiti della delega.
+      system_prompt: This is the trivy tool integration, not a fixed professional
+        role. Use harness_delegate with agent="trivy" and include inputs, paths, editable
+        sources, opening application and observable acceptance checks. Inherit the
+        executing team model; do not run CLIs in the Gateway. Report real results
+        and limitations. Project roles are assigned dynamically.
       skills:
       - skill-workspace
       - skill-trivy
+      model: inherit
+      max_turns: 50
+      timeout_seconds: 1800
+      disallowed_tools:
+      - task
+      - ask_clarification
+      - present_files
+    duckdb:
+      description: 'Data queries and reproducible analysis: Query CSV, JSON and Parquet
+        with SQL and a local analytical database. Usa duckdb-cli.'
+      system_prompt: This is the duckdb tool integration, not a fixed professional
+        role. Use harness_delegate with agent="duckdb" and include inputs, paths,
+        editable sources, opening application and observable acceptance checks. Inherit
+        the executing team model; do not run CLIs in the Gateway. Report real results
+        and limitations. Project roles are assigned dynamically.
+      skills:
+      - skill-workspace
+      - skill-duckdb
+      model: inherit
+      max_turns: 50
+      timeout_seconds: 1800
+      disallowed_tools:
+      - task
+      - ask_clarification
+      - present_files
+    jupyter:
+      description: 'Executable notebooks: Combine explanations, executable Python
+        and actual analytical results in a notebook. Usa jupyter-cli.'
+      system_prompt: This is the jupyter tool integration, not a fixed professional
+        role. Use harness_delegate with agent="jupyter" and include inputs, paths,
+        editable sources, opening application and observable acceptance checks. Inherit
+        the executing team model; do not run CLIs in the Gateway. Report real results
+        and limitations. Project roles are assigned dynamically.
+      skills:
+      - skill-workspace
+      - skill-jupyter
+      model: inherit
+      max_turns: 50
+      timeout_seconds: 1800
+      disallowed_tools:
+      - task
+      - ask_clarification
+      - present_files
+    quarto:
+      description: 'Reproducible analytical publications: Publish analytical narratives
+        and notebooks as standalone HTML reports. Usa quarto-cli.'
+      system_prompt: This is the quarto tool integration, not a fixed professional
+        role. Use harness_delegate with agent="quarto" and include inputs, paths,
+        editable sources, opening application and observable acceptance checks. Inherit
+        the executing team model; do not run CLIs in the Gateway. Report real results
+        and limitations. Project roles are assigned dynamically.
+      skills:
+      - skill-workspace
+      - skill-quarto
+      model: inherit
+      max_turns: 50
+      timeout_seconds: 1800
+      disallowed_tools:
+      - task
+      - ask_clarification
+      - present_files
+    poppler:
+      description: 'Inspection of delivered PDFs: Rasterize the final PDF and extract
+        its actual text for independent review. Usa poppler-cli.'
+      system_prompt: This is the poppler tool integration, not a fixed professional
+        role. Use harness_delegate with agent="poppler" and include inputs, paths,
+        editable sources, opening application and observable acceptance checks. Inherit
+        the executing team model; do not run CLIs in the Gateway. Report real results
+        and limitations. Project roles are assigned dynamically.
+      skills:
+      - skill-workspace
+      - skill-poppler
+      model: inherit
+      max_turns: 50
+      timeout_seconds: 1800
+      disallowed_tools:
+      - task
+      - ask_clarification
+      - present_files
+    qpdf:
+      description: 'PDF structural checks: Check PDF syntax, cross references and
+        recoverability independently of the authoring tool. Usa qpdf-cli.'
+      system_prompt: This is the qpdf tool integration, not a fixed professional role.
+        Use harness_delegate with agent="qpdf" and include inputs, paths, editable
+        sources, opening application and observable acceptance checks. Inherit the
+        executing team model; do not run CLIs in the Gateway. Report real results
+        and limitations. Project roles are assigned dynamically.
+      skills:
+      - skill-workspace
+      - skill-qpdf
+      model: inherit
+      max_turns: 50
+      timeout_seconds: 1800
+      disallowed_tools:
+      - task
+      - ask_clarification
+      - present_files
+    verapdf:
+      description: 'PDF/A conformance: Validate delivered PDFs against an explicitly
+        chosen PDF/A profile. Usa verapdf-cli.'
+      system_prompt: This is the verapdf tool integration, not a fixed professional
+        role. Use harness_delegate with agent="verapdf" and include inputs, paths,
+        editable sources, opening application and observable acceptance checks. Inherit
+        the executing team model; do not run CLIs in the Gateway. Report real results
+        and limitations. Project roles are assigned dynamically.
+      skills:
+      - skill-workspace
+      - skill-verapdf
+      model: inherit
+      max_turns: 50
+      timeout_seconds: 1800
+      disallowed_tools:
+      - task
+      - ask_clarification
+      - present_files
+    ocrmypdf:
+      description: 'Searchable scanned documents: Add an OCR text layer and text sidecar
+        to scanned PDFs while preserving the original. Usa ocrmypdf-cli.'
+      system_prompt: This is the ocrmypdf tool integration, not a fixed professional
+        role. Use harness_delegate with agent="ocrmypdf" and include inputs, paths,
+        editable sources, opening application and observable acceptance checks. Inherit
+        the executing team model; do not run CLIs in the Gateway. Report real results
+        and limitations. Project roles are assigned dynamically.
+      skills:
+      - skill-workspace
+      - skill-ocrmypdf
+      model: inherit
+      max_turns: 50
+      timeout_seconds: 1800
+      disallowed_tools:
+      - task
+      - ask_clarification
+      - present_files
+    tesseract:
+      description: 'Image text recognition: Recognize text in local images with coordinates
+        and confidence evidence. Usa tesseract-cli.'
+      system_prompt: This is the tesseract tool integration, not a fixed professional
+        role. Use harness_delegate with agent="tesseract" and include inputs, paths,
+        editable sources, opening application and observable acceptance checks. Inherit
+        the executing team model; do not run CLIs in the Gateway. Report real results
+        and limitations. Project roles are assigned dynamically.
+      skills:
+      - skill-workspace
+      - skill-tesseract
+      model: inherit
+      max_turns: 50
+      timeout_seconds: 1800
+      disallowed_tools:
+      - task
+      - ask_clarification
+      - present_files
+    gdal:
+      description: 'Geospatial data conversion and inspection: Inspect raster georeferencing
+        and convert raster datasets to GeoTIFF. Usa gdal-cli.'
+      system_prompt: This is the gdal tool integration, not a fixed professional role.
+        Use harness_delegate with agent="gdal" and include inputs, paths, editable
+        sources, opening application and observable acceptance checks. Inherit the
+        executing team model; do not run CLIs in the Gateway. Report real results
+        and limitations. Project roles are assigned dynamically.
+      skills:
+      - skill-workspace
+      - skill-gdal
+      model: inherit
+      max_turns: 50
+      timeout_seconds: 1800
+      disallowed_tools:
+      - task
+      - ask_clarification
+      - present_files
+    qgis:
+      description: 'Geospatial analysis: Run explicit native Processing algorithms
+        on local geographic data. Usa qgis-cli.'
+      system_prompt: This is the qgis tool integration, not a fixed professional role.
+        Use harness_delegate with agent="qgis" and include inputs, paths, editable
+        sources, opening application and observable acceptance checks. Inherit the
+        executing team model; do not run CLIs in the Gateway. Report real results
+        and limitations. Project roles are assigned dynamically.
+      skills:
+      - skill-workspace
+      - skill-qgis
+      model: inherit
+      max_turns: 50
+      timeout_seconds: 1800
+      disallowed_tools:
+      - task
+      - ask_clarification
+      - present_files
+    schemathesis:
+      description: 'OpenAPI property-based testing: Exercise authorized test APIs
+        against a saved OpenAPI contract. Usa schemathesis-cli.'
+      system_prompt: This is the schemathesis tool integration, not a fixed professional
+        role. Use harness_delegate with agent="schemathesis" and include inputs, paths,
+        editable sources, opening application and observable acceptance checks. Inherit
+        the executing team model; do not run CLIs in the Gateway. Report real results
+        and limitations. Project roles are assigned dynamically.
+      skills:
+      - skill-workspace
+      - skill-schemathesis
+      model: inherit
+      max_turns: 50
+      timeout_seconds: 1800
+      disallowed_tools:
+      - task
+      - ask_clarification
+      - present_files
+    k6:
+      description: 'Bounded load and performance tests: Run explicit small load tests
+        with thresholds and native metric summaries. Usa k6-cli.'
+      system_prompt: This is the k6 tool integration, not a fixed professional role.
+        Use harness_delegate with agent="k6" and include inputs, paths, editable sources,
+        opening application and observable acceptance checks. Inherit the executing
+        team model; do not run CLIs in the Gateway. Report real results and limitations.
+        Project roles are assigned dynamically.
+      skills:
+      - skill-workspace
+      - skill-k6
+      model: inherit
+      max_turns: 50
+      timeout_seconds: 1800
+      disallowed_tools:
+      - task
+      - ask_clarification
+      - present_files
+    axe-core:
+      description: 'Automated web accessibility checks: Inspect actual browser pages
+        for axe accessibility rules. Usa axe-core-cli.'
+      system_prompt: This is the axe-core tool integration, not a fixed professional
+        role. Use harness_delegate with agent="axe-core" and include inputs, paths,
+        editable sources, opening application and observable acceptance checks. Inherit
+        the executing team model; do not run CLIs in the Gateway. Report real results
+        and limitations. Project roles are assigned dynamically.
+      skills:
+      - skill-workspace
+      - skill-axe-core
+      model: inherit
+      max_turns: 50
+      timeout_seconds: 1800
+      disallowed_tools:
+      - task
+      - ask_clarification
+      - present_files
+    zap:
+      description: 'Passive application security checks: Spider an authorized application
+        and collect passive security findings with an explicit automation plan. Usa
+        zap-cli.'
+      system_prompt: This is the zap tool integration, not a fixed professional role.
+        Use harness_delegate with agent="zap" and include inputs, paths, editable
+        sources, opening application and observable acceptance checks. Inherit the
+        executing team model; do not run CLIs in the Gateway. Report real results
+        and limitations. Project roles are assigned dynamically.
+      skills:
+      - skill-workspace
+      - skill-zap
+      model: inherit
+      max_turns: 50
+      timeout_seconds: 1800
+      disallowed_tools:
+      - task
+      - ask_clarification
+      - present_files
+    gitleaks:
+      description: 'Secret detection: Scan local source directories for leaked credentials
+        without executing the source. Usa gitleaks-cli.'
+      system_prompt: This is the gitleaks tool integration, not a fixed professional
+        role. Use harness_delegate with agent="gitleaks" and include inputs, paths,
+        editable sources, opening application and observable acceptance checks. Inherit
+        the executing team model; do not run CLIs in the Gateway. Report real results
+        and limitations. Project roles are assigned dynamically.
+      skills:
+      - skill-workspace
+      - skill-gitleaks
+      model: inherit
+      max_turns: 50
+      timeout_seconds: 1800
+      disallowed_tools:
+      - task
+      - ask_clarification
+      - present_files
+    openmodelica:
+      description: 'Dynamic system simulation: Compile and simulate explicit Modelica
+        models and MOS recipes on CPU. Usa openmodelica-cli.'
+      system_prompt: This is the openmodelica tool integration, not a fixed professional
+        role. Use harness_delegate with agent="openmodelica" and include inputs, paths,
+        editable sources, opening application and observable acceptance checks. Inherit
+        the executing team model; do not run CLIs in the Gateway. Report real results
+        and limitations. Project roles are assigned dynamically.
+      skills:
+      - skill-workspace
+      - skill-openmodelica
+      model: inherit
+      max_turns: 50
+      timeout_seconds: 1800
+      disallowed_tools:
+      - task
+      - ask_clarification
+      - present_files
+    highs:
+      description: 'Linear and mixed-integer optimization: Solve explicit LP and MPS
+        optimization models. Usa highs-cli.'
+      system_prompt: This is the highs tool integration, not a fixed professional
+        role. Use harness_delegate with agent="highs" and include inputs, paths, editable
+        sources, opening application and observable acceptance checks. Inherit the
+        executing team model; do not run CLIs in the Gateway. Report real results
+        and limitations. Project roles are assigned dynamically.
+      skills:
+      - skill-workspace
+      - skill-highs
+      model: inherit
+      max_turns: 50
+      timeout_seconds: 1800
+      disallowed_tools:
+      - task
+      - ask_clarification
+      - present_files
+    kicad:
+      description: 'Electronic design deliverables: Export native electronic schematics
+        and PCBs using headless KiCad CLI. Usa kicad-cli.'
+      system_prompt: This is the kicad tool integration, not a fixed professional
+        role. Use harness_delegate with agent="kicad" and include inputs, paths, editable
+        sources, opening application and observable acceptance checks. Inherit the
+        executing team model; do not run CLIs in the Gateway. Report real results
+        and limitations. Project roles are assigned dynamically.
+      skills:
+      - skill-workspace
+      - skill-kicad
+      model: inherit
+      max_turns: 50
+      timeout_seconds: 1800
+      disallowed_tools:
+      - task
+      - ask_clarification
+      - present_files
+    ngspice:
+      description: 'Circuit simulation: Simulate explicit SPICE netlists and preserve
+        actual raw results. Usa ngspice-cli.'
+      system_prompt: This is the ngspice tool integration, not a fixed professional
+        role. Use harness_delegate with agent="ngspice" and include inputs, paths,
+        editable sources, opening application and observable acceptance checks. Inherit
+        the executing team model; do not run CLIs in the Gateway. Report real results
+        and limitations. Project roles are assigned dynamically.
+      skills:
+      - skill-workspace
+      - skill-ngspice
+      model: inherit
+      max_turns: 50
+      timeout_seconds: 1800
+      disallowed_tools:
+      - task
+      - ask_clarification
+      - present_files
+    prusaslicer:
+      description: '3D print preparation: Slice existing models using explicit printer
+        and material settings. Usa prusaslicer-cli.'
+      system_prompt: This is the prusaslicer tool integration, not a fixed professional
+        role. Use harness_delegate with agent="prusaslicer" and include inputs, paths,
+        editable sources, opening application and observable acceptance checks. Inherit
+        the executing team model; do not run CLIs in the Gateway. Report real results
+        and limitations. Project roles are assigned dynamically.
+      skills:
+      - skill-workspace
+      - skill-prusaslicer
+      model: inherit
+      max_turns: 50
+      timeout_seconds: 1800
+      disallowed_tools:
+      - task
+      - ask_clarification
+      - present_files
+    usql:
+      description: 'Universal database SQL client: Read authorized databases through
+        one native SQL shell; discover available drivers and retain read-only queries.
+        Usa usql-cli.'
+      system_prompt: This is the usql tool integration, not a fixed professional role.
+        Use harness_delegate with agent="usql" and include inputs, paths, editable
+        sources, opening application and observable acceptance checks. Inherit the
+        executing team model; do not run CLIs in the Gateway. Report real results
+        and limitations. Project roles are assigned dynamically.
+      skills:
+      - skill-workspace
+      - skill-usql
+      model: inherit
+      max_turns: 50
+      timeout_seconds: 1800
+      disallowed_tools:
+      - task
+      - ask_clarification
+      - present_files
+    schemacrawler:
+      description: 'Database reverse engineering: Inspect schema, declared keys, constraints,
+        metadata, lint and relationship diagrams with real JDBC metadata. Usa schemacrawler-cli.'
+      system_prompt: This is the schemacrawler tool integration, not a fixed professional
+        role. Use harness_delegate with agent="schemacrawler" and include inputs,
+        paths, editable sources, opening application and observable acceptance checks.
+        Inherit the executing team model; do not run CLIs in the Gateway. Report real
+        results and limitations. Project roles are assigned dynamically.
+      skills:
+      - skill-workspace
+      - skill-schemacrawler
+      model: inherit
+      max_turns: 50
+      timeout_seconds: 1800
+      disallowed_tools:
+      - task
+      - ask_clarification
+      - present_files
+    dlt:
+      description: 'Data extraction and schema discovery: Extract and reconcile SQL,
+        document and file sources into isolated analytical datasets, retaining a reproducible
+        Python pipeline. Usa dlt-cli.'
+      system_prompt: This is the dlt tool integration, not a fixed professional role.
+        Use harness_delegate with agent="dlt" and include inputs, paths, editable
+        sources, opening application and observable acceptance checks. Inherit the
+        executing team model; do not run CLIs in the Gateway. Report real results
+        and limitations. Project roles are assigned dynamically.
+      skills:
+      - skill-workspace
+      - skill-dlt
+      model: inherit
+      max_turns: 50
+      timeout_seconds: 1800
+      disallowed_tools:
+      - task
+      - ask_clarification
+      - present_files
+    sqlmesh:
+      description: 'Tested SQL and Python transformations: Plan and test local analytical
+        transformations, preserve models, audits, Python and SQL sources and dependencies.
+        Usa sqlmesh-cli.'
+      system_prompt: This is the sqlmesh tool integration, not a fixed professional
+        role. Use harness_delegate with agent="sqlmesh" and include inputs, paths,
+        editable sources, opening application and observable acceptance checks. Inherit
+        the executing team model; do not run CLIs in the Gateway. Report real results
+        and limitations. Project roles are assigned dynamically.
+      skills:
+      - skill-workspace
+      - skill-sqlmesh
+      model: inherit
+      max_turns: 50
+      timeout_seconds: 1800
+      disallowed_tools:
+      - task
+      - ask_clarification
+      - present_files
+    sqlglot:
+      description: 'SQL dialect analysis and lineage: Parse SQL and derive table/column
+        lineage from actual expressions and supplied schemas without executing queries.
+        Usa sqlglot-cli.'
+      system_prompt: This is the sqlglot tool integration, not a fixed professional
+        role. Use harness_delegate with agent="sqlglot" and include inputs, paths,
+        editable sources, opening application and observable acceptance checks. Inherit
+        the executing team model; do not run CLIs in the Gateway. Report real results
+        and limitations. Project roles are assigned dynamically.
+      skills:
+      - skill-workspace
+      - skill-sqlglot
       model: inherit
       max_turns: 50
       timeout_seconds: 1800
@@ -914,16 +1394,16 @@ lead_prompt_overlay:
 
 
     Dopo il prodotto tecnico usa una delega separata purpose review sul file esatto:
-    richiedi quality-review.json secondo skill-workspace, criteri specifici al
-    brief e osservazioni reali. Se fallisce, correggi solo i difetti identificati
-    e rivaluta la nuova versione. Non chiedere ripetute rigenerazioni senza osservare
-    il risultato. DeepSeek nel trasporto corrente non vede immagini né ascolta: mantieni
-    review, mostra la versione e il limite. Non cambiare provider da solo. Una verifica
-    non disponibile non è superata e non richiede di rifare il lavoro. status ready
-    richiede consegna tecnicamente completa e revisione separata legata all’hash del
-    prodotto. Prima leggi delivery.issues, non limitarti a ok=true. Presenta una sola
-    consegna selezionata, prodotto e sorgenti abbinati; il pannello raggruppa prove
-    e versioni precedenti separatamente con istruzioni di apertura.
+    richiedi quality-review.json secondo skill-workspace, criteri specifici al brief
+    e osservazioni reali. Se fallisce, correggi solo i difetti identificati e rivaluta
+    la nuova versione. Non chiedere ripetute rigenerazioni senza osservare il risultato.
+    DeepSeek nel trasporto corrente non vede immagini né ascolta: mantieni review,
+    mostra la versione e il limite. Non cambiare provider da solo. Una verifica non
+    disponibile non è superata e non richiede di rifare il lavoro. status ready richiede
+    consegna tecnicamente completa e revisione separata legata all’hash del prodotto.
+    Prima leggi delivery.issues, non limitarti a ok=true. Presenta una sola consegna
+    selezionata, prodotto e sorgenti abbinati; il pannello raggruppa prove e versioni
+    precedenti separatamente con istruzioni di apertura.
 
 
     Consegna prodotti e sorgenti modificabili pertinenti a tutti i ruoli, con risorse
@@ -1092,24 +1572,46 @@ lead_prompt_overlay:
     le librerie mantenute, non la vecchia CLI dismessa.); opengrep per Analisi statica
     del codice (Controlli semantici su codice locale con regole esplicite e report
     ripetibili.); trivy per Dipendenze e configurazioni (Inventario software, configurazioni
-    e vulnerabilità con database identificato.).
-
-    Prima di assegnare un incarico consulta harness_skills: include ambienti personali e strumenti
-    autorizzati. Scegli le capacità necessarie, riusando i programmi preparati senza caricare
-    tutto un preset. Per ruoli senza tools né skills specifica capability_rationale: perché
-    il runtime base basta sia a produrre sia a verificare il risultato. Non dedurre che
-    una CLI non esiste dalla sola assenza di una libreria Python. Un documento modificabile
-    può essere anche il prodotto finale: delivery.files[].primary=true. Distingui limiti
-    dei controlli da difetti reali; non ripetere la produzione dopo una revisione superata.
-
-    Componi i ruoli con skill native: consulta harness_skills per nomi, metodi e riferimenti
-    autorizzati; seleziona roles_json.skills e tools, poi usa harness_delegate(agent="workspace",
-    role_id=...). Per il coordinamento leggi il riferimento PROJECT-MANAGEMENT della
-    skill skill-harness. I preset degli ambienti sono profili di capacità e preferenze
-    di deploy, non professioni. La presenza nella cache non autorizza una CLI fuori
-    dal mandato. Le skill pure di metodo non richiedono installazioni di programmi.
-
-    '
+    e vulnerabilità con database identificato.); duckdb per Data queries and reproducible
+    analysis (Query CSV, JSON and Parquet with SQL and a local analytical database.);
+    jupyter per Executable notebooks (Combine explanations, executable Python and
+    actual analytical results in a notebook.); quarto per Reproducible analytical
+    publications (Publish analytical narratives and notebooks as standalone HTML reports.);
+    poppler per Inspection of delivered PDFs (Rasterize the final PDF and extract
+    its actual text for independent review.); qpdf per PDF structural checks (Check
+    PDF syntax, cross references and recoverability independently of the authoring
+    tool.); verapdf per PDF/A conformance (Validate delivered PDFs against an explicitly
+    chosen PDF/A profile.); ocrmypdf per Searchable scanned documents (Add an OCR
+    text layer and text sidecar to scanned PDFs while preserving the original.); tesseract
+    per Image text recognition (Recognize text in local images with coordinates and
+    confidence evidence.); gdal per Geospatial data conversion and inspection (Inspect
+    raster georeferencing and convert raster datasets to GeoTIFF.); qgis per Geospatial
+    analysis (Run explicit native Processing algorithms on local geographic data.);
+    schemathesis per OpenAPI property-based testing (Exercise authorized test APIs
+    against a saved OpenAPI contract.); k6 per Bounded load and performance tests
+    (Run explicit small load tests with thresholds and native metric summaries.);
+    axe-core per Automated web accessibility checks (Inspect actual browser pages
+    for axe accessibility rules.); zap per Passive application security checks (Spider
+    an authorized application and collect passive security findings with an explicit
+    automation plan.); gitleaks per Secret detection (Scan local source directories
+    for leaked credentials without executing the source.); openmodelica per Dynamic
+    system simulation (Compile and simulate explicit Modelica models and MOS recipes
+    on CPU.); highs per Linear and mixed-integer optimization (Solve explicit LP and
+    MPS optimization models.); kicad per Electronic design deliverables (Export native
+    electronic schematics and PCBs using headless KiCad CLI.); ngspice per Circuit
+    simulation (Simulate explicit SPICE netlists and preserve actual raw results.);
+    prusaslicer per 3D print preparation (Slice existing models using explicit printer
+    and material settings.); usql per Universal database SQL client (Read authorized
+    databases through one native SQL shell; discover available drivers and retain
+    read-only queries.); schemacrawler per Database reverse engineering (Inspect schema,
+    declared keys, constraints, metadata, lint and relationship diagrams with real
+    JDBC metadata.); dlt per Data extraction and schema discovery (Extract and reconcile
+    SQL, document and file sources into isolated analytical datasets, retaining a
+    reproducible Python pipeline.); sqlmesh per Tested SQL and Python transformations
+    (Plan and test local analytical transformations, preserve models, audits, Python
+    and SQL sources and dependencies.); sqlglot per SQL dialect analysis and lineage
+    (Parse SQL and derive table/column lineage from actual expressions and supplied
+    schemas without executing queries.).'
 auth:
   local:
     allow_registration: true

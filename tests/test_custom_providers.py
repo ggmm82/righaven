@@ -174,7 +174,7 @@ class CustomProviderTests(unittest.TestCase):
         self.assertEqual(self.state.team(),self.state.team('squad'))
         self.assertEqual(len(yaml.safe_load((self.root/'config.yaml').read_text())['models']),1)
         self.assertTrue(all(a['model']=='inherit' for a in yaml.safe_load((self.root/'config.yaml').read_text())['subagents']['custom_agents'].values()))
-        self.assertEqual(set(self.client.get('/harness/api/catalog').json()['connections']),{'codex','gemini','deepseek','openai'})
+        self.assertEqual(set(self.client.get('/harness/api/catalog').json()['connections']),{'codex','gemini','deepseek','openai','claude'})
 
     def test_text_only_model_does_not_activate_a_nonfunctional_team(self):
         original=(self.root/'config.yaml').read_bytes()

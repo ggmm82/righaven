@@ -27,6 +27,9 @@ def builtins():
         'assets':{arch:{**asset,'name':asset['url'].rsplit('/',1)[1]} for arch,asset in agy['platforms'].items()}}
     result['provider-codex']={'id':'provider-codex','name':'Codex CLI','version':catalog['cli_runtimes']['codex'],
         'repository':'https://github.com/openai/codex','install':{'kind':'provider-codex'},'assets':{}}
+    claude=json.loads((source/'scripts/claude.lock.json').read_text())
+    result['provider-claude']={'id':'provider-claude','name':'Claude Code CLI','version':claude['version'],
+        'repository':claude['repository'],'install':{'kind':'provider-claude'},'assets':claude['platforms']}
     return result
 
 
@@ -65,6 +68,7 @@ def validate(bundle):
     if tool=='playwright':paths={'toolkit-lock/package.json','toolkit-lock/package-lock.json'}
     if tool=='structurizr':paths={'toolkit-lock/design/structurizr/libraries.json'}
     if tool=='provider-codex':paths={'provider-clis/codex/package.json','provider-clis/codex/package-lock.json'}
+    if tool=='axe-core':paths={'toolkit-lock/extended/axe-core/package.json','toolkit-lock/extended/axe-core/package-lock.json'}
     files=bundle.get('files',{})
     if not isinstance(files,dict) or set(files)-paths or sum(len(v.encode()) for v in files.values())>10*1024**2:
         raise ValueError('Dipendenze fuori dal contratto dello strumento')
@@ -94,8 +98,13 @@ def selections(user=None,profile=None,tools=None,engine=None):
         current.update(profile_pins)
     from .environment_runtime import closure
     allowed=set(closure(tools or []))|{k for k in profile_pins if k.startswith('provider-')}
-    provider={'codex':'provider-codex','gemini':'provider-agy'}.get(engine)
+    provider={'codex':'provider-codex','gemini':'provider-agy','claude':'provider-claude'}.get(engine)
     if provider:allowed.add(provider)
+    if provider=='provider-claude' and current.get(provider,'builtin')=='builtin':
+        bundle={'app':builtins()[provider],'files':{}};revision=identifier(bundle)
+        path=directory()/(revision+'.json')
+        if not path.exists():state.atomic_json(path,{'id':revision,'state':'ready','bundle':bundle,'source':'verified-release-artifact','updated_at':utcnow()})
+        current[provider]=revision
     return {tool:revision for tool,revision in current.items() if tool in allowed and revision!='builtin'}
 
 
@@ -127,7 +136,7 @@ def library():
 
 
 def check_selection(value):
-    if not isinstance(value,dict) or len(value)>50:raise ValueError('Selezione versioni non valida')
+    if not isinstance(value,dict) or len(value)>128:raise ValueError('Selezione versioni non valida')
     for tool,revision in value.items():
         if tool not in builtins():raise ValueError('Strumento sconosciuto')
         if revision not in ('builtin','latest'):

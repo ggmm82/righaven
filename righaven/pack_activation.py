@@ -8,7 +8,7 @@ import yaml
 
 async def install(pack, user_id):
     from .state import applications
-    from .environments import resolve_skills, set_deployment
+    from .environments import resolve_skills, set_deployment, set_source
     from righaven_core.skills.storage import get_or_new_user_skill_storage
     known = {item['id'] for item in applications()}
     tools = pack.get('tools', [])
@@ -17,11 +17,12 @@ async def install(pack, user_id):
         raise ValueError('Direct package installation is not supported. Declare managed tools; their verified runtime recipes supply dependencies.')
     if set(tools) - known:
         raise ValueError('This pack requires tools not supported by the runtime catalog')
-    names = ['skill-' + tool for tool in tools]
+    names = list(dict.fromkeys([*pack.get('skills', []), *['skill-' + tool for tool in tools]]))
     scope = resolve_skills(user_id, names)
     if scope['disabled']:
         raise ValueError('Pack requires disabled skills: ' + ', '.join(scope['disabled']))
     identity = {key: pack[key] for key in ('id', 'version', 'tools', 'skill_prompt_template', 'category')}
+    identity.update({key:pack[key] for key in ('skills','environment') if key in pack})
     digest = hashlib.sha256(__import__('json').dumps(identity, sort_keys=True).encode()).hexdigest()
     name = 'pack-' + pack['id'][:40] + '-' + digest[:12]
     storage = get_or_new_user_skill_storage(user_id)
@@ -44,10 +45,12 @@ async def install(pack, user_id):
         except FileNotFoundError:
             existing = None
         if existing is None:
-            get_agent_store().create(name, {'name': name, 'description': pack['i18n']['en']['description'],
+            get_agent_store().create(name, {'name': name, 'display_name': (pack.get('display_title') or pack['i18n']['en']['title'])[:64], 'description': pack.get('environment', {}).get('purpose') or pack['i18n']['en']['description'],
                                           'skills': ['skill-workspace', *names]},
                                      pack['skill_prompt_template'], user_id=user_id)
-        set_deployment(user_id, name, 'on_demand')
+        if existing is None:
+            set_deployment(user_id, name, 'on_demand', tool_versions=pack.get('environment', {}).get('tool_versions', {}))
+            set_source(user_id,name,pack)
     else:
         if not tools:
             raise ValueError('CLI packs must declare a supported tool')

@@ -848,5 +848,53 @@
     "graphviz"
   ],
   "opengrep": [],
-  "trivy": []
+  "trivy": [],
+  "duckdb": [],
+  "jupyter": [
+    "python3-ipykernel"
+  ],
+  "quarto": [],
+  "poppler": [],
+  "qpdf": [],
+  "verapdf": [
+    "default-jre-headless"
+  ],
+  "ocrmypdf": [
+    "tesseract-ocr-eng",
+    "tesseract-ocr-ita"
+  ],
+  "tesseract": [
+    "tesseract-ocr-eng",
+    "tesseract-ocr-ita"
+  ],
+  "gdal": [],
+  "qgis": [
+    "python3-qgis",
+    "qgis-providers"
+  ],
+  "schemathesis": [],
+  "k6": [],
+  "axe-core": [],
+  "zap": [
+    "default-jre-headless"
+  ],
+  "gitleaks": [],
+  "openmodelica": [],
+  "highs": [],
+  "kicad": [],
+  "ngspice": [],
+  "prusaslicer": [
+    "xvfb",
+    "xauth"
+  ],
+  "usql": [
+    "libsqlite3-0"
+  ],
+  "schemacrawler": [
+    "openjdk-17-jre-headless",
+    "graphviz"
+  ],
+  "dlt": [],
+  "sqlmesh": [],
+  "sqlglot": []
 }

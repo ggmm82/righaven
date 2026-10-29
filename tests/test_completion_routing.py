@@ -210,3 +210,16 @@ class CompletionRoutingTests(unittest.TestCase):
         handoff['delivery']['files'].append({**metadata, 'path': str(badzip), 'role': 'source_archive'})
         with self.assertRaises(zipfile.BadZipFile):
             build_delivery(handoff, source.parent, purpose='preview', native=False)
+
+    def test_declared_resource_limit_keeps_checks_open_and_supplies_a_next_action(self):
+        self.criteria=[self.criterion('request_fidelity','content','passed'),self.criterion('risk','functional','passed'),
+            self.criterion('extent','technical','not_run'),self.criterion('perception','listening','not_run')]
+        self.criteria[2]['blocked_by']='listening'
+        self.report.write_text(json.dumps({'product_path':str(self.product),'criteria':self.criteria,
+            'observation_limits':[{'method':'listening','reason':'No listening transport is connected.',
+                'next_action':'Listen to the exact saved audio with the user before approving synchronization.'}]}))
+        review=read_review({'source_files':[str(self.product)],'output_files':[str(self.report)]},self.out,self.root,'codex',self.acceptance)
+        routed=continuation(review)
+        self.assertEqual(review['status'],'needs_review');self.assertEqual(routed['action'],'request_user_verification')
+        self.assertIn('exact saved audio',routed['next_actions'][0]['next_action'])
+        self.assertFalse(needs_continuation({'status':'review','review_criteria':review['criteria'],'review_unavailable_methods':review['unavailable_methods']}))

@@ -34,6 +34,34 @@ class EnvironmentRouteTests(unittest.TestCase):
         self.assertTrue(result['runtime']['update_available'])
         self.assertEqual(result['runtime']['requested_id'],'b'*64)
 
+    def test_provider_change_keeps_preparation_history_without_claiming_new_runtime_ready(self):
+        for image_present in (True,False):
+            with self.subTest(image_present=image_present):
+                agent=SimpleNamespace(name='docs')
+                profile={'name':'docs','tools':['d2'],'deployment':{'mode':'preload'}}
+                old={'id':'a'*64,'status':'ready','tools':['d2'],'version_names':{'provider-agy':'1.4.10'}}
+                selected={'provider-codex':'latest'}
+                with patch.object(routes.profiles,'profile',return_value=profile), \
+                     patch.object(routes.profiles,'preloaded_tools',return_value=['d2']), \
+                     patch.object(routes.runtimes,'enabled',return_value=True), \
+                     patch('righaven.tool_versions.selections',return_value=selected), \
+                     patch('righaven.tool_versions.resolved',return_value={}), \
+                     patch('righaven.state.team',return_value={'engine':'codex'}), \
+                     patch.object(routes.runtimes,'available',return_value={'id':'b'*64,'status':'on_demand','tools':['d2']}), \
+                     patch.object(routes.preparation,'read',return_value={'ready_id':'a'*64,'selection':{'provider-agy':'latest'}}), \
+                     patch.object(routes.runtimes,'read',return_value=old), \
+                     patch.object(routes.runtimes,'image_exists',return_value=image_present), \
+                     patch.object(routes.preparation,'snapshot',return_value={'phase':'ready','label':'Pronto','active':False}):
+                    result=routes.summary('owner',agent)
+                self.assertEqual(result['runtime']['status'],'on_demand')
+                self.assertEqual(result['configuration_change']['code'],'provider_changed')
+                self.assertEqual(result['configuration_change']['previous_available'],image_present)
+                self.assertEqual(result['configuration_change']['previous_providers'],['Antigravity'])
+                self.assertEqual(result['configuration_change']['requested_providers'],['Codex'])
+                self.assertEqual(result['preparation']['phase'],'configuration_changed')
+                self.assertTrue(result['preparation']['historical'])
+                self.assertEqual('previous_runtime' in result,image_present)
+
     def test_native_config_loads_owner_scoped_soul_without_assuming_http_response_fields(self):
         from righaven_core.config.agents_config import AgentConfig
         config=AgentConfig(name='preloaded',description='Purpose',skills=[])
@@ -83,7 +111,7 @@ class EnvironmentRouteTests(unittest.TestCase):
         with TestClient(app) as client:
             for user,code in ((None,401),('no-permission',403)):
                 headers={'X-Test-User':user} if user else {}
-                for method,path in [('POST','/resources/rebalance'),('GET','/resources/settings'),('PUT','/resources/settings'),('GET',''),('POST',''),('POST','/prepare-preloaded'),('POST','/test/prepare'),('POST','/test/cancel'),('DELETE','/test/cache'),('GET','/test/log'),('GET','/test/export'),('POST','/test/software-export'),('POST','/test/software-import'),('POST','/test/terminal'),('POST','/terminal-clients/'+('a'*32)+'/close'),('POST','/terminals/'+('a'*32)+'/close'),('GET','/terminals/'+('a'*32)+'/status'),('POST','/terminals/'+('a'*32)+'/input'),('DELETE','/terminals/'+('a'*32)),('POST','/terminals/'+('a'*32)+'/resize'),('GET','/transfers/'+('a'*32)+'/status'),('GET','/transfers/'+('a'*32)+'/download')]:
+                for method,path in [('POST','/resources/rebalance'),('GET','/resources/settings'),('PUT','/resources/settings'),('GET',''),('POST',''),('POST','/prepare-preloaded'),('POST','/test/prepare'),('POST','/test/cancel'),('DELETE','/test/cache'),('GET','/test/log'),('GET','/test/export'),('GET','/test/history'),('POST','/test/restore/abc'),('POST','/test/software-export'),('POST','/test/software-import'),('POST','/test/terminal'),('POST','/terminal-clients/'+('a'*32)+'/close'),('POST','/terminals/'+('a'*32)+'/close'),('GET','/terminals/'+('a'*32)+'/status'),('POST','/terminals/'+('a'*32)+'/input'),('DELETE','/terminals/'+('a'*32)),('POST','/terminals/'+('a'*32)+'/resize'),('GET','/transfers/'+('a'*32)+'/status'),('GET','/transfers/'+('a'*32)+'/download')]:
                     body={'name':'test','display_name':'Test','purpose':'Test scope','skills':[]} if path=='' and method=='POST' else {'text':'echo ok'} if path.endswith('/input') else {'cols':80,'rows':24} if path.endswith('/resize') else {'mode':'auto','cpus':1.5,'memory_mib':1536,'max_workers':2} if path=='/resources/settings' and method=='PUT' else None
                     reply=client.request(method,'/api/harness/environments'+path,headers=headers,json=body)
                     self.assertEqual(reply.status_code,code,reply.text)
@@ -91,6 +119,41 @@ class EnvironmentRouteTests(unittest.TestCase):
                     reply=client.request(method,'/api/harness/tool-versions'+path,headers=headers,json=body)
                     self.assertEqual(reply.status_code,code,reply.text)
 
+
+    def test_share_requires_matching_preview_and_never_assumes_quality_certification(self):
+        import tempfile
+        from pathlib import Path
+        from fastapi import FastAPI
+        from fastapi.testclient import TestClient
+        from righaven import state
+        app=FastAPI();app.include_router(routes.router)
+        @app.middleware('http')
+        async def authenticate(request,call_next):
+            user=SimpleNamespace(id='owner',system_role='user')
+            request.state.auth=AuthContext(user,['agents:read','agents:write'])
+            request.state.user=user
+            token=set_current_user(user)
+            try:return await call_next(request)
+            finally:reset_current_user(token)
+        profile={'name':'docs','display_name':'Documents','revision':'revision-one','purpose':'Readable diagrams',
+                 'instructions':'Preserve editable sources','skills':['skill-d2','skill-quality-review'],
+                 'tools':['d2'],'disabled':[],'deployment':{'mode':'on_demand','tool_versions':{'d2':'builtin'}}}
+        body={'id':'shared-docs','version':'1.0.0','title_en':'Documents','description_en':'Readable diagrams',
+              'title_it':'Documenti','description_it':'Diagrammi leggibili','revision':'revision-one'}
+        with tempfile.TemporaryDirectory() as root,patch.object(state,'STATE',Path(root)),patch.object(routes,'native_agent',new=AsyncMock(return_value=SimpleNamespace(name='docs'))),patch.object(routes.profiles,'profile',return_value=profile),TestClient(app) as client:
+            endpoint='/api/harness/environments/docs/share'
+            preview=client.post(endpoint,json=body)
+            self.assertEqual(preview.status_code,200,preview.text)
+            self.assertEqual(preview.json()['scope'],'instance')
+            self.assertFalse((Path(root)/'gallery-community-packs.json').exists())
+            self.assertEqual(client.post(endpoint,json={**body,'confirm':True}).status_code,409)
+            changed={**body,'title_en':'Different title','confirm':True,'preview_hash':preview.json()['preview_hash']}
+            self.assertEqual(client.post(endpoint,json=changed).status_code,409)
+            published=client.post(endpoint,json={**body,'confirm':True,'preview_hash':preview.json()['preview_hash']})
+            self.assertEqual(published.status_code,200,published.text)
+            self.assertFalse(published.json()['pack']['verified'])
+            self.assertEqual(published.json()['pack']['author'],'owner')
+            self.assertEqual(client.post(endpoint,json={**body,'revision':'stale'}).status_code,409)
 
     def test_only_admin_can_change_the_shared_budget_from_environments(self):
         from fastapi import FastAPI
@@ -140,7 +203,7 @@ class EnvironmentRouteTests(unittest.TestCase):
                 return {'runtime':{'status':'ready' if agent.name=='ready' else 'on_demand','id':'a'*64},'selected_versions':{'d2':'latest'}}
             with patch.object(state,'STATE',root/'state'),patch('righaven_core.config.paths.get_paths',return_value=SimpleNamespace(base_dir=root)),patch('righaven_core.config.agents_config.load_agent_config',side_effect=lambda name,**kw:SimpleNamespace(name=name)),patch.object(routes.runtimes,'enabled',return_value=True),patch.object(routes.runtimes,'reconcile'),patch.object(routes.runtimes,'STOPPING',threading.Event()),patch.object(environment_transfers,'recover'),patch.object(tool_versions,'recover_jobs'),patch.object(routes.profiles,'preferences',return_value={'ready':{'mode':'preload'},'missing':{'mode':'preload'},'on-demand':{'mode':'on_demand'}}),patch.object(routes,'summary',side_effect=current),patch.object(routes,'schedule') as schedule:
                 routes.preload_startup()
-                schedule.assert_called_once_with('owner','missing',refresh_versions=False)
+                schedule.assert_called_once_with('owner','missing',refresh_versions=False,trigger='startup')
                 self.assertEqual(routes.preparation.read('owner','ready')['phase'],'ready')
 
     def test_owner_identity_is_forwarded_to_native_agent_listing(self):
@@ -340,5 +403,5 @@ class EnvironmentRouteTests(unittest.TestCase):
             preferences={'docs':{'mode':'preload'},'fixed':{'mode':'preload','tool_versions':{'d2':'builtin'}},'later':{'mode':'on_demand'}}
             with patch('righaven_core.config.paths.get_paths',return_value=SimpleNamespace(base_dir=root)),patch('righaven_core.config.agents_config.load_agent_config',return_value=SimpleNamespace(skills=['skill-d2'])),patch.object(routes.profiles,'preferences',return_value=preferences),patch.object(routes.profiles,'resolve_skills',return_value={'tools':['d2']}),patch.object(state,'team',return_value={'engine':'deepseek'}),patch.object(routes,'schedule') as schedule:
                 self.assertEqual(routes.schedule_affected('d2'),1)
-                schedule.assert_called_once_with('owner','docs',reschedule=True)
+                schedule.assert_called_once_with('owner','docs',reschedule=True,trigger='version_change',trigger_tool='d2')
                 schedule.reset_mock();self.assertEqual(routes.schedule_affected('calibre'),0);schedule.assert_not_called()

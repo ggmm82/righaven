@@ -520,6 +520,10 @@ except ImportError:
 CASES.update(SECURITY_CASES)
 
 
+try:from .acceptance_extended import CASES as EXTENDED_CASES
+except ImportError:from acceptance_extended import CASES as EXTENDED_CASES
+CASES.update(EXTENDED_CASES)
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--agents', nargs='+', choices=list(CASES), default=list(CASES))

@@ -167,3 +167,8 @@ Distingui una correzione locale da un nuovo risultato richiesto. Per una richies
 ## Composizione dei ruoli e gestione del progetto
 
 Per coordinare leggi [PROJECT-MANAGEMENT.md](references/PROJECT-MANAGEMENT.md). I ruoli si compongono da skill native selezionate e strumenti disponibili, con versioni registrate. Usa `harness_skills` per leggere i metodi pertinenti e `roles_json.skills` per assegnarli; delega i nuovi ruoli con `agent=workspace`. I nomi storici delle CLI restano alias compatibili, non una lista di professioni.
+
+
+## Motivazione delle capacità prima della produzione
+
+Per ogni ruolo di `harness_plan`, `capability_rationale` è obbligatoria anche se sono selezionate delle CLI. Leggi [TOOL-SELECTION.md](references/TOOL-SELECTION.md): distingui la costruzione del contenuto/modello dal suo formato di consegna. Valuta gli ambienti pertinenti scoperti con `harness_skills`, assegna le skill effettive e motiva le alternative semplici. Non delegare un modello professionale a un impaginatore solo perché l’utente vuole un PDF. La squadra resta dinamica e proporzionata: non imporre tutte le notazioni, tutti gli strumenti o fasi fisse.

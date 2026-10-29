@@ -61,7 +61,8 @@ profile = json.loads(request('/api/agents/ci-native-profile'))
 assert profile['skills'] == ['skill-freecad']
 request('/api/agents/ci-native-profile', method='DELETE')
 # Custom environments are native Agents, not a duplicated purpose/skills store.
-assert b'Ambienti' in request('/workspace/environments')
+# Assert the actual page rather than a heading whose text depends on locale.
+assert b'data-testid="environments-page"' in request('/workspace/environments')
 assert b'Terminale' in request('/terminal?environment=ci-custom-environment')
 assert b'function' in request('/rh-terminal/xterm.js')
 assert b'xterm' in request('/rh-terminal/xterm.css')
@@ -90,7 +91,7 @@ assert live['pending']==0 and 'updated' in live,live
 print('Authenticated environment resources OK: shared persisted settings, live limit monitor and privileged live rebalancing')
 
 definition={'name':'ci-custom-environment','display_name':'Custom CI','purpose':'Documented diagrams',
-            'instructions':'Preserve editable sources','skills':['skill-d2'],'mode':'on_demand','ephemeral':False}
+            'instructions':'Preserve editable sources','skills':['skill-d2','skill-quality-review'],'mode':'on_demand','ephemeral':False}
 created=json.loads(request('/api/harness/environments',definition))
 assert created['tools']==['d2'] and created['deployment']['mode']=='on_demand'
 native=json.loads(request('/api/agents/ci-custom-environment'))
@@ -101,6 +102,27 @@ updated=next(p for p in json.loads(request('/api/harness/environments'))['enviro
 assert updated['purpose']=='Changed in native Agents'
 exported=json.loads(request('/api/harness/environments/ci-custom-environment/export'))
 assert exported['agent']['name']=='ci-custom-environment'
+# Configuration restore and sharing use the real owner-scoped API and immutable preview.
+history=json.loads(request('/api/harness/environments/ci-custom-environment/history'))['items']
+assert history and history[0]['definition']['purpose']=='Documented diagrams'
+restored_configuration=json.loads(request('/api/harness/environments/ci-custom-environment/restore/'+history[0]['id'],{},method='POST'))
+assert restored_configuration['purpose']=='Documented diagrams'
+sharing={'id':'ci-shared-environment','version':'1.0.0','title_en':'CI diagrams','description_en':'Editable diagrams',
+         'title_it':'Diagrammi CI','description_it':'Diagrammi modificabili','revision':restored_configuration['revision']}
+preview=json.loads(request('/api/harness/environments/ci-custom-environment/share',sharing))
+assert preview['scope']=='instance'
+published=json.loads(request('/api/harness/environments/ci-custom-environment/share',{**sharing,'confirm':True,'preview_hash':preview['preview_hash']}))
+assert published['published'] and not published['pack']['verified']
+assert 'skill-quality-review' in published['pack']['skills']
+shared=json.loads(request('/api/v1/gallery/packs/ci-shared-environment/activate',{}))
+assert 'skill-quality-review' in json.loads(request('/api/agents/'+shared['installation']['native_name']))['skills']
+shared_profile=next(item for item in json.loads(request('/api/harness/environments'))['environments'] if item['name']==shared['installation']['native_name'])
+assert shared_profile['deployment']['source_pack']['version']=='1.0.0'
+request('/api/agents/'+shared['installation']['native_name'],method='DELETE')
+publisher_comment=json.loads(request('/api/v1/gallery/packs/ci-shared-environment/feedback',{'version':'1.0.0','body':'Please share your experience'}))
+assert publisher_comment['author_reply'] and publisher_comment['score'] is None
+print('Authenticated environment lifecycle OK: history, restore, explicit preview, portable method activation and publisher discussion')
+
 # The real authenticated API must prepare the actual selected runtime, not just save a flag.
 definition.update(mode='preload',preload_tools=['d2'])
 request('/api/harness/environments/ci-custom-environment',definition,method='PUT')
@@ -214,11 +236,13 @@ assert saved['engine'] == 'gemini'
 catalog = json.loads(request('/harness/api/catalog'))
 assert catalog['agents']['gridcraft']['instructions'] == 'Preferisci euro'
 assert b'Models &amp; resources' in request('/workspace/harness')
+request('/api/harness/environments',{**definition,'name':'ci-private-history','mode':'on_demand','ephemeral':False})
 request('/api/v1/auth/logout', {})
 request('/api/v1/auth/register', {'email': 'harness-ci-user@example.com',
                                  'password': 'CiOnly-Regular-User-P4ssword!78239'})
 for path, payload, method in [('/harness/api/catalog', None, 'GET'),
                               ('/api/v1/gallery/registries', None, 'GET'),
+                              ('/api/v1/gallery/feedback-reports', None, 'GET'),
                               ('/api/v1/gallery/registries/untrusted', {'url':'https://example.test','sha256':'0'*64}, 'PUT'),
                               ('/harness/api/login/gemini', {}, 'POST'),
                               ('/harness/api/team', {'engine': 'gemini'}, 'PUT')]:
@@ -229,3 +253,30 @@ for path, payload, method in [('/harness/api/catalog', None, 'GET'),
     else:
         raise AssertionError('Un utente ordinario ha accesso alla configurazione globale: ' + path)
 print('OK: account, sessione, CSRF, configurazione amministratore; accesso globale negato agli utenti ordinari.')
+
+# Ordinary users can review public packs but cannot edit the publisher's content or profiles.
+feedback_path='/api/v1/gallery/packs/ci-shared-environment/feedback'
+rating=json.loads(request(feedback_path,{'version':'1.0.0','body':'Clear reusable diagrams','score':4}))
+updated_rating=json.loads(request(feedback_path,{'version':'1.0.0','body':'Guide improved','score':5}))
+assert rating['id']==updated_rating['id']
+request('/api/v1/gallery/feedback/'+publisher_comment['id'],method='DELETE')
+discussion=json.loads(request(feedback_path))
+assert discussion['total']==2 and discussion['ratings'][0]['count']==1 and discussion['ratings'][0]['average']==5
+assert all('owner' not in item for item in discussion['items'])
+try:request('/api/harness/environments/ci-private-history/history')
+except urllib.error.HTTPError as error:assert error.code in (403,404)
+else:raise AssertionError('Another account can inspect private environment history')
+request('/api/v1/gallery/feedback/'+publisher_comment['id']+'/report',{'reason':'Example moderation report'})
+request('/api/v1/auth/logout',{})
+from urllib.parse import urlencode
+login_headers={'Origin':base,'Content-Type':'application/x-www-form-urlencoded'}
+for cookie in cookies:
+    if cookie.name=='csrf_token':login_headers['X-CSRF-Token']=cookie.value
+client.open(urllib.request.Request(base+'/api/v1/auth/login/local',data=urlencode({'username':'harness-ci@example.com','password':'CiOnly-Strong-Login-P4ssword!78239'}).encode(),headers=login_headers),timeout=30).read()
+reports=json.loads(request('/api/v1/gallery/feedback-reports'))['items']
+assert any(item['id']==publisher_comment['id'] for item in reports)
+request('/api/v1/gallery/feedback/'+publisher_comment['id']+'/moderate',{'reason':'CI moderation workflow confirmed'})
+assert json.loads(request(feedback_path))['total']==1
+print('Authenticated reviews OK: versioned rating update, cross-account ownership, report and administrator moderation')
+
+request('/api/agents/ci-private-history',method='DELETE')

@@ -2,6 +2,7 @@
 import asyncio
 import json
 import logging
+import subprocess
 import threading
 from fastapi import APIRouter, Request, Response, HTTPException, Query
 from pydantic import BaseModel, Field
@@ -24,7 +25,7 @@ class Definition(BaseModel):
     skills:list[str]=Field(max_length=200)
     mode:str=Field(default='on_demand',pattern='^(on_demand|preload)$')
     ephemeral:bool=False
-    tool_versions:dict[str,str]=Field(default_factory=dict,max_length=50)
+    tool_versions:dict[str,str]=Field(default_factory=dict,max_length=128)
     preload_tools:list[str]|None=Field(default=None,max_length=64)
 
 
@@ -65,8 +66,23 @@ def summary(user,agent,identity=None,cache=None):
         if previous and set(target).issubset(previous.get('tools',[])) and runtimes.image_exists(previous):
             value['runtime']={**previous,'update_available':True,'requested_id':value['runtime']['id']}
     current=not stored or stored.get('selection',{})==value.get('selected_versions',{})
-    status=preparation.snapshot(user,agent.name,value['runtime'],active) if current or active else None
+    status=preparation.snapshot(user,agent.name,value['runtime'],active)
     if status:status['pending_changes']=not current
+    if stored and not current:
+        old=stored.get('selection',{});new=value.get('selected_versions',{})
+        providers={'provider-agy':'Antigravity','provider-codex':'Codex','provider-claude':'Claude Code'}
+        before=[providers[k] for k in providers if k in old]
+        after=[providers[k] for k in providers if k in new]
+        provider_changed=before!=after
+        previous=runtimes.read(retained) if retained else None
+        preserved=bool(previous and runtimes.image_exists(previous,cache))
+        message=('Il motore della squadra è cambiato: '+(', '.join(before) or 'CLI inclusa')+' → '+(', '.join(after) or 'CLI inclusa')+'.' if provider_changed else 'Le versioni selezionate per questo ambiente sono cambiate.')
+        message+=(' La variante precedente è ancora conservata.' if preserved else 'Il registro precedente è conservato; la sua immagine non risulta disponibile.')
+        value['configuration_change']={'code':'provider_changed' if provider_changed else 'selection_changed','message':message,'previous_available':preserved,'previous_providers':before,'requested_providers':after}
+        if previous and preserved:value['previous_runtime']={k:previous[k] for k in ('id','tools','version_names','installed_versions') if k in previous}
+        if status and not active:
+            status.update(phase='configuration_changed',label='Configurazione da aggiornare',active=False,historical=True)
+        if value['runtime']['status']!='ready' and not active:value['runtime']['preparation_reason']=value['configuration_change']
     if status:
         # During release verification there is no final image ID yet. Never hide
         # this work behind a generic "version pending" state.
@@ -94,6 +110,8 @@ def summary(user,agent,identity=None,cache=None):
         value['runtime'].update(failure=failure,error=failure['message'])
     if value['runtime']['status']=='version_pending':value['runtime']['error']=''
 
+    from . import environment_versions,tool_versions
+    value['version_inventory']=environment_versions.inventory(value,tool_versions.builtins(),tool_versions.defaults(),tool_versions.latest_pointers(),tool_versions.read)
     return value
 
 
@@ -190,15 +208,22 @@ async def write_definition(value,request,create):
     try:
         resolved=await run_in_threadpool(profiles.resolve_skills,user,value.skills)
         if value.preload_tools is not None and set(value.preload_tools)-set(resolved['tools']):raise ValueError('Precarica soltanto strumenti delle skill selezionate')
-        if set(value.tool_versions)-set(runtimes.closure(resolved['tools']))-{'provider-agy','provider-codex'}:raise ValueError('Scegli versioni solo degli strumenti selezionati nell’ambiente')
+        if set(value.tool_versions)-set(runtimes.closure(resolved['tools']))-{'provider-agy','provider-codex','provider-claude'}:raise ValueError('Scegli versioni solo degli strumenti selezionati nell’ambiente')
         if value.mode=='preload' and value.ephemeral:raise ValueError('Il predeploy non può essere temporaneo')
+        from .tool_versions import check_selection
+        check_selection(value.tool_versions)  # Validate before changing native configuration.
+        from . import environment_history
+        if not create:
+            previous=await native_agent(request,value.name)
+            environment_history.record(user,profiles.profile(user,previous))
         from app.gateway.routers.agents import AgentCreateRequest,AgentUpdateRequest,create_agent_endpoint,update_agent
         fields={'display_name':value.display_name,'description':value.purpose,'soul':value.instructions,'skills':resolved['skills']}
         if create:
             agent=await create_agent_endpoint(AgentCreateRequest(name=value.name,**fields),request)
         else:agent=await update_agent(value.name,AgentUpdateRequest(**fields),request)
         await run_in_threadpool(profiles.set_deployment,user,value.name,value.mode,value.ephemeral,value.preload_tools,value.tool_versions)
-        if value.mode=='preload' and runtimes.enabled():schedule(user,value.name,reschedule=True)
+        environment_history.record(user,profiles.profile(user,agent))
+        if value.mode=='preload' and runtimes.enabled():schedule(user,value.name,reschedule=True,trigger='configuration')
         return await run_in_threadpool(summary,user,agent)
     except ValueError as e:raise HTTPException(422,str(e)) from e
 
@@ -252,7 +277,7 @@ async def prepare(name:str,request:Request):
     return {'accepted':True,'environment':value}
 
 
-def schedule(user,name,*,reschedule=False,refresh_versions=True):
+def schedule(user,name,*,reschedule=False,refresh_versions=True,trigger='manual',trigger_tool=''):
     """Preparation outlives the HTTP connection; all writes retain the native owner."""
     key=(user,name)
     with runtimes._PREPARING_LOCK:
@@ -263,7 +288,7 @@ def schedule(user,name,*,reschedule=False,refresh_versions=True):
             active['refresh_versions']=active.get('refresh_versions',True) or refresh_versions
             return
         runtimes.PREPARING.add(key)
-        control={'cancel':threading.Event(),'error':'','reschedule':False,'refresh_versions':refresh_versions}
+        control={'cancel':threading.Event(),'error':'','reschedule':False,'refresh_versions':refresh_versions,'trigger':trigger,'trigger_tool':trigger_tool}
         runtimes.PREPARATION_CONTROL[key]=control
     def work():
         try:
@@ -277,7 +302,8 @@ def schedule(user,name,*,reschedule=False,refresh_versions=True):
             if agent is None:return
             initial=profiles.resolve_skills(user,agent.skills)
             choice=selections(user,name,initial['tools'],team('squad')['engine'])
-            preparation.begin(user,name,choice)
+            from .environment_changes import reason
+            preparation.begin(user,name,choice,reason(control['trigger'],control['trigger_tool']))
             pins=resolve_versions(choice,wait=True,cancel=control['cancel'],refresh=control['refresh_versions'],on_progress=lambda **fields:preparation.update(user,name,**fields))
             while not control['cancel'].is_set():
                 yielded=threading.Event()
@@ -322,7 +348,7 @@ def schedule(user,name,*,reschedule=False,refresh_versions=True):
             with runtimes._PREPARING_LOCK:
                 runtimes.PREPARING.discard(key)
                 again=control['reschedule']
-            if again:schedule(user,name,refresh_versions=control['refresh_versions'])
+            if again:schedule(user,name,refresh_versions=control['refresh_versions'],trigger=control['trigger'],trigger_tool=control['trigger_tool'])
     threading.Thread(target=guarded,daemon=True,name='environment-preparation').start()
 
 
@@ -343,7 +369,7 @@ def schedule_affected(tool):
                 tools=set(runtimes.closure(profiles.preloaded_tools(prefs,resolved['tools'])))
                 provider={'codex':'provider-codex','gemini':'provider-agy'}.get(team('squad')['engine'])
                 if tool not in tools and tool!=provider:continue
-                schedule(user.name,name,reschedule=True);count+=1
+                schedule(user.name,name,reschedule=True,trigger='version_change',trigger_tool=tool);count+=1
             except (OSError,ValueError):continue
     return count
 
@@ -370,7 +396,7 @@ def preload_startup():
                     if agent is None:continue
                     try:current=summary(user.name,agent)
                     except (OSError,ValueError,RuntimeError):
-                        schedule(user.name,name,refresh_versions=False);continue
+                        schedule(user.name,name,refresh_versions=False,trigger='startup');continue
                     runtime=current['runtime']
                     if runtime.get('status')=='ready':
                         preparation.update(user.name,name,phase='ready',ready_id=runtime.get('id',''),environment_id=runtime.get('id',''),
@@ -378,7 +404,7 @@ def preload_startup():
                         continue
                     # A deploy restores missing programs; it is not an instruction
                     # to look for new upstream releases or invalidate ready images.
-                    schedule(user.name,name,refresh_versions=False)
+                    schedule(user.name,name,refresh_versions=False,trigger='startup')
                 except Exception as error:
                     # Optional preload restoration must not take down every API
                     # or prevent other owners' valid environments from restoring.
@@ -397,9 +423,11 @@ async def preparation_log(name:str,request:Request):
     value=await checked_summary(get_effective_user_id(),agent)
     user=get_effective_user_id();record=preparation.read(user,name)
     key=record.get('environment_id') or value['runtime'].get('id')
-    since=record.get('started_at') if value.get('preparation',{}).get('active') else None
+    since=record.get('started_at') if (value.get('preparation') or {}).get('active') else None
     detail=await run_in_threadpool(runtimes.preparation_text,key,since=since) if key else ''
     observation=await run_in_threadpool(runtimes.preparation_observation,key,since=since)
+    if value.get('configuration_change') and not (value.get('preparation') or {}).get('active'):
+        observation={**observation,'phase':'configuration_changed','historical':True,'recent_output':'','waiting_on':None}
     if record.get('phase') in ('resolving_versions','checking_versions') and not record.get('environment_id'):
         observation['phase']='resolving_versions' if record.get('version_state')=='resolving' and record.get('version_operation')!='queued' else 'queued'
         if observation['phase']!='queued':observation.pop('waiting_on',None)
@@ -604,3 +632,76 @@ async def resize_terminal(identifier:str,value:TerminalSize,request:Request):
     try:await run_in_threadpool(session.resize,value.cols,value.rows)
     except ValueError as exc:raise HTTPException(409,str(exc)) from exc
     return {'accepted':True}
+
+
+@router.get('/{name}/history')
+@require_permission('agents','read')
+async def configuration_history(name:str,request:Request):
+    await native_agent(request,name)
+    from . import environment_history
+    return {'items':list(reversed(environment_history.read(get_effective_user_id(),name)))}
+
+
+@router.post('/{name}/restore/{revision}')
+@require_permission('agents','write')
+async def restore_configuration(name:str,revision:str,request:Request):
+    await native_agent(request,name)
+    from . import environment_history
+    previous=next((item for item in environment_history.read(get_effective_user_id(),name) if item['id']==revision),None)
+    if not previous:raise HTTPException(404,'Configuration revision not found')
+    return await write_definition(Definition(**previous['definition']),request,False)
+
+
+class ShareDefinition(BaseModel):
+    id:str=Field(pattern='^[a-z0-9][a-z0-9-]{1,63}$')
+    version:str=Field(pattern='^[a-zA-Z0-9][a-zA-Z0-9.+-]{0,63}$')
+    title_en:str=Field(min_length=1,max_length=120)
+    description_en:str=Field(min_length=1,max_length=4000)
+    title_it:str=Field(min_length=1,max_length=120)
+    description_it:str=Field(min_length=1,max_length=4000)
+    revision:str
+    confirm:bool=False
+    preview_hash:str=''
+
+
+@router.post('/{name}/share')
+@require_permission('agents','write')
+async def share_environment(name:str,value:ShareDefinition,request:Request):
+    same_origin(request)
+    agent=await native_agent(request,name);user=get_effective_user_id()
+    profile=await run_in_threadpool(profiles.profile,user,agent)
+    if value.revision!=profile['revision']:raise HTTPException(409,'Environment changed; reopen the sharing preview')
+    from . import environment_sharing,gallery
+    try:
+        manifest=environment_sharing.manifest(profile,user,value.id,value.version,value.title_en,value.description_en,value.title_it,value.description_it)
+        import hashlib
+        digest=hashlib.sha256(json.dumps(manifest,sort_keys=True).encode()).hexdigest()
+        if not value.confirm:return {'manifest':manifest,'scope':'instance','revision':profile['revision'],'preview_hash':digest}
+        if value.preview_hash!=digest:raise HTTPException(409,'Sharing preview changed; inspect it again before publishing')
+        return gallery.publish_pack(manifest)
+    except ValueError as error:raise HTTPException(422,str(error)) from error
+
+
+@router.post('/{name}/inspect-versions')
+@require_permission('agents','read')
+async def inspect_versions(name:str,request:Request):
+    same_origin(request);user=get_effective_user_id()
+    value=await checked_summary(user,await native_agent(request,name))
+    runtime=value['runtime']
+    if runtime['status']!='ready':raise HTTPException(409,'Prepare the environment before inspecting installed software')
+    def inspect():
+        import subprocess,uuid
+        from .docker_runtime import base_arguments,remove
+        label='rh-inspect-'+uuid.uuid4().hex[:12]
+        script="import json;from pathlib import Path;r=Path('/opt/righaven');v={x['id']:x['version'] for x in json.loads((r/'installed.json').read_text())};v.update({'provider-'+k:z for k,z in json.loads((r/'catalog.lock.json').read_text()).get('cli_runtimes',{}).items() if k in ('codex','claude')});a=r/'antigravity.lock.json';v.update({'provider-agy':json.loads(a.read_text())['version']} if a.exists() else {});print(json.dumps(v))"
+        try:
+            args=base_arguments(label)+['--network=none','--entrypoint','python3',runtime.get('image_id') or runtime['image'],'-c',script]
+            result=subprocess.run(['docker',*args],capture_output=True,text=True,timeout=60)
+            if result.returncode:raise ValueError('Cannot read the prepared software manifest; inspect preparation details')
+            versions=json.loads(result.stdout)
+            runtimes.save(runtime['id'],installed_versions=versions)
+        finally:remove(label)
+    try:await run_in_threadpool(inspect)
+    except (ValueError,OSError) as error:raise HTTPException(409,str(error)) from None
+    except subprocess.TimeoutExpired:raise HTTPException(409,'Version inspection timed out; retry or inspect preparation details') from None
+    return await checked_summary(user,await native_agent(request,name))

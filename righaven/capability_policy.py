@@ -159,8 +159,8 @@ def worker_arguments(policy, blocker_host_path, *, projected_skills=False):
             continue
         result += ['--tmpfs', '/opt/righaven/apps/' + app['id'] + ':ro,size=1m']
         install = app.get('install', {})
-        if install.get('kind') == 'debian':
-            paths = [install['native_path']]
+        if install.get('kind') in ('debian','upstream-deb'):
+            paths = list(dict.fromkeys([install['native_path'],*install.get('native_paths',[])]))
             for path in paths:
                 result += ['--mount', 'type=bind,src=' + str(blocker_host_path) + ',dst=' + path + ',readonly']
         if app['id'] == 'ffmpeg':
@@ -170,7 +170,7 @@ def worker_arguments(policy, blocker_host_path, *, projected_skills=False):
                 result += ['--mount', 'type=bind,src=' + str(blocker_host_path) + ',dst=' + path + ',readonly']
         if app['id'] == 'playwright':
             paths=['/opt/righaven/toolkit']
-            browser_users={a['id'] for a in applications() if a.get('install',{}).get('kind')=='design-node'}
+            browser_users={a['id'] for a in applications() if a.get('install',{}).get('kind')=='design-node' or a.get('install',{}).get('uses_shared_browser')}
             if browser_users.issubset(blocked):paths.append('/opt/righaven/playwright-browsers')
             for path in paths:
                 result += ['--tmpfs', path + ':ro,size=1m']

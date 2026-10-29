@@ -17,7 +17,7 @@ type RevisionAction = { requirement_id: string; action: string; reason?: string;
 type Comparison = { baseline_path: string; criteria: { requirement_id: string; status: string; evidence: string }[] };
 type Criterion = { requirement_id?: string; criterion: string; status: string; evidence: string; method: string };
 type Outcome = { title: string; result: string; format: string; use: string; quality: string; constraints: string[]; assumptions: string[]; questions: string[] };
-type ProjectRole = { tool_versions?: Record<string,string>; skills?: string[]; skill_bindings?: {name:string;revision:string}[]; experience?: { count: number; ids: string[] }; id: string; title: string; mission: string; version: string; expertise: string[]; procedure?: string[]; checks: string[]; tools: string[] };
+type ProjectRole = { capability_rationale?: string; tool_versions?: Record<string,string>; skills?: string[]; skill_bindings?: {name:string;revision:string}[]; experience?: { count: number; ids: string[] }; id: string; title: string; mission: string; version: string; expertise: string[]; procedure?: string[]; checks: string[]; tools: string[] };
 type Orientation = { active_step_ids?: string[]; history_step_ids?: string[]; history_count?: number; total: number; counts: Record<string, number>; current: { id: string; goal: string; role_id: string; task: string }[]; remaining: { id: string; goal: string; status: string }[]; roles?: Record<string, { attempts: number; completed: number; running: number }>; needs_briefing: boolean };
 type UserDirection = { visual_approach: string; instructions: string; revision: number };
 type Project = { review_findings?: { severity: string; location: string; evidence: string; impact: string }[]; version_selection?: { approved: string | null; candidate: string | null; partial: string | null }; designs?: Design[]; updated_at?: string; latest_sample?: Result | null; correction_focus?: { requirement_id: string; criterion: string; reassess_role: boolean; action: string }[]; user_control?: { paused: boolean; deliver_now?: boolean }; user_direction?: UserDirection | null; strategy?: MethodStrategy | null; method_recovery?: { message: string } | null; outcome?: Outcome | null; orientation?: Orientation; roles?: ProjectRole[]; acceptance?: { user_requests: string[]; request_manifest?: { path: string }; request_documents?: { path: string }[]; request_count?: number; criteria: { id: string; requirement: string; critical: boolean; origin?: string; source_quote?: string }[] } | null; review_criteria?: Criterion[]; revision_actions?: RevisionAction[]; comparison?: Comparison | null; deliveries?: Delivery[]; quality_status?: string; summary?: string; next_action?: string; status?: string; product_path?: string; results?: Result[]; attention?: { code: string; message: string; action: string } | null; id: string; brief: string; steps: { id: string; agent: string; goal: string;
@@ -146,7 +146,7 @@ function JobCard({ job, now, threadId, role }: { job: JobProgress; now: number; 
 
 type Props = { threadId: string; active: boolean; pending: boolean; coordinatorError?: boolean; onPause?: () => void | Promise<void>; onContinue?: (message?: string) => void | Promise<void> };
 const person = (agent: string) => agent.charAt(0).toUpperCase() + agent.slice(1);
-const kind = (path: string) => /\.(mp4|webm|mov)$/i.test(path) ? "video" : /\.(wav|mp3|m4a|ogg)$/i.test(path) ? "audio" : /\.(png|jpe?g|gif|webp)$/i.test(path) ? "image" : "source";
+const kind = (path: string) => /\.pdf$/i.test(path) ? "pdf" : /\.(mp4|webm|mov)$/i.test(path) ? "video" : /\.(wav|mp3|m4a|ogg)$/i.test(path) ? "audio" : /\.(png|jpe?g|gif|webp)$/i.test(path) ? "image" : "source";
 function artifactURL(threadId: string, path: string, download = false) {
   if (!path.startsWith("/mnt/user-data/")) return "";
   const encoded = path.split("/").map(encodeURIComponent).join("/");
@@ -469,6 +469,7 @@ export function DelegateProgress({ threadId, active, pending, coordinatorError =
           {kind(preview.path) === "video" && <video key={preview.path} className="max-h-[35dvh] w-full rounded" controls playsInline preload="metadata" aria-label="Anteprima video" src={artifactURL(threadId, preview.path)} />}
           {kind(preview.path) === "image" && <img className="max-h-[35dvh] w-full object-contain" alt="Anteprima del lavoro" src={artifactURL(threadId, preview.path)} />}
           {kind(preview.path) === "audio" && <audio controls aria-label="Anteprima audio" src={artifactURL(threadId, preview.path)} />}
+          {kind(preview.path) === "pdf" && <iframe title="Anteprima PDF" className="h-[50dvh] min-h-72 w-full rounded border" src={artifactURL(threadId, preview.path)} /> }
           {kind(preview.path) === "source" && <p className="text-sm">Risultato disponibile come documento o progetto: scaricalo e aprilo con l’app indicata nella consegna.</p>}
           <p className="text-muted-foreground text-xs">Scarica il risultato</p>
           <a className="bg-foreground text-background inline-flex max-w-full items-center rounded-lg px-4 py-2 text-sm font-medium break-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring" href={artifactURL(threadId, preview.path, true)}>{preview.label}</a>
@@ -528,6 +529,7 @@ export function DelegateProgress({ threadId, active, pending, coordinatorError =
             <ul className="list-inside list-disc">{role.expertise.map((skill, i) => <li key={i}>{skill}</li>)}</ul>
             {!!role.skill_bindings?.length && <div className="space-y-2" data-testid="role-method-skills"><p className="text-muted-foreground text-xs font-semibold">Skill riutilizzate</p><ul>{role.skill_bindings.map(binding=><li key={binding.name}>{binding.name.replace(/^skill-/, "")}</li>)}</ul></div>}
             <div className="space-y-2"><p className="text-muted-foreground text-xs font-semibold">Strumenti assegnati</p><div className="flex flex-wrap gap-1.5">{role.tools.length ? role.tools.map(tool => <StatusBadge key={tool}>{person(tool)}</StatusBadge>) : <span>Strumenti di base del progetto</span>}</div></div>
+            {role.capability_rationale&&<details data-testid="role-capability-choice"><summary className="cursor-pointer">Perché questi strumenti</summary><p className="mt-2">{role.capability_rationale}</p></details>}
             {live && <p><strong>Adesso:</strong> {live.work_summary || live.summary}</p>}
             <ul className="space-y-1">{activities.map(step => <li key={step.id}><StatusBadge tone={stepTone(step.status)}>{stepLabels[step.status] ?? step.status}</StatusBadge> {step.goal}</li>)}</ul>
             {!activities.length && <p className="text-muted-foreground">{used ? "Contributi registrati nelle attività precedenti." : "Nessun incarico ancora assegnato."}</p>}
@@ -613,7 +615,8 @@ export function DelegateProgress({ threadId, active, pending, coordinatorError =
       {resumeError && <p className="text-xs" role="alert">{resumeError}</p>}
     </div>
     <nav className="flex flex-wrap items-center gap-2 border-t p-3 text-sm" aria-label="Controlli del progetto">
-      <button type="button" className="bg-foreground text-background rounded-lg px-3 py-2 disabled:opacity-50" disabled={!preview} onClick={() => toggle("preview")}>{ready ? "Apri consegna" : showLatestResult ? (previewDelivery?.purpose === "preview" ? "Apri ultimo campione" : "Apri ultimo risultato") : "Vedi anteprima"}</button>
+      <button type="button" className="bg-foreground text-background rounded-lg px-3 py-2 disabled:opacity-50" disabled={!preview} onClick={() => toggle("preview")}>{ready ? "Apri consegna" : showLatestResult ? (previewDelivery?.purpose === "preview" ? "Apri ultimo campione" : "Apri ultimo risultato") : "Apri risultato"}</button>
+      {preview&&<a className="rounded-lg border px-3 py-2 text-sm underline break-all" href={artifactURL(threadId,preview.path,true)} download>Scarica {preview.label}</a>}
       <button type="button" className={tabStyle} onClick={() => toggle("intervene")}>Intervieni</button>
       {(active || working) && <button type="button" className={tabStyle} disabled={controlBusy||deliveryRequested} onClick={()=>void deliverNow()}>{deliveryRequested?"Consegna richiesta…":"Consegna ora"}</button>}
       {(active || working) && onPause && <button type="button" className={tabStyle} disabled={controlBusy} onClick={() => void pauseWork()}>{controlBusy ? "Attendi…" : "Metti in pausa"}</button>}

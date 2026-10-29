@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import GalleryFeedback, {FeedbackModeration} from "./gallery-feedback";
 import { fetch } from "@/core/api/fetcher";
 import { getBackendBaseURL } from "@/core/config";
 import { I18nProvider, LanguageSelector, useI18n } from "@/app/workspace/i18n";
@@ -19,6 +20,8 @@ export type GalleryPack = {
   forks: number;
   verified: boolean;
   activated?: boolean;
+  rating_count?:number;
+  rating_average?:number|null;
   tools: string[];
   verification_command: string;
   skill_prompt_template: string;
@@ -30,32 +33,40 @@ function GalleryContent() {
   const { locale, t } = useI18n();
   const [packs, setPacks] = useState<GalleryPack[]>([]);
   const [category, setCategory] = useState<string>("");
+  useEffect(()=>{const value=new URLSearchParams(location.search).get("category");if(value&&["environment","cli-tool","skill"].includes(value))setCategory(value);},[]);
   const [query, setQuery] = useState<string>("");
   const [statusMessage, setStatusMessage] = useState<string>("");
   const [selectedPack, setSelectedPack] = useState<GalleryPack | null>(null);
+  const [feedbackVersion,setFeedbackVersion]=useState("");
+  const [sourceLink,setSourceLink]=useState<{id:string;version:string}|null>(null);
+  useEffect(()=>{const params=new URLSearchParams(location.search);const id=params.get("pack");if(id)setSourceLink({id,version:params.get("version")??""});},[]);
+  useEffect(()=>{if(!sourceLink)return;const pack=packs.find(p=>p.id===sourceLink.id);if(pack){setSelectedPack(pack);setFeedbackVersion(sourceLink.version||pack.version);setSourceLink(null);}},[packs,sourceLink]);
+  function selectPack(pack:GalleryPack){setSelectedPack(pack);setFeedbackVersion(pack.version);}
   const [showPublish, setShowPublish] = useState<boolean>(false);
   const [publishJson, setPublishJson] = useState<string>("");
   const base = `${getBackendBaseURL()}/api/v1/gallery`;
 
-  async function loadPacks() {
+  async function loadPacks(signal?:AbortSignal) {
     const params = new URLSearchParams();
     if (category) params.set("category", category);
     if (query.trim()) params.set("q", query.trim());
     params.set("locale", locale);
     try {
       const response = await fetch(`${base}/packs?${params.toString()}`, {
-        headers: { "Accept-Language": locale },
+        headers: { "Accept-Language": locale }, signal,
       });
-      if (!response.ok) return;
+      if (!response.ok) throw Error(locale === "it" ? "Catalogo non disponibile" : "Catalog unavailable");
       const data = await response.json();
-      setPacks(data.packs ?? []);
-    } catch {
-      // Offline fallback ignored.
+      if(!signal?.aborted)setPacks(data.packs ?? []);
+    } catch (error) {
+      if(!signal?.aborted)setStatusMessage(error instanceof Error?error.message:"Catalog unavailable");
     }
   }
 
   useEffect(() => {
-    void loadPacks();
+    const controller=new AbortController();
+    const timer=setTimeout(()=>void loadPacks(controller.signal),250);
+    return ()=>{clearTimeout(timer);controller.abort();};
   }, [locale, category, query]);
 
   async function handleActivate(packId: string) {
@@ -136,6 +147,8 @@ function GalleryContent() {
       </header>
 
       <RegistryManager base={base} locale={locale} onChanged={loadPacks} />
+      <FeedbackModeration base={base} locale={locale}/>
+      <p className="text-sm"><Link className="underline" href="/workspace/environments">{locale==="it"?"Condividi uno dei tuoi ambienti: Gestisci → Condividi nel catalogo":"Share one of your environments: Manage → Share to catalog"}</Link></p>
 
       {statusMessage && (
         <div role="status" className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 p-3 text-sm">
@@ -186,6 +199,7 @@ function GalleryContent() {
         </div>
       </div>
 
+      {packs.length===0&&<p role="status">{locale==="it"?"Nessun risultato: cambia ricerca o categoria.":"No matches: try another search or category."}</p>}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {packs.map((pack) => (
           <article key={pack.id} className="flex flex-col justify-between rounded-xl border p-4 shadow-sm">
@@ -197,6 +211,7 @@ function GalleryContent() {
                 <span className="text-xs text-muted-foreground">{pack.version}</span>
               </div>
               <h3 className="text-base font-semibold">{pack.display_title}</h3>
+              <button className="text-xs underline" onClick={()=>selectPack(pack)}>{pack.rating_count?`★ ${pack.rating_average?.toFixed(1)} / 5 (${pack.rating_count})`:(locale==="it"?"Nessuna recensione":"No reviews yet")}</button>
               <p className="text-xs text-muted-foreground">{pack.display_description}</p>
               <div className="flex flex-wrap gap-1 pt-1">
                 {pack.tags?.slice(0, 4).map((tag) => (
@@ -212,15 +227,16 @@ function GalleryContent() {
                   type="button"
                   onClick={() => void handleStar(pack.id)}
                   className="rounded border px-2 py-1 hover:bg-muted"
+                  aria-label={locale==="it"?"Aggiungi ai preferiti":"Add to favorites"}
                 >
-                  ★ {pack.stars}
+                  ♡ {pack.stars}
                 </button>
                 <button
                   type="button"
-                  onClick={() => setSelectedPack(pack)}
+                  onClick={() => selectPack(pack)}
                   className="rounded border px-2 py-1 hover:bg-muted"
                 >
-                  Manifest
+                  {locale==="it"?"Dettagli e recensioni":"Details and reviews"}
                 </button>
               </div>
               <button
@@ -236,7 +252,8 @@ function GalleryContent() {
       </div>
 
       {selectedPack && (
-        <section className="rounded-xl border p-4 text-xs" data-testid="pack-manifest-inspector">
+        <PackDialog title={selectedPack.display_title} onClose={()=>setSelectedPack(null)}>
+        <section className="space-y-4 p-4 text-xs" data-testid="pack-manifest-inspector">
           <div className="flex items-center justify-between border-b pb-2">
             <h4 className="text-sm font-semibold">{selectedPack.display_title} ({selectedPack.id})</h4>
             <button type="button" onClick={() => setSelectedPack(null)} className="rounded border px-2 py-1">
@@ -244,13 +261,20 @@ function GalleryContent() {
             </button>
           </div>
           <p className="mt-2 font-medium">{t("gallery.reopen_verification")}: <code>{selectedPack.verification_command}</code></p>
-          <pre className="mt-2 max-h-64 overflow-auto rounded bg-muted/40 p-3">
+          <GalleryFeedback key={selectedPack.id+selectedPack.version} base={base} pack={selectedPack.id} version={feedbackVersion||selectedPack.version} locale={locale}/>
+          <details><summary>{locale==="it"?"Manifest tecnico":"Technical manifest"}</summary><pre className="mt-2 max-h-64 overflow-auto rounded bg-muted/40 p-3">
             {JSON.stringify(selectedPack, null, 2)}
-          </pre>
-        </section>
+          </pre></details>
+        </section></PackDialog>
       )}
     </div>
   );
+}
+
+function PackDialog({title,onClose,children}:{title:string;onClose:()=>void;children:React.ReactNode}){
+ const ref=useRef<HTMLDialogElement>(null);
+ useEffect(()=>{const node=ref.current;node?.showModal();return()=>{if(node?.open)node.close();};},[]);
+ return <dialog ref={ref} aria-label={title} onCancel={event=>{event.preventDefault();onClose();}} className="m-auto max-h-[92dvh] w-[calc(100%-2rem)] max-w-3xl overflow-y-auto rounded-xl border bg-background text-foreground shadow-xl backdrop:bg-black/50">{children}</dialog>;
 }
 
 function RegistryManager({base, locale, onChanged}: {base:string; locale:string; onChanged:()=>Promise<void>}) {

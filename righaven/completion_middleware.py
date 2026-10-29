@@ -4,7 +4,7 @@ from langchain.agents import AgentState
 from langchain.agents.middleware import AgentMiddleware
 from langchain.agents.middleware.types import hook_config
 from langchain_core.messages import AIMessage, SystemMessage
-from .audit_middleware import workspace_for
+from .audit_middleware import workspace_for,runtime_config
 from .audit_log import append
 from .completion_policy import needs_continuation,production_call
 from .projects import read_project, mark_incomplete_turn
@@ -24,6 +24,7 @@ class CompletionState(AgentState):
     harness_work_generation: NotRequired[int]
     harness_reminded_generation: NotRequired[int]
     harness_learning_nudged: NotRequired[bool]
+    harness_presentation_signature: NotRequired[str]
 
 
 class ProjectCompletionMiddleware(AgentMiddleware):
@@ -31,11 +32,61 @@ class ProjectCompletionMiddleware(AgentMiddleware):
     MAX_NUDGES = 2
 
     def before_agent(self, state, runtime):
+        # Repair historical contracts that captured the UI's resume button as
+        # a new product requirement, even when the model only summarizes next.
+        context=getattr(runtime,'context',None)
+        if not (isinstance(context,dict) and context.get('is_subagent')):
+            from .project_controls import operational_resume
+            for message in reversed(state.get('messages',[])):
+                kind=message.get('type',message.get('role')) if isinstance(message,dict) else getattr(message,'type','')
+                if kind not in ('human','user'):continue
+                text=message.get('content','') if isinstance(message,dict) else getattr(message,'content','')
+                if isinstance(text,list):text='\n'.join(b.get('text','') for b in text if isinstance(b,dict) and b.get('type')=='text')
+                if operational_resume(text):
+                    try:
+                        from .projects import sync_acceptance
+                        sync_acceptance(workspace_for(runtime),[text])
+                    except (AttributeError,ValueError,OSError,RuntimeError):pass
+                break
         return {'harness_production_started': False, 'harness_completion_nudges': 0, 'harness_completion_reminder': '',
                 'harness_work_generation':0, 'harness_reminded_generation':-1, 'harness_learning_nudged':False}
 
     async def abefore_agent(self, state, runtime):
         return self.before_agent(state, runtime)
+
+    def after_agent(self,state,runtime):
+        """Publish existing files even if the model omitted the native tool call.
+
+        This runs after the graph ends: no additional model turn, production or
+        approval. The actual native tool validates owner/thread output paths.
+        """
+        try:
+            context=getattr(runtime,'context',None)
+            if isinstance(context,dict) and context.get('is_subagent'):return None
+            from .presentation import presentation
+            root=workspace_for(runtime)
+            plan=presentation(root,read_project(root),state)
+            if not plan:return None
+            update={'harness_presentation_signature':plan['signature']}
+            if not plan['paths']:return update
+            from types import SimpleNamespace
+            from uuid import uuid4
+            from righaven_core.tools.builtins.present_file_tool import present_file_tool
+            call_id='rh-present-'+uuid4().hex
+            tool_runtime=SimpleNamespace(state=state,context=context,config=runtime_config(runtime))
+            result=present_file_tool.func(runtime=tool_runtime,filepaths=plan['paths'],tool_call_id=call_id)
+            if not result.update.get('artifacts'):
+                append(root,'Consegna','File non presentati','failed',detail='Il controllo nativo dei percorsi non è riuscito.')
+                return None
+            message=AIMessage(content=plan['note'],tool_calls=[{'name':'present_files','id':call_id,'args':{'filepaths':plan['paths']}}],
+                              additional_kwargs={'righaven_auto_presentation':True})
+            append(root,'Consegna','File presentati','completed',detail='Risultato e sorgenti pubblicati senza modificare il giudizio di qualità.')
+            return {**update,**result.update,'messages':[message,*result.update['messages']]}
+        except (AttributeError,ValueError,OSError,RuntimeError):
+            return None
+
+    async def aafter_agent(self,state,runtime):
+        return self.after_agent(state,runtime)
 
     @hook_config(can_jump_to=['model'])
     def after_model(self, state, runtime):

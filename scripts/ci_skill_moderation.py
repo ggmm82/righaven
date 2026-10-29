@@ -18,11 +18,12 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
         data=json.loads(self.rfile.read(min(int(self.headers.get('Content-Length',0)),30000)))
         messages=data.get('messages',[])
-        expected='Review this content:\n-----\n'+os.environ['CI_EXPECTED_SKILL']+'\n-----'
+        contents=json.loads(os.environ['CI_EXPECTED_SKILLS']) if os.environ.get('CI_EXPECTED_SKILLS') else [os.environ['CI_EXPECTED_SKILL']]
+        expected=['Review this content:\n-----\n'+content+'\n-----' for content in contents]
         allowed=(self.path=='/v1/chat/completions' and data.get('model')=='ci-skill-moderation'
                  and len(messages)==2 and messages[0].get('role')=='system'
                  and 'security reviewer for AI agent skills' in messages[0].get('content','')
-                 and messages[1].get('role')=='user' and messages[1].get('content','').endswith(expected))
+                 and messages[1].get('role')=='user' and any(messages[1].get('content','').endswith(item) for item in expected))
         if allowed:Handler.allowed+=1
         result={'decision':'allow' if allowed else 'block','reason':'Declared harmless CI fixture' if allowed else 'Unknown content is outside this fixture'}
         self.send({'id':'ci-moderation','object':'chat.completion','created':0,'model':'ci-skill-moderation',

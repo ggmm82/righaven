@@ -3,6 +3,14 @@
 I ruoli professionali si compilano dal progetto. Questa mappa descrive strumenti e confini, non una squadra obbligatoria.
 Consulta `craft capabilities` per la mappa compatta e `craft capabilities ID` per una sola app. Il catalogo completo è in `craft commands ID`; gli schemi esatti in `craft tools ID`.
 
+## Modello, realizzazione e confezionamento
+
+Prima di scegliere il programma per il formato finale, individua cosa deve essere costruito e quali sorgenti devono restare modificabili. Consulta gli ambienti disponibili per capacità e scopo; un profilo pronto riduce la preparazione, ma non obbliga a caricare tutti i suoi programmi. Assegna soltanto le capacità necessarie ai ruoli dinamici e descrivi la scelta in `capability_rationale`. Non confondere le competenze scritte nel titolo del ruolo con skill effettivamente assegnate.
+
+Per architetture software, valuta C4 con Structurizr e un renderer supportato; per processi con eventi, responsabilità ed eccezioni, BPMN; per relazioni o flussi informali, D2/Mermaid o una lavagna possono essere più appropriati. Typst o un editor di impaginazione possono integrare gli export nel documento, conservando anche i modelli originali. Semplici forme decorative non dimostrano la semantica di un modello C4/BPMN. Nessuna notazione è obbligatoria per ogni diagramma.
+
+Lo stesso principio vale negli altri domini: contenitore e conversione non sostituiscono composizione musicale, modellazione CAD, analisi dei dati o authoring del prodotto. Non usare tutti gli strumenti per principio; spiega quando una soluzione più semplice conserva gli stessi requisiti e prova un campione pertinente.
+
 Un comando registrato non è un workflow collaudato: verifica prerequisiti, dati, unità, modelli/add-on e reale esecuzione. `enabled=false` può dipendere dalla selezione o dal documento aperto; non significa automaticamente funzione assente.
 
 | Strumento | Quando sceglierlo | Sorgenti da conservare |
@@ -44,6 +52,31 @@ Un comando registrato non è un workflow collaudato: verifica prerequisiti, dati
 | [structurizr](../../skill-structurizr/references/CAPABILITIES.md) | Viste coerenti di architettura software da un unico modello C4. Usa le librerie mantenute, non la vecchia CLI dismessa. | DSL .dsl, workspace JSON ed export PlantUML/Mermaid; eventuali immagini sono del renderer scelto. |
 | [opengrep](../../skill-opengrep/references/CAPABILITIES.md) | Analisi statica di codice con regole YAML locali esplicite | Codice o configurazione esaminati, regole locali, report JSON, scan-recipe.json e metadata del database quando usato |
 | [trivy](../../skill-trivy/references/CAPABILITIES.md) | Controllo configurazioni, inventario CycloneDX e vulnerabilità con database esplicito | Codice o configurazione esaminati, regole locali, report JSON, scan-recipe.json e metadata del database quando usato |
+| [duckdb](../../skill-duckdb/references/CAPABILITIES.md) | Query CSV, JSON and Parquet with SQL and a local analytical database | SQL, input datasets/schema, DuckDB database and result CSV |
+| [jupyter](../../skill-jupyter/references/CAPABILITIES.md) | Combine explanations, executable Python and actual analytical results in a notebook | Input and executed IPYNB, datasets, environment requirements and figures |
+| [quarto](../../skill-quarto/references/CAPABILITIES.md) | Publish analytical narratives and notebooks as standalone HTML reports | QMD, notebooks, local assets, configuration and rendered report |
+| [poppler](../../skill-poppler/references/CAPABILITIES.md) | Rasterize the final PDF and extract its actual text for independent review | Original PDF, numbered page PNGs, extracted text and rendering settings |
+| [qpdf](../../skill-qpdf/references/CAPABILITIES.md) | Check PDF syntax, cross references and recoverability independently of the authoring tool | Original PDF, native diagnostics and verification receipt |
+| [verapdf](../../skill-verapdf/references/CAPABILITIES.md) | Validate delivered PDFs against an explicitly chosen PDF/A profile | Original PDF, selected profile, complete native XML report and receipt |
+| [ocrmypdf](../../skill-ocrmypdf/references/CAPABILITIES.md) | Add an OCR text layer and text sidecar to scanned PDFs while preserving the original | Original scan, searchable PDF, sidecar, language and OCR recipe |
+| [tesseract](../../skill-tesseract/references/CAPABILITIES.md) | Recognize text in local images with coordinates and confidence evidence | Original image, TXT, TSV, language and preprocessing recipe |
+| [gdal](../../skill-gdal/references/CAPABILITIES.md) | Inspect raster georeferencing and convert raster datasets to GeoTIFF | Original geospatial datasets, sidecars, CRS, units, transformation recipe and GeoTIFF |
+| [qgis](../../skill-qgis/references/CAPABILITIES.md) | Run explicit native Processing algorithms on local geographic data | QGIS projects when authored, input layers/styles, parameter JSON and output layers |
+| [schemathesis](../../skill-schemathesis/references/CAPABILITIES.md) | Exercise authorized test APIs against a saved OpenAPI contract | Original OpenAPI schema, target configuration, native JUnit report and reproducible test parameters |
+| [k6](../../skill-k6/references/CAPABILITIES.md) | Run explicit small load tests with thresholds and native metric summaries | JavaScript scenario, fixtures, thresholds, target configuration and metric summary |
+| [axe-core](../../skill-axe-core/references/CAPABILITIES.md) | Inspect actual browser pages for axe accessibility rules | Page or application sources, audit URL/state, native JSON findings and incomplete checks |
+| [zap](../../skill-zap/references/CAPABILITIES.md) | Spider an authorized application and collect passive security findings with an explicit automation plan | Authorization/scope, automation plan, native XML report and reproduction guidance |
+| [gitleaks](../../skill-gitleaks/references/CAPABILITIES.md) | Scan local source directories for leaked credentials without executing the source | Redacted native findings, scanner identity and remediation guidance; retain original source privately |
+| [openmodelica](../../skill-openmodelica/references/CAPABILITIES.md) | Compile and simulate explicit Modelica models and MOS recipes on CPU | MO models, MOS recipe, parameters, local libraries, units and simulation data |
+| [highs](../../skill-highs/references/CAPABILITIES.md) | Solve explicit LP and MPS optimization models | LP/MPS model, objective/constraints/units, solver settings, solution and native status |
+| [kicad](../../skill-kicad/references/CAPABILITIES.md) | Export native electronic schematics and PCBs using headless KiCad CLI | KICAD_PRO, KICAD_SCH, KICAD_PCB and any custom symbol/footprint libraries, plus fabrication exports when requested |
+| [ngspice](../../skill-ngspice/references/CAPABILITIES.md) | Simulate explicit SPICE netlists and preserve actual raw results | Netlist, included component models, stimuli, analysis settings and raw simulation data |
+| [prusaslicer](../../skill-prusaslicer/references/CAPABILITIES.md) | Slice existing models using explicit printer and material settings | Original mesh or 3MF project, printer/material INI, slicing recipe and G-code |
+| [usql](../../skill-usql/references/CAPABILITIES.md) | Use one SQL client across supported relational database drivers for explicit read-only queries. | SQL, bounded result JSON and local database snapshot or external-source requirements. |
+| [schemacrawler](../../skill-schemacrawler/references/CAPABILITIES.md) | Reverse engineer real keys, constraints, table relationships and schema metadata through JDBC. | Schema JSON/HTML/DOT, database snapshot or connection requirements, diagrams and interpretation notes. |
+| [dlt](../../skill-dlt/references/CAPABILITIES.md) | Discover SQL/document source metadata and extract bounded data into a reproducible local pipeline. | Python pipeline, schema YAML/JSON, query/inputs, portable JSONL, DuckDB snapshot and row reconciliation. |
+| [sqlglot](../../skill-sqlglot/references/CAPABILITIES.md) | Parse SQL dialects and derive table/column lineage using real expressions and actual supplied schemas. | Original SQL, actual schema dictionary, normalized SQL, lineage JSON and limits. |
+| [sqlmesh](../../skill-sqlmesh/references/CAPABILITIES.md) | Plan, test and explain SQL/Python analytical transformations using an isolated local DuckDB project. | SQL/Python models, tests, configuration, copied project, DuckDB results and plan/audit evidence. |
 
 ## Passaggi tra strumenti
 

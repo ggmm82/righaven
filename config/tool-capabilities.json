@@ -8728,6 +8728,605 @@
       "ids_sha256": "372dcd7d6d8c01d89b57c71c958f33ef38846bc82b2aa986d6860b8fa2afaaf9",
       "catalog_sha256": "4d8f7f0a0e266547fa8dcc19b3e3f5a8cb2455a33251f6e49a77ddec551a969b",
       "reference": "https://github.com/aquasecurity/trivy"
+    },
+    {
+      "id": "duckdb",
+      "version": "v2.0.0",
+      "catalog_count": 1,
+      "catalog_ids": [
+        "duckdb.query"
+      ],
+      "ids_sha256": "d5bfc8a89e563fbeceb2d03ffe4603c582aac43bc5dd5f62c344c1b15ccfd02c",
+      "catalog_sha256": "5155f6a149293490c7404eea69748ad6ab259e56776c134390bd54e13f4f09a2",
+      "choose_for": "Query CSV, JSON and Parquet with SQL and a local analytical database",
+      "sources": "SQL, input datasets/schema, DuckDB database and result CSV",
+      "limits": "Keep NULL handling, types, units and join cardinalities explicit. Disable unneeded extensions; a query result does not prove the underlying data is correct.",
+      "reference": "https://github.com/duckdb/duckdb",
+      "groups": [
+        {
+          "goal": "Execute a saved SQL recipe on a private database copy; retain SQL and data, return CSV results.",
+          "commands": [
+            "duckdb.query"
+          ],
+          "evidence": "registered"
+        }
+      ]
+    },
+    {
+      "id": "jupyter",
+      "version": "6.5.3-3",
+      "catalog_count": 1,
+      "catalog_ids": [
+        "jupyter.execute"
+      ],
+      "ids_sha256": "9b8b8fe82e3f7261184fe5d6c7447dab0efb6b7ee435a6260db74c4e54641882",
+      "catalog_sha256": "9e6c42753d2123b1589633f15a8cca347e15f65f20458e76d22c3f0e27b566c3",
+      "choose_for": "Combine explanations, executable Python and actual analytical results in a notebook",
+      "sources": "Input and executed IPYNB, datasets, environment requirements and figures",
+      "limits": "Execute in a fresh kernel, in order. Clear stale outputs; preserve random seeds, dependencies and data provenance. Notebook execution is code execution, not a web notebook service.",
+      "reference": "https://github.com/jupyter/nbconvert",
+      "groups": [
+        {
+          "goal": "Execute a notebook in a copied resource folder with a bounded cell timeout; retain input and executed notebooks.",
+          "commands": [
+            "jupyter.execute"
+          ],
+          "evidence": "registered"
+        }
+      ]
+    },
+    {
+      "id": "quarto",
+      "version": "1.10.19",
+      "catalog_count": 1,
+      "catalog_ids": [
+        "quarto.render"
+      ],
+      "ids_sha256": "f63c6b203c87480efd89e7b7a55c48cb06a9d4ce45da6f852c8e505176977206",
+      "catalog_sha256": "1194824fb09949d0a20fbfb285e34840f02647eeb4d0de73e434392c7bad7ce8",
+      "choose_for": "Publish analytical narratives and notebooks as standalone HTML reports",
+      "sources": "QMD, notebooks, local assets, configuration and rendered report",
+      "limits": "Use Quarto for executable reports, Typst for typography and Pandoc for conversion. The adapter produces HTML; PDF engines, extensions and publishing services are not silently installed.",
+      "reference": "https://github.com/quarto-dev/quarto-cli",
+      "groups": [
+        {
+          "goal": "Render a copied QMD project to standalone HTML using local resources. PDF requires a separately selected engine.",
+          "commands": [
+            "quarto.render"
+          ],
+          "evidence": "registered"
+        }
+      ]
+    },
+    {
+      "id": "poppler",
+      "version": "22.12.0-2+deb12u3",
+      "catalog_count": 2,
+      "catalog_ids": [
+        "poppler.render",
+        "poppler.text"
+      ],
+      "ids_sha256": "8b2d22bf501ccf1f233f9da1955d832a1f92ebafc4226099404d7f861ecf0630",
+      "catalog_sha256": "6a060bb8b03ee2f002d1e9ed36d5c6cfe0213b01f08bb1730c76303e7d9e0b6e",
+      "choose_for": "Rasterize the final PDF and extract its actual text for independent review",
+      "sources": "Original PDF, numbered page PNGs, extracted text and rendering settings",
+      "limits": "Render the exact delivery hash. PNG creation is not a visual judgment; use an available visual model or request user review. Render in bounded batches.",
+      "reference": "https://poppler.freedesktop.org",
+      "groups": [
+        {
+          "goal": "Rasterize the actual delivered PDF to numbered PNG pages for visual inspection; rendering is not visual approval.",
+          "commands": [
+            "poppler.render"
+          ],
+          "evidence": "registered"
+        },
+        {
+          "goal": "Extract text from the actual PDF, preserving layout where possible; not OCR or visual validation.",
+          "commands": [
+            "poppler.text"
+          ],
+          "evidence": "registered"
+        }
+      ]
+    },
+    {
+      "id": "qpdf",
+      "version": "11.3.0-1+deb12u1",
+      "catalog_count": 1,
+      "catalog_ids": [
+        "qpdf.check"
+      ],
+      "ids_sha256": "e18eddbf95a1e34db92f9aec5622c2b4dd857130f3199379017f5bb84d019e34",
+      "catalog_sha256": "f44a6f9f77adac2a68cb31610b009a3ff1fdf318e70273b09ffb7a90e87f1ba5",
+      "choose_for": "Check PDF syntax, cross references and recoverability independently of the authoring tool",
+      "sources": "Original PDF, native diagnostics and verification receipt",
+      "limits": "A warning is not a clean pass. Syntax checks do not certify layout, accessibility, PDF/A or PDF/X; use veraPDF for applicable conformance profiles.",
+      "reference": "https://github.com/qpdf/qpdf",
+      "groups": [
+        {
+          "goal": "Check native PDF syntax and cross references. Warnings remain visible; does not certify PDF/A or visual quality.",
+          "commands": [
+            "qpdf.check"
+          ],
+          "evidence": "registered"
+        }
+      ]
+    },
+    {
+      "id": "verapdf",
+      "version": "1.30.3",
+      "catalog_count": 1,
+      "catalog_ids": [
+        "verapdf.validate"
+      ],
+      "ids_sha256": "d6fb81c02a1238cff7fbbb0ba5afdba038e81154669ad878bd2c14bb677ddd44",
+      "catalog_sha256": "d8785c2815c5818386ff27ffe8edf78b70fb18347a20f38acfd17e885f469630",
+      "choose_for": "Validate delivered PDFs against an explicitly chosen PDF/A profile",
+      "sources": "Original PDF, selected profile, complete native XML report and receipt",
+      "limits": "Never equate PDF/A conformance with accessibility or visual quality. Do not claim a conversion or certification from a validation report.",
+      "reference": "https://github.com/veraPDF/veraPDF-apps",
+      "groups": [
+        {
+          "goal": "Validate a PDF against a selected PDF/A profile; save the native XML report and actual conformance status.",
+          "commands": [
+            "verapdf.validate"
+          ],
+          "evidence": "registered"
+        }
+      ]
+    },
+    {
+      "id": "ocrmypdf",
+      "version": "14.0.1+dfsg1-1",
+      "catalog_count": 1,
+      "catalog_ids": [
+        "ocrmypdf.ocr"
+      ],
+      "ids_sha256": "1241c45942befba88c35ed5207bcc23a4d3aed30092e5f0d0cf00101c8053bfb",
+      "catalog_sha256": "8f936f19e5fc83ac31a5317df72bd3eba9bfadc1c242eb5c25a10a9cadd9491c",
+      "choose_for": "Add an OCR text layer and text sidecar to scanned PDFs while preserving the original",
+      "sources": "Original scan, searchable PDF, sidecar, language and OCR recipe",
+      "limits": "Do not replace original scans. Check names, numbers, reading order and language against sampled images; OCR confidence is not accuracy. This adapter does not claim PDF/A.",
+      "reference": "https://github.com/ocrmypdf/OCRmyPDF",
+      "groups": [
+        {
+          "goal": "Create a searchable PDF and text sidecar without overwriting the scan. OCR accuracy requires content review.",
+          "commands": [
+            "ocrmypdf.ocr"
+          ],
+          "evidence": "registered"
+        }
+      ]
+    },
+    {
+      "id": "tesseract",
+      "version": "5.3.0-2",
+      "catalog_count": 1,
+      "catalog_ids": [
+        "tesseract.recognize"
+      ],
+      "ids_sha256": "5fc8ec9defa32fc2b3f0d19af4b0f7a23aa41cbec09b44f40078ced050d320f3",
+      "catalog_sha256": "c9c345353244ca2482f6683894c890b264677f6d63e6fa8d6e633ef5671396c3",
+      "choose_for": "Recognize text in local images with coordinates and confidence evidence",
+      "sources": "Original image, TXT, TSV, language and preprocessing recipe",
+      "limits": "Use OCRmyPDF for whole scanned PDFs. Keep low-confidence words visible; confidence is not a guarantee. English and Italian language data are installed explicitly.",
+      "reference": "https://github.com/tesseract-ocr/tesseract",
+      "groups": [
+        {
+          "goal": "Recognize a local image into text and TSV with confidence/coordinates; preserve the original image.",
+          "commands": [
+            "tesseract.recognize"
+          ],
+          "evidence": "registered"
+        }
+      ]
+    },
+    {
+      "id": "gdal",
+      "version": "3.6.2+dfsg-1+b2",
+      "catalog_count": 2,
+      "catalog_ids": [
+        "gdal.inspect",
+        "gdal.translate"
+      ],
+      "ids_sha256": "3777e82cf30d810b3e822ae437349fee4e359fa0cb7c40b8d0736e1a9534cb41",
+      "catalog_sha256": "bd2c2bb2c504e5b3fafa63be522d1a804e15a54ba5c6aadbc3e373726565b77a",
+      "choose_for": "Inspect raster georeferencing and convert raster datasets to GeoTIFF",
+      "sources": "Original geospatial datasets, sidecars, CRS, units, transformation recipe and GeoTIFF",
+      "limits": "Confirm CRS, axis order, units, nodata and extents. Format conversion is not reprojection. Do not invent coordinates; advanced vector workflows use the native ogr tools.",
+      "reference": "https://github.com/OSGeo/gdal",
+      "groups": [
+        {
+          "goal": "Read native raster metadata, coordinate reference system, bands and extents into JSON.",
+          "commands": [
+            "gdal.inspect"
+          ],
+          "evidence": "registered"
+        },
+        {
+          "goal": "Convert a raster to GeoTIFF while preserving the original and recording the recipe.",
+          "commands": [
+            "gdal.translate"
+          ],
+          "evidence": "registered"
+        }
+      ]
+    },
+    {
+      "id": "qgis",
+      "version": "3.22.16+dfsg-1",
+      "catalog_count": 1,
+      "catalog_ids": [
+        "qgis.process"
+      ],
+      "ids_sha256": "34cbf14d6780ce6d5610c8e2065e5af1182604c0b96aa4c3a640b66d0d95f51a",
+      "catalog_sha256": "1a458da26856dd98ba48a083f75dee0ca3ed91610a0a18cd9bc0cc0028b2abe4",
+      "choose_for": "Run explicit native Processing algorithms on local geographic data",
+      "sources": "QGIS projects when authored, input layers/styles, parameter JSON and output layers",
+      "limits": "A Processing output is not automatically a complete QGIS project. Check CRS, geometry, units and relative dependencies; do not rely on unavailable plugins or external providers.",
+      "reference": "https://github.com/qgis/QGIS",
+      "groups": [
+        {
+          "goal": "Run a named QGIS Processing algorithm using an explicit JSON parameter file and copied resources. Outputs must be relative to the private job folder.",
+          "commands": [
+            "qgis.process"
+          ],
+          "evidence": "registered"
+        }
+      ]
+    },
+    {
+      "id": "schemathesis",
+      "version": "4.32.7",
+      "catalog_count": 1,
+      "catalog_ids": [
+        "schemathesis.test"
+      ],
+      "ids_sha256": "5a6d198e2e519d36bafaea499faef75bb8dfc8c8779fee196a44773966583e93",
+      "catalog_sha256": "d6d5e2df41d5897ba0ebcf782a0cac83f6818eeff0b147cdabd81f4568d0ac9f",
+      "choose_for": "Exercise authorized test APIs against a saved OpenAPI contract",
+      "sources": "Original OpenAPI schema, target configuration, native JUnit report and reproducible test parameters",
+      "limits": "Requests may mutate data. Use an authorized disposable target, bound examples and workers, and preserve failing cases. Passing schema checks do not prove business correctness.",
+      "reference": "https://github.com/schemathesis/schemathesis",
+      "groups": [
+        {
+          "goal": "Exercise an explicitly authorized HTTP API from a local OpenAPI schema. Save native JUnit evidence; may create or modify test data.",
+          "commands": [
+            "schemathesis.test"
+          ],
+          "evidence": "registered"
+        }
+      ]
+    },
+    {
+      "id": "k6",
+      "version": "v2.3.0",
+      "catalog_count": 1,
+      "catalog_ids": [
+        "k6.run"
+      ],
+      "ids_sha256": "a8065c7ae0a67dd3e3148f671e230f9f8b3268cbf73e54b247d39ea32f1ee08e",
+      "catalog_sha256": "1b721e3c160a656cb5dfbfa5d5eaf4f63b046877593880960c5620b0e01f4381",
+      "choose_for": "Run explicit small load tests with thresholds and native metric summaries",
+      "sources": "JavaScript scenario, fixtures, thresholds, target configuration and metric summary",
+      "limits": "Select test traffic and authorization before running. Bound VUs, iterations and duration. Report actual load and latency percentiles; a local sample is not a production capacity guarantee.",
+      "reference": "https://github.com/grafana/k6",
+      "groups": [
+        {
+          "goal": "Execute an explicit local load-test script with bounded iterations and virtual users against an authorized test system.",
+          "commands": [
+            "k6.run"
+          ],
+          "evidence": "registered"
+        }
+      ]
+    },
+    {
+      "id": "axe-core",
+      "version": "4.14.0",
+      "catalog_count": 1,
+      "catalog_ids": [
+        "axe-core.audit"
+      ],
+      "ids_sha256": "20153f81a45ed0b6ab598bb2b04aa9a13cac9511291299aa367929af39a1ca0c",
+      "catalog_sha256": "551e84c4716012db5815b9157d58cfc7507e2b9abf08a27b35a7a03cb28f8602",
+      "choose_for": "Inspect actual browser pages for axe accessibility rules",
+      "sources": "Page or application sources, audit URL/state, native JSON findings and incomplete checks",
+      "limits": "Complements Playwright behavior tests. Zero violations does not certify WCAG compliance; keyboard, screen-reader and human review remain necessary.",
+      "reference": "https://github.com/dequelabs/axe-core",
+      "groups": [
+        {
+          "goal": "Run axe-core in real headless Chromium on an authorized page; report violations, incomplete checks and limits.",
+          "commands": [
+            "axe-core.audit"
+          ],
+          "evidence": "registered"
+        }
+      ]
+    },
+    {
+      "id": "zap",
+      "version": "v2.17.0",
+      "catalog_count": 1,
+      "catalog_ids": [
+        "zap.baseline"
+      ],
+      "ids_sha256": "b13e4c0fb70d715940e797897a81ac4f1d4a5c4a1804613a2bda5b2a3e06b42f",
+      "catalog_sha256": "5e81e6f2aa8ad4d2995f90d1222dc6dde06fbeff36cada7bbb59ef41500dbac1",
+      "choose_for": "Spider an authorized application and collect passive security findings with an explicit automation plan",
+      "sources": "Authorization/scope, automation plan, native XML report and reproduction guidance",
+      "limits": "The adapter contains no activeScan job. Spidering still sends requests and can affect poorly designed applications. Keep target scope narrow, triage findings and distinguish an incomplete scan from no findings.",
+      "reference": "https://github.com/zaproxy/zaproxy",
+      "groups": [
+        {
+          "goal": "Run ZAP Quick Start without an active attack against an explicitly authorized URL. Save native XML evidence; passive findings are not a complete penetration test.",
+          "commands": [
+            "zap.baseline"
+          ],
+          "evidence": "registered"
+        }
+      ]
+    },
+    {
+      "id": "gitleaks",
+      "version": "v8.30.1",
+      "catalog_count": 1,
+      "catalog_ids": [
+        "gitleaks.scan"
+      ],
+      "ids_sha256": "5b01250dabe786542d95a37798d9d70737aceaaa6d57aa14dd16273798ab5f4c",
+      "catalog_sha256": "c1b50e22c99c5ddcf4dba022660f5d29ee1ec4d367b57e0d47b76fcf026b9715",
+      "choose_for": "Scan local source directories for leaked credentials without executing the source",
+      "sources": "Redacted native findings, scanner identity and remediation guidance; retain original source privately",
+      "limits": "Do not copy discovered secrets into chat or delivery archives. Redact both logs and reports. A match needs triage; remediation may require credential rotation, not only deleting a line.",
+      "reference": "https://github.com/gitleaks/gitleaks",
+      "groups": [
+        {
+          "goal": "Scan a local directory for leaked secrets without executing its code. Native reports are redacted; findings do not imply exploitability.",
+          "commands": [
+            "gitleaks.scan"
+          ],
+          "evidence": "registered"
+        }
+      ]
+    },
+    {
+      "id": "openmodelica",
+      "version": "1.27.1~2-g6db4671-1",
+      "catalog_count": 1,
+      "catalog_ids": [
+        "openmodelica.simulate"
+      ],
+      "ids_sha256": "f58edc9397f984650d10581648b80ea087ffc26b34a38ec908420e5f0cdc16b8",
+      "catalog_sha256": "5a2d3d7e78563ba1670119dd40836acf87d84cdbcc1b0a9a3ee591c347fee83e",
+      "choose_for": "Compile and simulate explicit Modelica models and MOS recipes on CPU",
+      "sources": "MO models, MOS recipe, parameters, local libraries, units and simulation data",
+      "limits": "Do not silently download libraries. Use explicit initial conditions and solver settings, check actual simulation success and numerical plausibility. This is not engineering certification.",
+      "reference": "https://github.com/OpenModelica/OpenModelica",
+      "groups": [
+        {
+          "goal": "Execute an explicit MOS recipe in a copied project folder; retain Modelica models, parameters and simulation results.",
+          "commands": [
+            "openmodelica.simulate"
+          ],
+          "evidence": "registered"
+        }
+      ]
+    },
+    {
+      "id": "highs",
+      "version": "v1.15.1",
+      "catalog_count": 1,
+      "catalog_ids": [
+        "highs.solve"
+      ],
+      "ids_sha256": "2ff4fe85ba85ca82ab1fdf22c493109bbd1f3406bd15ec43572c0dfb8028d1bd",
+      "catalog_sha256": "6101c5e68d821aa691aee3deed04405c1f85356a368d659f561f0683204f0512",
+      "choose_for": "Solve explicit LP and MPS optimization models",
+      "sources": "LP/MPS model, objective/constraints/units, solver settings, solution and native status",
+      "limits": "Distinguish optimal, feasible, infeasible, unbounded and time-limited outcomes. Never present an infeasible model or a time-limited incumbent as a proven optimum.",
+      "reference": "https://github.com/ERGO-Code/HiGHS",
+      "groups": [
+        {
+          "goal": "Solve an explicit LP/MPS model with bounded CPU time; retain the model, native solution and log. Interpret feasibility and optimality from the report.",
+          "commands": [
+            "highs.solve"
+          ],
+          "evidence": "registered"
+        }
+      ]
+    },
+    {
+      "id": "kicad",
+      "version": "9.0.8+dfsg-1~bpo12+1",
+      "catalog_count": 1,
+      "catalog_ids": [
+        "kicad.export"
+      ],
+      "ids_sha256": "8d4637660cf6f71ecc8fa91a337fd508490e0be6907359ea3c4db7d49dd12d43",
+      "catalog_sha256": "cb4816525f4ce75bb5ae5525228daf19422be3af56829ed91d99cdcf400ba9ed",
+      "choose_for": "Export native electronic schematics and PCBs using headless KiCad CLI",
+      "sources": "KICAD_PRO, KICAD_SCH, KICAD_PCB and any custom symbol/footprint libraries, plus fabrication exports when requested",
+      "limits": "SVG is an export, not an editable circuit source. Check ERC/DRC and footprints with native tools for manufacturing work; SVG export alone proves neither electrical correctness nor fabrication readiness.",
+      "reference": "https://gitlab.com/kicad/code/kicad",
+      "groups": [
+        {
+          "goal": "Export PCB or schematic SVG with native KiCad CLI; preserve native project files and custom libraries.",
+          "commands": [
+            "kicad.export"
+          ],
+          "evidence": "registered"
+        }
+      ]
+    },
+    {
+      "id": "ngspice",
+      "version": "39.3+ds-1",
+      "catalog_count": 1,
+      "catalog_ids": [
+        "ngspice.simulate"
+      ],
+      "ids_sha256": "7762a26b483a1f59e3348395123dd91ce7bd6656699e84852e014a5c66719c1c",
+      "catalog_sha256": "39e8dfe1ff0030e4603c19b9805c4fbae53d829429c243e6d7cc5714c27612e2",
+      "choose_for": "Simulate explicit SPICE netlists and preserve actual raw results",
+      "sources": "Netlist, included component models, stimuli, analysis settings and raw simulation data",
+      "limits": "Check model licenses, convergence, units and operating conditions. Simulation does not guarantee physical performance or safety; preserve all local include files.",
+      "reference": "https://ngspice.sourceforge.io",
+      "groups": [
+        {
+          "goal": "Run a local SPICE netlist in batch mode, preserving models, netlist and native results.",
+          "commands": [
+            "ngspice.simulate"
+          ],
+          "evidence": "registered"
+        }
+      ]
+    },
+    {
+      "id": "prusaslicer",
+      "version": "2.5.0+dfsg-4",
+      "catalog_count": 1,
+      "catalog_ids": [
+        "prusaslicer.slice"
+      ],
+      "ids_sha256": "fe4442e73e605a614f15fc5dfc43aebc4088aa253cbd097d8af9dfe1353977e9",
+      "catalog_sha256": "ed3506f7e2fe040d55edf841c589562d8f8aded9fb69eb06c8f34a025e66f0af",
+      "choose_for": "Slice existing models using explicit printer and material settings",
+      "sources": "Original mesh or 3MF project, printer/material INI, slicing recipe and G-code",
+      "limits": "Do not replace CAD/mesh authoring tools. G-code is machine-specific; confirm printer, bed, nozzle, temperatures, supports and scale before use. Do not claim a physical print was tested.",
+      "reference": "https://github.com/prusa3d/PrusaSlicer",
+      "groups": [
+        {
+          "goal": "Slice a local mesh using an explicit printer/material configuration; preserve model, configuration and G-code. Does not certify printer safety.",
+          "commands": [
+            "prusaslicer.slice"
+          ],
+          "evidence": "registered"
+        }
+      ]
+    },
+    {
+      "id": "usql",
+      "version": "v0.21.6",
+      "catalog_count": 1,
+      "catalog_ids": [
+        "usql.query"
+      ],
+      "ids_sha256": "e09188454477b97769fca15937d2937cdd422ef042bb32e8139e4326595e3c40",
+      "catalog_sha256": "f28c1e723d261cc91d251fdf99145767f7e541a059e19cd90bd119b062b5ff9d",
+      "choose_for": "Use one SQL client across supported relational database drivers for explicit read-only queries.",
+      "sources": "SQL, bounded result JSON and local database snapshot or external-source requirements.",
+      "limits": "Validate one SELECT, confirm the real driver and use read-only database credentials. Client driver availability does not prove a remote connection was tested.",
+      "reference": "https://github.com/xo/usql",
+      "groups": [
+        {
+          "goal": "Run a validated SELECT with the native universal SQL client. Use a read-only connection; retain SQL and result JSON, never connection secrets.",
+          "commands": [
+            "usql.query"
+          ],
+          "evidence": "registered"
+        }
+      ]
+    },
+    {
+      "id": "schemacrawler",
+      "version": "v17.16.0",
+      "catalog_count": 1,
+      "catalog_ids": [
+        "schemacrawler.inspect"
+      ],
+      "ids_sha256": "c29f582135a0cb8982336e91cd2d5e4b71f616936bebc4dc1964dae51f95d25a",
+      "catalog_sha256": "6c5f20b9dee57b611bb980a66bdeb214211d67fb3604936b0fb2b4928bdd6d61",
+      "choose_for": "Reverse engineer real keys, constraints, table relationships and schema metadata through JDBC.",
+      "sources": "Schema JSON/HTML/DOT, database snapshot or connection requirements, diagrams and interpretation notes.",
+      "limits": "Separate declared constraints from inferred associations and sampled data. Validate business meaning with the owner; do not invent tables or relationships from names. The bundled distribution uses GPL v3 and retains JDBC notices.",
+      "reference": "https://github.com/schemacrawler/SchemaCrawler",
+      "groups": [
+        {
+          "goal": "Reverse engineer actual database schema, keys, constraints and associations with JDBC. Inferred relations remain hypotheses.",
+          "commands": [
+            "schemacrawler.inspect"
+          ],
+          "evidence": "registered"
+        }
+      ]
+    },
+    {
+      "id": "dlt",
+      "version": "1.31.0",
+      "catalog_count": 2,
+      "catalog_ids": [
+        "dlt.discover",
+        "dlt.extract"
+      ],
+      "ids_sha256": "5a17fbf2d5babdb462962d5630062592e0f2a99b3ec18e341fc53e45aa717f35",
+      "catalog_sha256": "2d0f7aebfdf4dc85c530e515fcdba4c8fc46399bad6b3ffa851a6469b1e0b337",
+      "choose_for": "Discover SQL/document source metadata and extract bounded data into a reproducible local pipeline.",
+      "sources": "Python pipeline, schema YAML/JSON, query/inputs, portable JSONL, DuckDB snapshot and row reconciliation.",
+      "limits": "Separate SQL metadata, sampled document fields and business hypotheses. Keep pipeline state private per job, preserve type/null semantics and reconcile counts. External reads require authorized read-only credentials; no source-system writes are performed.",
+      "reference": "https://github.com/dlt-hub/dlt",
+      "groups": [
+        {
+          "goal": "Inspect SQL metadata with SQLAlchemy or MongoDB collection structure. Produce editable schema JSON; sampling is not complete semantic understanding.",
+          "commands": [
+            "dlt.discover"
+          ],
+          "evidence": "registered"
+        },
+        {
+          "goal": "Extract bounded local JSON/CSV or authorized read-only SQL/MongoDB data into a private DuckDB pipeline. Preserve pipeline, schema, receipt and reconciliation.",
+          "commands": [
+            "dlt.extract"
+          ],
+          "evidence": "registered"
+        }
+      ]
+    },
+    {
+      "id": "sqlglot",
+      "version": "30.25.0",
+      "catalog_count": 1,
+      "catalog_ids": [
+        "sqlglot.analyze"
+      ],
+      "ids_sha256": "4e37bb9a0f15be6d17f57063a0ce0bb1f5eefc2134a8e7c89fae5f430be861c1",
+      "catalog_sha256": "6987964ecdf470692b65ea532d79697dd538c0887b64ab6dd3217007cc798c73",
+      "choose_for": "Parse SQL dialects and derive table/column lineage using real expressions and actual supplied schemas.",
+      "sources": "Original SQL, actual schema dictionary, normalized SQL, lineage JSON and limits.",
+      "limits": "Parsing does not execute SQL or prove database semantics. Unknown columns, wildcard expansion, dynamic SQL and missing schema remain explicit limits; never invent lineage. Use SchemaCrawler/dlt for live metadata and SQLMesh for executable model plans.",
+      "reference": "https://github.com/tobymao/sqlglot",
+      "groups": [
+        {
+          "goal": "Parse and normalize SQL and derive actual table/column lineage where schema is available; do not invent business meaning or execute SQL.",
+          "commands": [
+            "sqlglot.analyze"
+          ],
+          "evidence": "registered"
+        }
+      ]
+    },
+    {
+      "id": "sqlmesh",
+      "version": "0.236.4",
+      "catalog_count": 1,
+      "catalog_ids": [
+        "sqlmesh.plan"
+      ],
+      "ids_sha256": "e6db1d268b86fad9946f658b7ff5d7d5c32350cb7456addabbeacd1e8c90de5c",
+      "catalog_sha256": "28f9bf84c2a3a9df63da3b70d76eb8ef3a9a42e39a1e8ed4a2d44d9b355c5174",
+      "choose_for": "Plan, test and explain SQL/Python analytical transformations using an isolated local DuckDB project.",
+      "sources": "SQL/Python models, tests, configuration, copied project, DuckDB results and plan/audit evidence.",
+      "limits": "Explain the actual graph and reconcile known totals. Apply only when apply_local=true, in the isolated copied project. This adapter does not deploy to remote production. Exchange JSONL/CSV/Parquet rather than assuming all DuckDB file versions interoperate.",
+      "reference": "https://github.com/TobikoData/sqlmesh",
+      "groups": [
+        {
+          "goal": "Validate tests and explain a SQL/Python transformation project in an isolated local DuckDB environment. Apply only with apply_local=true; never auto-apply to a remote database.",
+          "commands": [
+            "sqlmesh.plan"
+          ],
+          "evidence": "registered"
+        }
+      ]
     }
   ]
 }

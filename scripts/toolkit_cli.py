@@ -85,6 +85,9 @@ def freecad_command(*args):
 
 
 def native_version(app):
+    try:from .extended_tools import APPS as EXTENDED_APPS, version as extended_version
+    except ImportError:from extended_tools import APPS as EXTENDED_APPS, version as extended_version
+    if app in EXTENDED_APPS:return extended_version(app,sys.modules[__name__])
     if app in ('opengrep','trivy'):
         try:from .security_tools import version
         except ImportError:from security_tools import version
@@ -131,6 +134,11 @@ def epub_jar():
 
 
 def invoke(app, action, args):
+    try:from .extended_tools import APPS as EXTENDED_APPS, invoke as extended_invoke
+    except ImportError:from extended_tools import APPS as EXTENDED_APPS, invoke as extended_invoke
+    if app in EXTENDED_APPS:
+        checked_args(app,action,args)
+        return extended_invoke(app,action,args,sys.modules[__name__])
     if app in ('opengrep','trivy'):
         checked_args(app,action,args)
         try:from .security_tools import invoke as scan

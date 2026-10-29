@@ -23,6 +23,10 @@ app.include_router(cloud_router)
 app.include_router(i18n_router)
 from .environment_routes import router as environment_router, preload_startup
 app.include_router(environment_router)
+from .skill_routes import router as skill_router
+app.include_router(skill_router)
+from .maintenance import router as maintenance_router
+app.include_router(maintenance_router)
 from .version_routes import router as version_router
 app.include_router(version_router)
 from contextlib import asynccontextmanager

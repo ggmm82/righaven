@@ -20,7 +20,7 @@ async function api<T>(path:string, init?:RequestInit):Promise<T> {
   return response.json() as Promise<T>;
 }
 const json=(value:unknown,method="POST"):RequestInit=>({method,headers:{"Content-Type":"application/json"},body:JSON.stringify(value)});
-const engines:Record<string,string>={codex:"OpenAI Codex",gemini:"Google Antigravity",deepseek:"DeepSeek",openai:"OpenAI-compatible API"};
+const engines:Record<string,string>={claude:"Anthropic Claude Code",codex:"OpenAI Codex",gemini:"Google Antigravity",deepseek:"DeepSeek",openai:"OpenAI-compatible API"};
 
 export default function ModelsPage() {
   const {locale}=useI18n(); const it=locale==="it-IT";
@@ -76,11 +76,11 @@ export default function ModelsPage() {
     setNotice(it?"Connessione verificata e modelli assegnati.":"Connection checked and model assignments saved.");
   });}
   async function loadModels(){await operation(async()=>{
-    const result=engine==="openai" ? await api<{models:string[]}>("team/models",json(payload())) : await api<{models:string[]}>("team/models?engine="+engine+(connection?"&connection_id="+connection:""));
-    setModels(result.models);setNotice(it?"Elenco modelli aggiornato.":"Model list refreshed.");
+    const result=engine==="openai" ? await api<{models:string[];hint?:string}>("team/models",json(payload())) : await api<{models:string[];hint?:string}>("team/models?engine="+engine+(connection?"&connection_id="+connection:""));
+    setModels(result.models);setNotice(result.hint??(it?"Elenco modelli aggiornato.":"Model list refreshed."));
   });}
   async function connect(){await operation(async()=>{setSession(undefined);setCode("");const value=await api<Session>("login/"+engine,json({}));setSession(value);setSessionId(value.id);});}
-  const account=engine==="codex"||engine==="gemini";
+  const account=engine==="codex"||engine==="gemini"||engine==="claude";
   const url=session?.authorization_url?.startsWith("https://")?session.authorization_url:undefined;
   return <main className="flex-1 overflow-y-auto"><div className="mx-auto max-w-4xl space-y-8 p-6 md:p-10">
     <header className="space-y-3 border-b pb-6"><p className="text-xs uppercase tracking-widest text-muted-foreground">RigHaven / {it?"Configurazione":"Configuration"}</p><h1 className="text-3xl font-semibold tracking-tight">{it?"Modelli e risorse":"Models & resources"}</h1><p className="text-muted-foreground">{it?"Una connessione, due assegnazioni. Le skill utilizzano i modelli scelti per coordinatore e squadra.":"One connection, two assignments. Skills use the models selected for the coordinator and team."}</p></header>
@@ -101,7 +101,7 @@ export default function ModelsPage() {
       </form>
       {sessionId&&<section className="space-y-4 rounded-2xl border p-6"><div className="flex items-center justify-between gap-4"><h2 className="font-semibold">{it?"Accesso ufficiale":"Official sign-in"}</h2><button className={button} onClick={()=>{setSessionId(undefined);setSession(undefined);}}>{session?.finished?it?"Chiudi":"Close":it?"Annulla accesso":"Cancel sign-in"}</button></div>
         {url&&<div className="space-y-3"><a href={url} target="_blank" rel="noopener noreferrer" className="block break-all underline">{it?"Apri il login ufficiale":"Open official sign-in"}</a><button className={button} onClick={()=>void navigator.clipboard.writeText(url).catch(()=>setError(it?"Copia il link dal dettaglio qui sotto.":"Copy the link from the details below."))}>{it?"Copia link":"Copy link"}</button><input aria-label={it?"Link di accesso copiabile":"Copyable sign-in link"} className={field} value={url} readOnly onFocus={event=>event.target.select()}/></div>}
-        {session?.engine==="gemini"&&!session?.finished&&<form className="flex gap-3" onSubmit={event=>{event.preventDefault();void operation(async()=>{await api("login-session/"+sessionId+"/input",json({text:code}));setCode("");});}}><input aria-label={it?"Codice restituito da Google":"Code returned by Google"} className={field} required value={code} onChange={event=>setCode(event.target.value)} autoComplete="off"/><button className={button} disabled={busy}>{it?"Invia codice":"Submit code"}</button></form>}
+        {(session?.engine==="gemini"||session?.engine==="claude")&&!session?.finished&&<form className="flex gap-3" onSubmit={event=>{event.preventDefault();void operation(async()=>{await api("login-session/"+sessionId+"/input",json({text:code}));setCode("");});}}><input aria-label={it?"Codice restituito dal provider":"Code returned by the provider"} className={field} required value={code} onChange={event=>setCode(event.target.value)} autoComplete="off"/><button className={button} disabled={busy}>{it?"Invia codice":"Submit code"}</button></form>}
         <p role="status" className="text-sm">{session?.finished?session.returncode===0?it?"Account collegato. Ora scegli il modello e salva.":"Account connected. Now choose a model and save.":it?"Accesso non riuscito":"Sign-in failed":it?"In attesa del completamento dell’accesso…":"Waiting for sign-in to complete…"}</p><details><summary className="cursor-pointer text-sm">{it?"Dettaglio della sessione":"Session details"}</summary><pre className="mt-3 max-h-72 overflow-auto whitespace-pre-wrap break-all rounded-lg bg-muted p-4 text-xs">{session?.text}</pre></details>
       </section>}
     </>}

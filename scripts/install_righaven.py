@@ -49,6 +49,10 @@ def install_deb(asset, archive):
 def install_toolkit(app, archive, destination, root, bin_dir, arch):
     kind = app['install']['kind']
     destination.mkdir(parents=True, exist_ok=True)
+    if kind in ('extended-native', 'verapdf-installer', 'extension-node'):
+        import install_extended
+        import sys
+        return install_extended.install(app, archive, destination, root, bin_dir, arch, sys.modules[__name__])
     if kind == 'security-native':
         target=destination/'bin'/app['id'];target.parent.mkdir(parents=True,exist_ok=True)
         if app['id']=='opengrep':shutil.copy2(archive,target)
@@ -79,7 +83,9 @@ def install_toolkit(app, archive, destination, root, bin_dir, arch):
         for library in metadata['libraries']:
             download(library,jars/library['name'])
         return str(destination/'jdk/bin/java')
-    if kind == 'debian':
+    if kind in ('debian', 'upstream-deb'):
+        from install_extended import repository
+        repository(app, root, download)
         install_deb(app['assets'][arch], archive)
         return app['install']['native_path']
     if kind == 'zip':

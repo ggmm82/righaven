@@ -13,7 +13,7 @@ from . import state
 from .state import atomic_json, applications
 
 RECIPE = 1
-DEPS = {'mermaid':['playwright'],'excalidraw':['playwright'],'bpmn':['playwright'],
+DEPS = {'usql':['sqlglot'],'mermaid':['playwright'],'excalidraw':['playwright'],'bpmn':['playwright'], 'axe-core':['playwright'], 'ocrmypdf':['tesseract'],
         'aubio':['ffmpeg'],'whisper':['ffmpeg'],'manim':['ffmpeg'],'opentimelineio':['ffmpeg'],
         **{tool:['ffmpeg'] for tool in ('filmcraft','soundcraft','effectcraft','fluidsynth','musescore')}}
 PREPARING = set()
@@ -326,7 +326,16 @@ def _prepare(key,spec, *, acquire,progress,exact,cancel,cache_dependencies,deadl
             ready=candidates(spec)
             if ready:
                 return claim_environment(save(ready[0]['id'],last_used=time.time(),error='',failure={}),claim)
-        save(key,status='queued',tools=spec['tools'],core=spec['core'],versions=spec.get('versions',{}),error='',failure={},container='',attempt_started_at=time.time())
+        previous=read(key)
+        if not previous:
+            prior=[]
+            for path in folder().glob('*.json'):
+                try:prior.append(read(path.stem))
+                except (OSError,ValueError):continue
+            prior=[p for p in prior if p and p.get('status')=='ready' and set(p.get('tools',[]))==set(spec['tools'])]
+            previous=max(prior,key=lambda p:p.get('updated_at',0),default=None)
+        from .environment_changes import difference
+        save(key,status='queued',tools=spec['tools'],core=spec['core'],versions=spec.get('versions',{}),error='',failure={},container='',attempt_started_at=time.time(),preparation_reason=difference(previous,spec))
     deadline=deadline if deadline is not None else time.monotonic()+3600
     try:
         check_cancel(cancel)
@@ -406,10 +415,10 @@ def _prepare(key,spec, *, acquire,progress,exact,cancel,cache_dependencies,deadl
                     check_cancel(cancel)
                     if progress:
                         from .cancellation import requested
-                        from .progress import update
-                        if requested() or any(__import__('harness.progress',fromlist=['read_status']).read_status(progress).get(k) for k in ('cancel_requested','finish_requested')):
+                        from .progress import update,utcnow
+                        if requested() or any(read_status(progress).get(k) for k in ('cancel_requested','finish_requested')):
                             raise RuntimeError('Preparazione annullata; i file del progetto sono conservati')
-                        update(progress,heartbeat_at=__import__('harness.progress',fromlist=['utcnow']).utcnow())
+                        update(progress,heartbeat_at=utcnow())
                     if time.monotonic()>deadline:raise TimeoutError('Tempo di preparazione ambiente esaurito')
                     # select keeps cancellation and heartbeat responsive during quiet compiler commands.
                     import select
@@ -439,11 +448,22 @@ def _prepare(key,spec, *, acquire,progress,exact,cancel,cache_dependencies,deadl
                 '--change','LABEL org.righaven.harness.installation='+installation(),
                 '--change','CMD ["python3","-c","print(\\"Ambiente RigHaven pronto\\")"]',name,image,timeout=900)
             inspected=json.loads(docker('image','inspect',identifier))[0]
+            parent_size=(base or {}).get('size_bytes')
+            if parent_size is None:
+                try:parent_size=int(docker('image','inspect',base_image,'--format','{{.Size}}'))
+                except (ValueError,subprocess.SubprocessError):parent_size=None
             remove(name)
             cleaned=True
-            result=save(key,status='ready',image=image,image_id=inspected['Id'],size_bytes=inspected['Size'],
+            observed_versions={}
+            for line in log.read_text(errors='replace').splitlines():
+                try:event=json.loads(line)
+                except ValueError:continue
+                if isinstance(event,dict) and event.get('phase')=='verified':observed_versions=event.get('installed_versions',{})
+            result=save(key,installed_versions=observed_versions,status='ready',image=image,image_id=inspected['Id'],size_bytes=inspected['Size'],
                 last_used=time.time(),container='',tools=spec['tools'],core=spec['core'],error='',failure={},
                 base_image_id=base_image,reused_tools=base['tools'] if base else [],versions=spec.get('versions',{}),version_names={k:v['app']['version'] for k,v in packages(spec.get('versions',{})).items()})
+            if parent_size is not None:
+                result=save(key,parent_size_bytes=parent_size,added_size_bytes=max(0,inspected['Size']-parent_size))
             prune(exclude=(key,))
             return claim_environment(result,claim)
         except Exception as exc:

@@ -35,11 +35,12 @@ def update(user,name,**fields):
         return value
 
 
-def begin(user,name,selection):
+def begin(user,name,selection,reason=None):
     previous=read(user,name)
     value={'phase':'resolving_versions','started_at':time.time(),'updated_at':time.time(),
         'selection':selection,'tool':'','index':0,'total':len(selection),'error':'','environment_id':'',
         'previous_ready_id':previous.get('ready_id') or previous.get('previous_ready_id','')}
+    if reason:value['reason']=reason
     state.atomic_json(path(user,name),value)
     return value
 

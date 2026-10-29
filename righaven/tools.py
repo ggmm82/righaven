@@ -238,7 +238,7 @@ def harness_plan(runtime: Runtime, brief: str = '', steps_json: str = '',
         status: clarifying, working, review, ready, blocked or idle.
         product_path: Existing verified final product to show prominently; ready requires it.
         requirements_json: Media acceptance requirements such as {"audio":true,"video":true}; follow the user's brief.
-        roles_json: JSON roles compiled for this project: id, title, mission, expertise, procedure, checks, deliverables, skills (exact authorized native names discovered with harness_skills), tools (available catalog IDs, optional), inputs and risks. Selected skill requirements add their tools automatically. Roles are dynamic, not tool identities; scope and package versions are recorded.
+        roles_json: JSON roles compiled for this project: id, title, mission, expertise, procedure, checks, deliverables, skills (exact authorized native names discovered with harness_skills), tools (available catalog IDs, optional), inputs and risks. Selected skill requirements add their tools automatically. Roles are dynamic, not tool identities; scope and package versions are recorded. Each role requires capability_rationale: explain why the selected capabilities can construct its actual content/model, not merely export the delivery format; consider relevant owner environments and justify simpler alternatives. Do not assign every available tool or impose a fixed team.
         memory_json: JSON object with project-specific decisions, facts, questions and asset references; merge top-level keys, keep evidence and uncertainty explicit.
         outcome_json: JSON intended result with title, result, format (delivery form, not necessarily a file extension), use, quality, constraints, assumptions, questions. Questions are at most three decisive missing user choices; ask them with ask_clarification, then replace the object with the real answers and questions empty before delegating. Do not ask again for choices already explicit in the brief.
         strategy_json: Optional method selection, especially after a failed sample: method, reason, state (exploring/selected/needs_user), up to three alternatives with method, reason, tools, status (candidate/tested/unavailable) and evidence_paths (existing workspace files required for tested). To pause for user help include stop_reason (missing_input/capability_limit/user_choice/budget) and concrete user_action. A quality failure alone cannot establish an external blocker. Revisit team assumptions before requesting assets; changing method does not authorize lowering user requirements.
@@ -254,8 +254,8 @@ def harness_plan(runtime: Runtime, brief: str = '', steps_json: str = '',
     if roles_json:
         for spec in json.loads(roles_json):
             require_tools(policy, spec.get('tools', []))
-            if not spec.get('tools') and not spec.get('skills') and (not isinstance(spec.get('capability_rationale'),str) or not spec['capability_rationale'].strip()):
-                raise ValueError('Consulta harness_skills: seleziona strumenti/metodi pertinenti dagli ambienti disponibili, oppure indica capability_rationale per motivare esplicitamente perché il solo runtime base soddisfa il risultato e le verifiche.')
+            if not isinstance(spec.get('capability_rationale'),str) or not spec['capability_rationale'].strip():
+                raise ValueError('Consulta harness_skills e indica capability_rationale per ogni ruolo: quali capacità costruiscono il contenuto/modello, quali lo impaginano o esportano e quali lo verificano; confronta gli ambienti pertinenti. Il formato finale non giustifica da solo la scelta dello strumento. Anche il solo runtime base richiede una motivazione.')
     learning = {}
     requests = user_requests(runtime)
     if read_project(workspace):
@@ -363,8 +363,8 @@ def harness_delegate(agent: str, task: str, runtime: Runtime, step_id: str = '',
         available_files=result.get('available_files', [])[:20],
         source_status=handoff.get('delivery', {}).get('source_status'),
         outputs=[{**{k: clean_summary(f.get(k, '')) for k in ('path', 'role', 'format', 'open_with', 'editability')},
-                  'reopen': {'status': f.get('reopen', {}).get('status', 'not_run'),
-                             'evidence': clean_summary(f.get('reopen', {}).get('evidence', ''))},
+                  'reopen': {'status': (f.get('reopen') or {}).get('status', 'not_run'),
+                             'evidence': clean_summary((f.get('reopen') or {}).get('evidence', ''))},
                   'limitations': [clean_summary(s) for s in f.get('limitations', [])[:3]]}
                  for f in handoff.get('delivery', {}).get('files', [])[:20]],
         checks=[{'name': clean_summary(c.get('name')), 'status': c.get('status'),

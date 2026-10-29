@@ -38,7 +38,19 @@
     "prepare_environment.py": "scripts/prepare_environment.py",
     "resolve_tool_version.py": "scripts/resolve_tool_version.py",
     "apply_tool_versions.py": "scripts/apply_tool_versions.py",
-    "install_environment_tools.py": "scripts/install_environment_tools.py"
+    "install_environment_tools.py": "scripts/install_environment_tools.py",
+    "extended_specs.py": "scripts/extended_specs.py",
+    "extended_tools.py": "scripts/extended_tools.py",
+    "extended_runner.py": "scripts/extended_runner.py",
+    "extended_axe.cjs": "scripts/extended_axe.cjs",
+    "acceptance_extended.py": "scripts/acceptance_extended.py",
+    "install_extended.py": "scripts/install_extended.py",
+    "install_righaven.py": "scripts/install_righaven.py",
+    "install_system_packages.py": "scripts/install_system_packages.py",
+    "data_specs.py": "scripts/data_specs.py",
+    "data_tools.py": "scripts/data_tools.py",
+    "data_job.py": "scripts/data_job.py",
+    "acceptance_data.py": "scripts/acceptance_data.py"
   },
   "righaven-worker": {
     "run_agent.py": "righaven/run_agent.py",
@@ -64,6 +76,7 @@
     "revision.py": "righaven/revision.py",
     "component_sources.py": "righaven/component_sources.py",
     "timing.py": "righaven/timing.py",
-    "early_delivery.py": "righaven/early_delivery.py"
+    "early_delivery.py": "righaven/early_delivery.py",
+    "claude_cli.py": "righaven/claude_cli.py"
   }
 }

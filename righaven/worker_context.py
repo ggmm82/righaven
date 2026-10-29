@@ -20,7 +20,7 @@ def build_prompt(job, selected, output_dir):
             'Riusa i sorgenti della prova e correggi gli scarti rimasti; evita un nuovo campione equivalente.'
     }.get(purpose, 'Riusa i risultati disponibili e completa soltanto la parte affidata.')
     return '\n\n'.join([
-        'Lavora in italiano. Ruolo: ' + (job.get('role') or {}).get('title', job['agent']) + '.',
+        'Follow the user’s output language. Role: ' + (job.get('role') or {}).get('title', job['agent']) + '.',
         'Incarico del coordinatore:\n' + job['task'],
         *(['Versioni effettive (prevalgono sulle skill): '+json.dumps(job['tool_versions'])] if job.get('tool_versions') else []),
         'Disponibilità effettiva: ' + json.dumps(policy, ensure_ascii=False) +

@@ -16,8 +16,18 @@ VERIFICATION_DEPENDENCIES = {
         'manim':{'ffmpeg'}, 'opentimelineio':{'ffmpeg'}, 'calibre':{'pdfcraft'}}
 
 
-def step(label):
-    print(json.dumps({'phase':label,'at':time.time()}),flush=True)
+def step(label,**fields):
+    print(json.dumps({'phase':label,'at':time.time(),**fields}),flush=True)
+
+
+def installed_versions():
+    installed=json.loads((ROOT/'installed.json').read_text())
+    result={row['id']:row['version'] for row in installed}
+    lock=json.loads((ROOT/'catalog.lock.json').read_text())
+    result.update({'provider-'+('agy' if key=='gemini' else key):value for key,value in lock.get('cli_runtimes',{}).items() if key in ('codex','claude')})
+    agy=ROOT/'antigravity.lock.json'
+    if agy.is_file():result['provider-agy']=json.loads(agy.read_text())['version']
+    return result
 
 
 def verify_native(tools):
@@ -56,7 +66,7 @@ def main():
         if tools:verify_native(tools)
         shutil.rmtree('/mnt/user-data',ignore_errors=True)
         Path('/mnt/user-data').mkdir(parents=True,exist_ok=True)
-        step('verified')
+        step('verified',installed_versions=installed_versions())
         return
     inherited=json.loads((ROOT/'installed.json').read_text())
     reused={row['id'] for row in inherited}
@@ -97,7 +107,7 @@ def main():
         'checks':{'registries':'passed','native_workflows':tested,'workflows_not_run':sorted(set(tools)-set(tested))}}))
     shutil.rmtree('/mnt/user-data',ignore_errors=True)
     Path('/mnt/user-data').mkdir(parents=True,exist_ok=True)
-    step('verified')
+    step('verified',installed_versions=installed_versions())
 
 
 if __name__=='__main__':

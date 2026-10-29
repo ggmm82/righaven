@@ -117,3 +117,54 @@ async def update_user_account(
 
     assert user is not None
     return _to_response(user)
+
+
+class AdminAccountCreate(BaseModel):
+    email: str = Field(min_length=3,max_length=254)
+    password: str = Field(min_length=8,max_length=1024)
+    system_role: str = 'user'
+
+
+@router.get('/roles')
+async def list_assignable_roles(request: Request):
+    await require_admin_user(request, detail="user administration requires an admin credential")
+    return {'roles': sorted(assignable_role_names())}
+
+
+@router.post('',status_code=201)
+async def create_account(body: AdminAccountCreate,request: Request):
+    await require_admin_user(request, detail="user administration requires an admin credential")
+    from app.gateway.deps import get_local_provider
+    from app.gateway.routers.auth import _validate_strong_password
+    if body.system_role not in assignable_role_names():
+        raise HTTPException(422,'Unknown account role')
+    try:
+        _validate_strong_password(body.password)
+        user=await get_local_provider().create_user(body.email,body.password,body.system_role,needs_setup=True)
+        return _to_response(user)
+    except ValueError as error:
+        raise HTTPException(422,str(error)) from None
+
+
+class AccountCredentialAction(BaseModel):
+    confirmation: str
+    new_password: str | None = Field(default=None,min_length=8,max_length=1024)
+
+
+@router.post('/{user_id}/credentials')
+async def manage_account_credentials(user_id:UUID,body:AccountCredentialAction,request:Request,
+                                     repository:SQLiteUserRepository=Depends(get_user_repository)):
+    await require_admin_user(request, detail="user administration requires an admin credential")
+    user=await repository.get_user_by_id(str(user_id))
+    if not user:raise HTTPException(404,'Account not found')
+    if body.confirmation!=str(user.email):raise HTTPException(409,'Type the exact account email to confirm')
+    from app.gateway.auth.password import hash_password_async
+    from app.gateway.routers.auth import _validate_strong_password
+    try:
+        hashed=None
+        if body.new_password is not None:
+            _validate_strong_password(body.new_password)
+            hashed=await hash_password_async(body.new_password)
+        changed=await repository.manage_credentials(str(user_id),hashed)
+        return _to_response(changed)
+    except ValueError as error:raise HTTPException(422,str(error)) from None

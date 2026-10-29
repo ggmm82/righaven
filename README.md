@@ -1,88 +1,242 @@
 # RigHaven
 
-RigHaven is a home and an on-demand toolbox for agents. It coordinates dynamic
-project roles, prepares isolated environments containing open-source CLI tools,
-and preserves project state, editable sources and reusable lessons.
+RigHaven is a home and an on-demand toolbox for AI agents. Describe an objective;
+the coordinator composes project-specific roles, selects useful skills and CLI
+tools, and follows the work through execution, review and delivery.
+
+A project can use **several environments, including in parallel**. Each assignment
+gets an isolated working area; other roles consume deliberately published
+contributions. Prepared software can be reused without sharing private project
+files or reusing a previous assignment's writable workspace.
+
+The managed catalog contains **62 tools** for documents, graphics, audio/video,
+CAD, diagrams, data analysis, PDF/OCR checks, GIS, software testing, security,
+simulation, electronics and print preparation. Skills describe methods and tool
+expertise; environments combine software capabilities; roles are composed for
+the objective. See [optional environments](docs/OPTIONAL-ENVIRONMENTS.md).
+
+## Getting started
+
+1. Open your RigHaven installation and sign in. Use **Create account** when the
+   administrator has enabled registration. The initial setup creates the first
+   administrator; later registrations create ordinary users.
+2. In Community installations, the administrator connects the AI providers under
+   **Models & resources**. OpenAI Codex, Antigravity CLI, Claude Code CLI, DeepSeek and custom
+   OpenAI-compatible endpoints are supported. Choose models for the coordinator,
+   the executing team or both. Ordinary users use the configured shared service.
+3. Select **New task**. Describe the result, audience, delivery format, references
+   and constraints. Answer the coordinator's material clarification questions.
+   You do not have to create a team or preload an environment first: authorized
+   capabilities can be prepared on demand.
+4. Follow **Tasks & results** for decisions, assignments, progress, revisions and
+   files. Independent assignments can run in different environments within the
+   configured CPU/RAM and concurrency limits; dependent work waits for its inputs.
+5. Open the delivered files and editable sources, review the instructions and
+   remaining checks, then accept the result or request a focused revision.
+   A technically valid file is not automatically an approved final product.
+
+The coordinator records a capability rationale for each new role: why its tools
+can create the requested content or editable model, not just export the final
+format. The team view exposes this choice under **Why these tools**. Architecture
+and process models can use C4/Structurizr or BPMN, then be integrated into a PDF;
+simple informal diagrams can use a simpler method when it meets the brief.
+
+### Prepare an environment for recurring work
+
+Open **Environments → Add environment** to start from a Gallery pack, a starter
+template, or a blank configuration. Describe its purpose and select its skills.
+Gallery packs and templates are starting points, not already running machines. Keep occasional tools **on demand**,
+or preload selected programs for repeated use. Preparation runs native workflow
+checks before reporting programs ready.
+
+You can edit or clone a configuration and select verified program versions,
+including `latest` for the compatible stable release. A new version may require a
+new software variant; preparation details explain the trigger and observed change.
+The page separates available profiles, configuration updates, first-use preparation,
+and failed checks. Active temporary environments assembled for a chat appear
+separately with their tools and a link to the assignment, even without a saved
+profile. Changing the team model provider explains the new runtime requirement
+and retains the previous preparation history.
+
+The terminal is a disposable inspection session: shell edits do not automatically
+update the prepared image or its reproducible recipe.
+
+An illustrative project:
+
+```mermaid
+flowchart LR
+    Goal[User objective] --> Coordinator
+    Coordinator --> A[Dynamic role A · environment A]
+    Coordinator --> B[Dynamic role B · environment B]
+    A --> Inputs[Published contributions]
+    B --> Inputs
+    Inputs --> C[Next role · suitable environment]
+    C --> Delivery[Outputs · editable sources · review]
+```
 
 ## Run the Community edition
 
-Copy `.env.example` to `.env`, set `RIGHAVEN_PASSWORD` to a unique password
-of at least 16 characters, then run `bash righaven.sh up`.
-Open http://localhost:2026. Build tools require Docker Compose and the private
-runtime requires privileged container support. The application does not mount
-the host Docker socket. Persistent named volumes preserve application data and
-the internal runtime across container replacement.
+Requirements: Docker Compose and a platform that supports the privileged internal
+runtime container. The application does not mount the host Docker socket.
 
-For Hostinger, use only the Compose attached to a successful verified release.
-The GitHub workflow builds images, checks native tools, tests portability and
-boots the complete stack before publishing the deployment bundle.
+```sh
+git clone https://github.com/ggmm82/righaven.git
+cd righaven
+cp .env.example .env
+```
 
-## Architecture
+Set a unique `RIGHAVEN_PASSWORD` of at least 16 characters in `.env`, then start:
 
-- `core/backend` and `core/frontend`: the checked-in application engine and web workspace.
-- `righaven/`: project coordination, runtime supervision, delivery checks and Gallery services.
-- `skills/`: operational methods and tool-specific instructions.
-- `config/worker-bundle.json`: the trusted code mounted read-only into each job.
-- `runtime-docker`: an application-owned daemon with persistent software storage.
-- Individual tasks receive isolated staging directories. Only validated outputs
-  are promoted into the project.
+```sh
+bash righaven.sh up
+```
 
-OpenAI Codex, Antigravity CLI, DeepSeek and custom OpenAI-compatible endpoints
-can be configured for the coordinator, specialists or both. Roles are compiled
-for the project; an environment supplies capabilities rather than fixing a role.
+Open http://localhost:2026. The local Caddy proxy first asks for `RIGHAVEN_USER`
+and `RIGHAVEN_PASSWORD`; create or sign in to your personal RigHaven account after
+that gate. These proxy credentials do not create an application administrator.
 
-## Gallery
+For Hostinger, use the **sealed Compose attached to a successful verified release**.
+That deployment routes to the native account login through Traefik. Keep the same
+installation and persistent data when replacing containers. See
+[data across releases](docs/PERSISTENT-DATA.md).
 
-The Gallery catalogs environments, CLI tools and skills. Activation uses the
-signed-in core account. An environment pack creates a native Agent configuration
-with on-demand deployment; a skill pack goes through the native skill archive
-scanner before it becomes usable. Disabled native tools remain disabled.
+## Personal work and shared infrastructure
 
-Published pack versions are immutable and belong to their publisher.
-Community manifests cannot mark themselves verified or overwrite built-in packs.
-The current runtime supports tools in its managed catalog; arbitrary executable
-or dependency declarations are not installed automatically.
+| Personal to each account | Shared within the installation |
+|---|---|
+| Chats, project files and outputs | Prepared software images and cache |
+| Native team profiles, skill selections and environment preferences | Server CPU/RAM and execution capacity |
+| Project experience and accepted reusable lessons | Community provider connections managed by the administrator |
+| Private configurations before explicit publication | Instance Gallery and approved remote catalogs |
 
-Catalogs can be exported and hosted on HTTPS. Administrators approve remote
-catalog URLs with an exact SHA-256 pin from the Gallery interface; synchronization
-validates the complete catalog before replacing its local snapshot. Remote pack
-identifiers are namespaced and cannot overwrite local or built-in capabilities.
-The hash pin authenticates approved catalog bytes; it is not a publisher signature.
-A public hosted directory, publisher signatures and automatic installation of
-arbitrary community CLI tools remain under development.
+Administrators manage accounts, shared connections, default program versions,
+capacity and trusted software-image imports. Users can manage their own tasks
+and environments, export configuration or prepared software, and propose reusable
+Gallery content. Software-image import and registry administration require an
+administrator. Software reuse does not publish another user's files or lessons.
 
-## Community and hosted editions
+## Account administration, instructions and reset
 
-Both editions use the same core authentication and execution engine.
-`RIGHAVEN_EDITION=cloud` identifies a hosted deployment, not a completed SaaS
-service. The preview includes encrypted private API connections (DeepSeek and
-approved OpenAI-compatible endpoints), separate coordinator/team assignments,
-and transactional account job limits. Shared organizations, commercial plans,
-token billing and complete hosted journeys remain under development.
+Administrators use **User administration** to create accounts with a temporary
+password, assign configured roles, suspend or reactivate access, reset passwords,
+and revoke existing login sessions. The last active administrator is protected.
+Changing SSO passwords remains the identity provider's responsibility.
 
-The former preview's separate users, JWTs, simulated Google/GitHub login,
-password reset and custom encrypted vault have been removed.
-Authentication uses `/api/v1/auth` and configured native OIDC providers.
-No endpoint may reset a password merely from an email address.
+**Tools & skills → select a skill → Full instructions** shows the actual Markdown
+and reference files. Saving validates and scans the content and creates a
+personal copy, retaining references and the enabled/disabled state. Other users'
+instructions remain unchanged. New assignments load the copy without reinstalling
+software. Write purpose, procedure, editable deliverables and observable checks;
+do not put credentials in skill text. Restore shipped instructions through
+**Maintenance & reset**.
 
-The workspace opens on an operational overview with tasks, projects and a toolbox.
-See [core boundary](docs/CORE-BOUNDARY.md) for removed demo/editorial components
-and [workspace guide](docs/WORKSPACE.md) for the user journey.
+**Environments → Manage** separates **Programs & versions** from **Skills &
+instructions**. Installed versions come from the prepared software manifest;
+requested versions and available updates are shown separately. Older images may
+need **Detect installed versions**, which reads their manifest without installing
+software. A skill is an instruction package, not an installed program. The
+advanced native profile editor edits the same environment configurations; it is
+not another team. Project roles remain dynamic.
 
-## Languages
+**Maintenance & reset** lets you select one item or a category: conversations and
+project files, environment profiles, personal skill overrides, or version choices.
+Administrators can also reset shared model assignments and global version choices.
+A preview lists affected items and requires its exact typed confirmation. Tokens
+expire after ten minutes and are single-use; changed targets require a new
+preview. Active work must finish first. Accounts, provider credentials and shared
+software images are retained. Export project files before deleting conversations.
 
-English is the default. Italian is available in the workspace and shares its
-language preference with Gallery and hosting pages. Advanced core surfaces
-still fall back to English; some project controls still require localization.
-Complete Italian coverage is an open delivery requirement, not a claimed feature.
+## Data engineering
+
+Choose **Environments → Examples → Data Engineering**, or activate **Data
+Engineering Rig** from the Gallery. Prepare only the tools needed for the task:
+
+| Need | Capability |
+| --- | --- |
+| Multi-database queries | usql; private, authorized read-only connections |
+| Reverse engineering | SchemaCrawler JDBC metadata; declared keys and constraints |
+| Extraction and discovery | dlt with SQLAlchemy/MongoDB; bounded snapshots and reconciliation |
+| SQL dialects and lineage | SQLGlot using actual SQL and optional observed schema |
+| Tested transformations | SQLMesh in an isolated local DuckDB project |
+| Python exploration | Jupyter notebooks and DuckDB |
+| Interactive or paginated reports | Quarto HTML and Typst PDF, retaining editable sources |
+
+See [data engineering guide](docs/DATA-ENGINEERING.md) for connection setup,
+workflow, source delivery and verification limits. Driver availability does not
+certify an untested remote connection; inferred relationships are hypotheses.
+
+## Gallery and portability
+
+Gallery packs describe reusable environments, tools and skills. Activating an
+environment creates a native configuration with on-demand preparation; activating
+a skill uses the native archive scanner. Disabled capabilities remain disabled.
+Only tools supported by the managed runtime are installable automatically.
+
+Environment configuration export, full software-image export and Gallery
+publication are separate operations. A prepared-software package includes the
+image, Dockerfile and rebuild recipe, without accounts or project data. Gallery
+publication uses **Environments → Manage → Share to catalog**: enter English and
+Italian metadata, inspect the actual purpose, instructions, skills and managed
+tool choices, then explicitly confirm the preview. Nothing is published by saving
+an environment. Published versions are immutable and publisher-owned; new entries
+are unverified and become visible in this installation. Private custom skill files
+must be packaged separately; local verified version IDs require software export
+rather than pretending they are portable catalog references.
+
+Search environments by purpose, name, skill or tool. Configuration history retains
+up to 50 owner-scoped snapshots; restore revalidates the current capabilities and
+version choices. Project files are unaffected. A `latest` choice follows today's
+verified stable release, so restoring configuration is not an image rollback.
+
+Gallery details include **1–5 star reviews, comments and publisher replies**.
+Ratings belong to a published version, with one editable rating per account and
+version; favorites are separate. Imported environments retain their catalog origin
+and link directly to feedback for that version, even after a newer release appears. Experiences are self-reported, not certifications.
+Review authors can delete their own content. Reports go to administrator moderation
+and do not automatically hide a review. Public discussion uses pseudonyms instead
+of exposing account IDs or email addresses.
+
+Administrators can synchronize HTTPS catalogs pinned to an approved SHA-256.
+A public global Hub, publisher signatures and reviewed onboarding of arbitrary
+third-party CLI recipes remain under development. See the
+[user journey review](docs/USER-JOURNEY-REVIEW.md) for remaining onboarding,
+account onboarding, private skill packaging and public distribution work.
+
+## Hosted preview and languages
+
+Community and hosted deployments use the same account and execution engine.
+`RIGHAVEN_EDITION=cloud` enables the hosted preview, with encrypted private
+DeepSeek/OpenAI-compatible API profiles and account job limits. It does not yet
+provide shared organizations, invitations, commercial plans or token billing.
+The hosted private-connection flow does not currently match the Community
+Codex/Antigravity login flow.
+
+English is the default; Italian is available. Some operational and advanced
+surfaces still need localization. See [workspace guide](docs/WORKSPACE.md),
+[product status](docs/PRODUCT-STATUS.md) and [core boundary](docs/CORE-BOUNDARY.md).
 
 ## Development and verification
 
-Run `python scripts/validate.py` and
-`python -m unittest discover -s tests -v` for local checks.
-The CI additionally validates real Gateway authentication, Gallery-created native
-environments, resource supervision, tools, portable sources and container startup.
-Passing isolated unit tests does not certify a public SaaS deployment.
+```sh
+python scripts/validate.py
+python -m unittest discover -s tests -v
+```
 
-The project is MIT licensed. Incorporated source notices are preserved in
+CI also exercises the real Gateway, authentication, private ownership, native
+skills, prepared environments, output fixtures, portability and container
+replacement. A passing technical fixture does not certify artistic quality,
+engineering safety or a complete public SaaS service.
+
+RigHaven is [MIT licensed](LICENSE). Incorporated source notices are preserved in
 [docs/UPSTREAM-LICENSE](docs/UPSTREAM-LICENSE).
+
+---
+
+## 👤 Author
+
+**Marco Gramuglia**  
+*Computer Engineer | Data Engineer | Analytics & AI | IT Service Management*
+
+- 📍 Rome, Italy
+- 💼 LinkedIn: [linkedin.com/in/marco-gramuglia-2686bb30](https://www.linkedin.com/in/marco-gramuglia-2686bb30)
+- 🐙 GitHub: [@ggmm82](https://github.com/ggmm82)

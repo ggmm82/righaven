@@ -7,8 +7,9 @@ import {
   UploadIcon,
 } from "lucide-react";
 import dynamic from "next/dynamic";
-import { useRouter } from "next/navigation";
-import { type ChangeEvent, useMemo, useRef, useState } from "react";
+import { SkillInstructions } from "./skill-instructions";
+import { useRouter, useSearchParams } from "next/navigation";
+import { type ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -98,6 +99,10 @@ function SkillList({ skills, query }: { skills: Skill[]; query: string }) {
   const [filter, setFilter] = useState<string>("public");
   const { mutate: enableSkill, isPending: isEnabling } = useEnableSkill();
   const [selectedSkill, setSelectedSkill] = useState<Skill | null>(null);
+  const params=useSearchParams();
+  const requestedSkill=params.get("skill");
+  const [openedRequest,setOpenedRequest]=useState<string|null>(null);
+  useEffect(()=>{if(requestedSkill&&requestedSkill!==openedRequest){const found=skills.find(s=>s.name===requestedSkill);if(found){setSelectedSkill(found);setOpenedRequest(requestedSkill);}}},[requestedSkill,skills,openedRequest]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { mutateAsync: uploadSkillArchive, isPending: isUploading } =
     useUploadSkillArchive();
@@ -334,7 +339,7 @@ function SkillList({ skills, query }: { skills: Skill[]; query: string }) {
         open={selectedSkill !== null}
         onOpenChange={(open) => !open && setSelectedSkill(null)}
       >
-        <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-xl">
+        <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-3xl">
           {selectedSkill && (
             <>
               <DialogHeader>
@@ -353,6 +358,7 @@ function SkillList({ skills, query }: { skills: Skill[]; query: string }) {
               <div className="text-muted-foreground text-sm leading-7 whitespace-pre-wrap">
                 {selectedSkill.description}
               </div>
+              <SkillInstructions key={selectedSkill.name} name={selectedSkill.name}/>
               <div className="flex flex-wrap items-center justify-between gap-3 border-t pt-4">
                 <span className="text-muted-foreground text-xs">
                   {selectedSkill.license || sourceLabel(selectedSkill)}

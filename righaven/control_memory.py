@@ -55,7 +55,7 @@ def continuation(review):
     failed = [c for c in criteria if c['status'] == 'failed']
     pending = [c for c in criteria if c['status'] == 'not_run']
     unavailable = set(review.get('unavailable_methods', []))
-    waiting = [c for c in pending if c.get('method') in unavailable]
+    waiting = [c for c in pending if (c.get('blocked_by') or c.get('method')) in unavailable]
     if failed:
         action = 'revise_checkpoint' if checkpoint else 'revise_product'
         instruction = 'Correggi solo i difetti osservati pertinenti a questa verifica, riusando i sorgenti. Non ripetere controlli che il collegamento non può eseguire.'
@@ -73,7 +73,9 @@ def continuation(review):
         instruction = 'Presenta il prodotto e i suoi sorgenti; prima di dichiararlo pronto verifica anche i controlli tecnici della consegna.'
     return {'action': action, 'instruction': instruction, 'final_status': review.get('status'),
             'failed_requirement_ids': list(dict.fromkeys(c.get('requirement_id') for c in failed if c.get('requirement_id'))),
-            'unavailable_methods': sorted({c['method'] for c in waiting})}
+            'unavailable_methods': sorted({c.get('blocked_by') or c['method'] for c in waiting}),
+            'next_actions':[{'method':item['method'],'reason':clean_summary(item['reason'],200),
+                             'next_action':clean_summary(item['next_action'],250)} for item in review.get('observation_limits',[])[:3]]}
 
 
 def project_view(project):
@@ -107,7 +109,8 @@ def project_view(project):
     value['comparison'] = fit(project.get('comparison'), 120)
     value['continuation'] = continuation({'criteria': project.get('review_criteria', []),
         'status': project.get('quality_status'), 'checkpoint': project.get('review_checkpoint'),
-        'unavailable_methods': project.get('review_unavailable_methods', [])})
+        'unavailable_methods': project.get('review_unavailable_methods', []),
+        'observation_limits': project.get('review_observation_limits', [])})
     strategy = project.get('strategy') or {}
     value['strategy'] = {k: strategy.get(k) for k in ('state', 'method', 'reason', 'user_action', 'stop_reason', 'record')}
     value['strategy']['alternatives'] = [fit(a, 160) for a in strategy.get('alternatives', [])]

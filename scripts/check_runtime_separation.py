@@ -23,7 +23,7 @@ def main():
         shutil.copytree(repo/'docker',source/'docker')
         shutil.copy2(repo/'versions.lock.json',source/'versions.lock.json')
         shutil.copy2(repo/'righaven/docker_archives.py',source/'righaven/docker_archives.py')
-        for name in ('install_antigravity.py','antigravity.lock.json','install_righaven.py','install_system_packages.py','check_provider_clis.py','build_design_web.cjs','StructurizrJob.java','package_environment_image.py'):
+        for name in ('install_antigravity.py','antigravity.lock.json','claude.lock.json','install_righaven.py','install_system_packages.py','check_provider_clis.py','build_design_web.cjs','StructurizrJob.java','package_environment_image.py'):
             shutil.copy2(repo/'scripts'/name,source/'scripts'/name)
         env = {'RIGHAVEN_WORKER_SOURCE': str(source), 'RIGHAVEN_BUNDLED_SKILLS': str(repo / 'skills')}
         with patch.dict(os.environ, env), patch.object(state, 'STATE', persistent), patch.object(runtime, 'host_path', side_effect=str), patch.object(factory, 'pinned', return_value=set()):
