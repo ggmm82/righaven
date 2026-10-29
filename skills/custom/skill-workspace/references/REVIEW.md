@@ -66,3 +66,15 @@ Prima di bocciare, osserva il difetto sul prodotto reale, localizzalo e descrivi
 Un consiglio facoltativo usa `advisory` e non diventa una correzione obbligatoria. Per un difetto confermato mantieni il criterio `failed`, proponi una correzione locale, indica i file interessati e il controllo minimo che la conferma. Non ripetere tutte le verifiche già valide, salvo dipendenze o regressioni da controllare.
 
 Esempio di rilievo da adattare alle prove reali: `{"requirement_id":"functional_result","severity":"blocking","location":"Caso di prova e punto del risultato interessato","evidence":"Input effettivo, risultato osservato e risultato atteso","impact":"Impedisce il comportamento richiesto; correggere quel caso senza rifare le parti valide"}`.
+
+### Missing observation is an actionable dependency
+
+Inspect the actual transport and tools before claiming a modality is unavailable. For a PDF, render the **delivered PDF** with an authorized Poppler environment and inspect those page images with a working visual tool; images compiled separately from the authoring source are not the same evidence. If the role lacks an authorized renderer, ask the coordinator to compose a focused verification role rather than regenerating the product.
+
+Split structural correctness and visual legibility into separate observations. If an observation cannot run, keep its status `not_run` and add an explicit limitation to `quality-review.json`:
+
+```json
+{"observation_limits":[{"method":"visual","reason":"The selected connection cannot inspect page images.","next_action":"Use a visual-capable reviewer on the saved page images, or request the user's visual check."}]}
+```
+
+A criterion waiting for another observation can declare `blocked_by: "visual"` (or another actual method). This never approves it or removes a genuine failure. The coordinator should present saved files and the specific missing check, preserve all valid sources, and avoid repeating the same unsupported verification. Report quota/authentication failures separately from defects in the product.

@@ -16,7 +16,7 @@ def needs_continuation(project):
     criteria = [c for c in project.get('review_criteria', []) if c.get('critical', True)]
     pending = [c for c in criteria if c.get('status') != 'passed']
     unavailable = project.get('review_unavailable_methods', [])
-    if pending and all(c.get('status') == 'not_run' and c.get('method') in unavailable for c in pending):
+    if pending and all(c.get('status') == 'not_run' and (c.get('blocked_by') or c.get('method')) in unavailable for c in pending):
         return False
     return True
 

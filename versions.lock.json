@@ -1767,7 +1767,19 @@
       "download_base": "https://deb.debian.org/",
       "install": {
         "kind": "debian",
-        "native_path": "/usr/bin/pdftoppm"
+        "native_path": "/usr/bin/pdftoppm",
+        "native_paths": [
+          "/usr/bin/pdftotext",
+          "/usr/bin/pdfinfo",
+          "/usr/bin/pdftocairo",
+          "/usr/bin/pdfimages",
+          "/usr/bin/pdftohtml",
+          "/usr/bin/pdffonts",
+          "/usr/bin/pdfdetach",
+          "/usr/bin/pdfattach",
+          "/usr/bin/pdfseparate",
+          "/usr/bin/pdfunite"
+        ]
       }
     },
     {
@@ -1997,7 +2009,10 @@
       "download_base": "https://deb.debian.org/debian/",
       "install": {
         "kind": "debian",
-        "native_path": "/usr/bin/gdalinfo"
+        "native_path": "/usr/bin/gdalinfo",
+        "native_paths": [
+          "/usr/bin/gdal_translate"
+        ]
       }
     },
     {
@@ -2044,7 +2059,10 @@
       "download_base": "https://deb.debian.org/debian/",
       "install": {
         "kind": "debian",
-        "native_path": "/usr/bin/qgis_process"
+        "native_path": "/usr/bin/qgis_process",
+        "native_paths": [
+          "/usr/bin/qgis_process.bin"
+        ]
       }
     },
     {
@@ -2171,7 +2189,8 @@
       },
       "download_base": "https://registry.npmjs.org/",
       "install": {
-        "kind": "extension-node"
+        "kind": "extension-node",
+        "uses_shared_browser": true
       }
     },
     {

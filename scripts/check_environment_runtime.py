@@ -71,6 +71,9 @@ def main():
                     repo=Path(__file__).resolve().parents[1]
                     subprocess.run(['docker','run','--rm','--init','--network=none','--memory=1536m','--cpus=1.5','--pids-limit=256','--cap-drop=ALL','--security-opt=no-new-privileges','--entrypoint','python3','--mount','type=bind,src='+str(repo/'scripts')+',dst=/review,readonly',ready['image_id'],'/review/check_artifact_recovery.py'],check=True)
 
+                if 'axe-core' in requested:
+                    subprocess.run([sys.executable,str(Path(__file__).with_name('check_extended_worker_scope.py')),ready['image_id']],check=True)
+
                 assert factory.evict(ready['id'])['removed']
                 if args.incremental_check:assert factory.evict(parent['id'])['removed']
                 made.clear()

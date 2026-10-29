@@ -74,3 +74,31 @@ class ExtendedToolTests(unittest.TestCase):
         with patch.object(cli,'run') as run:
             with self.assertRaises(ValueError):cli.invoke('qgis','process',{'input':str(source),'output':str(self.root/'out'),'algorithm':'native:buffer'})
             run.assert_not_called()
+
+    def test_shared_browser_and_debian_aliases_respect_role_scope(self):
+        from righaven.capability_policy import policy_from_names,worker_arguments
+        from righaven.environment_runtime import closure
+        scoped=policy_from_names({'skill-axe-core'})
+        arguments=worker_arguments(scoped,'/host/disabled')
+        self.assertIn('/opt/righaven/toolkit:ro,size=1m',arguments)
+        self.assertNotIn('/opt/righaven/playwright-browsers:ro,size=1m',arguments)
+        for target in ['/usr/bin/pdftotext','/usr/bin/qgis_process.bin','/usr/bin/kicad-cli','/usr/local/bin/quarto']:
+            self.assertIn('type=bind,src=/host/disabled,dst='+target+',readonly',arguments)
+        self.assertEqual(set(closure(['ocrmypdf'])),{'ocrmypdf','tesseract'})
+
+    def test_axe_version_plan_accepts_only_its_own_dependency_lock(self):
+        from righaven.tool_versions import builtins,validate
+        bundle={'app':builtins()['axe-core'],'files':{'toolkit-lock/extended/axe-core/package.json':'{}'}}
+        self.assertEqual(validate(bundle),bundle)
+        bundle['files']['toolkit-lock/extended/quarto/package.json']='{}'
+        with self.assertRaises(ValueError):validate(bundle)
+
+    def test_native_cli_does_not_recurse_into_the_kicad_adapter(self):
+        self.assertEqual(native.binary('kicad',cli),'/usr/bin/kicad-cli')
+
+    def test_local_api_fixture_serves_real_http_without_external_network(self):
+        from scripts.acceptance_extended import server
+        import urllib.request
+        with server() as target:
+            with urllib.request.urlopen(target+'/status',timeout=5) as response:
+                self.assertEqual(json.load(response),{'ok':True})

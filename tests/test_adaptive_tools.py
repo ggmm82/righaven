@@ -432,3 +432,38 @@ class AdaptiveToolTests(unittest.TestCase):
             self.assertEqual(len(value['pending_sources']),6)
             full=json.loads(read_document(workspace,{'path':value['details_path'],'sha256':value['details_sha256']}))
             self.assertEqual(full,result)
+
+    def test_nullable_reopen_metadata_does_not_turn_saved_delivery_into_tool_error(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory)
+            runtime=SimpleNamespace(state={'messages':[SimpleNamespace(type='human',id='request',content='Create a document')]})
+            result={'ok':True,'handoff':{'checks':[],'delivery':{'source_status':'included','files':[
+                {'path':'/mnt/user-data/outputs/document.docx','role':'editable_source','reopen':None}]}}}
+            with patch('righaven.tools.workspace_for',return_value=root),patch('righaven.state.team',return_value={'engine':'codex','model':'shared'}),patch('righaven.tools.delegate',return_value=json.dumps(result)):
+                harness_plan.func(runtime=runtime,brief='Document',outcome_json=json.dumps({'result':'Document','format':'Editable document'}))
+                reply=json.loads(harness_delegate.func(agent='wordcraft',task='Create',runtime=runtime))
+                from righaven.project_skills import read_document
+                full=json.loads(read_document(root,{'path':reply['details_path'],'sha256':reply['details_sha256']})) if reply.get('details_path') else reply
+            self.assertTrue(reply['ok']);self.assertEqual(full['outputs'][0]['reopen']['status'],'not_run')
+
+    def test_native_end_hook_presents_existing_files_without_another_model_turn_or_approval(self):
+        from langchain.agents import create_agent
+        from langchain_core.messages import AIMessage,HumanMessage,ToolMessage
+        from langchain_core.language_models.fake_chat_models import FakeMessagesListChatModel
+        from righaven_core.agents.thread_state import ThreadState
+        from righaven.completion_middleware import ProjectCompletionMiddleware
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);out=root/'outputs/job';out.mkdir(parents=True);file=out/'document.pdf';file.write_bytes(b'existing published fixture')
+            virtual='/mnt/user-data/outputs/job/document.pdf'
+            project={'id':'fixture','status':'review','product_path':virtual,'results':[{'path':virtual,'role':'export','delivery_id':'job'}]}
+            model=FakeMessagesListChatModel(responses=[AIMessage('Document available for review')])
+            graph=create_agent(model,tools=[],middleware=[ProjectCompletionMiddleware()],state_schema=ThreadState)
+            resolver=SimpleNamespace(resolve_virtual_path=lambda *a,**k:file)
+            with patch('righaven.completion_middleware.workspace_for',return_value=root),patch('righaven.completion_middleware.read_project',return_value=project),patch('righaven_core.tools.builtins.present_file_tool.get_paths',return_value=resolver):
+                result=graph.invoke({'messages':[HumanMessage('Show the saved result')],'thread_data':{'outputs_path':str(root/'outputs')}},config={'configurable':{'thread_id':'fixture'}},context={'user_id':'owner'})
+            self.assertEqual(result['artifacts'],[virtual])
+            generated=[m for m in result['messages'] if isinstance(m,AIMessage) and m.additional_kwargs.get('righaven_auto_presentation')]
+            self.assertEqual(len(generated),1)
+            self.assertEqual(generated[0].tool_calls[0]['name'],'present_files')
+            self.assertTrue(any(isinstance(m,ToolMessage) and m.tool_call_id==generated[0].tool_calls[0]['id'] for m in result['messages']))
+            self.assertEqual(project['status'],'review')

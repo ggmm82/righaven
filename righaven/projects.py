@@ -162,8 +162,9 @@ def visible_attempts(step, product_path):
 
 
 def sync_acceptance(workspace, requests, criteria=None):
-    if not requests:
-        return
+    if not requests:return
+    from .project_controls import operational_resume
+    requests=[r for r in requests if not operational_resume(r)]
     with locked(workspace) as folder:
         value = load(folder, workspace)
         if not value:
@@ -174,11 +175,14 @@ def sync_acceptance(workspace, requests, criteria=None):
             requests = [*requests, 'Scelta esplicita dell’utente dal pannello progetto: ' + json.dumps(direction, ensure_ascii=False)]
         previous = old.get('user_requests', [])
         documents = json.loads(read_document(workspace, old['request_manifest'])) if old.get('request_manifest') else []
+        documents=[d for d in documents if not operational_resume(read_document(workspace,d))]
+        previous=[r for r in previous if not operational_resume(r)]
         if not documents and previous:
             # Recover the original from complete human history after upgrading the 4000-char copy.
-            if requests[0].startswith(previous[0]) and len(requests[0]) > len(previous[0]):
+            if requests and requests[0].startswith(previous[0]) and len(requests[0]) > len(previous[0]):
                 previous[0] = requests[0]
             requests = previous + [r for r in requests if r not in previous]
+        if not requests and not documents:return
         documents, manifest = save_requests(workspace, requests, documents)
         selected = documents[:1] + documents[-8:] if len(documents) > 9 else documents
         # Provenance must also resolve a quoted choice outside the compact
@@ -416,6 +420,7 @@ def read_project(workspace):
             result['review_criteria'] = review.get('criteria', []) if matches else []
             result['review_checkpoint'] = review.get('checkpoint') if matches else None
             result['review_unavailable_methods'] = review.get('unavailable_methods', []) if matches else []
+            result['review_observation_limits'] = review.get('observation_limits', []) if matches else []
             result['revision_actions'] = review.get('revision_actions', []) if matches else []
             if matches and review.get('findings'):
                 result['review_findings'] = review['findings']
@@ -471,8 +476,8 @@ def create_plan(workspace, brief, steps, project_type='', omissions=None, *, sum
         deps = step.get('depends_on', [])
         if not isinstance(deps, list) or any(not isinstance(d, str) or not STEP_ID.fullmatch(d) for d in deps):
             raise ValueError('Riferimenti degli input non validi')
-        if step.get('status', 'pending') not in ('pending', 'skipped', 'review'):
-            raise ValueError('Le attività aggiornabili possono essere pending, skipped o review')
+        if step.get('status', 'pending') not in ('pending', 'skipped', 'review','completed'):
+            raise ValueError('Le attività aggiornabili possono essere pending, skipped o review; completed può soltanto confermare un esito già registrato.')
         incoming.append({**step, 'depends_on': deps})
     with locked(workspace) as folder:
         value = load(folder, workspace)
@@ -508,6 +513,12 @@ def create_plan(workspace, brief, steps, project_type='', omissions=None, *, sum
             value['requirements'] = requirements
         for item in incoming:
             previous = next((s for s in value['steps'] if s['id'] == item['id']), None)
+            if item.get('status')=='completed':
+                if (not previous or previous['status']!='completed' or not previous['attempts']
+                        or any(item.get(k)!=previous.get(k) for k in ('agent','goal','depends_on'))
+                        or 'role_id' in item and item['role_id']!=previous.get('role_id')):
+                    raise ValueError('completed richiede un incarico già concluso e invariato: il piano non può dichiarare un’esecuzione mai avvenuta.')
+                continue
             if previous:
                 if previous['status'] == 'running':
                     raise ValueError('Non modificare un’attività in esecuzione')

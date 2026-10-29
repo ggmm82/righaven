@@ -126,8 +126,14 @@ def invoke(app,action,args,cli):
         argv=[native,'run',str(actual),'--url',target,'--max-examples',str(args.get('max_examples',3)),
           '--workers','1','--phases','fuzzing','--report','junit','--report-junit-path',str(output/'junit.xml')];expected=[output/'junit.xml']
     elif app=='k6':
-        argv=[native,'run','--no-usage-report','--vus',str(args.get('virtual_users',1)),'--iterations',str(args.get('iterations',1)),
-          '--max-duration','60s','--summary-export',str(output/'summary.json'),str(actual)];expected=[output/'summary.json']
+        runner=output/'bounded-scenario.js'
+        options={'scenarios':{'bounded':{'executor':'shared-iterations','vus':args.get('virtual_users',1),
+                  'iterations':args.get('iterations',1),'maxDuration':'60s'}},'setupTimeout':'30s','teardownTimeout':'30s'}
+        runner.write_text('import * as scenario from '+json.dumps(str(actual))+';\nexport const options='+json.dumps(options)+';\n'
+          'export default function(data){return scenario.default(data); }\n'
+          'export function setup(){if(scenario.setup)return scenario.setup();}\n'
+          'export function teardown(data){if(scenario.teardown)return scenario.teardown(data); }\n')
+        argv=[native,'run','--no-usage-report','--summary-export',str(output/'summary.json'),str(runner)];expected=[output/'summary.json']
     elif app=='axe-core':
         argv=['node',str(cli.HERE/'extended_axe.cjs'),str(cli.INSTALL),target,str(output/'report.json')];expected=[output/'report.json']
         env['PLAYWRIGHT_BROWSERS_PATH']=str(cli.INSTALL/'playwright-browsers')

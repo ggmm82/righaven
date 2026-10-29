@@ -198,7 +198,7 @@ async def write_definition(value,request,create):
             agent=await create_agent_endpoint(AgentCreateRequest(name=value.name,**fields),request)
         else:agent=await update_agent(value.name,AgentUpdateRequest(**fields),request)
         await run_in_threadpool(profiles.set_deployment,user,value.name,value.mode,value.ephemeral,value.preload_tools,value.tool_versions)
-        if value.mode=='preload' and runtimes.enabled():schedule(user,value.name,reschedule=True)
+        if value.mode=='preload' and runtimes.enabled():schedule(user,value.name,reschedule=True,trigger='configuration')
         return await run_in_threadpool(summary,user,agent)
     except ValueError as e:raise HTTPException(422,str(e)) from e
 
@@ -252,7 +252,7 @@ async def prepare(name:str,request:Request):
     return {'accepted':True,'environment':value}
 
 
-def schedule(user,name,*,reschedule=False,refresh_versions=True):
+def schedule(user,name,*,reschedule=False,refresh_versions=True,trigger='manual',trigger_tool=''):
     """Preparation outlives the HTTP connection; all writes retain the native owner."""
     key=(user,name)
     with runtimes._PREPARING_LOCK:
@@ -263,7 +263,7 @@ def schedule(user,name,*,reschedule=False,refresh_versions=True):
             active['refresh_versions']=active.get('refresh_versions',True) or refresh_versions
             return
         runtimes.PREPARING.add(key)
-        control={'cancel':threading.Event(),'error':'','reschedule':False,'refresh_versions':refresh_versions}
+        control={'cancel':threading.Event(),'error':'','reschedule':False,'refresh_versions':refresh_versions,'trigger':trigger,'trigger_tool':trigger_tool}
         runtimes.PREPARATION_CONTROL[key]=control
     def work():
         try:
@@ -277,7 +277,8 @@ def schedule(user,name,*,reschedule=False,refresh_versions=True):
             if agent is None:return
             initial=profiles.resolve_skills(user,agent.skills)
             choice=selections(user,name,initial['tools'],team('squad')['engine'])
-            preparation.begin(user,name,choice)
+            from .environment_changes import reason
+            preparation.begin(user,name,choice,reason(control['trigger'],control['trigger_tool']))
             pins=resolve_versions(choice,wait=True,cancel=control['cancel'],refresh=control['refresh_versions'],on_progress=lambda **fields:preparation.update(user,name,**fields))
             while not control['cancel'].is_set():
                 yielded=threading.Event()
@@ -322,7 +323,7 @@ def schedule(user,name,*,reschedule=False,refresh_versions=True):
             with runtimes._PREPARING_LOCK:
                 runtimes.PREPARING.discard(key)
                 again=control['reschedule']
-            if again:schedule(user,name,refresh_versions=control['refresh_versions'])
+            if again:schedule(user,name,refresh_versions=control['refresh_versions'],trigger=control['trigger'],trigger_tool=control['trigger_tool'])
     threading.Thread(target=guarded,daemon=True,name='environment-preparation').start()
 
 
@@ -343,7 +344,7 @@ def schedule_affected(tool):
                 tools=set(runtimes.closure(profiles.preloaded_tools(prefs,resolved['tools'])))
                 provider={'codex':'provider-codex','gemini':'provider-agy'}.get(team('squad')['engine'])
                 if tool not in tools and tool!=provider:continue
-                schedule(user.name,name,reschedule=True);count+=1
+                schedule(user.name,name,reschedule=True,trigger='version_change',trigger_tool=tool);count+=1
             except (OSError,ValueError):continue
     return count
 
@@ -370,7 +371,7 @@ def preload_startup():
                     if agent is None:continue
                     try:current=summary(user.name,agent)
                     except (OSError,ValueError,RuntimeError):
-                        schedule(user.name,name,refresh_versions=False);continue
+                        schedule(user.name,name,refresh_versions=False,trigger='startup');continue
                     runtime=current['runtime']
                     if runtime.get('status')=='ready':
                         preparation.update(user.name,name,phase='ready',ready_id=runtime.get('id',''),environment_id=runtime.get('id',''),
@@ -378,7 +379,7 @@ def preload_startup():
                         continue
                     # A deploy restores missing programs; it is not an instruction
                     # to look for new upstream releases or invalidate ready images.
-                    schedule(user.name,name,refresh_versions=False)
+                    schedule(user.name,name,refresh_versions=False,trigger='startup')
                 except Exception as error:
                     # Optional preload restoration must not take down every API
                     # or prevent other owners' valid environments from restoring.

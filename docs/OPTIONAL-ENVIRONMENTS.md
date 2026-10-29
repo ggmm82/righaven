@@ -35,3 +35,13 @@ It does not certify professional quality, engineering safety, accessibility comp
 Every skill describes when to select the tool, its editable sources, native schema discovery, acceptance evidence and limitations. Deliver primary products separately from editable sources and technical reports. Preserve custom libraries, models, datasets, configurations and licenses that a source package needs after relocation. Do not put credentials or unredacted secret findings in deliverables or reusable lessons.
 
 Network-testing adapters require explicit target authorization and bounded parameters. The ZAP adapter runs spider/passive/report jobs, with no active-scan job. Native scripts and schemas must be inspected before execution; API tests and crawling can affect the authorized target's data.
+
+## Delivery and preparation reliability
+
+Saved products are presented with RigHaven's native file tool when a coordinator ends a turn without attaching them. The presentation uses existing scoped files and hashes, does not start another model call, and does not change the quality/approval verdict. Optional `reopen: null` metadata remains an unperformed check, not a tool-wrapper exception. The application's exact resume instruction is a run control rather than a new product requirement; genuine revision requests still invalidate outdated acceptance reviews.
+
+Review reports can declare `observation_limits` with an actual method, reason and concrete next action. Dependent criteria can identify the blocked observation with `blocked_by`; failed checks remain failed and unavailable observations remain `not_run`. This distinguishes a missing visual/listening capability from a defect requiring another production run.
+
+Preparation records retain the trigger (manual, configuration, version activation, or startup) and an observed reason for a new recipe (base, versions, tools, or unavailable image). The interface shows the explanation in preparation details. These diagnostics do not claim to reconstruct a reason missing from historical records.
+
+Image sizes are uncompressed totals including the base and inherited layers, not RAM or exclusive disk usage. The UI explains that shared layers must not be summed across profiles. Newly prepared images also record the added size relative to the actual parent; this is not a measurement of exclusive disk space. Heavy programs and provider CLI overrides can increase image layers even when native tools are reused.

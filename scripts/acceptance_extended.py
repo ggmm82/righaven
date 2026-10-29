@@ -174,7 +174,13 @@ def kicad(c):
 def ngspice(c):
     source=c.root/'divider.cir';source.write_text('Voltage divider\nV1 in 0 DC 10\nR1 in out 1k\nR2 out 0 1k\n.op\n.end\n')
     out=c.root/'Simulation';call(c,'simulate',input=str(source),output=str(out))
-    text=(out/'native.stdout').read_text();c.check('Native circuit simulation produces operating point',bool((out/'simulation.raw').stat().st_size) and 'Operating Point' in text,text)
+    import struct,re
+    raw=(out/'simulation.raw').read_bytes();header,separator,data=raw.partition(b'Binary:\n')
+    text=header.decode();variables=int(re.search(r'No. Variables:\s*(\d+)',text)[1])
+    names=[line.split()[1] for line in text.split('\nVariables:\n',1)[1].splitlines() if line.strip()]
+    values=struct.unpack('<'+'d'*variables,data[:8*variables])
+    measured=dict(zip(names,values))
+    c.check('Native voltage divider actually measures five volts',bool(separator) and abs(measured['v(out)']-5)<1e-6,measured)
 
 
 def prusaslicer(c):
