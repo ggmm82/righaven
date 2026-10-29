@@ -103,7 +103,7 @@ class EnvironmentTests(unittest.TestCase):
         cancel=threading.Event();cancel.set()
         with patch.object(factory,'docker',return_value='sha256:core') as docker:
             with self.assertRaisesRegex(RuntimeError,'annullata'):factory.ensure(['d2'],cancel=cancel)
-            self.assertEqual(docker.call_count,1)
+            docker.assert_not_called()
 
     def test_sources_only_add_real_native_formats_not_arbitrary_python(self):
         import zipfile

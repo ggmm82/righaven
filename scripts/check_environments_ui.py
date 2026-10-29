@@ -56,7 +56,7 @@ def main():
                 if self.path.endswith('/prepare-preloaded'):
                     return self.send(json.dumps({'environments':[p['name'] for p in state['environments'] if p['deployment']['mode']=='preload']}))
                 if self.path.endswith('/tool-versions/default'):
-                    library['defaults'][value['tool']]=value['revision'];return self.send(json.dumps({'preparing_environments':1}))
+                    library['defaults'][value['tool']]=value['revision'];return self.send(json.dumps({'preparing_environments':0 if value['tool'].startswith('provider-') else 1}))
                 if self.path.endswith('/tool-versions'):
                     library['versions']=[{'id':'a'*64,'tool':value['tool'],'version':'1.4.7','state':'ready'}]
                     library['jobs']=[{'id':'b'*32,'tool':value['tool'],'version':value['version'],'resolved_version':'1.4.7','state':'ready'}]
@@ -122,11 +122,13 @@ def main():
                 expect(dialog.get_by_text('Strumenti selezionati: d2, pandoc',exact=True)).to_be_visible()
                 page.keyboard.press('Escape')
                 state['environments'][0]['runtime']={'status':'on_demand'}
-                state['environments'][0]['configuration_change']={'code':'provider_changed','message':'Antigravity → Codex. La variante precedente è ancora conservata.','previous_available':True,'previous_providers':['Antigravity'],'requested_providers':['Codex']}
+                state['environments'][0]['configuration_change']={'code':'selection_changed','message':'Le versioni selezionate sono cambiate. La variante precedente è ancora conservata.','previous_available':True,'previous_providers':[],'requested_providers':[]}
                 expect(page.get_by_role('button',name='Da aggiornare (1)',exact=True)).to_be_visible(timeout=8000)
                 expect(card.get_by_role('button',name='Aggiorna ambiente',exact=True)).to_be_visible()
                 expect(card).to_contain_text('La variante precedente è ancora conservata.')
                 state['environments'][0].pop('configuration_change')
+                state['environments'][0]['runtime']={'status':'installing','reused_tools':['d2'],'install_tools':['pandoc']}
+                expect(card.get_by_test_id('software-reuse')).to_contain_text('1 riutilizzati · 1 da aggiungere o aggiornare',timeout=8000)
                 # Version resolution must be visible as active work, not a second prepare button.
                 state['environments'][0]['runtime']={'status':'checking_versions'}
                 state['environments'][0]['preparation']={'phase':'checking_versions','label':'Verifica delle versioni','active':True,'started_at':time.time()-90,'tool':'wordcraft','version':'v0.11.0','index':2,'total':3}
@@ -217,7 +219,7 @@ def main():
                 panel=page.get_by_test_id('tool-versions');panel.locator('select').first.select_option('provider-agy')
                 panel.get_by_role('button',name='Cerca release ufficiali').click();panel.get_by_role('button',name='Verifica versione',exact=True).click()
                 expect(panel.get_by_label('Versione Antigravity CLI',exact=True).locator('option[value="'+('a'*64)+'"]')).to_have_count(1)
-                panel.get_by_label('Versione Antigravity CLI',exact=True).select_option('latest');expect(panel).to_contain_text('Preparazione automatica')
+                panel.get_by_label('Versione Antigravity CLI',exact=True).select_option('latest');expect(panel).to_contain_text('Gli ambienti preparati restano disponibili.')
                 page.keyboard.press('Escape');page.get_by_role('button',name='Prepara i precaricati').click();expect(page.get_by_role('status')).to_contain_text('precaricato in preparazione');assert posts[-1][0].endswith('/prepare-preloaded')
                 # Scrolling down a long list must never put the newly opened content offscreen.
                 original=copy.deepcopy(state['environments'][0]);state['environments']=[{**copy.deepcopy(original),'name':'profile-'+str(i),'display_name':'Ambiente '+str(i),'activity':{'state':'idle','jobs':[]}} for i in range(14)]

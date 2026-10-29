@@ -2,7 +2,7 @@
 def inventory(profile,known,defaults,pointers,read):
     runtime=profile['runtime'];observed=runtime.get('installed_versions') or runtime.get('version_names') or {}
     choices={**defaults,**profile['deployment'].get('tool_versions',{})}
-    tools=sorted(set(profile['tools'])|{key for key in {*choices,*profile.get('selected_versions',{})} if key.startswith('provider-')})
+    tools=sorted(set(profile['tools']))
     rows=[]
     for tool in tools:
         selection=choices.get(tool,'builtin');target=None

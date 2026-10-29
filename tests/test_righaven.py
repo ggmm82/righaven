@@ -471,7 +471,7 @@ class RigHavenTests(unittest.TestCase):
             if argv[:2]==['docker','run']:payloads.append(json.loads(next((self.state.STATE/'jobs').glob('*.json')).read_text()))
             return type('Result',(),{'returncode':0,'stdout':'{"ok":true}','stderr':''})()
         ready={'id':'a'*64,'image':'fixture','image_id':'sha256:fixture','tools':['ffmpeg','soundcraft'],'status':'ready'}
-        with patch('righaven.capability_policy.native_policy',return_value=scope),patch.object(self.runtime,'connection_status',return_value=True),patch.object(environment_runtime,'enabled',return_value=True),patch.object(environment_runtime,'ensure',return_value=ready),patch.object(self.runtime,'host_path',return_value='/host/fixture'),patch.object(self.runtime.subprocess,'run',side_effect=execute):
+        with patch('righaven.provider_bundle.prepare',return_value=None),patch('righaven.capability_policy.native_policy',return_value=scope),patch.object(self.runtime,'connection_status',return_value=True),patch.object(environment_runtime,'enabled',return_value=True),patch.object(environment_runtime,'ensure',return_value=ready),patch.object(self.runtime,'host_path',return_value='/host/fixture'),patch.object(self.runtime.subprocess,'run',side_effect=execute):
             self.runtime.delegate('soundcraft','Create editable audio',Path(self.temp.name)/'workspace',capability_policy=scope)
         self.assertEqual(set(payloads[0]['skills']),set(names))
         self.assertEqual(payloads[0]['capability_policy']['installed'],['ffmpeg','soundcraft'])

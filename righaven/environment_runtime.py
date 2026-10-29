@@ -91,11 +91,18 @@ def recipe(tools, core=None, identity=None, versions=None):
     from .docker_runtime import IMAGE
     core=core or IMAGE
     selected=closure(tools)
+    from . import software_identity as software
+    supplied=identity is not None
     identity=identity or docker('image','inspect',core,'--format','{{.Id}}')
+    info=software.cached(identity) if supplied else software.inspect(identity,docker)
     spec={'version':RECIPE,'core':identity,'tools':selected}
+    if info:spec['software_abi']=info['abi']
+    if selected:
+        spec['tool_fingerprints'],spec['tool_version_names']=software.planned(selected,versions)
     chosen={k:v for k,v in (versions or {}).items() if k in selected or k.startswith('provider-')}
     if chosen:spec['versions']=chosen
-    key=hashlib.sha256(json.dumps(spec,sort_keys=True).encode()).hexdigest()
+    logical={k:v for k,v in spec.items() if not (k=='core' and spec.get('software_abi'))}
+    key=hashlib.sha256(json.dumps(logical,sort_keys=True).encode()).hexdigest()
     return key,spec
 
 
@@ -205,33 +212,40 @@ def matching_versions(value,spec,subset=False,reset_providers=False):
     have=value.get('versions',{});wanted=spec.get('versions',{})
     tools=value.get('tools',[]) if subset else spec['tools']
     if any(have.get(t)!=wanted.get(t) for t in tools):return False
+    from .software_identity import inherited_fingerprints
+    actual=inherited_fingerprints(value,spec,docker)
+    if actual is not None and any(actual.get(t)!=spec.get('tool_fingerprints',{}).get(t) for t in tools):return False
     if subset and not reset_providers and any(k.startswith('provider-') and k not in wanted for k in have):return False
-    if not subset:
+    if not subset and (not spec['tools'] or any(k.startswith('provider-') for k in wanted)):
         providers={k for k in set(have)|set(wanted) if k.startswith('provider-')}
         if any(have.get(t)!=wanted.get(t) for t in providers):return False
     return True
 
 
 def candidates(spec, cache=None):
+    from .software_identity import compatible
     result=[]
     for path in folder().glob('*.json'):
         try:
             item=read(path.stem)
-            if item.get('core')==spec['core'] and set(spec['tools']).issubset(item.get('tools',[])) and matching_versions(item,spec) and image_exists(item, cache):result.append(item)
+            if compatible(item,spec,docker) and set(spec['tools']).issubset(item.get('tools',[])) and matching_versions(item,spec) and image_exists(item, cache):result.append(item)
         except (OSError,ValueError):continue
     return sorted(result,key=lambda x:len(x['tools']))
 
 
 def subset(spec):
+    from .software_identity import compatible,inherited_fingerprints
     ready=[]
     for path in folder().glob('*.json'):
         try:
             value=read(path.stem)
-            if (value.get('core')==spec['core'] and set(value.get('tools',[]))<=set(spec['tools'])
-                    and matching_versions(value,spec,True,reset_providers=True) and (set(value.get('tools',[]))<set(spec['tools']) or value.get('versions',{})!=spec.get('versions',{}))
-                    and image_exists(value)):ready.append(value)
+            if not value or (spec['tools'] and not set(value.get('tools',[]))&set(spec['tools'])) or (not spec['tools'] and (value.get('tools') or set(value.get('versions',{}))!=set(spec.get('versions',{})))) or not compatible(value,spec,docker) or not image_exists(value):continue
+            actual=inherited_fingerprints(value,spec,docker)
+            common=[t for t in value.get('tools',[]) if t in spec['tools'] and (actual.get(t)==spec.get('tool_fingerprints',{}).get(t) if actual is not None else value.get('versions',{}).get(t)==spec.get('versions',{}).get(t))]
+            if set(value.get('tools',[]))==set(spec['tools']) and matching_versions(value,spec) and value.get('versions',{})==spec.get('versions',{}):continue
+            ready.append((len(common),-len(set(value.get('tools',[]))-set(spec['tools'])),value.get('size_bytes',0),value))
         except (ValueError,OSError):continue
-    return max(ready,key=lambda v:v.get('size_bytes',0),default=None)
+    return max(ready,key=lambda row:row[:3],default=(0,0,0,None))[3]
 
 
 def available(tools, identity=None, cache=None, versions=None):
@@ -243,7 +257,7 @@ def available(tools, identity=None, cache=None, versions=None):
     ready=candidates(spec,cache)
     if ready:return ready[0]
     if exact and exact.get('status')!='ready':return exact
-    return {'id':key,'status':'on_demand','tools':spec['tools']}
+    return {'id':key,'status':'on_demand','tools':spec['tools'],'core':spec['core'],**({'software_abi':spec['software_abi']} if spec.get('software_abi') else {})}
 
 
 def claim_environment(record, owner):
@@ -301,6 +315,7 @@ def recipe_slot(key,cancel):
 
 
 def ensure(tools, *, acquire=True, progress=None, exact=False, cancel=None, cache_dependencies=True, deadline=None, claim=None, versions=None, background=False):
+    check_cancel(cancel)
     from .tool_versions import resolved
     versions=resolved(versions or {},wait=True,progress=progress,refresh=False)
     key,spec=recipe(tools,versions=versions)
@@ -335,7 +350,7 @@ def _prepare(key,spec, *, acquire,progress,exact,cancel,cache_dependencies,deadl
             prior=[p for p in prior if p and p.get('status')=='ready' and set(p.get('tools',[]))==set(spec['tools'])]
             previous=max(prior,key=lambda p:p.get('updated_at',0),default=None)
         from .environment_changes import difference
-        save(key,status='queued',tools=spec['tools'],core=spec['core'],versions=spec.get('versions',{}),error='',failure={},container='',attempt_started_at=time.time(),preparation_reason=difference(previous,spec))
+        save(key,status='queued',tools=spec['tools'],core=spec['core'],software_abi=spec.get('software_abi'),tool_fingerprints=spec.get('tool_fingerprints'),versions=spec.get('versions',{}),error='',failure={},container='',attempt_started_at=time.time(),preparation_reason=difference(previous,spec))
     deadline=deadline if deadline is not None else time.monotonic()+3600
     try:
         check_cancel(cancel)
@@ -343,7 +358,8 @@ def _prepare(key,spec, *, acquire,progress,exact,cancel,cache_dependencies,deadl
         # Finish shared prerequisites before admission: never hold a parent build
         # slot while another request needs that slot to finish our dependency.
         dependencies=sorted({d for tool in spec['tools'] for d in DEPS.get(tool,[])})
-        if cache_dependencies and dependencies and set(dependencies)<set(spec['tools']):
+        inherited=subset(spec)
+        if cache_dependencies and dependencies and set(dependencies)<set(spec['tools']) and not (inherited and set(dependencies)<=set(inherited['tools'])):
             save(key,status='installing',tools=spec['tools'],core=spec['core'],dependency_tools=dependencies)
             dependency_key,_=recipe(dependencies,identity=spec['core'],versions=versions)
             with _CACHE_LOCK:_BUILD_PINS.setdefault(key,set()).add(dependency_key)
@@ -366,15 +382,20 @@ def _prepare(key,spec, *, acquire,progress,exact,cancel,cache_dependencies,deadl
             if base:_BUILD_PINS.setdefault(key,set()).add(base['id'])
         protected=(key,base['id']) if base else (key,)
         prune(exclude=protected)
+        from .software_identity import inherited_fingerprints,catalog_files
+        actual=inherited_fingerprints(base,spec,docker) if base else {}
+        reused=[t for t in (base or {}).get('tools',[]) if t in spec['tools'] and (actual.get(t)==spec.get('tool_fingerprints',{}).get(t) if actual is not None else (base or {}).get('versions',{}).get(t)==spec.get('versions',{}).get(t))]
+        save(key,base_environment_id=(base or {}).get('id'),reused_tools=reused,install_tools=sorted(set(spec['tools'])-set(reused)))
         base_image=base['image_id'] if base else spec['core']
         from .runtime_settings import effective
         limits=effective()
         name='rh-env-'+key[:12]+'-'+uuid.uuid4().hex[:6]
         descriptor=folder()/(name+'.request.json')
         resets={tool:builtins()[tool] for tool in (base or {}).get('versions',{})
-                if tool.startswith('provider-') and tool not in spec.get('versions',{})}
+                if tool.startswith('provider-') and tool not in spec.get('versions',{}) and not spec['tools']}
         atomic_json(descriptor,{'tools':spec['tools'],'versions':spec.get('versions',{}),'version_packages':packages(spec.get('versions',{})),
-                                'reset_providers':resets})
+                                'reset_providers':resets,'catalog_files':catalog_files(spec['tools']),'reinstall_tools':sorted(set((base or {}).get('tools',[]))-set(reused)),'catalog':json.loads((state.ROOT/'versions.lock.json').read_text()) if spec['tools'] else None,
+                                'capabilities':json.loads((Path(os.getenv('RIGHAVEN_WORKER_SOURCE',Path(__file__).resolve().parents[1]))/'config/tool-capabilities.json').read_text()) if spec['tools'] else None})
         # Only public catalog IDs: readable under dropped capabilities/user namespaces too.
         descriptor.chmod(0o644)
         image=image_tag(key)
@@ -460,8 +481,8 @@ def _prepare(key,spec, *, acquire,progress,exact,cancel,cache_dependencies,deadl
                 except ValueError:continue
                 if isinstance(event,dict) and event.get('phase')=='verified':observed_versions=event.get('installed_versions',{})
             result=save(key,installed_versions=observed_versions,status='ready',image=image,image_id=inspected['Id'],size_bytes=inspected['Size'],
-                last_used=time.time(),container='',tools=spec['tools'],core=spec['core'],error='',failure={},
-                base_image_id=base_image,reused_tools=base['tools'] if base else [],versions=spec.get('versions',{}),version_names={k:v['app']['version'] for k,v in packages(spec.get('versions',{})).items()})
+                last_used=time.time(),container='',tools=spec['tools'],core=spec['core'],software_abi=spec.get('software_abi'),tool_fingerprints=spec.get('tool_fingerprints'),error='',failure={},
+                base_image_id=base_image,reused_tools=reused,versions=spec.get('versions',{}),version_names={k:v['app']['version'] for k,v in packages(spec.get('versions',{})).items()})
             if parent_size is not None:
                 result=save(key,parent_size_bytes=parent_size,added_size_bytes=max(0,inspected['Size']-parent_size))
             prune(exclude=(key,))
@@ -549,10 +570,9 @@ def pinned():
                     if retained:result.add(retained)
                     try:
                         policy=native_policy(user.name,name)
-                        from .tool_versions import selections,resolved
-                        from .state import team
+                        from .tool_versions import software_selections,resolved
                         tools=preloaded_tools(prefs,policy['allowed'])
-                        pins=resolved(selections(user.name,name,tools,team('squad')['engine']))
+                        pins=resolved(software_selections(user.name,name,tools))
                         key,_=recipe(tools,versions=pins);result.add(key)
                     except (ValueError,OSError):continue
     return result

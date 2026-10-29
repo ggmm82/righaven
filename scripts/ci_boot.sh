@@ -35,6 +35,7 @@ case "$status" in
   *) cat /tmp/rh-http; exit 1 ;;
 esac
 python scripts/ci_http.py
+docker compose exec -T -e RIGHAVEN_CI_SOFTWARE_REUSE=1 -e PYTHONPATH=/app/backend gateway python /app/worker-source/scripts/check_runtime_reuse.py
 python scripts/ci_workspace_management.py
 npm install --prefix /tmp/righaven-browser --no-audit --no-fund playwright@1.59.1
 /tmp/righaven-browser/node_modules/.bin/playwright install --with-deps chromium

@@ -108,6 +108,10 @@ def selections(user=None,profile=None,tools=None,engine=None):
     return {tool:revision for tool,revision in current.items() if tool in allowed and revision!='builtin'}
 
 
+def software_selections(user=None,profile=None,tools=None):
+    return {tool:revision for tool,revision in selections(user,profile,tools).items() if not tool.startswith('provider-')}
+
+
 def packages(versions):return {tool:read(revision)['bundle'] for tool,revision in versions.items()}
 
 

@@ -50,13 +50,17 @@ or preload selected programs for repeated use. Preparation runs native workflow
 checks before reporting programs ready.
 
 You can edit or clone a configuration and select verified program versions,
-including `latest` for the compatible stable release. A new version may require a
-new software variant; preparation details explain the trigger and observed change.
+including `latest` for the compatible stable release. A changed program creates an incremental software variant: compatible installed
+programs are retained, and only missing or changed payloads are installed. Native
+checks still run before the new variant is marked ready.
 The page separates available profiles, configuration updates, first-use preparation,
 and failed checks. Active temporary environments assembled for a chat appear
 separately with their tools and a link to the assignment, even without a saved
-profile. Changing the team model provider explains the new runtime requirement
-and retains the previous preparation history.
+profile. Model-provider CLIs are cached separately and mounted read-only for each worker.
+Changing the coordinator/team model or CLI does not rebuild application
+environments. Restarts and compatible releases reuse preserved software; cache
+identity depends on the software platform and relevant installation inputs,
+independently of skill text, worker code and unrelated catalog updates.
 
 The terminal is a disposable inspection session: shell edits do not automatically
 update the prepared image or its reproducible recipe.

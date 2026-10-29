@@ -40,12 +40,12 @@ async def native_agent(request,name):
 
 
 def summary(user,agent,identity=None,cache=None):
+    from .software_identity import compatible
     value=profiles.profile(user,agent)
     if runtimes.enabled():
         target=profiles.preloaded_tools(value['deployment'],value['tools']) if value['deployment']['mode']=='preload' else value['tools']
-        from .tool_versions import selections,resolved
-        from .state import team
-        chosen=selections(user,agent.name,target,team('squad')['engine'])
+        from .tool_versions import software_selections,resolved
+        chosen=software_selections(user,agent.name,target)
         try:
             # Reading the page or starting a chat must never advance a global
             # Latest pointer. Only an explicit preparation/version action does.
@@ -61,11 +61,11 @@ def summary(user,agent,identity=None,cache=None):
     # A newly verified global Latest must not erase an existing prepared profile.
     # Keep it usable and show the update separately until preparation is explicit.
     retained=stored.get('ready_id')
-    if retained and value['runtime']['status']=='on_demand' and stored.get('selection',{})==value.get('selected_versions',{}):
+    if retained and value['runtime']['status']=='on_demand' and {k:v for k,v in stored.get('selection',{}).items() if not k.startswith('provider-')}==value.get('selected_versions',{}):
         previous=runtimes.read(retained)
-        if previous and set(target).issubset(previous.get('tools',[])) and runtimes.image_exists(previous):
+        if previous and set(target).issubset(previous.get('tools',[])) and runtimes.image_exists(previous,cache) and (not value['runtime'].get('core') or compatible(previous,value['runtime'],runtimes.docker)):
             value['runtime']={**previous,'update_available':True,'requested_id':value['runtime']['id']}
-    current=not stored or stored.get('selection',{})==value.get('selected_versions',{})
+    current=not stored or {k:v for k,v in stored.get('selection',{}).items() if not k.startswith('provider-')}==value.get('selected_versions',{})
     status=preparation.snapshot(user,agent.name,value['runtime'],active)
     if status:status['pending_changes']=not current
     if stored and not current:
@@ -208,7 +208,7 @@ async def write_definition(value,request,create):
     try:
         resolved=await run_in_threadpool(profiles.resolve_skills,user,value.skills)
         if value.preload_tools is not None and set(value.preload_tools)-set(resolved['tools']):raise ValueError('Precarica soltanto strumenti delle skill selezionate')
-        if set(value.tool_versions)-set(runtimes.closure(resolved['tools']))-{'provider-agy','provider-codex','provider-claude'}:raise ValueError('Scegli versioni solo degli strumenti selezionati nell’ambiente')
+        if set(value.tool_versions)-set(runtimes.closure(resolved['tools'])):raise ValueError('Scegli versioni solo degli strumenti selezionati nell’ambiente')
         if value.mode=='preload' and value.ephemeral:raise ValueError('Il predeploy non può essere temporaneo')
         from .tool_versions import check_selection
         check_selection(value.tool_versions)  # Validate before changing native configuration.
@@ -296,12 +296,11 @@ def schedule(user,name,*,reschedule=False,refresh_versions=True,trigger='manual'
             from .capability_policy import native_policy
             from .docker_runtime import BUILD_LOCK as EXECUTION_LOCK
             from .resource_slot import PreparationCancel
-            from .tool_versions import selections,resolved as resolve_versions
-            from .state import team
+            from .tool_versions import software_selections,resolved as resolve_versions
             agent=load_agent_config(name,user_id=user)
             if agent is None:return
             initial=profiles.resolve_skills(user,agent.skills)
-            choice=selections(user,name,initial['tools'],team('squad')['engine'])
+            choice=software_selections(user,name,initial['tools'])
             from .environment_changes import reason
             preparation.begin(user,name,choice,reason(control['trigger'],control['trigger_tool']))
             pins=resolve_versions(choice,wait=True,cancel=control['cancel'],refresh=control['refresh_versions'],on_progress=lambda **fields:preparation.update(user,name,**fields))
@@ -353,9 +352,9 @@ def schedule(user,name,*,reschedule=False,refresh_versions=True,trigger='manual'
 
 
 def schedule_affected(tool):
+    if tool.startswith('provider-'):return 0
     from righaven_core.config.paths import get_paths
     from righaven_core.config.agents_config import load_agent_config
-    from .state import team
     users=get_paths().base_dir/'users';count=0
     if not users.exists():return count
     for user in users.iterdir():
@@ -367,8 +366,7 @@ def schedule_affected(tool):
             try:
                 resolved=profiles.resolve_skills(user.name,agent.skills)
                 tools=set(runtimes.closure(profiles.preloaded_tools(prefs,resolved['tools'])))
-                provider={'codex':'provider-codex','gemini':'provider-agy'}.get(team('squad')['engine'])
-                if tool not in tools and tool!=provider:continue
+                if tool not in tools:continue
                 schedule(user.name,name,reschedule=True,trigger='version_change',trigger_tool=tool);count+=1
             except (OSError,ValueError):continue
     return count
@@ -517,7 +515,7 @@ async def software_import(name:str,request:Request):
             prefs=profiles.preferences(user).get(name,{'mode':'on_demand','ephemeral':False})
             if prefs!=value['deployment']:raise ValueError('Programmi importati nella cache; il profilo è cambiato durante il trasferimento. Seleziona le versioni importate dalla configurazione.')
             pins={t:imported.get('versions',{}).get(t,'builtin') for t in imported['tools']}
-            pins.update({t:r for t,r in imported.get('versions',{}).items() if t.startswith('provider-')})
+            pins.update({t:r for t,r in imported.get('versions',{}).items() if not t.startswith('provider-')})
             profiles.set_deployment(user,name,prefs['mode'],prefs.get('ephemeral',False),prefs.get('preload_tools'),{**prefs.get('tool_versions',{}),**pins})
         transfers.start(directory,install)
         return transfers.public(job)

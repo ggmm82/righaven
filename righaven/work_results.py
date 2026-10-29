@@ -33,6 +33,10 @@ def failure_info(error):
         return {'code': 'provider_startup_limit', 'retryable': True,
                 'message': 'Codex non ha confermato l’avvio dell’incarico entro un minuto.',
                 'action': 'Verifica il collegamento e riusa i file salvati. Questa è un’attesa di avvio, non una generazione immagini conclusa né una pulizia del container.'}
+    if 'antigravity:' in text and 'stream was interrupted' in text:
+        return {'code':'provider_stream_interrupted','retryable':True,
+                'message':'Il flusso di Antigravity si è interrotto prima dell’esito; i file salvati sono conservati.',
+                'action':'Controlla l’ultimo stato e i file, poi riprendi il contributo mancante. Questa interruzione del servizio AI non richiede di reinstallare gli ambienti.'}
     if any(s in text for s in ('turni', 'turn limit', 'timeout', 'timed out', 'tempo massimo', 'limite della singola', 'tempo esaurito')):
         return {'code': 'work_limit', 'retryable': True,
                 'message': 'Questo incarico si è fermato; puoi riusare i file prodotti.',

@@ -68,7 +68,8 @@ class PresentationTests(unittest.TestCase):
     def test_preparation_reasons_distinguish_version_base_and_missing_image(self):
         prior={'core':'old','tools':['d2'],'versions':{}}
         self.assertEqual(difference(prior,{'core':'new','tools':['d2'],'versions':{}})['code'],'base_changed')
-        spec={**prior,'versions':{'provider-agy':'new'}}
-        self.assertEqual(difference(prior,spec)['tools'],['provider-agy'])
+        spec={**prior,'versions':{'d2':'new'}}
+        self.assertEqual(difference(prior,spec)['tools'],['d2'])
+        self.assertEqual(difference(prior,{**prior,'versions':{'provider-agy':'new'}})['code'],'image_missing')
         self.assertEqual(difference(prior,prior)['code'],'image_missing')
         self.assertIn('provider-agy',reason('version_change','provider-agy')['message'])
