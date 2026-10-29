@@ -61,7 +61,8 @@ profile = json.loads(request('/api/agents/ci-native-profile'))
 assert profile['skills'] == ['skill-freecad']
 request('/api/agents/ci-native-profile', method='DELETE')
 # Custom environments are native Agents, not a duplicated purpose/skills store.
-assert b'Ambienti' in request('/workspace/environments')
+# Assert the actual page rather than a heading whose text depends on locale.
+assert b'data-testid="environments-page"' in request('/workspace/environments')
 assert b'Terminale' in request('/terminal?environment=ci-custom-environment')
 assert b'function' in request('/rh-terminal/xterm.js')
 assert b'xterm' in request('/rh-terminal/xterm.css')
