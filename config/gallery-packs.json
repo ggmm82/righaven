@@ -44,7 +44,102 @@
         }
       },
       "skill_prompt_template": "Start with the analytical question, authorized source systems, grain, snapshot and expected deliverables. Use read-only source accounts; retain declared constraints separately from inferred relationships. Reconcile representative known totals before reporting. Choose only tools needed by this project; credentials never enter published instructions or editable sources.",
-      "verification_command": "craft capabilities dlt && craft capabilities sqlglot && craft capabilities quarto"
+      "verification_command": "craft capabilities dlt && craft capabilities sqlglot && craft capabilities quarto",
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ],
+        "read_only_mounts": [
+          "/mnt/user-data"
+        ],
+        "drop_capabilities": [
+          "ALL"
+        ],
+        "no_new_privileges": true
+      },
+      "cli_binaries": [
+        {
+          "name": "usql",
+          "executable": "/usr/local/bin/usql-cli",
+          "safe_flags": [
+            "call"
+          ],
+          "health_check": "craft capabilities usql"
+        },
+        {
+          "name": "schemacrawler",
+          "executable": "/usr/local/bin/schemacrawler-cli",
+          "safe_flags": [
+            "call"
+          ],
+          "health_check": "craft capabilities schemacrawler"
+        },
+        {
+          "name": "dlt",
+          "executable": "/usr/local/bin/dlt-cli",
+          "safe_flags": [
+            "call"
+          ],
+          "health_check": "craft capabilities dlt"
+        },
+        {
+          "name": "sqlglot",
+          "executable": "/usr/local/bin/sqlglot-cli",
+          "safe_flags": [
+            "call"
+          ],
+          "health_check": "craft capabilities sqlglot"
+        },
+        {
+          "name": "sqlmesh",
+          "executable": "/usr/local/bin/sqlmesh-cli",
+          "safe_flags": [
+            "call"
+          ],
+          "health_check": "craft capabilities sqlmesh"
+        },
+        {
+          "name": "duckdb",
+          "executable": "/usr/local/bin/duckdb-cli",
+          "safe_flags": [
+            "call"
+          ],
+          "health_check": "craft capabilities duckdb"
+        },
+        {
+          "name": "jupyter",
+          "executable": "/usr/local/bin/jupyter-cli",
+          "safe_flags": [
+            "call"
+          ],
+          "health_check": "craft capabilities jupyter"
+        },
+        {
+          "name": "quarto",
+          "executable": "/usr/local/bin/quarto-cli",
+          "safe_flags": [
+            "call"
+          ],
+          "health_check": "craft capabilities quarto"
+        },
+        {
+          "name": "typst",
+          "executable": "/usr/local/bin/typst-cli",
+          "safe_flags": [
+            "call"
+          ],
+          "health_check": "craft capabilities typst"
+        }
+      ]
     },
     {
       "id": "env-architecture-modeling-rig",
@@ -6955,7 +7050,7 @@
       "name": "usql",
       "version": "1.0.0",
       "author": "righaven-core",
-      "category": "tool",
+      "category": "cli-tool",
       "tags": [
         "data-engineering",
         "database",
@@ -6977,18 +7072,49 @@
         },
         "it": {
           "title": "usql",
-          "description": "Read authorized databases through one native SQL shell; discover available drivers and retain read-only queries."
+          "description": "Client SQL nativo per interrogare database di diversi tipi con query di sola lettura e risultati JSON."
         }
       },
       "skill_prompt_template": "Use skill-usql; inspect craft capabilities usql. Preserve editable sources and validate actual data; never include credentials in deliverables.",
-      "verification_command": "craft capabilities usql"
+      "verification_command": "craft capabilities usql",
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ],
+        "read_only_mounts": [
+          "/mnt/user-data"
+        ],
+        "drop_capabilities": [
+          "ALL"
+        ],
+        "no_new_privileges": true
+      },
+      "cli_binaries": [
+        {
+          "name": "usql",
+          "executable": "/usr/local/bin/usql-cli",
+          "safe_flags": [
+            "call"
+          ],
+          "health_check": "craft capabilities usql"
+        }
+      ]
     },
     {
       "id": "tool-schemacrawler",
       "name": "SchemaCrawler",
       "version": "1.0.0",
       "author": "righaven-core",
-      "category": "tool",
+      "category": "cli-tool",
       "tags": [
         "data-engineering",
         "database",
@@ -7010,18 +7136,49 @@
         },
         "it": {
           "title": "SchemaCrawler",
-          "description": "Inspect schema, declared keys, constraints, metadata, lint and relationship diagrams with real JDBC metadata."
+          "description": "Reverse engineering dello schema tramite JDBC: tabelle, chiavi, vincoli e relazioni osservate."
         }
       },
       "skill_prompt_template": "Use skill-schemacrawler; inspect craft capabilities schemacrawler. Preserve editable sources and validate actual data; never include credentials in deliverables.",
-      "verification_command": "craft capabilities schemacrawler"
+      "verification_command": "craft capabilities schemacrawler",
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ],
+        "read_only_mounts": [
+          "/mnt/user-data"
+        ],
+        "drop_capabilities": [
+          "ALL"
+        ],
+        "no_new_privileges": true
+      },
+      "cli_binaries": [
+        {
+          "name": "schemacrawler",
+          "executable": "/usr/local/bin/schemacrawler-cli",
+          "safe_flags": [
+            "call"
+          ],
+          "health_check": "craft capabilities schemacrawler"
+        }
+      ]
     },
     {
       "id": "tool-dlt",
       "name": "dlt",
       "version": "1.0.0",
       "author": "righaven-core",
-      "category": "tool",
+      "category": "cli-tool",
       "tags": [
         "data-engineering",
         "database",
@@ -7043,18 +7200,49 @@
         },
         "it": {
           "title": "dlt",
-          "description": "Extract and reconcile SQL, document and file sources into isolated analytical datasets, retaining a reproducible Python pipeline."
+          "description": "Scoperta ed estrazione controllata da sorgenti SQL e MongoDB, con pipeline DuckDB e riconciliazione."
         }
       },
       "skill_prompt_template": "Use skill-dlt; inspect craft capabilities dlt. Preserve editable sources and validate actual data; never include credentials in deliverables.",
-      "verification_command": "craft capabilities dlt"
+      "verification_command": "craft capabilities dlt",
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ],
+        "read_only_mounts": [
+          "/mnt/user-data"
+        ],
+        "drop_capabilities": [
+          "ALL"
+        ],
+        "no_new_privileges": true
+      },
+      "cli_binaries": [
+        {
+          "name": "dlt",
+          "executable": "/usr/local/bin/dlt-cli",
+          "safe_flags": [
+            "call"
+          ],
+          "health_check": "craft capabilities dlt"
+        }
+      ]
     },
     {
       "id": "tool-sqlmesh",
       "name": "SQLMesh",
       "version": "1.0.0",
       "author": "righaven-core",
-      "category": "tool",
+      "category": "cli-tool",
       "tags": [
         "data-engineering",
         "database",
@@ -7076,18 +7264,49 @@
         },
         "it": {
           "title": "SQLMesh",
-          "description": "Plan and test local analytical transformations, preserve models, audits, Python and SQL sources and dependencies."
+          "description": "Progetti SQL e Python con modelli, test e piani di trasformazione in DuckDB locale."
         }
       },
       "skill_prompt_template": "Use skill-sqlmesh; inspect craft capabilities sqlmesh. Preserve editable sources and validate actual data; never include credentials in deliverables.",
-      "verification_command": "craft capabilities sqlmesh"
+      "verification_command": "craft capabilities sqlmesh",
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ],
+        "read_only_mounts": [
+          "/mnt/user-data"
+        ],
+        "drop_capabilities": [
+          "ALL"
+        ],
+        "no_new_privileges": true
+      },
+      "cli_binaries": [
+        {
+          "name": "sqlmesh",
+          "executable": "/usr/local/bin/sqlmesh-cli",
+          "safe_flags": [
+            "call"
+          ],
+          "health_check": "craft capabilities sqlmesh"
+        }
+      ]
     },
     {
       "id": "tool-sqlglot",
       "name": "SQLGlot",
       "version": "1.0.0",
       "author": "righaven-core",
-      "category": "tool",
+      "category": "cli-tool",
       "tags": [
         "data-engineering",
         "database",
@@ -7109,11 +7328,42 @@
         },
         "it": {
           "title": "SQLGlot",
-          "description": "Parse SQL and derive table/column lineage from actual expressions and supplied schemas without executing queries."
+          "description": "Analisi dei dialetti SQL e lineage di tabelle e colonne a partire da query e schema reali."
         }
       },
       "skill_prompt_template": "Use skill-sqlglot; inspect craft capabilities sqlglot. Preserve editable sources and validate actual data; never include credentials in deliverables.",
-      "verification_command": "craft capabilities sqlglot"
+      "verification_command": "craft capabilities sqlglot",
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ],
+        "read_only_mounts": [
+          "/mnt/user-data"
+        ],
+        "drop_capabilities": [
+          "ALL"
+        ],
+        "no_new_privileges": true
+      },
+      "cli_binaries": [
+        {
+          "name": "sqlglot",
+          "executable": "/usr/local/bin/sqlglot-cli",
+          "safe_flags": [
+            "call"
+          ],
+          "health_check": "craft capabilities sqlglot"
+        }
+      ]
     }
   ]
 }

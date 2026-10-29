@@ -75,6 +75,12 @@ class DataBoundaryTests(unittest.TestCase):
         self.assertEqual(usql_url('sqlite:////tmp/snapshot.sqlite'),'sqlite3:///tmp/snapshot.sqlite')
         self.assertNotIn('secret',redact('connection failed: secret',['secret']))
 
+    def test_every_shipped_gallery_pack_has_a_usable_runtime_manifest(self):
+        from righaven.gallery import validate_pack_manifest
+        catalog=json.loads(Path('config/gallery-packs.json').read_text())
+        for pack in catalog['packs']:
+            with self.subTest(pack=pack['id']):validate_pack_manifest(pack)
+
     def test_all_data_skills_have_resolvable_sources_and_registered_operations(self):
         from scripts.data_specs import TOOLS
         for tool in TOOLS:

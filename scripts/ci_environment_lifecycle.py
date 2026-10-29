@@ -82,7 +82,7 @@ def moderation_fixture(content):
     subprocess.run(['docker','run','-d','--rm','--init','--name',name,'--network',network,
         '--read-only','--tmpfs','/tmp:rw,nosuid,size=16m','--cap-drop=ALL','--security-opt=no-new-privileges',
         '--memory=64m','--cpus=0.25','--pids-limit=32','--mount','type=bind,src='+str(script)+',dst=/fixture.py,readonly',
-        '-e','CI_EXPECTED_SKILL='+content,'righaven-sandbox:0.1.0','python3','/fixture.py'],check=True,capture_output=True)
+        '-e',('CI_EXPECTED_SKILLS='+json.dumps(content) if isinstance(content,list) else 'CI_EXPECTED_SKILL='+content),'righaven-sandbox:0.1.0','python3','/fixture.py'],check=True,capture_output=True)
     configure='''
 import sys,yaml
 from pathlib import Path

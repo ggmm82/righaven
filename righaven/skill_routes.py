@@ -62,7 +62,8 @@ class Edit(BaseModel):
 async def edit_instructions(name:str,body:Edit,request:Request,config=Depends(get_config)):
     current_user_id(request);same_origin(request)
     skill=await visible(name,request,config);store=storage()
-    document(skill,body.file)
+    initial=document(skill,body.file)
+    if hashlib.sha256(initial.encode()).hexdigest()!=body.revision:raise HTTPException(409,'Instructions changed; reload before editing')
     if not body.file.lower().endswith('.md'):raise HTTPException(422,'Edit Markdown instructions only')
     try:
         if body.file=='SKILL.md':store.validate_skill_markdown_content(name,body.content)

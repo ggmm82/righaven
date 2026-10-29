@@ -3,7 +3,7 @@
 import json
 import urllib.parse
 from pathlib import Path
-from ci_environment_lifecycle import Session,record,REPORT
+from ci_environment_lifecycle import Session,record,REPORT,moderation_fixture
 
 API='/api/harness/maintenance'
 
@@ -52,12 +52,17 @@ def main():
     original=user.request(endpoint);admin_original=admin.request(endpoint)
     assert 'references/CLI-RECIPE.md' in original['files']
     modified=original['content']+'\n\nPreserve readable labels and validate the editable diagram.\n'
-    saved=user.request(endpoint,{'content':modified,'revision':original['revision']},'PUT')
-    assert saved['customized'] and saved['content']==modified
-    assert admin.request(endpoint)['content']==admin_original['content']
-    user.expect_error(409,endpoint,{'content':modified+'\nAgain','revision':original['revision']},'PUT')
     ref=user.request(endpoint+'?file=references/CLI-RECIPE.md')
-    user.request(endpoint,{'file':ref['file'],'content':ref['content']+'\nUse a clean output directory.\n','revision':ref['revision']},'PUT')
+    updated_ref=ref['content']+'\nUse a clean output directory.\n'
+    user.expect_error(400,endpoint,{'content':modified,'revision':original['revision']},'PUT')
+    assert user.request(endpoint)['content']==original['content']
+    # Simulate only the external moderation response, for these exact safe drafts.
+    with moderation_fixture([modified,updated_ref]):
+        saved=user.request(endpoint,{'content':modified,'revision':original['revision']},'PUT')
+        assert saved['customized'] and saved['content']==modified
+        assert admin.request(endpoint)['content']==admin_original['content']
+        user.expect_error(409,endpoint,{'content':modified+'\nAgain','revision':original['revision']},'PUT')
+        user.request(endpoint,{'file':ref['file'],'content':updated_ref,'revision':ref['revision']},'PUT')
     user.expect_error(422,endpoint+'?file=../outside.md')
     record('Native personal skill instructions','Integration and reference editing, copy-on-write isolation, stale revision refusal and path containment')
 
