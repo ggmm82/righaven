@@ -10,8 +10,8 @@ import urllib.request
 import xml.etree.ElementTree as ET
 
 VERSION=re.compile(r'[0-9A-Za-z][0-9A-Za-z.+:~_-]{0,100}\Z')
-NPM={'playwright':'@playwright/test','mermaid':'@mermaid-js/mermaid-cli','excalidraw':'@excalidraw/excalidraw','bpmn':'bpmn-to-image','provider-codex':'@openai/codex'}
-PYPI={'ifcopenshell':'ifcopenshell','manim':'manim','opentimelineio':'opentimelineio','pymeshlab':'pymeshlab'}
+NPM={'playwright':'@playwright/test','mermaid':'@mermaid-js/mermaid-cli','excalidraw':'@excalidraw/excalidraw','bpmn':'bpmn-to-image','provider-codex':'@openai/codex','axe-core':'@axe-core/playwright'}
+PYPI={'ifcopenshell':'ifcopenshell','manim':'manim','opentimelineio':'opentimelineio','pymeshlab':'pymeshlab','schemathesis':'schemathesis'}
 
 
 def read(url,limit=8*1024**2,accept="application/json"):
@@ -48,7 +48,15 @@ def prerelease(version):
 
 def options(app):
     tool=app['id'];source=gh_repository(app)
-    if tool in NPM:
+    if tool=='verapdf':
+        index=read('https://software.verapdf.org/releases/').decode()
+        families=sorted(set(re.findall(r'href="([0-9]+\.[0-9]+)/"',index)),key=lambda s:tuple(map(int,s.split('.'))))[-3:]
+        versions=[]
+        for family in families:
+            page=read('https://software.verapdf.org/releases/'+family+'/').decode()
+            versions.extend(re.findall(r'verapdf-greenfield-([0-9]+\.[0-9]+\.[0-9]+)-installer.zip"',page))
+        latest=None
+    elif tool in NPM:
         result=json.loads(read('https://registry.npmjs.org/'+urllib.parse.quote(NPM[tool],safe='@/'),32*1024**2,accept='application/vnd.npm.install-v1+json'))
         versions=list(result.get('versions',{}));latest=result.get('dist-tags',{}).get('latest')
     elif tool in PYPI:
@@ -84,6 +92,13 @@ def candidate(base,version,arch):
     for field,value in app.get('install',{}).items():
         if isinstance(value,str):app['install'][field]=replace_version(value,old,version)
     kind=app.get('install',{}).get('kind')
+    if tool=='verapdf':
+        family='.'.join(version.split('.')[:2])
+        name='verapdf-greenfield-'+version+'-installer.zip'
+        url='https://software.verapdf.org/releases/'+family+'/'+name
+        sha,size=sha_asset(url)
+        app['assets']={arch:{'name':name,'url':url,'sha256':sha,'size_bytes':size}}
+        return {'app':app,'requested':version,'arch':arch,'resolve_dependencies':False}
     if tool in PYPI or kind=='debian' or tool=='structurizr':
         return {'app':app,'requested':version,'arch':arch,'resolve_dependencies':True}
     if tool in NPM:
@@ -122,6 +137,7 @@ def candidate(base,version,arch):
             raise ValueError('Distribuzione estranea al repository ufficiale')
         sha,size=sha_asset(url,selected.get('digest') if selected else None)
         original={k:v for k,v in asset.items() if k!='sha512'}
+        if kind=='upstream-deb':original['package_version']=app['version'].lstrip('v')
         if 'version' in original:original['version']=app['version']
         assets[architecture]={**original,'name':name,'url':url,'sha256':sha,'size_bytes':size if size is not None else selected.get('size',0)}
     if arch not in assets:raise ValueError('Questa release non fornisce una distribuzione supportata per '+arch)
@@ -135,7 +151,7 @@ def latest(app):
         value=data('https://registry.npmjs.org/'+urllib.parse.quote(NPM[tool],safe='@/')+'/latest')['version']
         if not prerelease(value) and '-' not in value.split('+',1)[0]:return value
     if app.get('install',{}).get('kind')=='debian':return 'latest'
-    if repo and tool not in NPM and tool not in PYPI and tool not in ('ffmpeg','calibre','blender'):
+    if repo and tool not in NPM and tool not in PYPI and tool not in ('ffmpeg','calibre','blender','verapdf'):
         value=data('https://api.github.com/repos/'+repo+'/releases/latest')
         if value.get('draft') or value.get('prerelease') or prerelease(value.get('tag_name','')):raise ValueError('Il registro non indica una release stabile')
         return value['tag_name']

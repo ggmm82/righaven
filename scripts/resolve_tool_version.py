@@ -11,8 +11,8 @@ import urllib.parse
 import urllib.request
 
 ROOT=Path('/opt/righaven')
-NPM={'playwright':'@playwright/test','mermaid':'@mermaid-js/mermaid-cli','excalidraw':'@excalidraw/excalidraw','bpmn':'bpmn-to-image','provider-codex':'@openai/codex'}
-PYPI={'ifcopenshell':'ifcopenshell','manim':'manim','opentimelineio':'opentimelineio','pymeshlab':'pymeshlab'}
+NPM={'playwright':'@playwright/test','mermaid':'@mermaid-js/mermaid-cli','excalidraw':'@excalidraw/excalidraw','bpmn':'bpmn-to-image','provider-codex':'@openai/codex','axe-core':'@axe-core/playwright'}
+PYPI={'ifcopenshell':'ifcopenshell','manim':'manim','opentimelineio':'opentimelineio','pymeshlab':'pymeshlab','schemathesis':'schemathesis'}
 
 
 def fetch(url,path):
@@ -27,7 +27,7 @@ def resolve(spec):
     if not re.fullmatch(r'[0-9A-Za-z][0-9A-Za-z.+:~_-]{0,100}',version):raise ValueError('Versione non valida')
     if not spec.get('resolve_dependencies'):return {'app':app,'files':files}
     if tool in NPM:
-        relative='provider-clis/codex' if tool=='provider-codex' else 'toolkit-lock' if tool=='playwright' else 'toolkit-lock/design/'+tool
+        relative='provider-clis/codex' if tool=='provider-codex' else 'toolkit-lock' if tool=='playwright' else 'toolkit-lock/extended/'+tool if tool=='axe-core' else 'toolkit-lock/design/'+tool
         template=ROOT/relative/'package.json'
         package=json.loads(template.read_text()) if template.is_file() else {'name':'skill-provider-codex','version':'1.0.0','private':True,'dependencies':{}}
         package.setdefault('dependencies',{})[NPM[tool]]=version
@@ -58,6 +58,9 @@ def resolve(spec):
                     app['version']=resolved;app['assets']={arch:{'name':url.rsplit('/',1)[1],'url':url,'sha256':sha,'size_bytes':0}}
             files['toolkit-lock/python/'+tool+'.txt']='\n'.join(lines)+'\n'
     elif app.get('install',{}).get('kind')=='debian':
+        from install_extended import repository
+        from install_righaven import download
+        repository(app,ROOT,download)
         package=next(iter(app['assets'].values()))['package']
         subprocess.run(['apt-get','update'],check=True)
         if version=='latest':
@@ -67,7 +70,8 @@ def resolve(spec):
             version=match[1];app['version']=version
         metadata=subprocess.check_output(['apt-cache','show',package+'='+version],text=True)
         fields=dict(line.split(': ',1) for line in metadata.split('\n\n')[0].splitlines() if ': ' in line and not line.startswith(' '))
-        source='https://deb.debian.org/debian/'+fields['Filename']
+        repository=app.get('install',{}).get('apt_repository',{}).get('url','https://deb.debian.org/debian')
+        source=repository.rstrip('/')+'/'+fields['Filename']
         app['assets']={arch:{'name':Path(fields['Filename']).name,'url':source,'sha256':fields['SHA256'],'size_bytes':int(fields['Size']),'package':package,'package_version':fields['Version']}}
     elif tool=='structurizr':
         subprocess.run(['apt-get','update'],check=True);subprocess.run(['apt-get','install','-y','--no-install-recommends','maven'],check=True)

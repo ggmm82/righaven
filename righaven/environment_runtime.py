@@ -13,7 +13,7 @@ from . import state
 from .state import atomic_json, applications
 
 RECIPE = 1
-DEPS = {'mermaid':['playwright'],'excalidraw':['playwright'],'bpmn':['playwright'],
+DEPS = {'mermaid':['playwright'],'excalidraw':['playwright'],'bpmn':['playwright'], 'axe-core':['playwright'],
         'aubio':['ffmpeg'],'whisper':['ffmpeg'],'manim':['ffmpeg'],'opentimelineio':['ffmpeg'],
         **{tool:['ffmpeg'] for tool in ('filmcraft','soundcraft','effectcraft','fluidsynth','musescore')}}
 PREPARING = set()

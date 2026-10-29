@@ -72,3 +72,7 @@ TOOLS.update(DESIGN_TOOLS)
 try:from .security_specs import TOOLS as SECURITY_TOOLS
 except ImportError:from security_specs import TOOLS as SECURITY_TOOLS
 TOOLS.update(SECURITY_TOOLS)
+
+try:from .extended_specs import TOOLS as EXTENDED_TOOLS
+except ImportError:from extended_specs import TOOLS as EXTENDED_TOOLS
+TOOLS.update(EXTENDED_TOOLS)

@@ -1586,6 +1586,925 @@
         "trivy-cli commands",
         "craft tools trivy"
       ]
+    },
+    {
+      "id": "duckdb",
+      "name": "DuckDB",
+      "role": "Data queries and reproducible analysis",
+      "description": "Query CSV, JSON and Parquet with SQL and a local analytical database.",
+      "repository": "https://github.com/duckdb/duckdb",
+      "executable": "duckdb-cli",
+      "registry_args": [
+        "commands"
+      ],
+      "mcp_args": [
+        "mcp"
+      ],
+      "adapter": "toolkit",
+      "checks": [
+        "Preserve and reopen native sources.",
+        "Keep NULL handling, types, units and join cardinalities explicit. Disable unneeded extensions; a query result does not prove the underlying data is correct."
+      ],
+      "examples": [
+        "duckdb-cli commands",
+        "duckdb-cli call query '{...}'"
+      ],
+      "version": "v2.0.0",
+      "assets": {
+        "amd64": {
+          "name": "duckdb-cli-linux-amd64.tar.gz",
+          "url": "https://github.com/duckdb/duckdb/releases/download/v2.0.0/duckdb-cli-linux-amd64.tar.gz",
+          "sha256": "c6507206baf7793c6013dbd82368469a45f20dc0e17a6f92f204602f652ed2bc",
+          "size_bytes": 24424037
+        },
+        "arm64": {
+          "name": "duckdb-cli-linux-arm64.tar.gz",
+          "url": "https://github.com/duckdb/duckdb/releases/download/v2.0.0/duckdb-cli-linux-arm64.tar.gz",
+          "sha256": "859e1875d2a9515fbb4bf8871061437a14af82320da68c753f094c4b776348fe",
+          "size_bytes": 22306407
+        }
+      },
+      "install": {
+        "kind": "extended-native",
+        "native_binary": "duckdb"
+      }
+    },
+    {
+      "id": "jupyter",
+      "name": "Jupyter",
+      "role": "Executable notebooks",
+      "description": "Combine explanations, executable Python and actual analytical results in a notebook.",
+      "repository": "https://github.com/jupyter/nbconvert",
+      "executable": "jupyter-cli",
+      "registry_args": [
+        "commands"
+      ],
+      "mcp_args": [
+        "mcp"
+      ],
+      "adapter": "toolkit",
+      "checks": [
+        "Preserve and reopen native sources.",
+        "Execute in a fresh kernel, in order. Clear stale outputs; preserve random seeds, dependencies and data provenance. Notebook execution is code execution, not a web notebook service."
+      ],
+      "examples": [
+        "jupyter-cli commands",
+        "jupyter-cli call execute '{...}'"
+      ],
+      "version": "6.5.3-3",
+      "assets": {
+        "amd64": {
+          "name": "jupyter-nbconvert_6.5.3-3_all.deb",
+          "url": "https://deb.debian.org/debian/pool/main/n/nbconvert/jupyter-nbconvert_6.5.3-3_all.deb",
+          "sha256": "ca56b44207408df27908c929d1bb3901cd2bce538cdc28c2aa15613f5cfc17c7",
+          "size_bytes": 22396,
+          "package": "jupyter-nbconvert",
+          "package_version": "6.5.3-3"
+        },
+        "arm64": {
+          "name": "jupyter-nbconvert_6.5.3-3_all.deb",
+          "url": "https://deb.debian.org/debian/pool/main/n/nbconvert/jupyter-nbconvert_6.5.3-3_all.deb",
+          "sha256": "ca56b44207408df27908c929d1bb3901cd2bce538cdc28c2aa15613f5cfc17c7",
+          "size_bytes": 22396,
+          "package": "jupyter-nbconvert",
+          "package_version": "6.5.3-3"
+        }
+      },
+      "download_base": "https://deb.debian.org/debian/",
+      "install": {
+        "kind": "debian",
+        "native_path": "/usr/bin/jupyter-nbconvert"
+      }
+    },
+    {
+      "id": "quarto",
+      "name": "Quarto",
+      "role": "Reproducible analytical publications",
+      "description": "Publish analytical narratives and notebooks as standalone HTML reports.",
+      "repository": "https://github.com/quarto-dev/quarto-cli",
+      "executable": "quarto-cli",
+      "registry_args": [
+        "commands"
+      ],
+      "mcp_args": [
+        "mcp"
+      ],
+      "adapter": "toolkit",
+      "checks": [
+        "Preserve and reopen native sources.",
+        "Use Quarto for executable reports, Typst for typography and Pandoc for conversion. The adapter produces HTML; PDF engines, extensions and publishing services are not silently installed."
+      ],
+      "examples": [
+        "quarto-cli commands",
+        "quarto-cli call render '{...}'"
+      ],
+      "version": "1.10.19",
+      "assets": {
+        "amd64": {
+          "name": "quarto-1.10.19-linux-amd64.deb",
+          "url": "https://github.com/quarto-dev/quarto-cli/releases/download/v1.10.19/quarto-1.10.19-linux-amd64.deb",
+          "sha256": "7f0c4769e7f0e55f50d922f44b18db5118fb388d2b8fd27291fe1f8beafb43eb",
+          "size_bytes": 149526572,
+          "package": "quarto",
+          "package_version": "1.10.19"
+        },
+        "arm64": {
+          "name": "quarto-1.10.19-linux-arm64.deb",
+          "url": "https://github.com/quarto-dev/quarto-cli/releases/download/v1.10.19/quarto-1.10.19-linux-arm64.deb",
+          "sha256": "35bb613052da98bef92ec3b7de77c3405a8e546363c7d2aa3abe15a39efa5045",
+          "size_bytes": 150178002,
+          "package": "quarto",
+          "package_version": "1.10.19"
+        }
+      },
+      "install": {
+        "kind": "upstream-deb",
+        "native_path": "/usr/local/bin/quarto"
+      },
+      "download_base": "https://github.com/quarto-dev/quarto-cli/releases/download/"
+    },
+    {
+      "id": "poppler",
+      "name": "Poppler",
+      "role": "Inspection of delivered PDFs",
+      "description": "Rasterize the final PDF and extract its actual text for independent review.",
+      "repository": "https://poppler.freedesktop.org",
+      "executable": "poppler-cli",
+      "registry_args": [
+        "commands"
+      ],
+      "mcp_args": [
+        "mcp"
+      ],
+      "adapter": "toolkit",
+      "checks": [
+        "Preserve and reopen native sources.",
+        "Render the exact delivery hash. PNG creation is not a visual judgment; use an available visual model or request user review. Render in bounded batches."
+      ],
+      "examples": [
+        "poppler-cli commands",
+        "poppler-cli call render '{...}'"
+      ],
+      "version": "22.12.0-2+deb12u2",
+      "assets": {
+        "amd64": {
+          "name": "poppler-utils_22.12.0-2+deb12u2_amd64.deb",
+          "url": "https://deb.debian.org/debian/pool/main/p/poppler/poppler-utils_22.12.0-2+deb12u2_amd64.deb",
+          "sha256": "237d8ae3012bb0b275b681bb7fbd00ee591215e9dc276231d7e4f7bb64efacea",
+          "size_bytes": 191800,
+          "package": "poppler-utils",
+          "package_version": "22.12.0-2+deb12u2"
+        },
+        "arm64": {
+          "name": "poppler-utils_22.12.0-2+deb12u2_arm64.deb",
+          "url": "https://deb.debian.org/debian/pool/main/p/poppler/poppler-utils_22.12.0-2+deb12u2_arm64.deb",
+          "sha256": "5ce2be51446798ffc64f74ddd662129b7b3175a85f1b1d5fdb3169ab5823db3b",
+          "size_bytes": 176644,
+          "package": "poppler-utils",
+          "package_version": "22.12.0-2+deb12u2"
+        }
+      },
+      "download_base": "https://deb.debian.org/debian/",
+      "install": {
+        "kind": "debian",
+        "native_path": "/usr/bin/pdftoppm"
+      }
+    },
+    {
+      "id": "qpdf",
+      "name": "qpdf",
+      "role": "PDF structural checks",
+      "description": "Check PDF syntax, cross references and recoverability independently of the authoring tool.",
+      "repository": "https://github.com/qpdf/qpdf",
+      "executable": "qpdf-cli",
+      "registry_args": [
+        "commands"
+      ],
+      "mcp_args": [
+        "mcp"
+      ],
+      "adapter": "toolkit",
+      "checks": [
+        "Preserve and reopen native sources.",
+        "A warning is not a clean pass. Syntax checks do not certify layout, accessibility, PDF/A or PDF/X; use veraPDF for applicable conformance profiles."
+      ],
+      "examples": [
+        "qpdf-cli commands",
+        "qpdf-cli call check '{...}'"
+      ],
+      "version": "11.3.0-1+deb12u1",
+      "assets": {
+        "amd64": {
+          "name": "qpdf_11.3.0-1+deb12u1_amd64.deb",
+          "url": "https://deb.debian.org/debian/pool/main/q/qpdf/qpdf_11.3.0-1+deb12u1_amd64.deb",
+          "sha256": "85679049865b2fa7b15e84d95452ee235ddc129fbd014958d11e99fb4b7fbc13",
+          "size_bytes": 130684,
+          "package": "qpdf",
+          "package_version": "11.3.0-1+deb12u1"
+        },
+        "arm64": {
+          "name": "qpdf_11.3.0-1+deb12u1_arm64.deb",
+          "url": "https://deb.debian.org/debian/pool/main/q/qpdf/qpdf_11.3.0-1+deb12u1_arm64.deb",
+          "sha256": "b00b898a7ecce5ecf09c4506db00fe70330124cf9640f50e53d8469eb684dc0c",
+          "size_bytes": 125836,
+          "package": "qpdf",
+          "package_version": "11.3.0-1+deb12u1"
+        }
+      },
+      "download_base": "https://deb.debian.org/debian/",
+      "install": {
+        "kind": "debian",
+        "native_path": "/usr/bin/qpdf"
+      }
+    },
+    {
+      "id": "verapdf",
+      "name": "veraPDF",
+      "role": "PDF/A conformance",
+      "description": "Validate delivered PDFs against an explicitly chosen PDF/A profile.",
+      "repository": "https://github.com/veraPDF/veraPDF-apps",
+      "executable": "verapdf-cli",
+      "registry_args": [
+        "commands"
+      ],
+      "mcp_args": [
+        "mcp"
+      ],
+      "adapter": "toolkit",
+      "checks": [
+        "Preserve and reopen native sources.",
+        "Never equate PDF/A conformance with accessibility or visual quality. Do not claim a conversion or certification from a validation report."
+      ],
+      "examples": [
+        "verapdf-cli commands",
+        "verapdf-cli call validate '{...}'"
+      ],
+      "version": "1.30.3",
+      "assets": {
+        "amd64": {
+          "name": "verapdf-greenfield-1.30.3-installer.zip",
+          "url": "https://software.verapdf.org/releases/1.30/verapdf-greenfield-1.30.3-installer.zip",
+          "sha256": "b512bf24945503a33fc10738ecffc1f2dccaaf8593a448e94ee9ac86a9559a59",
+          "size_bytes": 32971125
+        },
+        "arm64": {
+          "name": "verapdf-greenfield-1.30.3-installer.zip",
+          "url": "https://software.verapdf.org/releases/1.30/verapdf-greenfield-1.30.3-installer.zip",
+          "sha256": "b512bf24945503a33fc10738ecffc1f2dccaaf8593a448e94ee9ac86a9559a59",
+          "size_bytes": 32971125
+        }
+      },
+      "download_base": "https://software.verapdf.org/releases/",
+      "install": {
+        "kind": "verapdf-installer"
+      }
+    },
+    {
+      "id": "ocrmypdf",
+      "name": "OCRmyPDF",
+      "role": "Searchable scanned documents",
+      "description": "Add an OCR text layer and text sidecar to scanned PDFs while preserving the original.",
+      "repository": "https://github.com/ocrmypdf/OCRmyPDF",
+      "executable": "ocrmypdf-cli",
+      "registry_args": [
+        "commands"
+      ],
+      "mcp_args": [
+        "mcp"
+      ],
+      "adapter": "toolkit",
+      "checks": [
+        "Preserve and reopen native sources.",
+        "Do not replace original scans. Check names, numbers, reading order and language against sampled images; OCR confidence is not accuracy. This adapter does not claim PDF/A."
+      ],
+      "examples": [
+        "ocrmypdf-cli commands",
+        "ocrmypdf-cli call ocr '{...}'"
+      ],
+      "version": "14.0.1+dfsg1-1",
+      "assets": {
+        "amd64": {
+          "name": "ocrmypdf_14.0.1+dfsg1-1_all.deb",
+          "url": "https://deb.debian.org/debian/pool/main/o/ocrmypdf/ocrmypdf_14.0.1+dfsg1-1_all.deb",
+          "sha256": "82dc50d6f0c48a0b9fe8d3e73d001545f0be4a4aefb5883f7ff699039fc9d784",
+          "size_bytes": 151612,
+          "package": "ocrmypdf",
+          "package_version": "14.0.1+dfsg1-1"
+        },
+        "arm64": {
+          "name": "ocrmypdf_14.0.1+dfsg1-1_all.deb",
+          "url": "https://deb.debian.org/debian/pool/main/o/ocrmypdf/ocrmypdf_14.0.1+dfsg1-1_all.deb",
+          "sha256": "82dc50d6f0c48a0b9fe8d3e73d001545f0be4a4aefb5883f7ff699039fc9d784",
+          "size_bytes": 151612,
+          "package": "ocrmypdf",
+          "package_version": "14.0.1+dfsg1-1"
+        }
+      },
+      "download_base": "https://deb.debian.org/debian/",
+      "install": {
+        "kind": "debian",
+        "native_path": "/usr/bin/ocrmypdf"
+      }
+    },
+    {
+      "id": "tesseract",
+      "name": "Tesseract",
+      "role": "Image text recognition",
+      "description": "Recognize text in local images with coordinates and confidence evidence.",
+      "repository": "https://github.com/tesseract-ocr/tesseract",
+      "executable": "tesseract-cli",
+      "registry_args": [
+        "commands"
+      ],
+      "mcp_args": [
+        "mcp"
+      ],
+      "adapter": "toolkit",
+      "checks": [
+        "Preserve and reopen native sources.",
+        "Use OCRmyPDF for whole scanned PDFs. Keep low-confidence words visible; confidence is not a guarantee. English and Italian language data are installed explicitly."
+      ],
+      "examples": [
+        "tesseract-cli commands",
+        "tesseract-cli call recognize '{...}'"
+      ],
+      "version": "5.3.0-2",
+      "assets": {
+        "amd64": {
+          "name": "tesseract-ocr_5.3.0-2_amd64.deb",
+          "url": "https://deb.debian.org/debian/pool/main/t/tesseract/tesseract-ocr_5.3.0-2_amd64.deb",
+          "sha256": "311fed91c7311cfee54c28a0f21d700377b8131a9d114628d36d2563f99e1730",
+          "size_bytes": 402216,
+          "package": "tesseract-ocr",
+          "package_version": "5.3.0-2"
+        },
+        "arm64": {
+          "name": "tesseract-ocr_5.3.0-2_arm64.deb",
+          "url": "https://deb.debian.org/debian/pool/main/t/tesseract/tesseract-ocr_5.3.0-2_arm64.deb",
+          "sha256": "b547619f12d974916322ca9a2c7628dff8fbcb4b097adc8e277891b03239a6c1",
+          "size_bytes": 363072,
+          "package": "tesseract-ocr",
+          "package_version": "5.3.0-2"
+        }
+      },
+      "download_base": "https://deb.debian.org/debian/",
+      "install": {
+        "kind": "debian",
+        "native_path": "/usr/bin/tesseract"
+      }
+    },
+    {
+      "id": "gdal",
+      "name": "GDAL",
+      "role": "Geospatial data conversion and inspection",
+      "description": "Inspect raster georeferencing and convert raster datasets to GeoTIFF.",
+      "repository": "https://github.com/OSGeo/gdal",
+      "executable": "gdal-cli",
+      "registry_args": [
+        "commands"
+      ],
+      "mcp_args": [
+        "mcp"
+      ],
+      "adapter": "toolkit",
+      "checks": [
+        "Preserve and reopen native sources.",
+        "Confirm CRS, axis order, units, nodata and extents. Format conversion is not reprojection. Do not invent coordinates; advanced vector workflows use the native ogr tools."
+      ],
+      "examples": [
+        "gdal-cli commands",
+        "gdal-cli call inspect '{...}'"
+      ],
+      "version": "3.6.2+dfsg-1+b2",
+      "assets": {
+        "amd64": {
+          "name": "gdal-bin_3.6.2+dfsg-1+b2_amd64.deb",
+          "url": "https://deb.debian.org/debian/pool/main/g/gdal/gdal-bin_3.6.2+dfsg-1+b2_amd64.deb",
+          "sha256": "177d664df24ede40aac98ba77d25922eb09524f0c41d42df3e665c79f8cf7da2",
+          "size_bytes": 531424,
+          "package": "gdal-bin",
+          "package_version": "3.6.2+dfsg-1+b2"
+        },
+        "arm64": {
+          "name": "gdal-bin_3.6.2+dfsg-1+b2_arm64.deb",
+          "url": "https://deb.debian.org/debian/pool/main/g/gdal/gdal-bin_3.6.2+dfsg-1+b2_arm64.deb",
+          "sha256": "6b35dd3aad1574c17618c49766434c51b81068cbab3fca746999b21819c4f85f",
+          "size_bytes": 522620,
+          "package": "gdal-bin",
+          "package_version": "3.6.2+dfsg-1+b2"
+        }
+      },
+      "download_base": "https://deb.debian.org/debian/",
+      "install": {
+        "kind": "debian",
+        "native_path": "/usr/bin/gdalinfo"
+      }
+    },
+    {
+      "id": "qgis",
+      "name": "QGIS Processing",
+      "role": "Geospatial analysis",
+      "description": "Run explicit native Processing algorithms on local geographic data.",
+      "repository": "https://github.com/qgis/QGIS",
+      "executable": "qgis-cli",
+      "registry_args": [
+        "commands"
+      ],
+      "mcp_args": [
+        "mcp"
+      ],
+      "adapter": "toolkit",
+      "checks": [
+        "Preserve and reopen native sources.",
+        "A Processing output is not automatically a complete QGIS project. Check CRS, geometry, units and relative dependencies; do not rely on unavailable plugins or external providers."
+      ],
+      "examples": [
+        "qgis-cli commands",
+        "qgis-cli call process '{...}'"
+      ],
+      "version": "3.22.16+dfsg-1",
+      "assets": {
+        "amd64": {
+          "name": "qgis_3.22.16+dfsg-1_amd64.deb",
+          "url": "https://deb.debian.org/debian/pool/main/q/qgis/qgis_3.22.16+dfsg-1_amd64.deb",
+          "sha256": "7491377469d3985b8d9310c1180f0bd2cf8ce4bb28bdff448bb09f945f026149",
+          "size_bytes": 3882876,
+          "package": "qgis",
+          "package_version": "3.22.16+dfsg-1"
+        },
+        "arm64": {
+          "name": "qgis_3.22.16+dfsg-1_arm64.deb",
+          "url": "https://deb.debian.org/debian/pool/main/q/qgis/qgis_3.22.16+dfsg-1_arm64.deb",
+          "sha256": "863eecbfb76a7381f001b429bb35bef9dde1aa1e469e2707c9e25527e218845e",
+          "size_bytes": 3848072,
+          "package": "qgis",
+          "package_version": "3.22.16+dfsg-1"
+        }
+      },
+      "download_base": "https://deb.debian.org/debian/",
+      "install": {
+        "kind": "debian",
+        "native_path": "/usr/bin/qgis_process"
+      }
+    },
+    {
+      "id": "schemathesis",
+      "name": "Schemathesis",
+      "role": "OpenAPI property-based testing",
+      "description": "Exercise authorized test APIs against a saved OpenAPI contract.",
+      "repository": "https://github.com/schemathesis/schemathesis",
+      "executable": "schemathesis-cli",
+      "registry_args": [
+        "commands"
+      ],
+      "mcp_args": [
+        "mcp"
+      ],
+      "adapter": "toolkit",
+      "checks": [
+        "Preserve and reopen native sources.",
+        "Requests may mutate data. Use an authorized disposable target, bound examples and workers, and preserve failing cases. Passing schema checks do not prove business correctness."
+      ],
+      "examples": [
+        "schemathesis-cli commands",
+        "schemathesis-cli call test '{...}'"
+      ],
+      "version": "4.32.7",
+      "assets": {
+        "amd64": {
+          "name": "schemathesis-4.32.7-py3-none-any.whl",
+          "url": "https://files.pythonhosted.org/packages/65/1b/8101adb245bbcd3e38b31b00308c3dba13dc959366912d01794336ded20a/schemathesis-4.32.7-py3-none-any.whl",
+          "sha256": "d52484f577dd8b91c778cfb0f6569570030a8822fde47baa7c87a53d0d81e245",
+          "size_bytes": 1177446
+        },
+        "arm64": {
+          "name": "schemathesis-4.32.7-py3-none-any.whl",
+          "url": "https://files.pythonhosted.org/packages/65/1b/8101adb245bbcd3e38b31b00308c3dba13dc959366912d01794336ded20a/schemathesis-4.32.7-py3-none-any.whl",
+          "sha256": "d52484f577dd8b91c778cfb0f6569570030a8822fde47baa7c87a53d0d81e245",
+          "size_bytes": 1177446
+        }
+      },
+      "download_base": "https://files.pythonhosted.org/",
+      "install": {
+        "kind": "pip-native",
+        "native_commands": []
+      }
+    },
+    {
+      "id": "k6",
+      "name": "k6",
+      "role": "Bounded load and performance tests",
+      "description": "Run explicit small load tests with thresholds and native metric summaries.",
+      "repository": "https://github.com/grafana/k6",
+      "executable": "k6-cli",
+      "registry_args": [
+        "commands"
+      ],
+      "mcp_args": [
+        "mcp"
+      ],
+      "adapter": "toolkit",
+      "checks": [
+        "Preserve and reopen native sources.",
+        "Select test traffic and authorization before running. Bound VUs, iterations and duration. Report actual load and latency percentiles; a local sample is not a production capacity guarantee."
+      ],
+      "examples": [
+        "k6-cli commands",
+        "k6-cli call run '{...}'"
+      ],
+      "version": "v2.3.0",
+      "assets": {
+        "amd64": {
+          "name": "k6-v2.3.0-linux-amd64.tar.gz",
+          "url": "https://github.com/grafana/k6/releases/download/v2.3.0/k6-v2.3.0-linux-amd64.tar.gz",
+          "sha256": "39c3117b6af817592dcd0ce4242105c0a7af10948c2a425306f0be8f7a8a8ab1",
+          "size_bytes": 30847764
+        },
+        "arm64": {
+          "name": "k6-v2.3.0-linux-arm64.tar.gz",
+          "url": "https://github.com/grafana/k6/releases/download/v2.3.0/k6-v2.3.0-linux-arm64.tar.gz",
+          "sha256": "5ca3433e8201da72a284aaa241a1bb5fb47f4abb4e384d39410ddd8062f49b90",
+          "size_bytes": 28342768
+        }
+      },
+      "install": {
+        "kind": "extended-native",
+        "native_binary": "k6"
+      }
+    },
+    {
+      "id": "axe-core",
+      "name": "axe-core",
+      "role": "Automated web accessibility checks",
+      "description": "Inspect actual browser pages for axe accessibility rules.",
+      "repository": "https://github.com/dequelabs/axe-core",
+      "executable": "axe-core-cli",
+      "registry_args": [
+        "commands"
+      ],
+      "mcp_args": [
+        "mcp"
+      ],
+      "adapter": "toolkit",
+      "checks": [
+        "Preserve and reopen native sources.",
+        "Complements Playwright behavior tests. Zero violations does not certify WCAG compliance; keyboard, screen-reader and human review remain necessary."
+      ],
+      "examples": [
+        "axe-core-cli commands",
+        "axe-core-cli call audit '{...}'"
+      ],
+      "version": "4.14.0",
+      "assets": {
+        "amd64": {
+          "name": "playwright-4.14.0.tgz",
+          "url": "https://registry.npmjs.org/@axe-core/playwright/-/playwright-4.14.0.tgz",
+          "sha256": "0d16690e81a9c80f653920da310010bd530b3e2bffe18d299769113848b40bdf",
+          "size_bytes": 12112
+        },
+        "arm64": {
+          "name": "playwright-4.14.0.tgz",
+          "url": "https://registry.npmjs.org/@axe-core/playwright/-/playwright-4.14.0.tgz",
+          "sha256": "0d16690e81a9c80f653920da310010bd530b3e2bffe18d299769113848b40bdf",
+          "size_bytes": 12112
+        }
+      },
+      "download_base": "https://registry.npmjs.org/",
+      "install": {
+        "kind": "extension-node"
+      }
+    },
+    {
+      "id": "zap",
+      "name": "OWASP ZAP",
+      "role": "Passive application security checks",
+      "description": "Spider an authorized application and collect passive security findings with an explicit automation plan.",
+      "repository": "https://github.com/zaproxy/zaproxy",
+      "executable": "zap-cli",
+      "registry_args": [
+        "commands"
+      ],
+      "mcp_args": [
+        "mcp"
+      ],
+      "adapter": "toolkit",
+      "checks": [
+        "Preserve and reopen native sources.",
+        "The adapter contains no activeScan job. Spidering still sends requests and can affect poorly designed applications. Keep target scope narrow, triage findings and distinguish an incomplete scan from no findings."
+      ],
+      "examples": [
+        "zap-cli commands",
+        "zap-cli call baseline '{...}'"
+      ],
+      "version": "v2.17.0",
+      "assets": {
+        "amd64": {
+          "name": "ZAP_2.17.0_Linux.tar.gz",
+          "url": "https://github.com/zaproxy/zaproxy/releases/download/v2.17.0/ZAP_2.17.0_Linux.tar.gz",
+          "sha256": "efe799aaa3627db683b43f00c9c210aea0b75c00cc8f0a0f0434d12bb3ddde5a",
+          "size_bytes": 243895361
+        },
+        "arm64": {
+          "name": "ZAP_2.17.0_Linux.tar.gz",
+          "url": "https://github.com/zaproxy/zaproxy/releases/download/v2.17.0/ZAP_2.17.0_Linux.tar.gz",
+          "sha256": "efe799aaa3627db683b43f00c9c210aea0b75c00cc8f0a0f0434d12bb3ddde5a",
+          "size_bytes": 243895361
+        }
+      },
+      "install": {
+        "kind": "extended-native",
+        "native_binary": "zap.sh"
+      }
+    },
+    {
+      "id": "gitleaks",
+      "name": "Gitleaks",
+      "role": "Secret detection",
+      "description": "Scan local source directories for leaked credentials without executing the source.",
+      "repository": "https://github.com/gitleaks/gitleaks",
+      "executable": "gitleaks-cli",
+      "registry_args": [
+        "commands"
+      ],
+      "mcp_args": [
+        "mcp"
+      ],
+      "adapter": "toolkit",
+      "checks": [
+        "Preserve and reopen native sources.",
+        "Do not copy discovered secrets into chat or delivery archives. Redact both logs and reports. A match needs triage; remediation may require credential rotation, not only deleting a line."
+      ],
+      "examples": [
+        "gitleaks-cli commands",
+        "gitleaks-cli call scan '{...}'"
+      ],
+      "version": "v8.30.1",
+      "assets": {
+        "amd64": {
+          "name": "gitleaks_8.30.1_linux_x64.tar.gz",
+          "url": "https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz",
+          "sha256": "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb",
+          "size_bytes": 8230402
+        },
+        "arm64": {
+          "name": "gitleaks_8.30.1_linux_arm64.tar.gz",
+          "url": "https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_arm64.tar.gz",
+          "sha256": "e4a487ee7ccd7d3a7f7ec08657610aa3606637dab924210b3aee62570fb4b080",
+          "size_bytes": 7601421
+        }
+      },
+      "install": {
+        "kind": "extended-native",
+        "native_binary": "gitleaks"
+      }
+    },
+    {
+      "id": "openmodelica",
+      "name": "OpenModelica",
+      "role": "Dynamic system simulation",
+      "description": "Compile and simulate explicit Modelica models and MOS recipes on CPU.",
+      "repository": "https://github.com/OpenModelica/OpenModelica",
+      "executable": "openmodelica-cli",
+      "registry_args": [
+        "commands"
+      ],
+      "mcp_args": [
+        "mcp"
+      ],
+      "adapter": "toolkit",
+      "checks": [
+        "Preserve and reopen native sources.",
+        "Do not silently download libraries. Use explicit initial conditions and solver settings, check actual simulation success and numerical plausibility. This is not engineering certification."
+      ],
+      "examples": [
+        "openmodelica-cli commands",
+        "openmodelica-cli call simulate '{...}'"
+      ],
+      "version": "1.27.1~2-g6db4671-1",
+      "assets": {
+        "amd64": {
+          "name": "omc_1.27.1~2-g6db4671-1_amd64.deb",
+          "url": "https://build.openmodelica.org/apt/pool/contrib-bookworm/omc_1.27.1~2-g6db4671-1_amd64.deb",
+          "sha256": "ff1d4c9932adff46ad297394d18b38c51f8c679f0edda04a7c202f82a2f88345",
+          "size_bytes": 116628,
+          "package": "omc",
+          "package_version": "1.27.1~2-g6db4671-1"
+        },
+        "arm64": {
+          "name": "omc_1.27.1~2-g6db4671-1_arm64.deb",
+          "url": "https://build.openmodelica.org/apt/pool/contrib-bookworm/omc_1.27.1~2-g6db4671-1_arm64.deb",
+          "sha256": "8e1ad36caaa9399bdaf964e95b202c503528f0108f1c64ac9d09602bc3c49726",
+          "size_bytes": 116844,
+          "package": "omc",
+          "package_version": "1.27.1~2-g6db4671-1"
+        }
+      },
+      "download_base": "https://build.openmodelica.org/apt/",
+      "install": {
+        "kind": "debian",
+        "native_path": "/usr/bin/omc",
+        "apt_repository": {
+          "id": "openmodelica",
+          "url": "https://build.openmodelica.org/apt",
+          "suite": "bookworm",
+          "component": "stable",
+          "key": {
+            "name": "openmodelica.asc",
+            "url": "https://build.openmodelica.org/apt/openmodelica.asc",
+            "sha256": "f65915999a3d4ea7e847839b31ff282b1a1802d1863c68d6e79a7488cd91921d",
+            "size_bytes": 4780
+          }
+        }
+      }
+    },
+    {
+      "id": "highs",
+      "name": "HiGHS",
+      "role": "Linear and mixed-integer optimization",
+      "description": "Solve explicit LP and MPS optimization models.",
+      "repository": "https://github.com/ERGO-Code/HiGHS",
+      "executable": "highs-cli",
+      "registry_args": [
+        "commands"
+      ],
+      "mcp_args": [
+        "mcp"
+      ],
+      "adapter": "toolkit",
+      "checks": [
+        "Preserve and reopen native sources.",
+        "Distinguish optimal, feasible, infeasible, unbounded and time-limited outcomes. Never present an infeasible model or a time-limited incumbent as a proven optimum."
+      ],
+      "examples": [
+        "highs-cli commands",
+        "highs-cli call solve '{...}'"
+      ],
+      "version": "v1.15.1",
+      "assets": {
+        "amd64": {
+          "name": "highs-1.15.1-x86_64-linux-gnu-static-mit.tar.gz",
+          "url": "https://github.com/ERGO-Code/HiGHS/releases/download/v1.15.1/highs-1.15.1-x86_64-linux-gnu-static-mit.tar.gz",
+          "sha256": "5b05b157e512390b6bcc14517f2c68736b89aae286ab89fd0666c3c80a1569bc",
+          "size_bytes": 7723248
+        },
+        "arm64": {
+          "name": "highs-1.15.1-aarch64-linux-gnu-static-mit.tar.gz",
+          "url": "https://github.com/ERGO-Code/HiGHS/releases/download/v1.15.1/highs-1.15.1-aarch64-linux-gnu-static-mit.tar.gz",
+          "sha256": "82a2050617f6b7a3cc75ee2aa0c15855f683012fa9260391ef696db6cdf2267c",
+          "size_bytes": 7044260
+        }
+      },
+      "install": {
+        "kind": "extended-native",
+        "native_binary": "highs"
+      }
+    },
+    {
+      "id": "kicad",
+      "name": "KiCad",
+      "role": "Electronic design deliverables",
+      "description": "Export native electronic schematics and PCBs using headless KiCad CLI.",
+      "repository": "https://gitlab.com/kicad/code/kicad",
+      "executable": "kicad-cli",
+      "registry_args": [
+        "commands"
+      ],
+      "mcp_args": [
+        "mcp"
+      ],
+      "adapter": "toolkit",
+      "checks": [
+        "Preserve and reopen native sources.",
+        "SVG is an export, not an editable circuit source. Check ERC/DRC and footprints with native tools for manufacturing work; SVG export alone proves neither electrical correctness nor fabrication readiness."
+      ],
+      "examples": [
+        "kicad-cli commands",
+        "kicad-cli call export '{...}'"
+      ],
+      "version": "9.0.8+dfsg-1~bpo12+1",
+      "assets": {
+        "amd64": {
+          "name": "kicad_9.0.8+dfsg-1~bpo12+1_amd64.deb",
+          "url": "https://deb.debian.org/debian/pool/main/k/kicad/kicad_9.0.8+dfsg-1~bpo12+1_amd64.deb",
+          "sha256": "b680794737e4b25a1ba1f9d1412f0f751db72bae1c673d242fca216ff3f92c2e",
+          "size_bytes": 40557252,
+          "package": "kicad",
+          "package_version": "9.0.8+dfsg-1~bpo12+1"
+        },
+        "arm64": {
+          "name": "kicad_9.0.8+dfsg-1~bpo12+1_arm64.deb",
+          "url": "https://deb.debian.org/debian/pool/main/k/kicad/kicad_9.0.8+dfsg-1~bpo12+1_arm64.deb",
+          "sha256": "3319dcaa37ecb6b445fccbcd5b539ae3edea04d7664abce159239fc0392fec20",
+          "size_bytes": 36291844,
+          "package": "kicad",
+          "package_version": "9.0.8+dfsg-1~bpo12+1"
+        }
+      },
+      "download_base": "https://deb.debian.org/debian/",
+      "install": {
+        "kind": "debian",
+        "native_path": "/usr/bin/kicad-cli",
+        "apt_repository": {
+          "id": "bookworm-backports",
+          "url": "https://deb.debian.org/debian",
+          "suite": "bookworm-backports",
+          "component": "main"
+        }
+      }
+    },
+    {
+      "id": "ngspice",
+      "name": "ngspice",
+      "role": "Circuit simulation",
+      "description": "Simulate explicit SPICE netlists and preserve actual raw results.",
+      "repository": "https://ngspice.sourceforge.io",
+      "executable": "ngspice-cli",
+      "registry_args": [
+        "commands"
+      ],
+      "mcp_args": [
+        "mcp"
+      ],
+      "adapter": "toolkit",
+      "checks": [
+        "Preserve and reopen native sources.",
+        "Check model licenses, convergence, units and operating conditions. Simulation does not guarantee physical performance or safety; preserve all local include files."
+      ],
+      "examples": [
+        "ngspice-cli commands",
+        "ngspice-cli call simulate '{...}'"
+      ],
+      "version": "39.3+ds-1",
+      "assets": {
+        "amd64": {
+          "name": "ngspice_39.3+ds-1_amd64.deb",
+          "url": "https://deb.debian.org/debian/pool/main/n/ngspice/ngspice_39.3+ds-1_amd64.deb",
+          "sha256": "710bc58f7a708c0813e33e19c115dc076a3749c18bbe1379cd9dba24c42d32f9",
+          "size_bytes": 2351620,
+          "package": "ngspice",
+          "package_version": "39.3+ds-1"
+        },
+        "arm64": {
+          "name": "ngspice_39.3+ds-1_arm64.deb",
+          "url": "https://deb.debian.org/debian/pool/main/n/ngspice/ngspice_39.3+ds-1_arm64.deb",
+          "sha256": "e6dc6b6bb5b5593005d20c19ca94daba84471f938aaf82930782119c443f04af",
+          "size_bytes": 1980976,
+          "package": "ngspice",
+          "package_version": "39.3+ds-1"
+        }
+      },
+      "download_base": "https://deb.debian.org/debian/",
+      "install": {
+        "kind": "debian",
+        "native_path": "/usr/bin/ngspice"
+      }
+    },
+    {
+      "id": "prusaslicer",
+      "name": "PrusaSlicer",
+      "role": "3D print preparation",
+      "description": "Slice existing models using explicit printer and material settings.",
+      "repository": "https://github.com/prusa3d/PrusaSlicer",
+      "executable": "prusaslicer-cli",
+      "registry_args": [
+        "commands"
+      ],
+      "mcp_args": [
+        "mcp"
+      ],
+      "adapter": "toolkit",
+      "checks": [
+        "Preserve and reopen native sources.",
+        "Do not replace CAD/mesh authoring tools. G-code is machine-specific; confirm printer, bed, nozzle, temperatures, supports and scale before use. Do not claim a physical print was tested."
+      ],
+      "examples": [
+        "prusaslicer-cli commands",
+        "prusaslicer-cli call slice '{...}'"
+      ],
+      "version": "2.5.0+dfsg-4",
+      "assets": {
+        "amd64": {
+          "name": "prusa-slicer_2.5.0+dfsg-4_amd64.deb",
+          "url": "https://deb.debian.org/debian/pool/main/s/slic3r-prusa/prusa-slicer_2.5.0+dfsg-4_amd64.deb",
+          "sha256": "642caa688b8589620ca8bc5da0e69ce76757a466911b1f0078227ece67a2b8c0",
+          "size_bytes": 30201616,
+          "package": "prusa-slicer",
+          "package_version": "2.5.0+dfsg-4"
+        },
+        "arm64": {
+          "name": "prusa-slicer_2.5.0+dfsg-4_arm64.deb",
+          "url": "https://deb.debian.org/debian/pool/main/s/slic3r-prusa/prusa-slicer_2.5.0+dfsg-4_arm64.deb",
+          "sha256": "cf27dddee4750271d135dfa793abf3803f499ef6a6623f876fac027c60989da4",
+          "size_bytes": 29343072,
+          "package": "prusa-slicer",
+          "package_version": "2.5.0+dfsg-4"
+        }
+      },
+      "download_base": "https://deb.debian.org/debian/",
+      "install": {
+        "kind": "debian",
+        "native_path": "/usr/bin/prusa-slicer"
+      }
     }
   ],
   "cli_runtimes": {

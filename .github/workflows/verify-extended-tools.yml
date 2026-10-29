@@ -1,0 +1,61 @@
+name: Verify extended native tool environments
+on:
+  pull_request:
+    paths:
+      - 'scripts/extended_*'
+      - 'scripts/acceptance_extended.py'
+      - 'scripts/install_extended.py'
+      - 'config/toolkit/**'
+      - '.github/workflows/verify-extended-tools.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: extended-tools-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  native:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        include:
+          - environment: data
+            tools: duckdb jupyter quarto
+          - environment: documents
+            tools: poppler qpdf verapdf ocrmypdf tesseract
+          - environment: geospatial
+            tools: gdal qgis
+          - environment: web-testing
+            tools: schemathesis k6 axe-core
+          - environment: security
+            tools: zap gitleaks
+          - environment: simulation
+            tools: openmodelica highs
+          - environment: electronics
+            tools: kicad ngspice
+          - environment: fabrication
+            tools: prusaslicer
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Build the basic core, without preloading optional tools
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/Dockerfile.sandbox
+          target: core
+          tags: righaven-sandbox:0.1.0
+          load: true
+          cache-from: type=gha,scope=sandbox
+      - name: Install selected native tools and execute actual output fixtures
+        env:
+          SELECTED_TOOLS: ${{ matrix.tools }}
+        run: |
+          python -m pip install PyYAML==6.0.3
+          python scripts/check_environment_runtime.py --tools $SELECTED_TOOLS --verification-dependencies
+      - name: Preserve failure diagnostics
+        if: failure()
+        run: docker ps -a && docker images

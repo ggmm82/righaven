@@ -44,6 +44,26 @@ Un comando registrato non è un workflow collaudato: verifica prerequisiti, dati
 | [structurizr](../../skill-structurizr/references/CAPABILITIES.md) | Viste coerenti di architettura software da un unico modello C4. Usa le librerie mantenute, non la vecchia CLI dismessa. | DSL .dsl, workspace JSON ed export PlantUML/Mermaid; eventuali immagini sono del renderer scelto. |
 | [opengrep](../../skill-opengrep/references/CAPABILITIES.md) | Analisi statica di codice con regole YAML locali esplicite | Codice o configurazione esaminati, regole locali, report JSON, scan-recipe.json e metadata del database quando usato |
 | [trivy](../../skill-trivy/references/CAPABILITIES.md) | Controllo configurazioni, inventario CycloneDX e vulnerabilità con database esplicito | Codice o configurazione esaminati, regole locali, report JSON, scan-recipe.json e metadata del database quando usato |
+| [duckdb](../../skill-duckdb/references/CAPABILITIES.md) | Query CSV, JSON and Parquet with SQL and a local analytical database | SQL, input datasets/schema, DuckDB database and result CSV |
+| [jupyter](../../skill-jupyter/references/CAPABILITIES.md) | Combine explanations, executable Python and actual analytical results in a notebook | Input and executed IPYNB, datasets, environment requirements and figures |
+| [quarto](../../skill-quarto/references/CAPABILITIES.md) | Publish analytical narratives and notebooks as standalone HTML reports | QMD, notebooks, local assets, configuration and rendered report |
+| [poppler](../../skill-poppler/references/CAPABILITIES.md) | Rasterize the final PDF and extract its actual text for independent review | Original PDF, numbered page PNGs, extracted text and rendering settings |
+| [qpdf](../../skill-qpdf/references/CAPABILITIES.md) | Check PDF syntax, cross references and recoverability independently of the authoring tool | Original PDF, native diagnostics and verification receipt |
+| [verapdf](../../skill-verapdf/references/CAPABILITIES.md) | Validate delivered PDFs against an explicitly chosen PDF/A profile | Original PDF, selected profile, complete native XML report and receipt |
+| [ocrmypdf](../../skill-ocrmypdf/references/CAPABILITIES.md) | Add an OCR text layer and text sidecar to scanned PDFs while preserving the original | Original scan, searchable PDF, sidecar, language and OCR recipe |
+| [tesseract](../../skill-tesseract/references/CAPABILITIES.md) | Recognize text in local images with coordinates and confidence evidence | Original image, TXT, TSV, language and preprocessing recipe |
+| [gdal](../../skill-gdal/references/CAPABILITIES.md) | Inspect raster georeferencing and convert raster datasets to GeoTIFF | Original geospatial datasets, sidecars, CRS, units, transformation recipe and GeoTIFF |
+| [qgis](../../skill-qgis/references/CAPABILITIES.md) | Run explicit native Processing algorithms on local geographic data | QGIS projects when authored, input layers/styles, parameter JSON and output layers |
+| [schemathesis](../../skill-schemathesis/references/CAPABILITIES.md) | Exercise authorized test APIs against a saved OpenAPI contract | Original OpenAPI schema, target configuration, native JUnit report and reproducible test parameters |
+| [k6](../../skill-k6/references/CAPABILITIES.md) | Run explicit small load tests with thresholds and native metric summaries | JavaScript scenario, fixtures, thresholds, target configuration and metric summary |
+| [axe-core](../../skill-axe-core/references/CAPABILITIES.md) | Inspect actual browser pages for axe accessibility rules | Page or application sources, audit URL/state, native JSON findings and incomplete checks |
+| [zap](../../skill-zap/references/CAPABILITIES.md) | Spider an authorized application and collect passive security findings with an explicit automation plan | Authorization/scope, automation plan, native XML report and reproduction guidance |
+| [gitleaks](../../skill-gitleaks/references/CAPABILITIES.md) | Scan local source directories for leaked credentials without executing the source | Redacted native findings, scanner identity and remediation guidance; retain original source privately |
+| [openmodelica](../../skill-openmodelica/references/CAPABILITIES.md) | Compile and simulate explicit Modelica models and MOS recipes on CPU | MO models, MOS recipe, parameters, local libraries, units and simulation data |
+| [highs](../../skill-highs/references/CAPABILITIES.md) | Solve explicit LP and MPS optimization models | LP/MPS model, objective/constraints/units, solver settings, solution and native status |
+| [kicad](../../skill-kicad/references/CAPABILITIES.md) | Export native electronic schematics and PCBs using headless KiCad CLI | KICAD_PRO, KICAD_SCH, KICAD_PCB and any custom symbol/footprint libraries, plus fabrication exports when requested |
+| [ngspice](../../skill-ngspice/references/CAPABILITIES.md) | Simulate explicit SPICE netlists and preserve actual raw results | Netlist, included component models, stimuli, analysis settings and raw simulation data |
+| [prusaslicer](../../skill-prusaslicer/references/CAPABILITIES.md) | Slice existing models using explicit printer and material settings | Original mesh or 3MF project, printer/material INI, slicing recipe and G-code |
 
 ## Passaggi tra strumenti
 

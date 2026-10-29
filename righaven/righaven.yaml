@@ -50,7 +50,7 @@ skills:
   path: /app/skill-catalog
   container_path: /mnt/skills
 subagents:
-  max_total_per_run: 40
+  max_total_per_run: 60
   custom_agents:
     photocraft:
       description: 'Immagini e ritocco: Ritocco, compositing raster e texture con
@@ -699,6 +699,350 @@ subagents:
       - task
       - ask_clarification
       - present_files
+    duckdb:
+      description: 'Data queries and reproducible analysis: Query CSV, JSON and Parquet
+        with SQL and a local analytical database. Usa duckdb-cli.'
+      system_prompt: Sei lo specialista duckdb. Per eseguire il lavoro invoca harness_delegate
+        con agent="duckdb", includendo input, percorsi, sorgenti modificabili, app
+        di apertura e criteri di accettazione. Eredita il modello unico della squadra.
+        Non eseguire CLI nel Gateway. Riporta risultati e limiti della delega.
+      skills:
+      - skill-workspace
+      - skill-duckdb
+      model: inherit
+      max_turns: 50
+      timeout_seconds: 1800
+      disallowed_tools:
+      - task
+      - ask_clarification
+      - present_files
+    jupyter:
+      description: 'Executable notebooks: Combine explanations, executable Python
+        and actual analytical results in a notebook. Usa jupyter-cli.'
+      system_prompt: Sei lo specialista jupyter. Per eseguire il lavoro invoca harness_delegate
+        con agent="jupyter", includendo input, percorsi, sorgenti modificabili, app
+        di apertura e criteri di accettazione. Eredita il modello unico della squadra.
+        Non eseguire CLI nel Gateway. Riporta risultati e limiti della delega.
+      skills:
+      - skill-workspace
+      - skill-jupyter
+      model: inherit
+      max_turns: 50
+      timeout_seconds: 1800
+      disallowed_tools:
+      - task
+      - ask_clarification
+      - present_files
+    quarto:
+      description: 'Reproducible analytical publications: Publish analytical narratives
+        and notebooks as standalone HTML reports. Usa quarto-cli.'
+      system_prompt: Sei lo specialista quarto. Per eseguire il lavoro invoca harness_delegate
+        con agent="quarto", includendo input, percorsi, sorgenti modificabili, app
+        di apertura e criteri di accettazione. Eredita il modello unico della squadra.
+        Non eseguire CLI nel Gateway. Riporta risultati e limiti della delega.
+      skills:
+      - skill-workspace
+      - skill-quarto
+      model: inherit
+      max_turns: 50
+      timeout_seconds: 1800
+      disallowed_tools:
+      - task
+      - ask_clarification
+      - present_files
+    poppler:
+      description: 'Inspection of delivered PDFs: Rasterize the final PDF and extract
+        its actual text for independent review. Usa poppler-cli.'
+      system_prompt: Sei lo specialista poppler. Per eseguire il lavoro invoca harness_delegate
+        con agent="poppler", includendo input, percorsi, sorgenti modificabili, app
+        di apertura e criteri di accettazione. Eredita il modello unico della squadra.
+        Non eseguire CLI nel Gateway. Riporta risultati e limiti della delega.
+      skills:
+      - skill-workspace
+      - skill-poppler
+      model: inherit
+      max_turns: 50
+      timeout_seconds: 1800
+      disallowed_tools:
+      - task
+      - ask_clarification
+      - present_files
+    qpdf:
+      description: 'PDF structural checks: Check PDF syntax, cross references and
+        recoverability independently of the authoring tool. Usa qpdf-cli.'
+      system_prompt: Sei lo specialista qpdf. Per eseguire il lavoro invoca harness_delegate
+        con agent="qpdf", includendo input, percorsi, sorgenti modificabili, app di
+        apertura e criteri di accettazione. Eredita il modello unico della squadra.
+        Non eseguire CLI nel Gateway. Riporta risultati e limiti della delega.
+      skills:
+      - skill-workspace
+      - skill-qpdf
+      model: inherit
+      max_turns: 50
+      timeout_seconds: 1800
+      disallowed_tools:
+      - task
+      - ask_clarification
+      - present_files
+    verapdf:
+      description: 'PDF/A conformance: Validate delivered PDFs against an explicitly
+        chosen PDF/A profile. Usa verapdf-cli.'
+      system_prompt: Sei lo specialista verapdf. Per eseguire il lavoro invoca harness_delegate
+        con agent="verapdf", includendo input, percorsi, sorgenti modificabili, app
+        di apertura e criteri di accettazione. Eredita il modello unico della squadra.
+        Non eseguire CLI nel Gateway. Riporta risultati e limiti della delega.
+      skills:
+      - skill-workspace
+      - skill-verapdf
+      model: inherit
+      max_turns: 50
+      timeout_seconds: 1800
+      disallowed_tools:
+      - task
+      - ask_clarification
+      - present_files
+    ocrmypdf:
+      description: 'Searchable scanned documents: Add an OCR text layer and text sidecar
+        to scanned PDFs while preserving the original. Usa ocrmypdf-cli.'
+      system_prompt: Sei lo specialista ocrmypdf. Per eseguire il lavoro invoca harness_delegate
+        con agent="ocrmypdf", includendo input, percorsi, sorgenti modificabili, app
+        di apertura e criteri di accettazione. Eredita il modello unico della squadra.
+        Non eseguire CLI nel Gateway. Riporta risultati e limiti della delega.
+      skills:
+      - skill-workspace
+      - skill-ocrmypdf
+      model: inherit
+      max_turns: 50
+      timeout_seconds: 1800
+      disallowed_tools:
+      - task
+      - ask_clarification
+      - present_files
+    tesseract:
+      description: 'Image text recognition: Recognize text in local images with coordinates
+        and confidence evidence. Usa tesseract-cli.'
+      system_prompt: Sei lo specialista tesseract. Per eseguire il lavoro invoca harness_delegate
+        con agent="tesseract", includendo input, percorsi, sorgenti modificabili,
+        app di apertura e criteri di accettazione. Eredita il modello unico della
+        squadra. Non eseguire CLI nel Gateway. Riporta risultati e limiti della delega.
+      skills:
+      - skill-workspace
+      - skill-tesseract
+      model: inherit
+      max_turns: 50
+      timeout_seconds: 1800
+      disallowed_tools:
+      - task
+      - ask_clarification
+      - present_files
+    gdal:
+      description: 'Geospatial data conversion and inspection: Inspect raster georeferencing
+        and convert raster datasets to GeoTIFF. Usa gdal-cli.'
+      system_prompt: Sei lo specialista gdal. Per eseguire il lavoro invoca harness_delegate
+        con agent="gdal", includendo input, percorsi, sorgenti modificabili, app di
+        apertura e criteri di accettazione. Eredita il modello unico della squadra.
+        Non eseguire CLI nel Gateway. Riporta risultati e limiti della delega.
+      skills:
+      - skill-workspace
+      - skill-gdal
+      model: inherit
+      max_turns: 50
+      timeout_seconds: 1800
+      disallowed_tools:
+      - task
+      - ask_clarification
+      - present_files
+    qgis:
+      description: 'Geospatial analysis: Run explicit native Processing algorithms
+        on local geographic data. Usa qgis-cli.'
+      system_prompt: Sei lo specialista qgis. Per eseguire il lavoro invoca harness_delegate
+        con agent="qgis", includendo input, percorsi, sorgenti modificabili, app di
+        apertura e criteri di accettazione. Eredita il modello unico della squadra.
+        Non eseguire CLI nel Gateway. Riporta risultati e limiti della delega.
+      skills:
+      - skill-workspace
+      - skill-qgis
+      model: inherit
+      max_turns: 50
+      timeout_seconds: 1800
+      disallowed_tools:
+      - task
+      - ask_clarification
+      - present_files
+    schemathesis:
+      description: 'OpenAPI property-based testing: Exercise authorized test APIs
+        against a saved OpenAPI contract. Usa schemathesis-cli.'
+      system_prompt: Sei lo specialista schemathesis. Per eseguire il lavoro invoca
+        harness_delegate con agent="schemathesis", includendo input, percorsi, sorgenti
+        modificabili, app di apertura e criteri di accettazione. Eredita il modello
+        unico della squadra. Non eseguire CLI nel Gateway. Riporta risultati e limiti
+        della delega.
+      skills:
+      - skill-workspace
+      - skill-schemathesis
+      model: inherit
+      max_turns: 50
+      timeout_seconds: 1800
+      disallowed_tools:
+      - task
+      - ask_clarification
+      - present_files
+    k6:
+      description: 'Bounded load and performance tests: Run explicit small load tests
+        with thresholds and native metric summaries. Usa k6-cli.'
+      system_prompt: Sei lo specialista k6. Per eseguire il lavoro invoca harness_delegate
+        con agent="k6", includendo input, percorsi, sorgenti modificabili, app di
+        apertura e criteri di accettazione. Eredita il modello unico della squadra.
+        Non eseguire CLI nel Gateway. Riporta risultati e limiti della delega.
+      skills:
+      - skill-workspace
+      - skill-k6
+      model: inherit
+      max_turns: 50
+      timeout_seconds: 1800
+      disallowed_tools:
+      - task
+      - ask_clarification
+      - present_files
+    axe-core:
+      description: 'Automated web accessibility checks: Inspect actual browser pages
+        for axe accessibility rules. Usa axe-core-cli.'
+      system_prompt: Sei lo specialista axe-core. Per eseguire il lavoro invoca harness_delegate
+        con agent="axe-core", includendo input, percorsi, sorgenti modificabili, app
+        di apertura e criteri di accettazione. Eredita il modello unico della squadra.
+        Non eseguire CLI nel Gateway. Riporta risultati e limiti della delega.
+      skills:
+      - skill-workspace
+      - skill-axe-core
+      model: inherit
+      max_turns: 50
+      timeout_seconds: 1800
+      disallowed_tools:
+      - task
+      - ask_clarification
+      - present_files
+    zap:
+      description: 'Passive application security checks: Spider an authorized application
+        and collect passive security findings with an explicit automation plan. Usa
+        zap-cli.'
+      system_prompt: Sei lo specialista zap. Per eseguire il lavoro invoca harness_delegate
+        con agent="zap", includendo input, percorsi, sorgenti modificabili, app di
+        apertura e criteri di accettazione. Eredita il modello unico della squadra.
+        Non eseguire CLI nel Gateway. Riporta risultati e limiti della delega.
+      skills:
+      - skill-workspace
+      - skill-zap
+      model: inherit
+      max_turns: 50
+      timeout_seconds: 1800
+      disallowed_tools:
+      - task
+      - ask_clarification
+      - present_files
+    gitleaks:
+      description: 'Secret detection: Scan local source directories for leaked credentials
+        without executing the source. Usa gitleaks-cli.'
+      system_prompt: Sei lo specialista gitleaks. Per eseguire il lavoro invoca harness_delegate
+        con agent="gitleaks", includendo input, percorsi, sorgenti modificabili, app
+        di apertura e criteri di accettazione. Eredita il modello unico della squadra.
+        Non eseguire CLI nel Gateway. Riporta risultati e limiti della delega.
+      skills:
+      - skill-workspace
+      - skill-gitleaks
+      model: inherit
+      max_turns: 50
+      timeout_seconds: 1800
+      disallowed_tools:
+      - task
+      - ask_clarification
+      - present_files
+    openmodelica:
+      description: 'Dynamic system simulation: Compile and simulate explicit Modelica
+        models and MOS recipes on CPU. Usa openmodelica-cli.'
+      system_prompt: Sei lo specialista openmodelica. Per eseguire il lavoro invoca
+        harness_delegate con agent="openmodelica", includendo input, percorsi, sorgenti
+        modificabili, app di apertura e criteri di accettazione. Eredita il modello
+        unico della squadra. Non eseguire CLI nel Gateway. Riporta risultati e limiti
+        della delega.
+      skills:
+      - skill-workspace
+      - skill-openmodelica
+      model: inherit
+      max_turns: 50
+      timeout_seconds: 1800
+      disallowed_tools:
+      - task
+      - ask_clarification
+      - present_files
+    highs:
+      description: 'Linear and mixed-integer optimization: Solve explicit LP and MPS
+        optimization models. Usa highs-cli.'
+      system_prompt: Sei lo specialista highs. Per eseguire il lavoro invoca harness_delegate
+        con agent="highs", includendo input, percorsi, sorgenti modificabili, app
+        di apertura e criteri di accettazione. Eredita il modello unico della squadra.
+        Non eseguire CLI nel Gateway. Riporta risultati e limiti della delega.
+      skills:
+      - skill-workspace
+      - skill-highs
+      model: inherit
+      max_turns: 50
+      timeout_seconds: 1800
+      disallowed_tools:
+      - task
+      - ask_clarification
+      - present_files
+    kicad:
+      description: 'Electronic design deliverables: Export native electronic schematics
+        and PCBs using headless KiCad CLI. Usa kicad-cli.'
+      system_prompt: Sei lo specialista kicad. Per eseguire il lavoro invoca harness_delegate
+        con agent="kicad", includendo input, percorsi, sorgenti modificabili, app
+        di apertura e criteri di accettazione. Eredita il modello unico della squadra.
+        Non eseguire CLI nel Gateway. Riporta risultati e limiti della delega.
+      skills:
+      - skill-workspace
+      - skill-kicad
+      model: inherit
+      max_turns: 50
+      timeout_seconds: 1800
+      disallowed_tools:
+      - task
+      - ask_clarification
+      - present_files
+    ngspice:
+      description: 'Circuit simulation: Simulate explicit SPICE netlists and preserve
+        actual raw results. Usa ngspice-cli.'
+      system_prompt: Sei lo specialista ngspice. Per eseguire il lavoro invoca harness_delegate
+        con agent="ngspice", includendo input, percorsi, sorgenti modificabili, app
+        di apertura e criteri di accettazione. Eredita il modello unico della squadra.
+        Non eseguire CLI nel Gateway. Riporta risultati e limiti della delega.
+      skills:
+      - skill-workspace
+      - skill-ngspice
+      model: inherit
+      max_turns: 50
+      timeout_seconds: 1800
+      disallowed_tools:
+      - task
+      - ask_clarification
+      - present_files
+    prusaslicer:
+      description: '3D print preparation: Slice existing models using explicit printer
+        and material settings. Usa prusaslicer-cli.'
+      system_prompt: Sei lo specialista prusaslicer. Per eseguire il lavoro invoca
+        harness_delegate con agent="prusaslicer", includendo input, percorsi, sorgenti
+        modificabili, app di apertura e criteri di accettazione. Eredita il modello
+        unico della squadra. Non eseguire CLI nel Gateway. Riporta risultati e limiti
+        della delega.
+      skills:
+      - skill-workspace
+      - skill-prusaslicer
+      model: inherit
+      max_turns: 50
+      timeout_seconds: 1800
+      disallowed_tools:
+      - task
+      - ask_clarification
+      - present_files
 subagent_runtime:
   max_running: 1
   max_queued: 24
@@ -914,16 +1258,16 @@ lead_prompt_overlay:
 
 
     Dopo il prodotto tecnico usa una delega separata purpose review sul file esatto:
-    richiedi quality-review.json secondo skill-workspace, criteri specifici al
-    brief e osservazioni reali. Se fallisce, correggi solo i difetti identificati
-    e rivaluta la nuova versione. Non chiedere ripetute rigenerazioni senza osservare
-    il risultato. DeepSeek nel trasporto corrente non vede immagini né ascolta: mantieni
-    review, mostra la versione e il limite. Non cambiare provider da solo. Una verifica
-    non disponibile non è superata e non richiede di rifare il lavoro. status ready
-    richiede consegna tecnicamente completa e revisione separata legata all’hash del
-    prodotto. Prima leggi delivery.issues, non limitarti a ok=true. Presenta una sola
-    consegna selezionata, prodotto e sorgenti abbinati; il pannello raggruppa prove
-    e versioni precedenti separatamente con istruzioni di apertura.
+    richiedi quality-review.json secondo skill-workspace, criteri specifici al brief
+    e osservazioni reali. Se fallisce, correggi solo i difetti identificati e rivaluta
+    la nuova versione. Non chiedere ripetute rigenerazioni senza osservare il risultato.
+    DeepSeek nel trasporto corrente non vede immagini né ascolta: mantieni review,
+    mostra la versione e il limite. Non cambiare provider da solo. Una verifica non
+    disponibile non è superata e non richiede di rifare il lavoro. status ready richiede
+    consegna tecnicamente completa e revisione separata legata all’hash del prodotto.
+    Prima leggi delivery.issues, non limitarti a ok=true. Presenta una sola consegna
+    selezionata, prodotto e sorgenti abbinati; il pannello raggruppa prove e versioni
+    precedenti separatamente con istruzioni di apertura.
 
 
     Consegna prodotti e sorgenti modificabili pertinenti a tutti i ruoli, con risorse
@@ -1092,24 +1436,36 @@ lead_prompt_overlay:
     le librerie mantenute, non la vecchia CLI dismessa.); opengrep per Analisi statica
     del codice (Controlli semantici su codice locale con regole esplicite e report
     ripetibili.); trivy per Dipendenze e configurazioni (Inventario software, configurazioni
-    e vulnerabilità con database identificato.).
-
-    Prima di assegnare un incarico consulta harness_skills: include ambienti personali e strumenti
-    autorizzati. Scegli le capacità necessarie, riusando i programmi preparati senza caricare
-    tutto un preset. Per ruoli senza tools né skills specifica capability_rationale: perché
-    il runtime base basta sia a produrre sia a verificare il risultato. Non dedurre che
-    una CLI non esiste dalla sola assenza di una libreria Python. Un documento modificabile
-    può essere anche il prodotto finale: delivery.files[].primary=true. Distingui limiti
-    dei controlli da difetti reali; non ripetere la produzione dopo una revisione superata.
-
-    Componi i ruoli con skill native: consulta harness_skills per nomi, metodi e riferimenti
-    autorizzati; seleziona roles_json.skills e tools, poi usa harness_delegate(agent="workspace",
-    role_id=...). Per il coordinamento leggi il riferimento PROJECT-MANAGEMENT della
-    skill skill-harness. I preset degli ambienti sono profili di capacità e preferenze
-    di deploy, non professioni. La presenza nella cache non autorizza una CLI fuori
-    dal mandato. Le skill pure di metodo non richiedono installazioni di programmi.
-
-    '
+    e vulnerabilità con database identificato.); duckdb per Data queries and reproducible
+    analysis (Query CSV, JSON and Parquet with SQL and a local analytical database.);
+    jupyter per Executable notebooks (Combine explanations, executable Python and
+    actual analytical results in a notebook.); quarto per Reproducible analytical
+    publications (Publish analytical narratives and notebooks as standalone HTML reports.);
+    poppler per Inspection of delivered PDFs (Rasterize the final PDF and extract
+    its actual text for independent review.); qpdf per PDF structural checks (Check
+    PDF syntax, cross references and recoverability independently of the authoring
+    tool.); verapdf per PDF/A conformance (Validate delivered PDFs against an explicitly
+    chosen PDF/A profile.); ocrmypdf per Searchable scanned documents (Add an OCR
+    text layer and text sidecar to scanned PDFs while preserving the original.); tesseract
+    per Image text recognition (Recognize text in local images with coordinates and
+    confidence evidence.); gdal per Geospatial data conversion and inspection (Inspect
+    raster georeferencing and convert raster datasets to GeoTIFF.); qgis per Geospatial
+    analysis (Run explicit native Processing algorithms on local geographic data.);
+    schemathesis per OpenAPI property-based testing (Exercise authorized test APIs
+    against a saved OpenAPI contract.); k6 per Bounded load and performance tests
+    (Run explicit small load tests with thresholds and native metric summaries.);
+    axe-core per Automated web accessibility checks (Inspect actual browser pages
+    for axe accessibility rules.); zap per Passive application security checks (Spider
+    an authorized application and collect passive security findings with an explicit
+    automation plan.); gitleaks per Secret detection (Scan local source directories
+    for leaked credentials without executing the source.); openmodelica per Dynamic
+    system simulation (Compile and simulate explicit Modelica models and MOS recipes
+    on CPU.); highs per Linear and mixed-integer optimization (Solve explicit LP and
+    MPS optimization models.); kicad per Electronic design deliverables (Export native
+    electronic schematics and PCBs using headless KiCad CLI.); ngspice per Circuit
+    simulation (Simulate explicit SPICE netlists and preserve actual raw results.);
+    prusaslicer per 3D print preparation (Slice existing models using explicit printer
+    and material settings.).'
 auth:
   local:
     allow_registration: true
