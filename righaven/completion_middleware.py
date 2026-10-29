@@ -32,6 +32,22 @@ class ProjectCompletionMiddleware(AgentMiddleware):
     MAX_NUDGES = 2
 
     def before_agent(self, state, runtime):
+        # Repair historical contracts that captured the UI's resume button as
+        # a new product requirement, even when the model only summarizes next.
+        context=getattr(runtime,'context',None)
+        if not (isinstance(context,dict) and context.get('is_subagent')):
+            from .project_controls import operational_resume
+            for message in reversed(state.get('messages',[])):
+                kind=message.get('type',message.get('role')) if isinstance(message,dict) else getattr(message,'type','')
+                if kind not in ('human','user'):continue
+                text=message.get('content','') if isinstance(message,dict) else getattr(message,'content','')
+                if isinstance(text,list):text='\n'.join(b.get('text','') for b in text if isinstance(b,dict) and b.get('type')=='text')
+                if operational_resume(text):
+                    try:
+                        from .projects import sync_acceptance
+                        sync_acceptance(workspace_for(runtime),[text])
+                    except (AttributeError,ValueError,OSError,RuntimeError):pass
+                break
         return {'harness_production_started': False, 'harness_completion_nudges': 0, 'harness_completion_reminder': '',
                 'harness_work_generation':0, 'harness_reminded_generation':-1, 'harness_learning_nudged':False}
 
