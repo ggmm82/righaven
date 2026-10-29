@@ -89,6 +89,7 @@ jobs:
           python scripts/check_project_design_ui.py --node-modules /tmp/rh-ui-tests/node_modules --web /tmp/design-bpmn-web --tool bpmn
           python scripts/check_provider_ui.py
           python scripts/check_environments_ui.py --node-modules /tmp/rh-ui-tests/node_modules
+          PYTHONPATH=. python scripts/check_gallery_feedback_ui.py --node-modules /tmp/rh-ui-tests/node_modules
           mkdir -p /tmp/web-terminal-assets
           cp config/web-terminal/package*.json /tmp/web-terminal-assets/
           npm ci --prefix /tmp/web-terminal-assets --ignore-scripts --no-audit --no-fund

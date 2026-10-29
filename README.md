@@ -112,15 +112,31 @@ Only tools supported by the managed runtime are installable automatically.
 Environment configuration export, full software-image export and Gallery
 publication are separate operations. A prepared-software package includes the
 image, Dockerfile and rebuild recipe, without accounts or project data. Gallery
-publication currently requires a JSON manifest; a guided environment-to-pack
-publisher is still needed. Published versions are immutable and publisher-owned;
-new entries are unverified and become visible in this installation.
+publication uses **Environments → Manage → Share to catalog**: enter English and
+Italian metadata, inspect the actual purpose, instructions, skills and managed
+tool choices, then explicitly confirm the preview. Nothing is published by saving
+an environment. Published versions are immutable and publisher-owned; new entries
+are unverified and become visible in this installation. Private custom skill files
+must be packaged separately; local verified version IDs require software export
+rather than pretending they are portable catalog references.
+
+Search environments by purpose, name, skill or tool. Configuration history retains
+up to 50 owner-scoped snapshots; restore revalidates the current capabilities and
+version choices. Project files are unaffected. A `latest` choice follows today's
+verified stable release, so restoring configuration is not an image rollback.
+
+Gallery details include **1–5 star reviews, comments and publisher replies**.
+Ratings belong to a published version, with one editable rating per account and
+version; favorites are separate. Experiences are self-reported, not certifications.
+Review authors can delete their own content. Reports go to administrator moderation
+and do not automatically hide a review. Public discussion uses pseudonyms instead
+of exposing account IDs or email addresses.
 
 Administrators can synchronize HTTPS catalogs pinned to an approved SHA-256.
 A public global Hub, publisher signatures and reviewed onboarding of arbitrary
 third-party CLI recipes remain under development. See the
 [user journey review](docs/USER-JOURNEY-REVIEW.md) for remaining onboarding,
-configuration lifecycle and publication work.
+account onboarding, private skill packaging and public distribution work.
 
 ## Hosted preview and languages
 

@@ -26,6 +26,8 @@ COPY core/frontend ./frontend
 COPY frontend/locales ./frontend/src/app/workspace/locales
 COPY frontend/i18n.tsx ./frontend/src/app/workspace/i18n.tsx
 COPY frontend/harness-page.tsx ./frontend/src/app/workspace/harness/page.tsx
+COPY frontend/gallery-feedback.tsx ./frontend/src/app/workspace/gallery/gallery-feedback.tsx
+COPY frontend/environment-lifecycle.tsx ./frontend/src/app/workspace/environments/environment-lifecycle.tsx
 COPY frontend/gallery-page.tsx ./frontend/src/app/workspace/gallery/page.tsx
 COPY frontend/cloud-portal-page.tsx ./frontend/src/app/workspace/cloud/page.tsx
 COPY frontend/environments-page.tsx ./frontend/src/app/workspace/environments/page.tsx

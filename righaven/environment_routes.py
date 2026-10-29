@@ -24,7 +24,7 @@ class Definition(BaseModel):
     skills:list[str]=Field(max_length=200)
     mode:str=Field(default='on_demand',pattern='^(on_demand|preload)$')
     ephemeral:bool=False
-    tool_versions:dict[str,str]=Field(default_factory=dict,max_length=50)
+    tool_versions:dict[str,str]=Field(default_factory=dict,max_length=64)
     preload_tools:list[str]|None=Field(default=None,max_length=64)
 
 
@@ -192,12 +192,19 @@ async def write_definition(value,request,create):
         if value.preload_tools is not None and set(value.preload_tools)-set(resolved['tools']):raise ValueError('Precarica soltanto strumenti delle skill selezionate')
         if set(value.tool_versions)-set(runtimes.closure(resolved['tools']))-{'provider-agy','provider-codex'}:raise ValueError('Scegli versioni solo degli strumenti selezionati nell’ambiente')
         if value.mode=='preload' and value.ephemeral:raise ValueError('Il predeploy non può essere temporaneo')
+        from .tool_versions import check_selection
+        check_selection(value.tool_versions)  # Validate before changing native configuration.
+        from . import environment_history
+        if not create:
+            previous=await native_agent(request,value.name)
+            environment_history.record(user,profiles.profile(user,previous))
         from app.gateway.routers.agents import AgentCreateRequest,AgentUpdateRequest,create_agent_endpoint,update_agent
         fields={'display_name':value.display_name,'description':value.purpose,'soul':value.instructions,'skills':resolved['skills']}
         if create:
             agent=await create_agent_endpoint(AgentCreateRequest(name=value.name,**fields),request)
         else:agent=await update_agent(value.name,AgentUpdateRequest(**fields),request)
         await run_in_threadpool(profiles.set_deployment,user,value.name,value.mode,value.ephemeral,value.preload_tools,value.tool_versions)
+        environment_history.record(user,profiles.profile(user,agent))
         if value.mode=='preload' and runtimes.enabled():schedule(user,value.name,reschedule=True,trigger='configuration')
         return await run_in_threadpool(summary,user,agent)
     except ValueError as e:raise HTTPException(422,str(e)) from e
@@ -605,3 +612,51 @@ async def resize_terminal(identifier:str,value:TerminalSize,request:Request):
     try:await run_in_threadpool(session.resize,value.cols,value.rows)
     except ValueError as exc:raise HTTPException(409,str(exc)) from exc
     return {'accepted':True}
+
+
+@router.get('/{name}/history')
+@require_permission('agents','read')
+async def configuration_history(name:str,request:Request):
+    await native_agent(request,name)
+    from . import environment_history
+    return {'items':list(reversed(environment_history.read(get_effective_user_id(),name)))}
+
+
+@router.post('/{name}/restore/{revision}')
+@require_permission('agents','write')
+async def restore_configuration(name:str,revision:str,request:Request):
+    await native_agent(request,name)
+    from . import environment_history
+    previous=next((item for item in environment_history.read(get_effective_user_id(),name) if item['id']==revision),None)
+    if not previous:raise HTTPException(404,'Configuration revision not found')
+    return await write_definition(Definition(**previous['definition']),request,False)
+
+
+class ShareDefinition(BaseModel):
+    id:str=Field(pattern='^[a-z0-9][a-z0-9-]{1,63}$')
+    version:str=Field(pattern='^[a-zA-Z0-9][a-zA-Z0-9.+-]{0,63}$')
+    title_en:str=Field(min_length=1,max_length=120)
+    description_en:str=Field(min_length=1,max_length=4000)
+    title_it:str=Field(min_length=1,max_length=120)
+    description_it:str=Field(min_length=1,max_length=4000)
+    revision:str
+    confirm:bool=False
+    preview_hash:str=''
+
+
+@router.post('/{name}/share')
+@require_permission('agents','write')
+async def share_environment(name:str,value:ShareDefinition,request:Request):
+    same_origin(request)
+    agent=await native_agent(request,name);user=get_effective_user_id()
+    profile=await run_in_threadpool(profiles.profile,user,agent)
+    if value.revision!=profile['revision']:raise HTTPException(409,'Environment changed; reopen the sharing preview')
+    from . import environment_sharing,gallery
+    try:
+        manifest=environment_sharing.manifest(profile,user,value.id,value.version,value.title_en,value.description_en,value.title_it,value.description_it)
+        import hashlib
+        digest=hashlib.sha256(json.dumps(manifest,sort_keys=True).encode()).hexdigest()
+        if not value.confirm:return {'manifest':manifest,'scope':'instance','revision':profile['revision'],'preview_hash':digest}
+        if value.preview_hash!=digest:raise HTTPException(409,'Sharing preview changed; inspect it again before publishing')
+        return gallery.publish_pack(manifest)
+    except ValueError as error:raise HTTPException(422,str(error)) from error

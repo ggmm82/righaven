@@ -83,7 +83,7 @@ class EnvironmentRouteTests(unittest.TestCase):
         with TestClient(app) as client:
             for user,code in ((None,401),('no-permission',403)):
                 headers={'X-Test-User':user} if user else {}
-                for method,path in [('POST','/resources/rebalance'),('GET','/resources/settings'),('PUT','/resources/settings'),('GET',''),('POST',''),('POST','/prepare-preloaded'),('POST','/test/prepare'),('POST','/test/cancel'),('DELETE','/test/cache'),('GET','/test/log'),('GET','/test/export'),('POST','/test/software-export'),('POST','/test/software-import'),('POST','/test/terminal'),('POST','/terminal-clients/'+('a'*32)+'/close'),('POST','/terminals/'+('a'*32)+'/close'),('GET','/terminals/'+('a'*32)+'/status'),('POST','/terminals/'+('a'*32)+'/input'),('DELETE','/terminals/'+('a'*32)),('POST','/terminals/'+('a'*32)+'/resize'),('GET','/transfers/'+('a'*32)+'/status'),('GET','/transfers/'+('a'*32)+'/download')]:
+                for method,path in [('POST','/resources/rebalance'),('GET','/resources/settings'),('PUT','/resources/settings'),('GET',''),('POST',''),('POST','/prepare-preloaded'),('POST','/test/prepare'),('POST','/test/cancel'),('DELETE','/test/cache'),('GET','/test/log'),('GET','/test/export'),('GET','/test/history'),('POST','/test/restore/abc'),('POST','/test/software-export'),('POST','/test/software-import'),('POST','/test/terminal'),('POST','/terminal-clients/'+('a'*32)+'/close'),('POST','/terminals/'+('a'*32)+'/close'),('GET','/terminals/'+('a'*32)+'/status'),('POST','/terminals/'+('a'*32)+'/input'),('DELETE','/terminals/'+('a'*32)),('POST','/terminals/'+('a'*32)+'/resize'),('GET','/transfers/'+('a'*32)+'/status'),('GET','/transfers/'+('a'*32)+'/download')]:
                     body={'name':'test','display_name':'Test','purpose':'Test scope','skills':[]} if path=='' and method=='POST' else {'text':'echo ok'} if path.endswith('/input') else {'cols':80,'rows':24} if path.endswith('/resize') else {'mode':'auto','cpus':1.5,'memory_mib':1536,'max_workers':2} if path=='/resources/settings' and method=='PUT' else None
                     reply=client.request(method,'/api/harness/environments'+path,headers=headers,json=body)
                     self.assertEqual(reply.status_code,code,reply.text)
@@ -91,6 +91,41 @@ class EnvironmentRouteTests(unittest.TestCase):
                     reply=client.request(method,'/api/harness/tool-versions'+path,headers=headers,json=body)
                     self.assertEqual(reply.status_code,code,reply.text)
 
+
+    def test_share_requires_matching_preview_and_never_assumes_quality_certification(self):
+        import tempfile
+        from pathlib import Path
+        from fastapi import FastAPI
+        from fastapi.testclient import TestClient
+        from righaven import state
+        app=FastAPI();app.include_router(routes.router)
+        @app.middleware('http')
+        async def authenticate(request,call_next):
+            user=SimpleNamespace(id='owner',system_role='user')
+            request.state.auth=AuthContext(user,['agents:read','agents:write'])
+            request.state.user=user
+            token=set_current_user(user)
+            try:return await call_next(request)
+            finally:reset_current_user(token)
+        profile={'name':'docs','display_name':'Documents','revision':'revision-one','purpose':'Readable diagrams',
+                 'instructions':'Preserve editable sources','skills':['skill-d2','skill-quality-review'],
+                 'tools':['d2'],'disabled':[],'deployment':{'mode':'on_demand','tool_versions':{'d2':'builtin'}}}
+        body={'id':'shared-docs','version':'1.0.0','title_en':'Documents','description_en':'Readable diagrams',
+              'title_it':'Documenti','description_it':'Diagrammi leggibili','revision':'revision-one'}
+        with tempfile.TemporaryDirectory() as root,patch.object(state,'STATE',Path(root)),patch.object(routes,'native_agent',new=AsyncMock(return_value=SimpleNamespace(name='docs'))),patch.object(routes.profiles,'profile',return_value=profile),TestClient(app) as client:
+            endpoint='/api/harness/environments/docs/share'
+            preview=client.post(endpoint,json=body)
+            self.assertEqual(preview.status_code,200,preview.text)
+            self.assertEqual(preview.json()['scope'],'instance')
+            self.assertFalse((Path(root)/'gallery-community-packs.json').exists())
+            self.assertEqual(client.post(endpoint,json={**body,'confirm':True}).status_code,409)
+            changed={**body,'title_en':'Different title','confirm':True,'preview_hash':preview.json()['preview_hash']}
+            self.assertEqual(client.post(endpoint,json=changed).status_code,409)
+            published=client.post(endpoint,json={**body,'confirm':True,'preview_hash':preview.json()['preview_hash']})
+            self.assertEqual(published.status_code,200,published.text)
+            self.assertFalse(published.json()['pack']['verified'])
+            self.assertEqual(published.json()['pack']['author'],'owner')
+            self.assertEqual(client.post(endpoint,json={**body,'revision':'stale'}).status_code,409)
 
     def test_only_admin_can_change_the_shared_budget_from_environments(self):
         from fastapi import FastAPI

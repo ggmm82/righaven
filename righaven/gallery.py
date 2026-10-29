@@ -76,6 +76,19 @@ def validate_pack_manifest(manifest: dict) -> dict:
         raise ValueError('security_policy.writable_paths must include $RIGHAVEN_OUTPUT_DIR')
     if sec.get('network_access') is not False or sec.get('writable_paths') != ['$RIGHAVEN_OUTPUT_DIR']:
         raise ValueError('Pack permissions must match the isolated runtime contract')
+    if 'skills' in manifest:
+        from .state import applications
+        allowed = {'skill-harness', 'skill-workspace', 'skill-problem-solving', 'skill-quality-review'} | {'skill-' + app['id'] for app in applications()}
+        skills = manifest['skills']
+        if not isinstance(skills, list) or any(not isinstance(skill, str) or skill not in allowed for skill in skills):
+            raise ValueError('Share only portable managed skills; package personal skill content separately')
+    if 'environment' in manifest:
+        env = manifest['environment']
+        if not isinstance(env, dict) or set(env) - {'purpose', 'tool_versions'} or not isinstance(env.get('purpose', ''), str):
+            raise ValueError('Invalid environment metadata')
+        versions = env.get('tool_versions', {})
+        if not isinstance(versions, dict) or any(tool not in tools or choice not in ('builtin', 'latest') for tool, choice in versions.items()):
+            raise ValueError('Catalog versions must be portable builtin/latest choices; local verified versions require software export')
     return {
         'id': pack_id,
         'name': manifest['name'].strip(),
@@ -87,6 +100,8 @@ def validate_pack_manifest(manifest: dict) -> dict:
         'forks': 0,
         'verified': False,
         'tools': list(manifest.get('tools', [])),
+        **({'skills': manifest['skills']} if 'skills' in manifest else {}),
+        **({'environment': manifest['environment']} if 'environment' in manifest else {}),
         'i18n': i18n,
         'docker_dependencies': deps,
         'cli_binaries': binaries,
@@ -133,15 +148,16 @@ def list_packs(*, category: str | None = None, query: str | None = None, tag: st
         t = tag.strip().lower()
         items = [p for p in items if t in [x.lower() for x in p.get('tags', [])]]
     if query:
-        q = query.strip().lower()
-        items = [
-            p for p in items
-            if q in p['id'].lower()
-            or q in p['name'].lower()
-            or q in p['display_title'].lower()
-            or q in p['display_description'].lower()
-            or any(q in t.lower() for t in p.get('tags', []))
-        ]
+        tokens = query.casefold().split()
+        items = [p for p in items if all(token in ' '.join([
+            p['id'], p['name'], p['display_title'], p['display_description'],
+            *p.get('tools', []), *p.get('tags', []),
+            *[str(v) for entry in p.get('i18n', {}).values() for v in entry.values()],
+        ]).casefold() for token in tokens)]
+    from .gallery_feedback import rating_summaries
+    ratings = rating_summaries()
+    for item in items:
+        item.update(ratings.get((item['id'],item['version']),{'rating_count':0,'rating_average':None}))
     active_ids = set(active_packs_for(user_id))
     for item in items:
         item['activated'] = item['id'] in active_ids

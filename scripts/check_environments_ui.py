@@ -28,6 +28,9 @@ def main():
             def do_GET(self):
                 if self.path.endswith('/resources/settings'):return self.send(json.dumps(resources))
                 if self.path.endswith('/releases'):return self.send(json.dumps({'releases':[{'version':'1.4.7'}]}))
+                if self.path.endswith('/history'):
+                    profile=state['environments'][0]
+                    return self.send(json.dumps({'items':[{'id':'a'*64,'saved_at':100,'definition':profile},{'id':'b'*64,'saved_at':90,'definition':{**profile,'purpose':'Earlier configuration'}}]}))
                 if '/tool-versions' in self.path:return self.send(json.dumps(library))
                 if '/transfers/' in self.path:return self.send(json.dumps(transfer))
                 if '/terminals/' in self.path:return self.send(json.dumps(terminal))
@@ -39,6 +42,12 @@ def main():
             def do_POST(self):
                 raw=self.rfile.read(int(self.headers.get('Content-Length',0)))
                 value={} if self.path.endswith('/software-import') else json.loads(raw or '{}');posts.append((self.path,value))
+                if self.path.endswith('/share'):
+                    if value.get('confirm'):
+                        assert value['preview_hash']=='preview-hash'
+                        return self.send(json.dumps({'published':True}))
+                    return self.send(json.dumps({'manifest':{'id':value['id'],'version':value['version'],'tools':['d2']},'preview_hash':'preview-hash'}))
+                if '/restore/' in self.path:return self.send(json.dumps(state['environments'][0]))
                 if self.path.endswith('/resources/rebalance'):
                     state['parallelism']['monitor'].update(allocated_cpus=1.5,allocated_memory_mib=2048);return self.send(json.dumps({'updated':1,'unchanged':0,'pending':0,'message':'Budget attivo riassegnato'}))
                 if self.path.endswith('/resources/settings'):
@@ -197,6 +206,22 @@ def main():
                 if args.screenshots_dir:
                     args.screenshots_dir.mkdir(parents=True,exist_ok=True);page.screenshot(path=str(args.screenshots_dir/'environment-details-mobile.png'),full_page=False)
                 page.keyboard.press('Escape');page.get_by_role('button',name='Da correggere (1)',exact=True).click();expect(page.get_by_test_id('environment-card')).to_have_count(1)
+                page.get_by_role('button',name='Tutti (14)',exact=True).click()
+                page.get_by_role('searchbox',name='Cerca ambienti').fill('Ambiente 13')
+                expect(page.get_by_test_id('environment-card')).to_have_count(1)
+                page.get_by_test_id('environment-card').get_by_role('button',name=re.compile('^Gestisci ')).click()
+                dialog.get_by_text(re.compile('^Storico delle configurazioni')).click()
+                dialog.get_by_role('button',name='Esamina ripristino').click()
+                expect(dialog).to_contain_text('Earlier configuration')
+                dialog.get_by_role('button',name='Conferma ripristino').click()
+                expect(dialog).to_contain_text('Configurazione ripristinata.')
+                dialog.get_by_text('Condividi nel catalogo',exact=True).click()
+                dialog.get_by_role('button',name='Anteprima della pubblicazione').click()
+                expect(dialog.get_by_role('button',name='Pubblica questa versione')).to_be_disabled()
+                dialog.get_by_role('checkbox',name=re.compile('^Ho verificato')).check()
+                dialog.get_by_role('button',name='Pubblica questa versione').click()
+                expect(dialog).to_contain_text('Versione pubblicata nel catalogo')
+                assert any(path.endswith('/share') and value.get('confirm') for path,value in posts)
                 assert not errors,errors;browser.close()
         finally:server.shutdown();server.server_close()
     print('Environments modal UI OK: native presets, disabled skills, partial preload, save/reload, polling preserves draft, failed save retains form, cloning, logs, mobile.')
