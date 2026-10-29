@@ -45,7 +45,7 @@ async def install(pack, user_id):
         except FileNotFoundError:
             existing = None
         if existing is None:
-            get_agent_store().create(name, {'name': name, 'description': pack.get('environment', {}).get('purpose') or pack['i18n']['en']['description'],
+            get_agent_store().create(name, {'name': name, 'display_name': (pack.get('display_title') or pack['i18n']['en']['title'])[:64], 'description': pack.get('environment', {}).get('purpose') or pack['i18n']['en']['description'],
                                           'skills': ['skill-workspace', *names]},
                                      pack['skill_prompt_template'], user_id=user_id)
         if existing is None:

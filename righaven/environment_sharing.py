@@ -17,8 +17,11 @@ def manifest(profile, user, identifier, version, title_en, description_en, title
         'tags': ['community', *profile['tools']], 'tools': profile['tools'],
         'skills': profile['skills'],
         'docker_dependencies': {'base_image': 'managed', 'system_packages': [], 'python_packages': [], 'node_packages': []},
-        'cli_binaries': [], 'skill_prompt_template': instructions,
-        'verification_command': 'Prepare the managed environment and inspect the native verification report',
+        'cli_binaries': [{'name': tool, 'executable': '/usr/local/bin/' + tool + '-cli', 'safe_flags': [],
+                          'health_check': 'craft capabilities ' + tool} for tool in profile['tools']],
+        'skill_prompt_template': instructions,
+        # This checks the declared capability map, not the quality of a deliverable.
+        'verification_command': ' && '.join('craft capabilities ' + tool for tool in profile['tools']) or 'craft capabilities',
         'security_policy': {'rootless': True, 'network_access': False, 'writable_paths': ['$RIGHAVEN_OUTPUT_DIR']},
         'environment': {'purpose': profile['purpose'], 'tool_versions': profile['deployment'].get('tool_versions', {})},
     })

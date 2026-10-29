@@ -90,6 +90,8 @@ class EnvironmentCommunityTests(unittest.TestCase):
         manifest = environment_sharing.manifest(self.profile(), 'owner', 'my-diagrams', '1.0.0',
                     'Diagrams', 'Editable diagrams', 'Diagrammi', 'Diagrammi modificabili')
         result = gallery.publish_pack(manifest)['pack']
+        self.assertEqual(result['verification_command'],'craft capabilities d2')
+        self.assertEqual(result['cli_binaries'][0]['executable'],'/usr/local/bin/d2-cli')
         self.assertIn('skill-quality-review', result['skills'])
         self.assertEqual(result['environment']['tool_versions'], {'d2':'builtin'})
         self.assertEqual(result['skill_prompt_template'], 'Keep layout readable')
