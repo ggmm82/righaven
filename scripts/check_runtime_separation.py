@@ -92,10 +92,10 @@ def main():
                     for selected in (pin,None):
                         if selected:state.atomic_json(defaults,{provider:selected})
                         else:defaults.unlink()
-                        bundle=provider_bundle.prepare(engine)
+                        mounted=provider_bundle.prepare(engine)
                         expected=(tool_versions.packages({provider:selected})[provider]['app'] if selected else tool_versions.builtins()[provider])['version']
-                        assert bundle[1]['version']==expected,bundle
-                        arguments=provider_bundle.arguments(bundle)
+                        assert mounted[1]['version']==expected,mounted
+                        arguments=provider_bundle.arguments(mounted)
                         actual=runtime.docker('run','--rm','--network=none',*arguments,ready['image_id'],command,'--version')
                         assert expected.lstrip('v') in actual,actual
                         target=runtime.docker('run','--rm','--network=none',*arguments,ready['image_id'],'sh','-c','command -v '+command)
