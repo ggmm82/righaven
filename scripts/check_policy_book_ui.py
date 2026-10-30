@@ -1,0 +1,154 @@
+#!/usr/bin/env python3
+"""Real React flows for the Policy Book lifecycle and the project governance panel.
+
+Declared API fixtures only; tests/test_policy_book.py verifies the native routes.
+"""
+import argparse,json,subprocess,tempfile
+from pathlib import Path
+from playwright.sync_api import sync_playwright,expect
+
+BUILTIN={'id':'quality_standard','title':'Standard quality review','version':1,'summary':'Every delivery','mandatory':True,
+         'rules':['Respect the request'],'handoff_checks':[],'final_checks':'acceptance','depends_on':[],'applies_to':['work','preview','integration','delivery']}
+
+
+class Book:
+    """Minimal in-memory mirror of the lifecycle API used by the page."""
+    def __init__(self):self.records={}
+    def overview(self,admin):
+        rows=[{'id':'quality_standard','title':BUILTIN['title'],'summary':'','source':'builtin','status':'active','mandatory':True,'active_version':1,'has_draft':False}]
+        for r in self.records.values():
+            current=r['versions'][-1]['sheet'] if r['active_version'] else r['draft']
+            rows.append({'id':r['id'],'title':current['title'],'summary':'','source':'organization','status':r['status'],'mandatory':current['mandatory'],
+                         'active_version':r['active_version'],'has_draft':r['draft'] is not None})
+        return {'sheets':rows,'can_manage':admin,'default_sheet':'quality_standard'}
+    def detail(self,identifier):
+        if identifier=='quality_standard':
+            return {'id':identifier,'source':'builtin','status':'active','active_version':1,'draft':None,
+                    'versions':[{'version':1,'sheet':{**BUILTIN},'revision':'r','published_at':'','published_by':'RigHaven'}],'history':[]}
+        return {**self.records[identifier],'source':'organization'}
+    def event(self,record,action,version=None):
+        record['history'].append({'at':'2026-10-30T12:00:00','actor':'admin@example.test','action':action,**({'version':version} if version else {})})
+    def handle(self,method,path,body):
+        parts=path.split('/api/harness/policy-book',1)[1].strip('/').split('/')
+        if parts==['']:return None
+        identifier=parts[1]
+        if len(parts)==2:return self.detail(identifier)
+        if parts[2]=='draft' and method=='PUT' and not body['title'].strip():return 400,{'detail':'Policy sheet: titolo entro 140 caratteri'}
+        record=self.records.setdefault(identifier,{'id':identifier,'status':'draft','active_version':None,'draft':None,'versions':[],'history':[]})
+        action=parts[2]
+        if action=='draft' and method=='PUT':
+            record['draft']={**body,'saved_at':'2026-10-30T12:00:00','saved_by':'admin@example.test'};self.event(record,'draft_saved')
+        elif action=='publish':
+            number=len(record['versions'])+1;sheet={**{k:v for k,v in record['draft'].items() if k not in ('saved_at','saved_by')},'id':identifier,'version':number}
+            record['versions'].append({'version':number,'sheet':sheet,'revision':'r'+str(number),'published_at':'2026-10-30T12:00:00','published_by':'admin@example.test'})
+            record.update(status='active',active_version=number,draft=None);self.event(record,'published',number)
+        elif action=='retire':record['status']='retired';self.event(record,'retired',record['active_version'])
+        elif action=='reactivate':record['status']='active';self.event(record,'reactivated',record['active_version'])
+        elif action=='restore':
+            sheet=record['versions'][body['version']-1]['sheet'];record['draft']={k:v for k,v in sheet.items() if k not in ('id','version')}
+            self.event(record,'restored_to_draft',body['version'])
+        return self.detail(identifier)
+
+
+def main():
+    parser=argparse.ArgumentParser();parser.add_argument('--node-modules',required=True);args=parser.parse_args()
+    repo=Path(__file__).resolve().parents[1];modules=Path(args.node_modules).resolve()
+    with tempfile.TemporaryDirectory(prefix='righaven-policy-ui-') as folder:
+        root=Path(folder)
+        (root/'hooks.ts').write_text('export function useI18n(){return {locale:"en-US"}}')
+        (root/'config.ts').write_text('export function getBackendBaseURL(){return ""}')
+        (root/'fetch.ts').write_text('export const fetch=globalThis.fetch.bind(globalThis)')
+        governance={'phase':'validation','policy_plan':{'settled':True,'sheets':['quality_standard','security']},
+                    'policy_validation':{'status':'failed','at':'2026-10-30T12:00:00','integrity':{'status':'passed','issue':''},
+                                         'sheets':[{'id':'quality_standard','status':'passed'},{'id':'security','status':'failed'}]}}
+        entry='''import React from 'react';import {createRoot} from 'react-dom/client';
+import PolicyBook from PAGE;
+import {ProjectGovernance} from PANEL;
+const kind=new URLSearchParams(location.search).get('page');
+createRoot(document.getElementById('root')!).render(kind==='project'?<ProjectGovernance governance={GOVERNANCE}/>:<PolicyBook/>);'''
+        entry=entry.replace('PAGE',json.dumps(str(repo/'frontend/policy-book-page.tsx'))).replace('PANEL',json.dumps(str(repo/'frontend/project-governance.tsx'))).replace('GOVERNANCE',json.dumps(governance))
+        (root/'entry.tsx').write_text(entry)
+        aliases={'@/core/i18n/hooks':str(root/'hooks.ts'),'@/core/config':str(root/'config.ts'),'@/core/api/fetcher':str(root/'fetch.ts')}
+        build={'entryPoints':[str(root/'entry.tsx')],'outfile':str(root/'bundle.js'),'bundle':True,'jsx':'automatic','nodePaths':[str(modules)],'alias':aliases}
+        subprocess.run(['node','-e','require('+json.dumps(str(modules/'esbuild'))+').build('+json.dumps(build)+').catch(e=>{console.error(e);process.exit(1)})'],check=True,text=True)
+        html='<html><body><div id="root"></div><script src="/bundle.js"></script></body></html>'
+        book=Book();role={'admin':True};calls=[]
+        with sync_playwright() as p:
+            browser=p.chromium.launch(headless=True);page=browser.new_page(viewport={'width':1200,'height':1100});errors=[]
+            page.on('pageerror',lambda e:errors.append(str(e)))
+            def route(route):
+                request=route.request;path=request.url.split('policy.test',1)[1]
+                if path=='/bundle.js':route.fulfill(content_type='text/javascript',body=(root/'bundle.js').read_text());return
+                if path.startswith('/api/'):
+                    body=request.post_data_json if request.method in ('PUT','POST') and request.post_data else None
+                    calls.append((request.method,path,body))
+                    value=book.overview(role['admin']) if path=='/api/harness/policy-book' else book.handle(request.method,path,body)
+                    if isinstance(value,tuple):route.fulfill(status=value[0],json=value[1])
+                    else:route.fulfill(json=value)
+                    return
+                route.fulfill(content_type='text/html',body=html)
+            page.route('http://policy.test/**',route)
+            try:
+                page.goto('http://policy.test/')
+                sheets=page.get_by_role('navigation',name='Policy sheets')
+                expect(sheets.get_by_text('Built into RigHaven')).to_be_visible()
+                sheets.get_by_role('button',name='Standard quality review').click()
+                expect(page.get_by_text('Separate review of the product against the project acceptance contract.')).to_be_visible()
+                expect(page.get_by_role('form',name='Draft')).to_have_count(0)  # built-in sheets are read-only
+                # Create, validate and save a draft: it is not active until published.
+                page.get_by_role('button',name='New policy sheet').click()
+                form=page.get_by_role('form',name='Draft')
+                form.get_by_label('Identifier').fill('Security')
+                expect(form.get_by_text('Lowercase letters, digits and underscores')).to_be_visible()
+                expect(form.get_by_role('button',name='Save draft')).to_be_disabled()
+                form.get_by_label('Identifier').fill('security')
+                form.get_by_role('button',name='Save draft').click()
+                expect(page.get_by_role('alert')).to_contain_text('titolo')
+                form.get_by_label('Title').fill('Security')
+                form.get_by_label('Rules for specialists (one per line)').fill('No credentials in files\nRotate exposed tokens')
+                form.get_by_role('button',name='Add handoff check').click()
+                form.get_by_label('ID',exact=True).first.fill('no_secrets');form.get_by_label('Requirement').first.fill('No credentials in delivered files')
+                form.get_by_role('button',name='Add final criterion').click()
+                form.get_by_label('ID',exact=True).nth(1).fill('secret_scan');form.get_by_label('Requirement').nth(1).fill('Product contains no credentials')
+                form.get_by_label('Method').select_option('technical')
+                form.get_by_role('button',name='Save draft').click()
+                expect(page.get_by_role('status')).to_have_text('Draft saved')
+                saved=[b for m,pth,b in calls if m=='PUT'][-1]
+                assert saved['rules']==['No credentials in files','Rotate exposed tokens'],saved
+                assert saved['handoff_checks']==[{'id':'no_secrets','requirement':'No credentials in delivered files','critical':True}],saved
+                assert saved['final_checks']==[{'id':'secret_scan','requirement':'Product contains no credentials','method':'technical','critical':True}],saved
+                expect(sheets.get_by_role('button',name='Security')).to_contain_text('Draft')
+                expect(page.get_by_text('No published version: projects do not use it yet.')).to_be_visible()
+                # Publish, retire, reactivate and restore: every step is visible in history.
+                page.get_by_role('button',name='Publish draft').click()
+                expect(page.get_by_role('status')).to_have_text('Published')
+                expect(sheets.get_by_role('button',name='Security')).to_contain_text('Active v1')
+                expect(page.get_by_role('article',name='Active version')).to_contain_text('Rotate exposed tokens')
+                page.get_by_role('button',name='Retire').click()
+                expect(sheets.get_by_role('button',name='Security')).to_contain_text('Retired v1')
+                page.get_by_role('button',name='Reactivate').click()
+                expect(sheets.get_by_role('button',name='Security')).to_contain_text('Active v1')
+                page.get_by_role('button',name='Restore to draft').click()
+                expect(page.get_by_role('button',name='Publish draft')).to_be_visible()
+                history=page.get_by_role('heading',name='History').locator('..')
+                for label in ('Draft saved','Published v1','Retired v1','Reactivated v1','Restored to draft v1'):
+                    expect(history).to_contain_text(label)
+                # Team members read the book without management controls.
+                role['admin']=False;page.goto('http://policy.test/')
+                expect(page.get_by_role('button',name='New policy sheet')).to_have_count(0)
+                page.get_by_role('navigation',name='Policy sheets').get_by_role('button',name='Security').click()
+                expect(page.get_by_role('article',name='Active version')).to_contain_text('No credentials in files')
+                expect(page.get_by_role('form',name='Draft')).to_have_count(0)
+                expect(page.get_by_role('button',name='Restore to draft')).to_have_count(0)
+                # The project panel names the pinned sheets and their validation verdicts.
+                page.goto('http://policy.test/?page=project')
+                panel=page.get_by_test_id('project-governance')
+                expect(panel).to_contain_text('Validazione finale delle policy')
+                expect(panel.get_by_role('listitem').filter(has_text='Standard quality review')).to_contain_text('Superata')
+                expect(panel.get_by_role('listitem').filter(has_text='Security')).to_contain_text('Da correggere')
+                assert not errors,errors
+            finally:browser.close()
+    print('Policy Book UI OK: draft validation, publish, retire, reactivate, restore and history; read-only team view; project governance verdicts.')
+
+
+if __name__=='__main__':main()

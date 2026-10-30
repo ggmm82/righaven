@@ -26,6 +26,7 @@ COPY core/frontend ./frontend
 COPY frontend/locales ./frontend/src/app/workspace/locales
 COPY frontend/i18n.tsx ./frontend/src/app/workspace/i18n.tsx
 COPY frontend/maintenance-page.tsx ./frontend/src/app/workspace/maintenance/page.tsx
+COPY frontend/policy-book-page.tsx ./frontend/src/app/workspace/policies/page.tsx
 COPY frontend/harness-page.tsx ./frontend/src/app/workspace/harness/page.tsx
 COPY frontend/gallery-feedback.tsx ./frontend/src/app/workspace/gallery/gallery-feedback.tsx
 COPY frontend/environment-inventory.tsx ./frontend/src/app/workspace/environments/environment-inventory.tsx
@@ -39,7 +40,7 @@ COPY frontend/skill-instructions.tsx ./frontend/src/components/workspace/capabil
 COPY frontend/team-onboarding.tsx ./frontend/src/components/workspace/team-onboarding.tsx
 COPY frontend/model-settings-page.tsx ./frontend/src/components/workspace/settings/model-settings-page.tsx
 COPY frontend/run-start-time.ts ./frontend/src/core/messages/run-start-time.ts
-COPY frontend/delegate-progress.tsx frontend/delegate-progress-state.ts frontend/experience-panel.tsx frontend/conversation-audit.tsx frontend/project-guide.tsx frontend/project-design.tsx ./frontend/src/components/workspace/messages/
+COPY frontend/delegate-progress.tsx frontend/delegate-progress-state.ts frontend/experience-panel.tsx frontend/conversation-audit.tsx frontend/project-guide.tsx frontend/project-design.tsx frontend/project-governance.tsx ./frontend/src/components/workspace/messages/
 COPY scripts/check_chat_modes.mjs /tmp/check_chat_modes.mjs
 RUN node --experimental-strip-types /tmp/check_chat_modes.mjs
 

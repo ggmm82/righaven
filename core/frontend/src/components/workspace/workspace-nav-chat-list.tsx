@@ -1,6 +1,6 @@
 "use client";
 
-import { Home, MessagesSquare, Layers, Wrench, Library, Users, Settings2 } from "lucide-react";
+import { Home, MessagesSquare, Layers, Wrench, Library, Users, Settings2, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { SidebarGroup, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar";
@@ -24,6 +24,7 @@ export function WorkspaceNavChatList() {
     ] },
     { label: it ? "Configurazione" : "Configuration", items: [
       ...(user?.system_role==="admin"?[{href:"/workspace/users",label:it?"Gestione utenti":"User administration",icon:Users}]:[]),
+      {href:"/workspace/policies",label:"Policy Book",icon:ShieldCheck},
       {href:"/workspace/maintenance",label:it?"Manutenzione e ripristino":"Maintenance & reset",icon:Settings2},
       { href: "/workspace/harness", label: it ? "Modelli e risorse" : "Models & resources", icon: Settings2 },
     ] },

@@ -16,6 +16,12 @@ def security(**changes):
             **changes}
 
 
+def publish(sheet):
+    policy_book.save_draft(sheet['id'], sheet, 'admin@example.test')
+    policy_book.publish(sheet['id'], 'admin@example.test')
+    return policy_book.get(sheet['id'])
+
+
 class PolicyBookTests(unittest.TestCase):
     def setUp(self):
         temp = tempfile.TemporaryDirectory(); self.addCleanup(temp.cleanup)
@@ -32,29 +38,62 @@ class PolicyBookTests(unittest.TestCase):
         self.assertIs(policy_book.contract(plan['sheets'][0], acceptance), acceptance)
 
     def test_organization_sheets_extend_the_book_but_cannot_replace_builtins(self):
-        saved = policy_book.save(security())
-        self.assertEqual(saved['source'], 'organization')
-        with self.assertRaisesRegex(ValueError, 'non si sostituiscono'):
-            policy_book.save(security(id='quality_standard'))
+        saved = publish(security())
+        self.assertEqual((saved['source'], saved['version']), ('organization', 1))
+        with self.assertRaisesRegex(ValueError, 'non si modificano'):
+            policy_book.save_draft('quality_standard', security(), 'admin')
         with self.assertRaisesRegex(ValueError, 'campi ammessi'):
-            policy_book.save(security(owner='someone'))
+            policy_book.save_draft('security', security(owner='someone'), 'admin')
         with self.assertRaisesRegex(ValueError, 'method'):
-            policy_book.save(security(final_checks=[{'id': 'x', 'requirement': 'y', 'method': 'taste'}]))
-        with self.assertRaisesRegex(ValueError, 'non si eliminano'):
-            policy_book.delete('quality_standard')
+            policy_book.save_draft('security', security(final_checks=[{'id': 'x', 'requirement': 'y', 'method': 'taste'}]), 'admin')
+        with self.assertRaisesRegex(ValueError, 'organizzazione'):
+            policy_book.retire('quality_standard', 'admin')
+
+    def test_lifecycle_keeps_the_active_version_until_a_draft_is_published(self):
+        policy_book.save_draft('security', security(), 'anna')
+        self.assertEqual(policy_book.overview()[-1]['status'], 'draft')
+        with self.assertRaisesRegex(ValueError, 'non attiva'):
+            policy_book.get('security')  # drafts are not offered to projects
+        policy_book.publish('security', 'anna')
+        policy_book.save_draft('security', security(rules=['Regola rivista']), 'bruno')
+        self.assertEqual(policy_book.get('security')['rules'], security()['rules'])
+        record = policy_book.publish('security', 'bruno')
+        self.assertEqual((record['active_version'], policy_book.get('security')['version']), (2, 2))
+        self.assertEqual([v['sheet']['rules'] for v in record['versions']], [security()['rules'], ['Regola rivista']])
+        policy_book.retire('security', 'carla')
+        self.assertNotIn('security', [s['id'] for s in policy_book.book()])
+        policy_book.reactivate('security', 'carla')
+        record = policy_book.restore('security', 1, 'dario')
+        self.assertEqual(record['draft']['rules'], security()['rules'])
+        self.assertEqual(policy_book.publish('security', 'dario')['active_version'], 3)
+        history = [(h['actor'], h['action'], h.get('version')) for h in policy_book.detail('security')['history']]
+        self.assertEqual(history, [('anna', 'draft_saved', None), ('anna', 'published', 1), ('bruno', 'draft_saved', None),
+                                   ('bruno', 'published', 2), ('carla', 'retired', 2), ('carla', 'reactivated', 2),
+                                   ('dario', 'restored_to_draft', 1), ('dario', 'published', 3)])
+        # A never-published sheet can be discarded entirely; a published one keeps its history.
+        policy_book.save_draft('scratch', security(id='scratch'), 'anna')
+        self.assertIsNone(policy_book.discard_draft('scratch', 'anna'))
+        self.assertNotIn('scratch', [s['id'] for s in policy_book.overview()])
+
+    def test_sheets_saved_before_the_lifecycle_become_version_one(self):
+        state.atomic_json(policy_book.folder() / 'security.json', {**security(), 'updated_at': '2026-10-30T10:00:00+00:00'})
+        self.assertEqual(policy_book.get('security')['version'], 1)
+        self.assertEqual(policy_book.detail('security')['history'][0]['action'], 'published')
 
     def test_dependencies_must_exist_and_cannot_form_a_cycle(self):
-        policy_book.save(security())
+        publish(security())
+        policy_book.save_draft('release', security(id='release', depends_on=['missing']), 'admin')
         with self.assertRaisesRegex(ValueError, 'sconosciute'):
-            policy_book.save(security(id='release', depends_on=['missing']))
-        policy_book.save(security(id='release', depends_on=['security']))
+            policy_book.publish('release', 'admin')
+        publish(security(id='release', depends_on=['security']))
+        policy_book.save_draft('security', security(depends_on=['release']), 'admin')
         with self.assertRaisesRegex(ValueError, 'ciclo'):
-            policy_book.save(security(depends_on=['release']))
+            policy_book.publish('security', 'admin')
         with self.assertRaisesRegex(ValueError, 'dipendono'):
-            policy_book.delete('security')
+            policy_book.retire('security', 'admin')
 
     def test_optional_sheets_require_a_coordinator_decision_with_reasons(self):
-        policy_book.save(security())
+        publish(security())
         system = policy_book.build_plan([], [{'id': 'draft'}], selected_by='system')
         self.assertFalse(policy_book.settled(system))
         self.assertEqual(system['optional_available'], ['security'])
@@ -68,7 +107,7 @@ class PolicyBookTests(unittest.TestCase):
         criteria = policy_book.contract(plan['sheets'][1], None)['criteria']
         self.assertEqual(criteria[0]['id'], 'secret_scan')
         # A sheet changed after planning gets a new revision; the pinned plan keeps its copy.
-        policy_book.save(security(rules=['Regola aggiornata']))
+        publish(security(rules=['Regola aggiornata']))
         self.assertNotEqual(policy_book.get('security')['revision'], plan['sheets'][1]['revision'])
 
     def test_independent_sheets_share_a_wave_and_dependants_wait(self):
@@ -106,7 +145,7 @@ class PolicyWorkflowTests(unittest.TestCase):
         self.assertEqual(policy_workflow.phase(value), 'legacy')
 
     def test_production_waits_for_the_policy_plan_when_the_book_offers_a_choice(self):
-        policy_book.save(security())
+        publish(security())
         self.plan()
         self.assertEqual(projects.read_project(self.root)['governance']['phase'], 'planning')
         with self.assertRaisesRegex(ValueError, 'Policy Plan'):
@@ -117,7 +156,7 @@ class PolicyWorkflowTests(unittest.TestCase):
         self.assertNotIn('security', tasks[0])
 
     def test_handoff_must_declare_the_critical_policy_checks(self):
-        policy_book.save(security())
+        publish(security())
         self.plan()
         projects.set_policy_plan(self.root, [{'id': 'security', 'reason': 'Documento pubblico'}])
         result, tasks = self.execute([{'name': 'Bozza', 'status': 'passed', 'evidence': 'letta'}])
@@ -220,10 +259,10 @@ class PolicyLifecycleTests(unittest.TestCase):
     def test_brief_to_delivery_is_enforced_by_the_runtime(self):
         from test_project_skills import role
         from righaven.audit_log import page
-        policy_book.save(security())
-        policy_book.save(security(id='accessibility', title='Accessibilità', rules=['Titoli e testo alternativo'], handoff_checks=[],
+        publish(security())
+        publish(security(id='accessibility', title='Accessibilità', rules=['Titoli e testo alternativo'], handoff_checks=[],
                                   final_checks=[{'id': 'headings', 'requirement': 'Gerarchia dei titoli corretta', 'method': 'structural'}]))
-        policy_book.save(security(id='publication', title='Pubblicazione', rules=['Approvazione dopo la sicurezza'], handoff_checks=[],
+        publish(security(id='publication', title='Pubblicazione', rules=['Approvazione dopo la sicurezza'], handoff_checks=[],
                                   final_checks=[{'id': 'license', 'requirement': 'Licenza dichiarata', 'method': 'content'}],
                                   depends_on=['security']))
         plan = lambda **kwargs: json.loads(harness_plan.func(runtime=self.runtime, **kwargs))
@@ -314,17 +353,27 @@ class PolicyRouteTests(unittest.TestCase):
             request.state.user = user
             return await call_next(request)
         with tempfile.TemporaryDirectory() as directory, patch.object(state, 'STATE', Path(directory)), TestClient(app) as client:
-            listed = client.get('/api/harness/policy-book', headers={'X-Test-Role': 'user'})
+            user, admin = {'X-Test-Role': 'user'}, {'X-Test-Role': 'admin'}
+            listed = client.get('/api/harness/policy-book', headers=user)
             self.assertEqual(listed.status_code, 200, listed.text)
-            self.assertEqual([s['id'] for s in listed.json()['sheets']], ['quality_standard'])
-            url = '/api/harness/policy-book/sheets/security'
-            self.assertEqual(client.put(url, json=security(), headers={'X-Test-Role': 'user'}).status_code, 403)
-            saved = client.put(url, json=security(), headers={'X-Test-Role': 'admin'})
+            self.assertEqual(([s['id'] for s in listed.json()['sheets']], listed.json()['can_manage']), (['quality_standard'], False))
+            self.assertTrue(client.get('/api/harness/policy-book', headers=admin).json()['can_manage'])
+            base = '/api/harness/policy-book/sheets/security'
+            self.assertEqual(client.put(base + '/draft', json=security(), headers=user).status_code, 403)
+            self.assertEqual(client.post(base + '/publish', headers=user).status_code, 403)
+            saved = client.put(base + '/draft', json=security(), headers=admin)
             self.assertEqual(saved.status_code, 200, saved.text)
-            self.assertEqual(saved.json()['source'], 'organization')
-            self.assertEqual(client.put('/api/harness/policy-book/sheets/other', json=security(),
-                                        headers={'X-Test-Role': 'admin'}).status_code, 400)
-            self.assertEqual(client.delete('/api/harness/policy-book/sheets/quality_standard',
-                                           headers={'X-Test-Role': 'admin'}).status_code, 400)
-            self.assertEqual(client.delete(url, headers={'X-Test-Role': 'admin'}).status_code, 200)
-            self.assertEqual(len(client.get('/api/harness/policy-book', headers={'X-Test-Role': 'user'}).json()['sheets']), 1)
+            self.assertEqual(saved.json()['status'], 'draft')
+            self.assertEqual(client.put(base + '/draft', json=security(final_checks=[{'id': 'x'}]), headers=admin).status_code, 400)
+            published = client.post(base + '/publish', headers=admin).json()
+            self.assertEqual((published['status'], published['active_version']), ('active', 1))
+            self.assertEqual(published['history'][-1]['actor'], 'admin')
+            self.assertEqual(client.get(base, headers=user).json()['versions'][0]['sheet']['rules'], security()['rules'])
+            self.assertEqual(client.post(base + '/retire', headers=admin).json()['status'], 'retired')
+            self.assertEqual(client.post(base + '/reactivate', headers=admin).json()['status'], 'active')
+            self.assertEqual(client.post(base + '/restore', json={'version': 1}, headers=admin).json()['draft']['rules'], security()['rules'])
+            self.assertEqual(client.post(base + '/restore', json={}, headers=admin).status_code, 400)
+            self.assertEqual(client.delete(base + '/draft', headers=admin).json()['sheet']['draft'], None)
+            self.assertEqual(client.post('/api/harness/policy-book/sheets/quality_standard/retire', headers=admin).status_code, 400)
+            self.assertEqual(client.post(base + '/unknown', headers=admin).status_code, 404)
+            self.assertEqual(client.put(base + '/draft', json=security(), headers={**admin, 'Origin': 'https://evil.test'}).status_code, 403)

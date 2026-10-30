@@ -14,12 +14,12 @@ Brief -> Execution Plan + Policy Plan -> policy-aware assignments
 ## Policy Sheets
 
 A sheet is declarative JSON. Built-in sheets ship in `righaven/policy-book.json`;
-organization sheets are stored under `$RIGHAVEN_STATE/policy-book/` and edited by
-administrators.
+organization sheets are stored under `$RIGHAVEN_STATE/policy-book/` with their
+draft, published versions and history.
 
 | Field | Meaning |
 |---|---|
-| `id`, `title`, `version`, `summary` | Identity; `id` is lowercase letters, digits and `_` (max 40) |
+| `id`, `title`, `summary` | Identity; `id` is lowercase letters, digits and `_` (max 40). `version` is assigned on publication |
 | `mandatory` | Always included in every Policy Plan |
 | `rules` | Constraints injected into each applicable assignment |
 | `handoff_checks` | Checks the specialist must declare in `handoff.json` with `policy_check: "<sheet>.<check>"` |
@@ -30,6 +30,26 @@ administrators.
 Each sheet has a content `revision`. A Policy Plan pins a copy of the sheets it
 selected, so later edits to the book do not change a running project; a sheet
 made mandatory later is added to existing plans.
+
+## Managing sheets
+
+Administrators manage the book under **Configuration → Policy Book**; other users
+can read every sheet there. Organization sheets follow a lifecycle:
+
+| State | Meaning |
+|---|---|
+| Draft | Being written; not offered to projects. Never-published drafts can be deleted. |
+| Active | Its active version is offered to new Policy Plans (mandatory sheets are always added). |
+| Retired | No longer offered; projects that pinned it keep validating that version. Reactivation restores it. |
+
+Editing an active sheet saves a separate draft: the active version keeps applying
+until the draft is published. Publishing freezes the draft as the next immutable
+version (v1, v2, …) after checking its dependencies. Any published version can be
+restored as a draft. Every operation is recorded with its author and time. A sheet
+other active sheets depend on cannot be retired; built-in sheets are read-only.
+
+The project panel (**Project details**) shows the governance phase, the sheets of
+the Policy Plan and the latest validation verdict for each.
 
 The default sheet `quality_standard` (*Revisione di qualità standard*) is
 mandatory and uses `final_checks: "acceptance"`: it is satisfied by the existing
@@ -78,9 +98,12 @@ conversation audit journal with the actor `Policy Book`.
 
 | Method | Path | Access |
 |---|---|---|
-| `GET` | `/api/harness/policy-book` | Users with `agents:read` |
-| `PUT` | `/api/harness/policy-book/sheets/{id}` | Administrators |
-| `DELETE` | `/api/harness/policy-book/sheets/{id}` | Administrators; built-in sheets and sheets other sheets depend on cannot be deleted |
+| `GET` | `/api/harness/policy-book` | Users with `agents:read`; `can_manage` tells whether the caller is an administrator |
+| `GET` | `/api/harness/policy-book/sheets/{id}` | Users with `agents:read`: draft, published versions and history |
+| `PUT` | `/api/harness/policy-book/sheets/{id}/draft` | Administrators: create a sheet or save its next draft |
+| `DELETE` | `/api/harness/policy-book/sheets/{id}/draft` | Administrators: discard the draft (deletes a never-published sheet) |
+| `POST` | `/api/harness/policy-book/sheets/{id}/publish` · `retire` · `reactivate` | Administrators |
+| `POST` | `/api/harness/policy-book/sheets/{id}/restore` with `{"version": n}` | Administrators: copy a published version into the draft |
 
 ## Compatibility
 
