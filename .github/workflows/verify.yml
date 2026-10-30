@@ -180,6 +180,9 @@ jobs:
           PYTHON
           fi
           exit "$result"
+      - name: Check the Policy Book lifecycle from brief to validated delivery
+        if: matrix.component == 'gateway'
+        run: docker run --rm --entrypoint python -e RIGHAVEN_REQUIRE_GATEWAY_TESTS=1 --mount "type=bind,src=$PWD/tests,dst=/review,readonly" righaven-gateway:0.1.0 -m unittest discover -s /review -p test_policy_book.py -v
       - name: Check memory exhaustion using genuine cgroup counters
         if: matrix.component == 'sandbox'
         run: docker run --rm --init --network=none --memory=256m --memory-swap=256m --pids-limit=64 --cap-drop=ALL --security-opt=no-new-privileges --mount "type=bind,src=$PWD,dst=/review,readonly" righaven-sandbox:0.1.0 python3 /review/scripts/check_resource_supervision.py

@@ -1,0 +1,20 @@
+{
+  "sheets": [
+    {
+      "id": "quality_standard",
+      "title": "Revisione di qualità standard",
+      "version": 1,
+      "summary": "Si applica a ogni consegna RigHaven: il prodotto risponde alla richiesta reale dell’utente ed è approvato da una revisione separata sul contratto di accettazione.",
+      "mandatory": true,
+      "rules": [
+        "Rispetta la richiesta originale e le scelte esplicite dell’utente; non sostituire requisiti senza la sua conferma.",
+        "Dichiara nei controlli dell’handoff soltanto verifiche realmente eseguite, con evidenza osservabile; ciò che non hai verificato resta not_run.",
+        "Consegna sorgenti modificabili quando esistono e dichiara i limiti noti di ogni file.",
+        "Un campione, una bozza o un file tecnicamente valido non è un prodotto approvato: non dichiararlo finito."
+      ],
+      "handoff_checks": [],
+      "final_checks": "acceptance",
+      "depends_on": []
+    }
+  ]
+}

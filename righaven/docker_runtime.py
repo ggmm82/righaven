@@ -373,7 +373,7 @@ from .organization_limits import organization_job
 
 
 @organization_job
-def delegate(agent_id, task, workspace, tool_call_id=None, on_started=None, requirements=None, purpose='work', acceptance=None, role=None, capability_policy=None):
+def delegate(agent_id, task, workspace, tool_call_id=None, on_started=None, requirements=None, purpose='work', acceptance=None, role=None, capability_policy=None, policy_review=None):
     from .capability_policy import legacy_policy, native_policy, require_tools, worker_arguments
     policy = capability_policy or legacy_policy()
     if policy.get('source') == 'righaven_core':
@@ -511,6 +511,10 @@ def delegate(agent_id, task, workspace, tool_call_id=None, on_started=None, requ
                    'instructions': settings['instructions'], 'skills': settings['skills'], 'task': task,
                    'run_id': name, 'timeout': 1500, 'requirements': requirements or {}, 'purpose': purpose,
                    'acceptance': acceptance, 'role': role, 'compiled_skill': role_text}
+        if policy_review:
+            if purpose != 'review':
+                raise ValueError('Il contratto di una policy sheet si verifica soltanto in revisione')
+            payload['policy_review'] = policy_review
         from .projects import read_project
         payload['user_direction'] = (read_project(workspace) or {}).get('user_direction')
         payload['capability_policy'] = dict(policy)

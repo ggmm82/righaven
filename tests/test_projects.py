@@ -188,7 +188,8 @@ class ProjectTests(unittest.TestCase):
         for _ in range(8):
             self.run_step('motion', self.result('effectcraft'))
         p = projects.read_project(self.root)
-        self.assertLess(len(json.dumps(p)), 5000)
+        # Bounds history growth; the constant governance summary is included.
+        self.assertLess(len(json.dumps(p)), 5200)
         self.assertNotIn('attempts', json.dumps(p))
         self.assertEqual(next(s for s in p['steps'] if s['id'] == 'motion')['attempt_count'], 8)
 

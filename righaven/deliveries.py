@@ -155,7 +155,7 @@ def prepare_review_handoff(output_dir, workspace, engine, acceptance=None):
     for check in previous.get('checks', []) if isinstance(previous.get('checks'), list) else []:
         if (isinstance(check, dict) and check.get('status') in ('passed', 'failed', 'not_run')
                 and all(isinstance(check.get(k), str) and check[k].strip() for k in ('name', 'evidence'))):
-            handoff['checks'].append({k:check[k] for k in ('name','status','evidence','scope','superseded_by') if k in check})
+            handoff['checks'].append({k:check[k] for k in ('name','status','evidence','scope','superseded_by','policy_check') if k in check})
     # Validate the real product, criteria and baseline before writing anything.
     read_review(handoff, root, boundary, engine, acceptance)
     if original is not None:

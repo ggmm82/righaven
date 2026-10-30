@@ -20,6 +20,7 @@ from .acceptance import contract, fingerprint
 from .project_skills import compact_acceptance, save_requests, read_document, scoped_file, validate_roles, compile_role, ROLE_ID, redact_memory
 from .project_brief import validate_outcome, briefing_issue, orientation
 from .strategy import validate as validate_strategy, recovery as method_recovery
+from . import policy_workflow
 
 STEP_ID = re.compile(r'[a-z][a-z0-9_-]{0,47}\Z')
 PROJECT_ID = re.compile(r'[0-9a-f]{32}\Z')
@@ -135,6 +136,43 @@ def media_accepted(record, value):
     required = {k for k, v in value.get('requirements', {}).items() if v}
     return not required or (value.get('product_path') in record.get('verified_products', [])
         and all(record.get('requirements', {}).get(k) is True for k in required))
+
+
+def delivery_integrity(workspace, value, target):
+    """Technical gate shared by completion and final validation; returns the issue or None."""
+    if not target:
+        return 'Indica il prodotto finale verificato, non un elenco di file intermedi'
+    target_hash = digest(target)
+    deliveries = [a.get('delivery_record') or {} for s in value['steps'] for a in s['attempts']
+                  if any(artifact_path(workspace, p) == target for p in a.get('output_files', []))]
+    if not any(d.get('technical_status') == 'passed' and media_accepted(d, value) and all(
+            artifact_path(workspace, f.get('path', '')) and digest(artifact_path(workspace, f['path'])) == f.get('sha256')
+            for f in d.get('files', [])) and any(
+            artifact_path(workspace, f.get('path', '')) == target and f.get('sha256') == target_hash
+            for f in d.get('files', [])) for d in deliveries):
+        return 'Consegna non collaudata o sorgenti incompleti: usa purpose=delivery e correggi delivery.issues. I file restano disponibili come bozza.'
+    return None
+
+
+def standard_reviews(value):
+    """Reviews against the acceptance contract; policy-sheet reviews are tracked separately."""
+    return sorted((a for s in value['steps'] for a in s['attempts'] if a.get('quality_review') and not a.get('policy_review')),
+                  key=lambda a: a.get('finished_at', ''), reverse=True)
+
+
+def standard_review(workspace, value, target_hash):
+    """The latest separate review still valid for this product and request, if any."""
+    review = next((a['quality_review'] for a in standard_reviews(value)
+                   if review_matches(value, a['quality_review'], value.get('product_path'), workspace)), None)
+    if (not review or review.get('sha256') != target_hash
+            or (value.get('acceptance') and review.get('contract_hash') != value['acceptance']['hash'])
+            or not all(artifact_path(workspace, p) and digest(artifact_path(workspace, p)) == sha
+                       for p, sha in review.get('reference_hashes', {}).items())):
+        return None
+    if not value.get('acceptance') and value.get('requirements', {}).get('audio') and not any(
+            c.get('method') == 'listening' and c.get('status') == 'passed' for c in review.get('criteria', [])):
+        return {**review, 'status': 'needs_review'}
+    return review
 
 
 def delivery_summary(record):
@@ -331,6 +369,8 @@ def read_project(workspace):
             'status': step['status'], 'attempt_count': step.get('attempt_count', len(attempts)),
             'role_id': role_id, 'role_title': role_title or last.get('role_title', ''),
             'note': clean_summary(step.get('note', '')), 'error': clean_summary(last.get('error', ''))})
+        if step.get('kind'):
+            result['steps'][-1]['kind'] = step['kind']
         # Retain previous usable versions when a newer revision failed or hit quota.
         for attempt in visible_attempts(step, value.get('product_path', '')):
             record = attempt.get('delivery_record') or {}
@@ -410,9 +450,7 @@ def read_project(workspace):
     result['deliveries'].sort(key=lambda d: (d['current'], d['contribution'], d['at']), reverse=True)
     result['deliveries'] = result['deliveries'][:30]
     result['quality_status'] = 'not_reviewed'
-    reviewed = sorted((a for s in value['steps'] for a in s['attempts'] if a.get('quality_review')),
-                      key=lambda a: a.get('finished_at', ''), reverse=True)
-    for attempt in reviewed:
+    for attempt in standard_reviews(value):
         review = attempt['quality_review']
         if review_matches(value, review, result['product_path'], workspace):
             matches = not value.get('acceptance') or review.get('contract_hash') == value['acceptance']['hash']
@@ -429,6 +467,7 @@ def read_project(workspace):
     accepted = value.get('user_acceptance') or {}
     if accepted.get('product_path') == value.get('product_path') and accepted.get('status') == 'passed':
         result['quality_status'] = 'accepted_by_user'
+    result['governance'] = policy_workflow.view(workspace, value)
     attention = value.get('attention')
     result['attention'] = {k: clean_summary(attention.get(k)) for k in ('code', 'message', 'action')} if isinstance(attention, dict) else None
     if not result['attention'] and value.get('schema_version') != 2:
@@ -486,7 +525,8 @@ def create_plan(workspace, brief, steps, project_type='', omissions=None, *, sum
                 raise ValueError('Specifica il risultato richiesto')
             value = {'id': uuid.uuid4().hex, 'workspace_key': workspace_key(workspace),
                 'brief': clean_summary(brief, 4000), 'project_type': project_type or 'custom',
-                'created_at': utcnow(), 'steps': [], 'requirements': {}}
+                'created_at': utcnow(), 'steps': [], 'requirements': {},
+                'governance': dict(policy_workflow.GOVERNANCE)}
         if brief:
             value['brief'] = clean_summary(brief, 4000)
         if outcome is not None:
@@ -549,6 +589,8 @@ def create_plan(workspace, brief, steps, project_type='', omissions=None, *, sum
             if not draft and value.get('requirements') and not any(product_path in a.get('verified_products', [])
                     for s in value['steps'] for a in s['attempts']):
                 raise ValueError('Prima della consegna finale usa harness_delegate con purpose=delivery per controllare il file completo')
+            if value.get('product_path') != product_path:
+                value.pop('policy_validation', None)
             value['product_path'] = product_path
         if strategy is not None:
             value['strategy'] = validate_strategy(workspace, strategy, applications(), (value.get('acceptance') or {}).get('hash'))
@@ -566,31 +608,21 @@ def create_plan(workspace, brief, steps, project_type='', omissions=None, *, sum
                 for document in json.loads(read_document(workspace, acceptance['request_manifest'])):
                     read_document(workspace, document)
             target = artifact_path(workspace, value.get('product_path', ''))
-            if not target:
-                raise ValueError('Indica il prodotto finale verificato, non un elenco di file intermedi')
+            integrity = delivery_integrity(workspace, value, target)
+            if integrity:
+                raise ValueError(integrity)
             target_hash = digest(target)
-            deliveries = [a.get('delivery_record') or {} for s in value['steps'] for a in s['attempts']
-                          if any(artifact_path(workspace, p) == target for p in a.get('output_files', []))]
-            if not any(d.get('technical_status') == 'passed' and media_accepted(d, value) and all(
-                    artifact_path(workspace, f.get('path', '')) and digest(artifact_path(workspace, f['path'])) == f.get('sha256')
-                    for f in d.get('files', [])) and any(
-                    artifact_path(workspace, f.get('path', '')) == target and f.get('sha256') == target_hash
-                    for f in d.get('files', [])) for d in deliveries):
-                raise ValueError('Consegna non collaudata o sorgenti incompleti: usa purpose=delivery e correggi delivery.issues. I file restano disponibili come bozza.')
-            reviewed = sorted((a for s in value['steps'] for a in s['attempts'] if a.get('quality_review')),
-                              key=lambda a: a.get('finished_at', ''), reverse=True)
-            reviews = [a['quality_review'] for a in reviewed if review_matches(value,
-                a['quality_review'], value.get('product_path'), workspace)][:1]
             accepted = value.get('user_acceptance') or {}
-            if not (accepted.get('product_path') == value.get('product_path') and accepted.get('sha256') == target_hash) and not any(r.get('status') == 'passed' and r.get('sha256') == target_hash
-                       and (not value.get('acceptance') or r.get('contract_hash') == value['acceptance']['hash'])
-                       and all(artifact_path(workspace, p) and digest(artifact_path(workspace, p)) == sha
-                               for p, sha in r.get('reference_hashes', {}).items())
-                       and review_matches(value, r, value.get('product_path'), workspace)
-                       and (value.get('acceptance') or not value.get('requirements', {}).get('audio') or any(
-                           c.get('method') == 'listening' and c.get('status') == 'passed' for c in r.get('criteria', [])))
-                       for r in reviews):
+            owner_accepted = accepted.get('product_path') == value.get('product_path') and accepted.get('sha256') == target_hash
+            if not owner_accepted and (standard_review(workspace, value, target_hash) or {}).get('status') != 'passed':
                 raise ValueError('Manca una revisione separata valida del prodotto rispetto alla richiesta corrente: usa purpose=review e quality-review.json, coprendo requisiti e riferimenti. Se il metodo richiesto non è disponibile mantieni status=review; non rigenerare né fingere la verifica.')
+            if policy_workflow.governed(value) and not owner_accepted:
+                report = policy_workflow.validation(workspace, value)
+                if report['status'] != 'passed':
+                    pending = [s['id'] + ': ' + s['status'] for s in report['sheets'] if s['status'] != 'passed']
+                    raise ValueError('La validazione finale del Policy Plan non è superata (' + ', '.join(pending) +
+                                     '). Usa harness_validate sul prodotto finito e correggi le violazioni prima della consegna.')
+                value['policy_validation'] = {**report, 'at': utcnow()}
         if status:
             value['status'] = status
             if status == 'ready':
@@ -608,9 +640,63 @@ def create_plan(workspace, brief, steps, project_type='', omissions=None, *, sum
                 value.pop('method_recovery', None)
         if value.get('outcome') and briefing_issue(value['outcome']):
             value['status'] = 'clarifying'
+        changed = policy_workflow.ensure_plan(value) if policy_workflow.governed(value) else None
         value.update(schema_version=2, updated_at=utcnow())
         atomic_json(folder / 'project.json', value)
+    if changed:
+        record_policy_event(workspace, value, changed)
     return read_project(workspace)
+
+
+def record_policy_event(workspace, value, operation, status='completed', detail=''):
+    from .audit_log import append
+    plan = value.get('policy_plan') or {}
+    append(workspace, 'Policy Book', operation, status,
+           detail=detail or 'Sheet: ' + ', '.join(s['id'] for s in plan.get('sheets', [])), correlation=plan.get('hash', ''))
+
+
+def set_policy_plan(workspace, selections):
+    """Coordinator decision on the optional sheets; mandatory sheets are added by the runtime."""
+    with locked(workspace) as folder:
+        value = load(folder, workspace)
+        if not value:
+            raise ValueError('Definisci prima il brief e l’Execution Plan')
+        if not policy_workflow.governed(value):
+            raise ValueError('Questo progetto è precedente al Policy Book: prosegui con le verifiche esistenti')
+        plan = policy_workflow.policy_book.build_plan(selections, [s for s in value['steps'] if s.get('kind') != 'validation'])
+        if plan['hash'] == (value.get('policy_plan') or {}).get('hash') and value['policy_plan']['selected_by'] == 'coordinator':
+            return
+        value['policy_plan'] = plan
+        value.pop('policy_validation', None)
+        value['updated_at'] = utcnow()
+        atomic_json(folder / 'project.json', value)
+    record_policy_event(workspace, value, 'Policy Plan definito dal coordinatore')
+
+
+def governance_state(workspace):
+    """Full project record for the policy engine; histories stay out of LLM turns."""
+    with locked(workspace) as folder:
+        return load(folder, workspace)
+
+
+def save_policy_validation(workspace, report):
+    """Record the aggregated verdict; the completion gate always recomputes it from files."""
+    with locked(workspace) as folder:
+        value = load(folder, workspace)
+        if not value:
+            raise ValueError('Progetto non disponibile')
+        value['policy_validation'] = {**report, 'at': utcnow()}
+        if report['status'] == 'passed':
+            value.update(summary='Validazione finale superata per tutte le policy sheet.',
+                         next_action='Consegna il prodotto validato.')
+        elif report['status'] in ('failed', 'blocked'):
+            value.update(status='review', summary='Validazione finale non superata: violazioni da correggere.',
+                         next_action='Correggi le violazioni aggregate e ripeti harness_validate.')
+        value['updated_at'] = utcnow()
+        atomic_json(folder / 'project.json', value)
+    record_policy_event(workspace, value, 'Validazione finale multi-policy', 'completed' if report['status'] == 'passed' else 'failed',
+                        detail='; '.join(s['id'] + ': ' + s['status'] for s in report['sheets']) or report['integrity']['issue'])
+    return value['policy_validation']
 
 
 def reconcile_completion(workspace):
@@ -661,9 +747,15 @@ def accept_delivery(workspace, delivery_id):
         if not all(artifact_path(workspace, f.get('path', '')) and digest(artifact_path(workspace, f['path'])) == f.get('sha256')
                    for f in delivery.get('files', [])):
             raise ValueError('I file sono cambiati dopo il collaudo: verificare la nuova versione')
-        value.update(user_acceptance={'status': 'passed', 'product_path': value['product_path'],
+        acceptance = {'status': 'passed', 'product_path': value['product_path'],
             'sha256': digest(product), 'contract_hash': (value.get('acceptance') or {}).get('hash'),
-            'delivery_id': delivery_id, 'at': utcnow()},
+            'delivery_id': delivery_id, 'at': utcnow()}
+        if policy_workflow.governed(value):
+            # The owner may accept despite open policy findings; record what they accepted.
+            report = policy_workflow.validation(workspace, value)
+            acceptance['policy_validation'] = {'status': report['status'],
+                'sheets': {s['id']: s['status'] for s in report['sheets']}}
+        value.update(user_acceptance=acceptance,
             status='ready', attention=None, summary='Versione accettata da te; consegna completa disponibile.',
             next_action='Scarica il prodotto e il pacchetto sorgenti della consegna selezionata.', updated_at=utcnow())
         atomic_json(folder / 'project.json', value)
@@ -700,7 +792,7 @@ def archive_plan(workspace, reason):
     return {'id': value['id'], 'archived': True, 'files_preserved': True}
 
 
-def execute_step(workspace, agent, task, step_id, invoke, *, provider=None, purpose='work', request_id='', role=None):
+def execute_step(workspace, agent, task, step_id, invoke, *, provider=None, purpose='work', request_id='', role=None, policy_sheet=None):
     if purpose not in ('work', 'preview', 'review', 'integration', 'delivery'):
         raise ValueError('Scopo incarico non valido')
     if not read_project(workspace):
@@ -710,6 +802,11 @@ def execute_step(workspace, agent, task, step_id, invoke, *, provider=None, purp
         assert_user_allows_work(value)
         if value.get('outcome') and briefing_issue(value['outcome']):
             raise ValueError('Prima della produzione completa le scelte sul risultato: ' + briefing_issue(value['outcome']))
+        if purpose != 'review':
+            policy_workflow.require_production(value)
+        if policy_sheet is not None and (purpose != 'review' or not policy_workflow.governed(value) or policy_sheet['id'] not in
+                {s['id'] for s in (value.get('policy_plan') or {}).get('sheets', [])}):
+            raise ValueError('La validazione di una policy sheet richiede una revisione prevista dal Policy Plan')
         step = next((s for s in value['steps'] if s['id'] == step_id), None) if step_id else None
         if not step:
             sid = step_id or agent + '-' + uuid.uuid4().hex[:8]
@@ -717,7 +814,11 @@ def execute_step(workspace, agent, task, step_id, invoke, *, provider=None, purp
                 raise ValueError('Attività o specialista non valido')
             label = (role or {}).get('title') or {'review': 'Verifica del risultato', 'preview': 'Preparazione di un campione',
                 'integration': 'Integrazione dei contributi', 'delivery': 'Preparazione della consegna'}.get(purpose)
+            if policy_sheet is not None:
+                label = 'Validazione policy: ' + policy_sheet['title']
             step = {'id': sid, 'agent': agent, 'goal': clean_summary(label or task), 'depends_on': [], 'attempts': [], 'status': 'pending'}
+            if policy_sheet is not None:
+                step['kind'] = 'validation'
             value['steps'].append(step)
         if step['status'] == 'running':
             raise ValueError('Questa attività è già in esecuzione')
@@ -727,6 +828,8 @@ def execute_step(workspace, agent, task, step_id, invoke, *, provider=None, purp
         previous = step['attempts'][-1] if step['attempts'] else {}
         context = {'provider': provider, 'revision': step.get('revision_id', ''), 'purpose': purpose, 'request': request_id,
                    'contract':(value.get('acceptance') or {}).get('hash'), 'role': role.get('version') if role else None}
+        if policy_sheet is not None:
+            context['policy'] = {'sheet': policy_sheet['id'], 'revision': policy_sheet['revision']}
         previews = [a for a in step['attempts'] if a.get('context',{}).get('purpose') == 'preview'
                     and a.get('context',{}).get('revision','') == context['revision']
                     and (not a.get('context',{}).get('contract') or a['context']['contract'] == context['contract'])]
@@ -780,10 +883,14 @@ def execute_step(workspace, agent, task, step_id, invoke, *, provider=None, purp
                          'Rileggi le richieste originali; mantieni prodotto, contenuto e qualità richiesti. '
                          'Se il campione fallisce, verifica se serve correggere esecuzione, asset o impostazioni prima di sostituire il metodo; conserva il campione migliore.\n' +
                          'Metodo e alternative valutate: ' + json.dumps((value.get('strategy') or {}).get('record'), ensure_ascii=False))
+        contract_text += policy_workflow.task_brief(value.get('policy_plan'), step['id'], purpose, sheet=policy_sheet)
         if previous:
             contract_text += '\nUltimo incarico da riprendere: ' + json.dumps({k: previous.get(k) for k in
                 ('output_dir', 'output_files', 'error')}, ensure_ascii=False)
         attempt = {'started_at': utcnow(), 'status': 'running', 'gateway_session': GATEWAY_SESSION, 'context': context, 'task': clean_summary(task, 1500), 'role_id': role['id'] if role else '', 'role_title': role['title'] if role else ''}
+        if policy_sheet is not None and policy_sheet['final_checks'] != 'acceptance':
+            # Acceptance-contract sheets are satisfied by the standard quality review.
+            attempt['policy_review'] = policy_sheet['id']
         attempt['project_brief'] = clean_summary(value.get('brief',''),4000)
         attempt['project_title'] = clean_summary((value.get('outcome') or {}).get('title') or value.get('brief',''),400)
         installed = {app['id']: app['version'] for app in applications()}
@@ -831,6 +938,11 @@ def execute_step(workspace, agent, task, step_id, invoke, *, provider=None, purp
         attempt = step['attempts'][-1]
         from .handoff import blocking_checks
         failed_checks = [clean_summary(c.get('name')) for c in blocking_checks(handoff.get('checks', []))]
+        compliance = (policy_workflow.handoff_compliance(value.get('policy_plan'), sid, purpose, handoff)
+                      if result.get('ok') and policy_workflow.governed(value) else [])
+        if compliance:
+            attempt['policy_compliance'] = compliance
+            failed_checks += policy_workflow.violations(compliance)
         step['status'] = ('needs_revision' if failed_checks else 'completed') if result.get('ok') else 'paused'
         attempt.update(status=step['status'], finished_at=utcnow(), validated=bool(result.get('ok')),
             runtime_image=clean_summary(result.get('runtime_image', ''), 512),
@@ -893,6 +1005,13 @@ def execute_step(workspace, agent, task, step_id, invoke, *, provider=None, purp
         if (value.get('user_control') or {}).get('deliver_now'):
             value.update(summary='Consegna richiesta: file disponibili con i limiti registrati' if result.get('ok') else 'Chiusura richiesta: nessun nuovo prodotto verificato',next_action='Presenta i risultati disponibili e attendi nuove istruzioni dell’utente')
         atomic_json(folder / 'project.json', value)
+    violations = policy_workflow.violations(compliance)
+    if violations:
+        record_policy_event(workspace, value, 'Handoff non conforme al Policy Plan', 'failed',
+                            detail=sid + ': ' + ', '.join(violations))
+        result['policy_violations'] = violations
+    if compliance:
+        result['policy_compliance'] = compliance
     if (result.get('quality_review') or {}).get('status') == 'passed' and not stale_contract and not newer_version:
         reconcile_completion(workspace)
     if result.get('user_requested_delivery'):

@@ -1,8 +1,11 @@
 """Validate specialist deliverables before reporting a successful run."""
 import json
 from pathlib import Path
+import re
 import zipfile
 
+
+POLICY_CHECK = re.compile(r'[a-z][a-z0-9_]{0,39}\.[a-z][a-z0-9_]{0,59}\Z')
 
 DELIVERY_SCHEMA = {
     'type': 'object', 'properties': {
@@ -50,7 +53,9 @@ HANDOFF_SCHEMA = {'type': 'object', 'properties': {
         'checks': {'type': 'array', 'minItems': 1, 'items': {'type': 'object', 'properties': {
             'name': {'type': 'string'}, 'status': {'type': 'string', 'enum': ['passed', 'failed', 'not_run']},
             'evidence': {'type': 'string'}, 'scope': {'type':'string','enum':['current','historical','environment']},
-            'superseded_by': {'type':'string','minLength':1}}, 'required': ['name', 'status', 'evidence'], 'additionalProperties': False}},
+            'superseded_by': {'type':'string','minLength':1},
+            'policy_check': {'type':'string','pattern':'^[a-z][a-z0-9_]{0,39}\\.[a-z][a-z0-9_]{0,59}$'}},
+            'required': ['name', 'status', 'evidence'], 'additionalProperties': False}},
         'warnings': {'type': 'array', 'items': {'type': 'string'}}},
         'required': ['task', 'source_files', 'output_files', 'previews', 'checks', 'warnings', 'delivery'],
         'additionalProperties': False}
@@ -173,6 +178,9 @@ def validate_handoff(output_dir, workspace, *, require_delivery=False):
             raise ValueError('handoff.json: check richiede name, status e evidence')
         if check.get('scope', 'current') not in ('current', 'historical', 'environment'):
             raise ValueError('handoff.json: check.scope deve essere current, historical o environment')
+        if 'policy_check' in check and (not isinstance(check['policy_check'], str)
+                or not POLICY_CHECK.fullmatch(check['policy_check'])):
+            raise ValueError('handoff.json: policy_check usa la forma sheet.controllo del Policy Plan')
         replacement = check.get('superseded_by')
         if check.get('scope') == 'historical':
             matches = [c for c in checks if isinstance(c, dict) and c.get('name') == replacement

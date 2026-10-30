@@ -35,6 +35,12 @@ the objective. See [optional environments](docs/OPTIONAL-ENVIRONMENTS.md).
    remaining checks, then accept the result or request a focused revision.
    A technically valid file is not automatically an approved final product.
 
+Every new project is governed by the organization **Policy Book**. After the
+brief, the coordinator records an Execution Plan and a Policy Plan; assignments
+receive the applicable policy rules, and delivery is refused until the finished
+product passes the final validation of every selected Policy Sheet, including the
+mandatory standard quality review. See [Policy Book](docs/POLICY-BOOK.md).
+
 The coordinator records a capability rationale for each new role: why its tools
 can create the requested content or editable model, not just export the final
 format. The team view exposes this choice under **Why these tools**. Architecture

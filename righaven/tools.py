@@ -4,7 +4,7 @@ from righaven_core.tools.types import Runtime
 from righaven_core.config.paths import get_paths
 from righaven_core.runtime.user_context import resolve_runtime_user_id
 from .docker_runtime import delegate
-from .projects import archive_plan, create_plan, execute_step, read_project, revise_step, sync_acceptance, sync_project_context
+from .projects import archive_plan, create_plan, execute_step, read_project, revise_step, set_policy_plan, sync_acceptance, sync_project_context
 from .project_brief import briefing_issue
 import json
 
@@ -213,7 +213,7 @@ def harness_lessons(runtime: Runtime, source_ids_json: str = '', lesson_json: st
 def harness_plan(runtime: Runtime, brief: str = '', steps_json: str = '',
                 project_type: str = '', omissions_json: str = '{}', revise_step_id: str = '',
                 archive: bool = False, summary: str = '', next_action: str = '', status: str = '',
-                product_path: str = '', requirements_json: str = '', criteria_json: str = '', roles_json: str = '', memory_json: str = '', outcome_json: str = '', strategy_json: str = '', designs_json: str = '') -> str:
+                product_path: str = '', requirements_json: str = '', criteria_json: str = '', roles_json: str = '', memory_json: str = '', outcome_json: str = '', strategy_json: str = '', designs_json: str = '', policies_json: str = '') -> str:
     """Maintain a concise, adaptive production workspace and visible user status.
 
     Read without arguments. Update the brief, activity board or current status as
@@ -224,6 +224,8 @@ def harness_plan(runtime: Runtime, brief: str = '', steps_json: str = '',
     Prefer a representative preview at the intended finish; shorten its scope before lowering fidelity. Improve the observed bottleneck with focused specialist work.
     Avoid long plans and technical recaps: summary and next_action appear beside
     the chat input. Use purpose=delivery on the final integration to check media.
+    The runtime enforces Brief -> Execution Plan + Policy Plan -> policy-aware
+    assignments -> harness_validate -> delivery; governance.phase shows the stage.
 
     Args:
         runtime: Injected RigHaven runtime.
@@ -243,6 +245,7 @@ def harness_plan(runtime: Runtime, brief: str = '', steps_json: str = '',
         outcome_json: JSON intended result with title, result, format (delivery form, not necessarily a file extension), use, quality, constraints, assumptions, questions. Questions are at most three decisive missing user choices; ask them with ask_clarification, then replace the object with the real answers and questions empty before delegating. Do not ask again for choices already explicit in the brief.
         strategy_json: Optional method selection, especially after a failed sample: method, reason, state (exploring/selected/needs_user), up to three alternatives with method, reason, tools, status (candidate/tested/unavailable) and evidence_paths (existing workspace files required for tested). To pause for user help include stop_reason (missing_input/capability_limit/user_choice/budget) and concrete user_action. A quality failure alone cannot establish an external blocker. Revisit team assumptions before requesting assets; changing method does not authorize lowering user requirements.
         designs_json: Optional JSON list of visual models: id, title, tool, source_path, optional preview_path, bindings (element_id with step_id/role_id/criterion_id/delivery_id) and expected_revision when updating. Register existing editable design files; read current revisions first and preserve user edits. No fixed diagram notation is required.
+        policies_json: Policy Plan beside the Execution Plan: JSON list of optional Policy Book sheets that apply, each with id, reason and optional steps (activity IDs; empty means every production activity). [] records that no optional sheet applies. Mandatory sheets are always added by the runtime. Production assignments wait until the plan is settled.
         criteria_json: JSON acceptance criteria for any product: id, requirement, method (content, visual, listening, structural, functional, reference), critical and reference_paths. Optional origin=user requires source_quote copied from actual user messages; origin=proposal identifies team choices. Proposals remain checked until explicitly revised; never weaken user requirements to pass. Preserve requested references; no invented substitutions.
     """
     workspace = workspace_for(runtime)
@@ -282,6 +285,8 @@ def harness_plan(runtime: Runtime, brief: str = '', steps_json: str = '',
             register(workspace,json.loads(designs_json),set(policy['allowed']))
         learning = preserve_experience(workspace, runtime)
         sync_project_context(workspace, json.loads(roles_json) if roles_json else None, json.loads(memory_json) if memory_json else None, experience_root=experience_root(runtime),skill_policy=policy)
+        if policies_json:
+            set_policy_plan(workspace, json.loads(policies_json))
         value = read_project(workspace)
     if value and not value.get('archived'):
         # The user board contains all versions. Repeating its entire inventory
@@ -291,7 +296,8 @@ def harness_plan(runtime: Runtime, brief: str = '', steps_json: str = '',
     from .control_memory import reply
     from .state import team
     from .acceptance import generation_capabilities
-    return reply(workspace, {'project': value, 'learning': learning, 'capability_policy': public(policy),
+    from .policy_book import catalog
+    return reply(workspace, {'project': value, 'learning': learning, 'capability_policy': public(policy), 'policy_book': catalog(),
         'generation_capabilities': generation_capabilities(team('squad')['engine'], (value or {}).get('user_direction'))}, 'plan')
 
 
@@ -317,6 +323,11 @@ def harness_delegate(agent: str, task: str, runtime: Runtime, step_id: str = '',
         step_id: Optional activity identifier, reusable for targeted revisions.
         purpose: work, preview, review, integration or delivery.
     """
+    return delegate_step(agent, task, runtime, step_id=step_id, purpose=purpose, role_id=role_id)
+
+
+def delegate_step(agent, task, runtime, *, step_id='', purpose='work', role_id='', policy_sheet=None):
+    """One assignment; policy_sheet turns a review into that sheet's final validation."""
     workspace = workspace_for(runtime)
     requests = user_requests(runtime)
     if not read_project(workspace):
@@ -344,19 +355,24 @@ def harness_delegate(agent: str, task: str, runtime: Runtime, step_id: str = '',
         raise ValueError('Definisci prima il ruolo concreto con harness_plan roles_json')
     require_tools(policy, ([agent] if agent != 'workspace' else []) + (role or {}).get('tools', []))
     requirements = project.get('requirements', {}) if purpose == 'delivery' else {}
+    policy_review = {}
+    if policy_sheet is not None and policy_sheet['final_checks'] != 'acceptance':
+        from .policy_book import contract
+        policy_review = {'policy_review': {'sheet': policy_sheet['id'], 'revision': policy_sheet['revision'],
+                                           'contract': contract(policy_sheet, None)}}
     result = json.loads(execute_step(workspace, agent, task, step_id,
         lambda instructions, started=None: delegate(agent, instructions, workspace,
             tool_call_id=getattr(runtime, 'tool_call_id', None), on_started=started,
             requirements=requirements, purpose=purpose, acceptance=project.get('acceptance'), role=role,
-            capability_policy=policy), provider={k: profile[k] for k in ('engine', 'model', 'connection_id') if k in profile},
-        purpose=purpose, request_id=request_id, role=role))
+            capability_policy=policy, **policy_review), provider={k: profile[k] for k in ('engine', 'model', 'connection_id') if k in profile},
+        purpose=purpose, request_id=request_id, role=role, policy_sheet=policy_sheet))
     experience = preserve_experience(workspace, runtime)
     handoff = result.get('handoff') or {}
     from .handoff import blocking_checks
     from .control_memory import counts
     from .progress import clean_summary
     compact = {k: result[k] for k in ('ok', 'activity', 'output_dir', 'attention', 'recovery', 'retry_blocked', 'checkpoint_reassessment','goal','instruction',
-        'product_verified', 'verified_products', 'available_results') if k in result}
+        'product_verified', 'verified_products', 'available_results', 'policy_violations', 'policy_compliance') if k in result}
     compact.update(error=clean_summary(result.get('error', '')),
         check_counts=counts(handoff.get('checks', [])),
         blocking_failed_checks=len(list(blocking_checks(handoff.get('checks', [])))),
@@ -443,3 +459,83 @@ def harness_delegate_batch(assignments_json:str,runtime:Runtime)->str:
         futures=[pool.submit(copy_context().run,invoke,a) for a in assignments]
         results=[f.result() for f in futures]
     return json.dumps({'ok':all(r.get('ok') for r in results),'assignments':results},ensure_ascii=False)
+
+
+@tool('harness_validate', parse_docstring=True)
+def harness_validate(runtime: Runtime, role_id: str, task: str = '') -> str:
+    """Run the final multi-policy validation of the finished product before delivery.
+
+    Requires a completed Execution Plan and a product_path. The runtime first checks
+    delivery integrity, then runs one separate review per Policy Plan sheet that has
+    no valid verdict for this exact product: independent sheets in parallel, dependent
+    sheets after their prerequisites. All violations are returned together. Delivery
+    (status=ready) is refused until every sheet passes. Correct violations on the
+    sources, deliver a new version, then validate again; a passed sheet is reused.
+
+    Args:
+        runtime: Injected RigHaven runtime.
+        role_id: Reviewer role compiled with harness_plan roles_json; it must not have produced the product.
+        task: Optional guidance for the reviewers: product context, references and what to inspect.
+    """
+    from concurrent.futures import ThreadPoolExecutor
+    from contextvars import copy_context
+    from . import policy_workflow
+    from .projects import governance_state, save_policy_validation
+    workspace = workspace_for(runtime)
+    value = governance_state(workspace)
+    if not policy_workflow.governed(value):
+        raise ValueError('Questo progetto è precedente al Policy Book: usa purpose=review per la revisione di qualità')
+    stage = policy_workflow.phase(value)
+    if stage in ('briefing', 'planning'):
+        raise ValueError('Completa prima brief, Execution Plan e Policy Plan (fase attuale: ' + stage + ')')
+    if stage == 'execution':
+        open_steps = [s['id'] for s in value['steps'] if s.get('kind') != 'validation' and s['status'] not in policy_workflow.SETTLED]
+        raise ValueError('La validazione finale riguarda il prodotto finito: ' + (
+            'attività ancora aperte: ' + ', '.join(open_steps) if open_steps else 'indica product_path del prodotto consegnato con purpose=delivery'))
+    if not any(r['id'] == role_id for r in value.get('roles', [])):
+        raise ValueError('Indica il ruolo revisore compilato con harness_plan roles_json')
+    from .projects import artifact_path
+    product = artifact_path(workspace, value.get('product_path', ''))
+    authors = {a.get('role_id') for s in value['steps'] if s.get('kind') != 'validation' for a in s['attempts']
+               if product and any(artifact_path(workspace, p) == product for p in a.get('output_files', []))}
+    if role_id in authors:
+        raise ValueError('La validazione finale richiede un revisore indipendente: il ruolo ' + role_id + ' ha prodotto il file da validare')
+    report = policy_workflow.validation(workspace, value)
+    runs = []
+    if report['integrity']['status'] == 'passed':
+        sheets = {s['id']: s for s in value['policy_plan']['sheets']}
+        to_run = [sheets[s['id']] for s in report['sheets'] if s['status'] == 'pending']
+        guidance = task.strip() or 'Valida il prodotto finito ' + value.get('product_path', '') + ' senza modificarlo.'
+
+        def review(sheet):
+            try:
+                result = json.loads(delegate_step('workspace', guidance, runtime, step_id='policy-' + sheet['id'],
+                                                  purpose='review', role_id=role_id, policy_sheet=sheet))
+            except Exception as error:
+                result = {'ok': False, 'error': str(error)[:500]}
+            return {'sheet': sheet['id'], 'ok': bool(result.get('ok')), 'error': result.get('error', '')}
+        for wave in policy_workflow.waves(to_run):
+            current = {s['id']: s['status'] for s in report['sheets']}
+            ready = [s for s in wave if all(current.get(d) == 'passed' for d in s['depends_on'])]
+            runs += [{'sheet': s['id'], 'ok': False, 'error': 'In attesa delle sheet da cui dipende: ' + ', '.join(s['depends_on'])}
+                     for s in wave if s not in ready]
+            if ready:
+                with ThreadPoolExecutor(max_workers=len(ready), thread_name_prefix='rh-policy') as pool:
+                    runs += [f.result() for f in [pool.submit(copy_context().run, review, s) for s in ready]]
+            report = policy_workflow.validation(workspace, governance_state(workspace))
+    saved = save_policy_validation(workspace, report)
+    instruction = {'passed': 'Tutte le policy sono superate: dichiara la consegna con harness_plan(status=ready).',
+                   'failed': 'Correggi tutte le violazioni elencate sui sorgenti, consegna una nuova versione e ripeti harness_validate.',
+                   'blocked': 'Il prodotto non supera il controllo di integrità: correggi la consegna con purpose=delivery.',
+                   }.get(report['status'], 'Alcune verifiche non sono state eseguite o richiedono un metodo non disponibile: '
+                                           'non dichiarare la consegna; spiega all’utente cosa manca.')
+    return json.dumps({'ok': report['status'] == 'passed', 'status': report['status'], 'integrity': report['integrity'],
+                       'sheets': saved['sheets'], 'reviews': runs, 'instruction': instruction}, ensure_ascii=False)
+
+
+async def _harness_validate_async(runtime: Runtime, role_id: str, task: str = '') -> str:
+    from .cancellation import call
+    return await call(harness_validate.func, runtime=runtime, role_id=role_id, task=task)
+
+
+harness_validate.coroutine = _harness_validate_async
