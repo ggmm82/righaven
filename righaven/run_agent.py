@@ -120,6 +120,11 @@ def handoff_error(output_dir, error):
     return (str(error) + ('; ' + '; '.join(details[:3]) if details else ''))[:1800]
 
 
+def review_contract(job):
+    """A policy-sheet validation is judged on that sheet's checks, not the request contract."""
+    return (job.get('policy_review') or {}).get('contract') or job.get('acceptance')
+
+
 def verify_project_context(job, workspace=Path('/mnt/user-data'),skill_root=Path('/mnt/skills/custom')):
     import hashlib
     def read(document):
@@ -191,7 +196,7 @@ def finalize_saved(job, output_dir, workspace=Path('/mnt/user-data'), *, early=F
     learning_review = learning_status(output_dir)
     try:
         if job.get('purpose') == 'review':
-            prepare_review_handoff(output_dir, workspace, engine, job.get('acceptance'))
+            prepare_review_handoff(output_dir, workspace, engine, review_contract(job))
         handoff = validate_handoff(output_dir, workspace, require_delivery=True)
     except ValueError as exc:
         raise ValueError(handoff_error(output_dir, exc)) from exc
@@ -223,7 +228,7 @@ def finalize_saved(job, output_dir, workspace=Path('/mnt/user-data'), *, early=F
     if (output_dir / 'delivery-manifest.json').is_symlink():
         raise ValueError('Manifest di consegna non valido')
     (output_dir / 'delivery-manifest.json').write_text(json.dumps(delivery_record, ensure_ascii=False, indent=2))
-    quality_review = read_review(handoff, output_dir, workspace, engine, job.get('acceptance')) if job.get('purpose') == 'review' else None
+    quality_review = read_review(handoff, output_dir, workspace, engine, review_contract(job)) if job.get('purpose') == 'review' else None
     return {'ok': True, 'agent': job['agent'], 'engine': engine,
             'output_dir': str(output_dir), 'handoff': handoff,
             'product_verified': bool(verified_products), 'verified_products': verified_products,
@@ -346,7 +351,7 @@ def main():
             reporter.model_wait_seconds = (job.get('resources') or {}).get('model_wait_seconds', 0)
             def preflight():
                 if job.get('purpose') == 'review':
-                    prepare_review_handoff(output_dir, Path('/mnt/user-data'), engine, job.get('acceptance'))
+                    prepare_review_handoff(output_dir, Path('/mnt/user-data'), engine, review_contract(job))
                 validate_handoff(output_dir, Path('/mnt/user-data'), require_delivery=True)
             message = run(job['model'], prompt, output_dir, job['timeout'], reporter, image_generation=native_images, preflight=preflight)
         else:

@@ -99,6 +99,7 @@ window.showThread();
         css += '@source ' + json.dumps(str(repo / 'frontend/delegate-progress.tsx')) + ';\n@source "./index.html";\n'
         css += '@source ' + json.dumps(str(repo / 'frontend/project-design.tsx')) + ';\n'
         css += '@source ' + json.dumps(str(repo / 'frontend/experience-panel.tsx')) + ';\n'
+        css += '@source ' + json.dumps(str(repo / 'frontend/project-governance.tsx')) + ';\n'
         css += '@source ' + json.dumps(str(repo / 'frontend/project-guide.tsx')) + ';\n@source ' + json.dumps(str(repo / 'frontend/conversation-audit.tsx')) + ';\n'
         css += '@layer base { * { border-color: var(--color-border); } }\n'
         css += '@theme { --color-background: #ffffff; --color-foreground: #0f172a; --color-muted: #f1f5f9; --color-border: #cbd5e1; --color-ring: #2563eb; --color-muted-foreground: #64748b; }\n'

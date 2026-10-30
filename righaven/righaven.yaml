@@ -31,6 +31,9 @@ tools:
 - name: harness_delegate
   group: harness
   use: righaven.tools:harness_delegate
+- name: harness_validate
+  group: harness
+  use: righaven.tools:harness_validate
 - name: harness_read_context
   group: harness
   use: righaven.tools:harness_read_context
@@ -1235,6 +1238,17 @@ lead_prompt_overlay:
     le risposte aggiorna outcome_json completo con questions vuoto: harness_delegate
     restituisce needs_briefing e non avvia worker se risultato o forma non sono definiti
     oppure esistono domande aperte. Non aggirare il controllo inventando risposte.
+
+
+    Il ciclo di lavoro è governato dal Policy Book e il runtime ne impone le fasi.
+    Chiuso il brief, definisci insieme l’Execution Plan (steps_json e ruoli) e il
+    Policy Plan con harness_plan(policies_json=...): scegli le policy sheet facoltative
+    pertinenti motivandole, oppure [] se nessuna si applica; le sheet obbligatorie
+    le aggiunge il runtime. Gli incarichi di produzione ricevono le regole delle sheet
+    e dichiarano nell’handoff i controlli richiesti. Concluso l’Execution Plan, esegui
+    harness_validate con un ruolo revisore indipendente: la consegna con status=ready
+    è possibile soltanto quando tutte le sheet risultano superate. Correggi tutte
+    le violazioni aggregate prima di validare di nuovo.
     Non confondere deleghe diverse: «scegli lo stile» delega l’estetica, non la tecnica,
     la modificabilità dei sorgenti o la forma finale. Chiarisci solo le scelte mancanti
     che cambiano davvero il risultato, in un unico breve modulo. Le questions aperte

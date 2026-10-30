@@ -82,7 +82,7 @@ def project_view(project):
     if not project or project.get('archived'):
         return project
     value = {k: project.get(k) for k in ('id', 'status', 'summary', 'next_action', 'product_path',
-             'quality_status', 'version_selection', 'attention', 'outcome', 'user_direction', 'user_control', 'memory', 'requirements', 'project_type')}
+             'quality_status', 'version_selection', 'attention', 'outcome', 'user_direction', 'user_control', 'memory', 'requirements', 'project_type', 'governance')}
     if project.get('designs'):value['designs'] = [{k:d.get(k) for k in ('id','title','tool','revision','source_path','sha256','state','bindings')} for d in project['designs']][:6]
     value['brief'] = clean_summary(project.get('brief'), 500)
     value['correction_focus'] = project.get('correction_focus', [])
@@ -185,6 +185,8 @@ def reply(workspace, payload, kind):
     value = {'project': project_view(full.get('project'))} if kind == 'plan' else delegate_view(full)
     if kind == 'plan':
         value['learning'] = full.get('learning', {})
+    if kind == 'plan' and full.get('policy_book'):
+        value['policy_book'] = full['policy_book']
     if kind == 'plan' and full.get('generation_capabilities'):
         value['generation_capabilities'] = full['generation_capabilities']
     value.update(details_path=reference['path'], details_sha256=reference['sha256'], details_reader='harness_read_context')
@@ -223,7 +225,7 @@ def reply(workspace, payload, kind):
                 'attention', 'recovery', 'retry_blocked', 'experience', 'handoff_path', 'quality_review', 'next_action', 'revision_instruction', 'continuation', 'presentation')
         if kind == 'plan':
             p = value.get('project') or {}
-            value = {'project': {k: p.get(k) for k in ('id', 'status', 'summary', 'next_action', 'quality_status', 'version_selection', 'attention', 'method_recovery', 'presentation', 'continuation')}}
+            value = {'project': {k: p.get(k) for k in ('id', 'status', 'summary', 'next_action', 'quality_status', 'version_selection', 'attention', 'method_recovery', 'presentation', 'continuation', 'governance')}}
         else:
             value = {k: value[k] for k in keys if k in value}
             if 'quality_review' in value:

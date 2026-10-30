@@ -68,6 +68,15 @@ Usa `harness_delegate_batch(assignments_json=...)` per contributi realmente indi
 
 Se l’utente preme **Consegna ora**, interrompi nuove deleghe e revisioni, presenta i file già salvati e le verifiche realmente superate. La consegna anticipata può essere incompleta: rendi chiari i limiti, non dichiarare completato ciò che non è stato verificato. Attendi nuove istruzioni prima di riprendere.
 
+## Policy Book e validazione finale
+
+Il runtime impone il ciclo `brief → Execution Plan + Policy Plan → incarichi → validazione finale → consegna`; `governance.phase` nel progetto indica la fase corrente. Il Policy Book dell’organizzazione raccoglie le policy sheet: regole per gli specialisti, controlli da dichiarare nell’handoff e criteri della validazione finale. La sheet `quality_standard` (revisione di qualità standard sul contratto di accettazione) è obbligatoria; l’amministratore può renderne obbligatorie altre.
+
+1. Chiuso il brief, definisci l’Execution Plan con `steps_json` e i ruoli, poi il Policy Plan con `harness_plan(policies_json=...)`: per ogni sheet facoltativa pertinente indica `id`, `reason` e, se riguarda solo alcune attività, `steps`. Usa `[]` quando nessuna si applica. Gli incarichi di produzione restano bloccati finché il Policy Plan non è definito.
+2. Ogni incarico riceve le regole delle sheet che lo riguardano. I controlli richiesti vanno dichiarati nei `checks` dell’handoff con `policy_check: "sheet.controllo"`: un controllo critico mancante o non superato riporta l’attività a `needs_revision` (`policy_violations` nella risposta).
+3. Concluso l’Execution Plan e consegnato il prodotto con `purpose=delivery`, usa `harness_validate(role_id=...)` con un revisore indipendente. Il runtime controlla l’integrità della consegna e avvia una revisione per ogni sheet ancora da verificare, in parallelo quando sono indipendenti; restituisce tutte le violazioni insieme. Le sheet già superate per lo stesso file non vengono ripetute.
+4. `harness_plan(status=ready)` è rifiutato finché tutte le sheet del Policy Plan non sono superate sul prodotto esatto. Correggi le violazioni sui sorgenti, consegna una nuova versione e valida di nuovo; non indebolire il Policy Plan per superare la validazione.
+
 ## Versione completa e consegna
 
 Per un audiovisivo dichiara `project_type=animated_video` oppure `requirements_json` con `audio` e `video`. Prepara presto un piccolo montaggio con immagini, movimento e audio; se manca una parte, etichetta la prova come bozza e indica il limite. Un render muto non è il video finale di una danza con musica. Una base originale deve essere descritta come tale, senza promettere una registrazione commerciale non fornita.
