@@ -53,7 +53,7 @@ def prepare(engine,user=None,profile=None):
     selected={t:r for t,r in selected.items() if t=='provider-'+binary}
     pins=tool_versions.resolved(selected,wait=True,refresh=False)
     app=tool_versions.packages(pins).get('provider-'+binary,{}).get('app') or tool_versions.builtins()['provider-'+binary]
-    basis={'engine':engine,'app':app,'pins':pins,'platform':__import__('platform').machine(),'schema':1}
+    basis={'engine':engine,'app':app,'pins':pins,'platform':__import__('platform').machine(),'schema':2}
     key=hashlib.sha256(json.dumps(basis,sort_keys=True).encode()).hexdigest()
     parent=state.STATE/'provider-bundles';parent.mkdir(parents=True,exist_ok=True)
     if parent.is_symlink():raise ValueError('Directory CLI non valida')
@@ -75,13 +75,15 @@ def prepare(engine,user=None,profile=None):
                 reference=IMAGE
             docker('create','--name',name,'--pull=never','--network=none','--read-only','--cap-drop=ALL',
                    '--label','org.righaven.harness.installation='+installation(),reference,'true')
-            created=True;(temporary/'bin').mkdir();(temporary/'lib').mkdir()
+            created=True;(temporary/'bin').mkdir();(temporary/'lib/node_modules').mkdir(parents=True)
             if binary=='codex':
                 source='/opt/righaven/provider-clis/codex/node_modules/@openai' if pins else '/usr/local/lib/node_modules/@openai'
-                docker('cp','-L',name+':'+source,str(temporary/'lib/@openai'),timeout=180)
-                entry=temporary/'lib/@openai/codex/bin/codex.js'
+                # Keep a node_modules parent: Codex resolves its hoisted native
+                # @openai/codex-<platform> package through Node module lookup.
+                docker('cp','-L',name+':'+source,str(temporary/'lib/node_modules/@openai'),timeout=180)
+                entry=temporary/'lib/node_modules/@openai/codex/bin/codex.js'
                 if not entry.is_file():raise ValueError('Entrypoint Codex assente dal pacchetto')
-                (temporary/'bin/codex').write_text('#!/bin/sh\nexec node '+TARGET+'/lib/@openai/codex/bin/codex.js "$@"\n')
+                (temporary/'bin/codex').write_text('#!/bin/sh\nexec node '+TARGET+'/lib/node_modules/@openai/codex/bin/codex.js "$@"\n')
                 (temporary/'bin/codex').chmod(0o755)
             else:
                 source='/opt/righaven/provider-clis/'+binary+'/'+binary if pins else '/usr/local/bin/'+binary
