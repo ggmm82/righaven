@@ -87,7 +87,7 @@ def installation():
     return (state.STATE/'installation-id').read_text().strip()
 
 
-def recipe(tools, core=None, identity=None, versions=None):
+def recipe(tools, core=None, identity=None, versions=None, packages=None):
     from .docker_runtime import IMAGE
     core=core or IMAGE
     selected=closure(tools)
@@ -98,7 +98,7 @@ def recipe(tools, core=None, identity=None, versions=None):
     spec={'version':RECIPE,'core':identity,'tools':selected}
     if info:spec['software_abi']=info['abi']
     if selected:
-        spec['tool_fingerprints'],spec['tool_version_names']=software.planned(selected,versions)
+        spec['tool_fingerprints'],spec['tool_version_names']=software.planned(selected,versions,packages)
     chosen={k:v for k,v in (versions or {}).items() if k in selected or k.startswith('provider-')}
     if chosen:spec['versions']=chosen
     logical={k:v for k,v in spec.items() if not (k=='core' and spec.get('software_abi'))}

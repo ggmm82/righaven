@@ -115,10 +115,18 @@ def software_selections(user=None,profile=None,tools=None):
 def packages(versions):return {tool:read(revision)['bundle'] for tool,revision in versions.items()}
 
 
-def import_packages(versions,bundles):
+def verified_packages(versions,bundles):
+    result={}
     for tool,revision in versions.items():
         bundle=validate(bundles[tool])
         if bundle['app']['id']!=tool or identifier(bundle)!=revision:raise ValueError('Versione esportata modificata')
+        result[tool]=bundle
+    return result
+
+
+def import_packages(versions,bundles):
+    for tool,bundle in verified_packages(versions,bundles).items():
+        revision=versions[tool]
         state.atomic_json(directory()/(revision+'.json'),{'id':revision,'state':'ready','bundle':bundle,'imported':True,'updated_at':utcnow()})
 
 

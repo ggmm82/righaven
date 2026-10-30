@@ -78,13 +78,14 @@ def cached(image):
     with _LOCK:return _CACHE.get(image)
 
 
-def planned(tools,versions):
+def planned(tools,versions,packages=None):
     from . import state,tool_versions
     builtin={app['id']:app for app in state.applications()};root=Path(os.getenv('RIGHAVEN_WORKER_SOURCE',Path(__file__).resolve().parents[1]))/'config/toolkit'
     result={};names={}
     for tool in tools:
         if tool in (versions or {}):
-            bundle=tool_versions.read(versions[tool])['bundle']
+            # Imported archives carry verified packages not yet registered locally.
+            bundle=(packages or {}).get(tool) or tool_versions.read(versions[tool])['bundle']
             # Hash the software inputs, excluding editorial catalog metadata.
             app=bundle['app'];value={k:app[k] for k in FIELDS if k in app}
             files=bundle.get('files',{})

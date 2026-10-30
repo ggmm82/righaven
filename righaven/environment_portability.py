@@ -166,7 +166,10 @@ def import_image(path, directory, expected_tools, allowed_tools=None,on_progress
         excluded=set(tools)-set(factory.closure(allowed_tools))
         if excluded:raise ValueError('Il pacchetto include programmi esclusi dal profilo: '+', '.join(sorted(excluded))+'. Seleziona un profilo compatibile prima di importarlo.')
     versions=metadata.get('versions',{})
-    key,spec=factory.recipe(tools,versions=versions)
+    from .tool_versions import verified_packages
+    try:packages=verified_packages(versions,metadata.get('_version_packages',{}))
+    except KeyError:raise ValueError('Pacchetto versione mancante nell’archivio') from None
+    key,spec=factory.recipe(tools,versions=versions,packages=packages)
     base=json.loads(factory.docker('image','inspect',IMAGE))[0]
     compatible=metadata.get('software_layers')==base['RootFS']['Layers'] if metadata.get('software_layers') else metadata.get('software_id')==spec['core']
     if metadata.get('recipe')!=factory.RECIPE or not compatible:
