@@ -64,6 +64,47 @@ def require_production(value):
                          ') con una motivazione, oppure [] se nessuna si applica. Le sheet obbligatorie sono incluse dal sistema.')
 
 
+def checkpoints_enabled(value):
+    return governed(value) and (value.get('checkpoints') or {}).get('enabled', True)
+
+
+def open_checkpoint(value, step_id, purpose, turn):
+    """After a production phase, wait for the user before any further production."""
+    if purpose not in PRODUCTION or not turn or not checkpoints_enabled(value) or (value.get('user_control') or {}).get('deliver_now'):
+        return None
+    pending = value.get('checkpoint') or {}
+    if pending.get('status') == 'awaiting_user' and pending.get('turn') == turn:
+        # Parallel assignments of the same user turn share one discussion.
+        pending['steps'] = list(dict.fromkeys([*pending['steps'], step_id]))
+        return pending
+    from .progress import utcnow
+    history = value.setdefault('checkpoint_history', [])
+    if pending:
+        history.append(pending)
+        value['checkpoint_history'] = history[-50:]
+    value['checkpoint'] = {'status': 'awaiting_user', 'turn': turn, 'steps': [step_id], 'at': utcnow()}
+    return value['checkpoint']
+
+
+def pass_checkpoint(value, turn):
+    """A new user message closes the discussion; the same turn cannot start more production."""
+    pending = value.get('checkpoint') or {}
+    if pending.get('status') != 'awaiting_user' or not checkpoints_enabled(value):
+        return None
+    if not turn or turn == pending.get('turn'):
+        raise ValueError(checkpoint_instruction(pending)['instruction'])
+    from .progress import utcnow
+    value['checkpoint'] = {**pending, 'status': 'discussed', 'discussed_turn': turn, 'closed_at': utcnow()}
+    return value['checkpoint']
+
+
+def checkpoint_instruction(pending):
+    return {'status': 'awaiting_user', 'steps': pending['steps'],
+            'instruction': 'Fase conclusa (' + ', '.join(pending['steps']) + '): prima di altri incarichi di produzione presenta '
+                           'all’utente risultati, problemi aperti e prossimi passi, proponi le eventuali modifiche al piano e '
+                           'chiedi la sua decisione con ask_clarification. Il runtime avvierà nuova produzione solo dopo la sua risposta.'}
+
+
 def applicable(plan, step_id, purpose):
     if not plan or purpose not in PRODUCTION:
         return []
@@ -128,6 +169,28 @@ def sheet_reviews(value, sheet):
                   key=lambda a: a.get('finished_at', ''), reverse=True)
 
 
+def sheet_verdict(workspace, value, sheet, target_hash):
+    """Verdict of one sheet on the product with this hash, from the recorded reviews."""
+    from . import projects
+    if sheet['final_checks'] == 'acceptance':
+        review = projects.standard_review(workspace, value, target_hash)
+        attempts = projects.standard_reviews(value)
+    else:
+        expected = policy_book.contract(sheet, None)['hash']
+        attempts = sheet_reviews(value, sheet)
+        review = next((a['quality_review'] for a in attempts
+                       if a['quality_review'].get('sha256') == target_hash
+                       and a['quality_review'].get('contract_hash') == expected), None)
+    if review is None:
+        return {'status': 'pending'}
+    attempt = next((a for a in attempts if a['quality_review'].get('report_path') == review.get('report_path')), {})
+    return {'status': {'passed': 'passed', 'needs_revision': 'failed'}.get(review.get('status'), 'needs_review'),
+            'report_path': review.get('report_path', ''), 'reviewed_at': attempt.get('finished_at', ''),
+            'findings': [{k: c.get(k) for k in ('requirement_id', 'status', 'critical', 'method')}
+                         | {'criterion': clean_summary(c.get('criterion'), 200), 'evidence': clean_summary(c.get('evidence'), 240)}
+                         for c in review.get('criteria', []) if c.get('status') != 'passed'][:8]}
+
+
 def validation(workspace, value):
     """Aggregate verdict of every sheet on the current product, recomputed from files."""
     from . import projects
@@ -142,27 +205,50 @@ def validation(workspace, value):
         return report
     target_hash = report['sha256'] = digest(target)
     for sheet in plan['sheets']:
-        entry = {'id': sheet['id'], 'title': sheet['title'], 'depends_on': sheet['depends_on']}
-        if sheet['final_checks'] == 'acceptance':
-            review = projects.standard_review(workspace, value, target_hash)
-        else:
-            expected = policy_book.contract(sheet, None)['hash']
-            review = next((a['quality_review'] for a in sheet_reviews(value, sheet)
-                           if a['quality_review'].get('sha256') == target_hash
-                           and a['quality_review'].get('contract_hash') == expected), None)
-        if review is None:
-            entry['status'] = 'pending'
-        else:
-            entry['status'] = {'passed': 'passed', 'needs_revision': 'failed'}.get(review.get('status'), 'needs_review')
-            entry['report_path'] = review.get('report_path', '')
-            entry['findings'] = [{k: c.get(k) for k in ('requirement_id', 'status', 'critical')}
-                                 | {'evidence': clean_summary(c.get('evidence'), 200)}
-                                 for c in review.get('criteria', []) if c.get('status') != 'passed'][:8]
-        report['sheets'].append(entry)
+        verdict = sheet_verdict(workspace, value, sheet, target_hash)
+        report['sheets'].append({'id': sheet['id'], 'title': sheet['title'], 'depends_on': sheet['depends_on'],
+                                 **{k: verdict[k] for k in ('status', 'report_path', 'findings') if k in verdict}})
     states = {s['status'] for s in report['sheets']}
     report['status'] = ('passed' if states == {'passed'} else 'failed' if 'failed' in states
                         else 'pending' if 'pending' in states else 'needs_review')
     return report
+
+
+def live(workspace, value):
+    """What governs this project right now, computed from files for the chat panel."""
+    if not governed(value):
+        return {'phase': 'legacy'}
+    from . import projects
+    from .source_packages import digest
+    plan = value.get('policy_plan')
+    result = {'phase': phase(value), 'settled': policy_book.settled(plan), 'sheets': []}
+    if not plan:
+        return result
+    result.update(planned_at=plan.get('created_at', ''), selected_by=plan.get('selected_by'),
+                  optional_available=plan.get('optional_available', []))
+    target = projects.artifact_path(workspace, value.get('product_path', ''))
+    if target:
+        integrity = projects.delivery_integrity(workspace, value, target)
+        result['product'] = {'path': value.get('product_path', ''), 'integrity': 'failed' if integrity else 'passed', 'issue': integrity or ''}
+    target_hash = digest(target) if target else None
+    compliance = [c for s in value['steps'] if s.get('kind') != 'validation' and s['attempts']
+                  for c in s['attempts'][-1].get('policy_compliance', [])]
+    for sheet in plan['sheets']:
+        verdict = sheet_verdict(workspace, value, sheet, target_hash) if target_hash else {'status': 'pending'}
+        declared = [c for c in compliance if c['sheet'] == sheet['id']]
+        result['sheets'].append({**{k: sheet[k] for k in ('id', 'title', 'version', 'mandatory', 'reason', 'steps', 'depends_on')},
+            'final': 'acceptance' if sheet['final_checks'] == 'acceptance' else len(sheet['final_checks']),
+            'handoff': {'required': len(sheet['handoff_checks']), 'declared': sum(c['status'] == 'passed' for c in declared),
+                        'violations': [c['check'] for c in declared if c['critical'] and c['status'] != 'passed']},
+            **verdict})
+    saved = value.get('policy_validation') or {}
+    if saved:
+        result['last_validation'] = {'at': saved.get('at', ''), 'status': saved.get('status')}
+    pending = value.get('checkpoint') or {}
+    result['checkpoints'] = {'enabled': checkpoints_enabled(value),
+        'pending': {k: pending[k] for k in ('steps', 'at')} if pending.get('status') == 'awaiting_user' else None,
+        'discussed': sum(c.get('status') == 'discussed' for c in [*value.get('checkpoint_history', []), pending])}
+    return result
 
 
 def waves(sheets):

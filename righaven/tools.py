@@ -242,7 +242,7 @@ def harness_plan(runtime: Runtime, brief: str = '', steps_json: str = '',
         requirements_json: Media acceptance requirements such as {"audio":true,"video":true}; follow the user's brief.
         roles_json: JSON roles compiled for this project: id, title, mission, expertise, procedure, checks, deliverables, skills (exact authorized native names discovered with harness_skills), tools (available catalog IDs, optional), inputs and risks. Selected skill requirements add their tools automatically. Roles are dynamic, not tool identities; scope and package versions are recorded. Each role requires capability_rationale: explain why the selected capabilities can construct its actual content/model, not merely export the delivery format; consider relevant owner environments and justify simpler alternatives. Do not assign every available tool or impose a fixed team.
         memory_json: JSON object with project-specific decisions, facts, questions and asset references; merge top-level keys, keep evidence and uncertainty explicit.
-        outcome_json: JSON intended result with title, result, format (delivery form, not necessarily a file extension), use, quality, constraints, assumptions, questions. Questions are at most three decisive missing user choices; ask them with ask_clarification, then replace the object with the real answers and questions empty before delegating. Do not ask again for choices already explicit in the brief.
+        outcome_json: JSON intended result with title, result, format (delivery form, not necessarily a file extension), use, quality, constraints, assumptions, questions. Questions are at most three decisive missing user choices; ask them with ask_clarification, then replace the object with the real answers and questions empty before delegating. Do not ask again for choices already explicit in the brief. tool_options lists up to four tool decisions when several catalog tools could produce the result: id, decision, 2–4 options (id, label, tools, pros, cons), recommended option and recommendation_reason, chosen empty. Present them with ask_clarification and set chosen only after the user's reply; production waits for every choice and roles cannot use tools of rejected options.
         strategy_json: Optional method selection, especially after a failed sample: method, reason, state (exploring/selected/needs_user), up to three alternatives with method, reason, tools, status (candidate/tested/unavailable) and evidence_paths (existing workspace files required for tested). To pause for user help include stop_reason (missing_input/capability_limit/user_choice/budget) and concrete user_action. A quality failure alone cannot establish an external blocker. Revisit team assumptions before requesting assets; changing method does not authorize lowering user requirements.
         designs_json: Optional JSON list of visual models: id, title, tool, source_path, optional preview_path, bindings (element_id with step_id/role_id/criterion_id/delivery_id) and expected_revision when updating. Register existing editable design files; read current revisions first and preserve user edits. No fixed diagram notation is required.
         policies_json: Policy Plan beside the Execution Plan: JSON list of optional Policy Book sheets that apply, each with id, reason and optional steps (activity IDs; empty means every production activity). [] records that no optional sheet applies. Mandatory sheets are always added by the runtime. Production assignments wait until the plan is settled.
@@ -255,8 +255,13 @@ def harness_plan(runtime: Runtime, brief: str = '', steps_json: str = '',
         from .strategy import check_capability_choice
         check_capability_choice(json.loads(strategy_json), policy)
     if roles_json:
+        from .project_brief import rejected_tools
+        excluded = rejected_tools((read_project(workspace) or {}).get('outcome'))
         for spec in json.loads(roles_json):
             require_tools(policy, spec.get('tools', []))
+            if excluded & set(spec.get('tools', [])):
+                raise ValueError('Il ruolo ' + str(spec.get('id')) + ' usa programmi di alternative non scelte dall’utente: '
+                                 + ', '.join(sorted(excluded & set(spec.get('tools', [])))) + '. Rispetta la scelta registrata nel brief.')
             if not isinstance(spec.get('capability_rationale'),str) or not spec['capability_rationale'].strip():
                 raise ValueError('Consulta harness_skills e indica capability_rationale per ogni ruolo: quali capacità costruiscono il contenuto/modello, quali lo impaginano o esportano e quali lo verificano; confronta gli ambienti pertinenti. Il formato finale non giustifica da solo la scelta dello strumento. Anche il solo runtime base richiede una motivazione.')
     learning = {}
@@ -354,6 +359,10 @@ def delegate_step(agent, task, runtime, *, step_id='', purpose='work', role_id='
     if (role_id and not role) or (agent == 'workspace' and not role):
         raise ValueError('Definisci prima il ruolo concreto con harness_plan roles_json')
     require_tools(policy, ([agent] if agent != 'workspace' else []) + (role or {}).get('tools', []))
+    from .project_brief import rejected_tools
+    excluded = rejected_tools(project.get('outcome')) & set((role or {}).get('tools', []) + ([agent] if agent != 'workspace' else []))
+    if excluded:
+        raise ValueError('L’utente ha scelto un’altra alternativa: questo incarico userebbe ' + ', '.join(sorted(excluded)) + '. Aggiorna il ruolo.')
     requirements = project.get('requirements', {}) if purpose == 'delivery' else {}
     policy_review = {}
     if policy_sheet is not None and policy_sheet['final_checks'] != 'acceptance':
@@ -372,7 +381,7 @@ def delegate_step(agent, task, runtime, *, step_id='', purpose='work', role_id='
     from .control_memory import counts
     from .progress import clean_summary
     compact = {k: result[k] for k in ('ok', 'activity', 'output_dir', 'attention', 'recovery', 'retry_blocked', 'checkpoint_reassessment','goal','instruction',
-        'product_verified', 'verified_products', 'available_results', 'policy_violations', 'policy_compliance') if k in result}
+        'product_verified', 'verified_products', 'available_results', 'policy_violations', 'policy_compliance', 'checkpoint') if k in result}
     compact.update(error=clean_summary(result.get('error', '')),
         check_counts=counts(handoff.get('checks', [])),
         blocking_failed_checks=len(list(blocking_checks(handoff.get('checks', [])))),

@@ -222,7 +222,7 @@ def matching_versions(value,spec,subset=False,reset_providers=False):
     return True
 
 
-def candidates(spec, cache=None):
+def candidates(spec, cache=None, prefer=None):
     from .software_identity import compatible
     result=[]
     for path in folder().glob('*.json'):
@@ -230,10 +230,10 @@ def candidates(spec, cache=None):
             item=read(path.stem)
             if compatible(item,spec,docker) and set(spec['tools']).issubset(item.get('tools',[])) and matching_versions(item,spec) and image_exists(item, cache):result.append(item)
         except (OSError,ValueError):continue
-    return sorted(result,key=lambda x:len(x['tools']))
+    return sorted(result,key=lambda x:(x['id']!=prefer,len(x['tools'])))
 
 
-def subset(spec):
+def subset(spec, prefer=None):
     from .software_identity import compatible,inherited_fingerprints
     ready=[]
     for path in folder().glob('*.json'):
@@ -243,9 +243,9 @@ def subset(spec):
             actual=inherited_fingerprints(value,spec,docker)
             common=[t for t in value.get('tools',[]) if t in spec['tools'] and (actual.get(t)==spec.get('tool_fingerprints',{}).get(t) if actual is not None else value.get('versions',{}).get(t)==spec.get('versions',{}).get(t))]
             if set(value.get('tools',[]))==set(spec['tools']) and matching_versions(value,spec) and value.get('versions',{})==spec.get('versions',{}):continue
-            ready.append((len(common),-len(set(value.get('tools',[]))-set(spec['tools'])),value.get('size_bytes',0),value))
+            ready.append((len(common),value['id']==prefer,-len(set(value.get('tools',[]))-set(spec['tools'])),value.get('size_bytes',0),value))
         except (ValueError,OSError):continue
-    return max(ready,key=lambda row:row[:3],default=(0,0,0,None))[3]
+    return max(ready,key=lambda row:row[:4],default=(0,0,0,0,None))[4]
 
 
 def available(tools, identity=None, cache=None, versions=None):
@@ -314,7 +314,7 @@ def recipe_slot(key,cancel):
             if not entry['users']:_RECIPE_LOCKS.pop(key,None)
 
 
-def ensure(tools, *, acquire=True, progress=None, exact=False, cancel=None, cache_dependencies=True, deadline=None, claim=None, versions=None, background=False):
+def ensure(tools, *, acquire=True, progress=None, exact=False, cancel=None, cache_dependencies=True, deadline=None, claim=None, versions=None, background=False, prefer=None):
     check_cancel(cancel)
     from .tool_versions import resolved
     versions=resolved(versions or {},wait=True,progress=progress,refresh=False)
@@ -322,12 +322,12 @@ def ensure(tools, *, acquire=True, progress=None, exact=False, cancel=None, cach
     with recipe_slot(key,cancel):
         try:
             return _prepare(key,spec,acquire=acquire,progress=progress,exact=exact,cancel=cancel,
-                cache_dependencies=cache_dependencies,deadline=deadline,claim=claim,versions=versions,background=background)
+                cache_dependencies=cache_dependencies,deadline=deadline,claim=claim,versions=versions,background=background,prefer=prefer)
         finally:
             with _CACHE_LOCK:_BUILD_PINS.pop(key,None)
 
 
-def _prepare(key,spec, *, acquire,progress,exact,cancel,cache_dependencies,deadline,claim,versions,background):
+def _prepare(key,spec, *, acquire,progress,exact,cancel,cache_dependencies,deadline,claim,versions,background,prefer=None):
     """Prepare only locked binaries. No credentials, project mount, socket or generated code."""
     from .docker_runtime import IMAGE, BUILD_LOCK, base_arguments, host_path, remove, LABEL, OWNER, runtime_arguments
     from .tool_versions import packages,builtins
@@ -338,7 +338,7 @@ def _prepare(key,spec, *, acquire,progress,exact,cancel,cache_dependencies,deadl
         if image_exists(ready):
             return claim_environment(save(key,last_used=time.time(),error='',failure={}),claim)
         if not exact:
-            ready=candidates(spec)
+            ready=candidates(spec,prefer=prefer)
             if ready:
                 return claim_environment(save(ready[0]['id'],last_used=time.time(),error='',failure={}),claim)
         previous=read(key)
@@ -358,7 +358,7 @@ def _prepare(key,spec, *, acquire,progress,exact,cancel,cache_dependencies,deadl
         # Finish shared prerequisites before admission: never hold a parent build
         # slot while another request needs that slot to finish our dependency.
         dependencies=sorted({d for tool in spec['tools'] for d in DEPS.get(tool,[])})
-        inherited=subset(spec)
+        inherited=subset(spec,prefer)
         if cache_dependencies and dependencies and set(dependencies)<set(spec['tools']) and not (inherited and set(dependencies)<=set(inherited['tools'])):
             save(key,status='installing',tools=spec['tools'],core=spec['core'],dependency_tools=dependencies)
             dependency_key,_=recipe(dependencies,identity=spec['core'],versions=versions)
@@ -373,12 +373,12 @@ def _prepare(key,spec, *, acquire,progress,exact,cancel,cache_dependencies,deadl
         ready=read(key)
         if image_exists(ready):return claim_environment(save(key,last_used=time.time(),error='',failure={}),claim)
         if not exact:
-            ready=candidates(spec)
+            ready=candidates(spec,prefer=prefer)
             if ready:
                 save(ready[0]['id'],last_used=time.time(),error='',failure={})
                 return claim_environment(ready[0],claim)
         with _CACHE_LOCK:
-            base=subset(spec)
+            base=subset(spec,prefer)
             if base:_BUILD_PINS.setdefault(key,set()).add(base['id'])
         protected=(key,base['id']) if base else (key,)
         prune(exclude=protected)

@@ -80,6 +80,7 @@ def main():
         folder = Path(directory)
         (folder / 'fetch.ts').write_text('export const fetch = (...args: Parameters<typeof globalThis.fetch>) => globalThis.fetch(...args);')
         (folder / 'config.ts').write_text('export const getBackendBaseURL = () => "";')
+        (folder / 'hooks.ts').write_text('export function useI18n(){return {locale:"it-IT"}}')
         (folder / 'entry.tsx').write_text('''import React from 'react';
 import {createRoot} from 'react-dom/client';
 import {DelegateProgress} from ''' + json.dumps(str(repo / 'frontend/delegate-progress.tsx')) + ''';
@@ -91,7 +92,7 @@ window.showThread();
         subprocess.run([str(modules / '.bin/esbuild'), str(folder / 'entry.tsx'), '--bundle', '--jsx=automatic',
             '--outfile=' + str(folder / 'app.js'), '--alias:react=' + str(modules / 'react'),
             '--alias:react-dom=' + str(modules / 'react-dom'), '--alias:@/core/api/fetcher=' + str(folder / 'fetch.ts'),
-            '--alias:@/core/config=' + str(folder / 'config.ts')], check=True, capture_output=True)
+            '--alias:@/core/config=' + str(folder / 'config.ts'), '--alias:@/core/i18n/hooks=' + str(folder / 'hooks.ts')], check=True, capture_output=True)
         paragraphs = ''.join('<p class="mb-10">Messaggio storico %d: dettagli di una conversazione lunga.</p>' % i for i in range(100))
         (folder / 'index.html').write_text('''<!doctype html><html><meta name="viewport" content="width=device-width, initial-scale=1"><meta charset="utf-8"><link rel="stylesheet" href="/app.css">
 <body><main class="mx-auto flex h-dvh max-w-[960px] flex-col"><header class="shrink-0 border-b p-3">Chat RigHaven</header><div id="messages" class="min-h-0 flex-1 overflow-y-auto p-3">'''+paragraphs+'''</div><footer class="shrink-0 p-3"><div id="root"></div><textarea class="h-14 w-full rounded border p-2" aria-label="Scrivi un messaggio"></textarea></footer></main><script src="/app.js"></script></body></html>''')

@@ -9,7 +9,7 @@ import { ConversationAudit, OperationDetails } from "./conversation-audit";
 import { ExperiencePanel } from "./experience-panel";
 import { ProjectDesign, type Design } from "./project-design";
 import { ProjectGuide } from "./project-guide";
-import { ProjectGovernance, type Governance } from "./project-governance";
+import { GovernanceStrip, ProfileUseLine, ToolChoices, type LiveGovernance, type ToolDecision } from "./project-governance";
 
 const providers: Record<string, string> = { codex: "Codex", gemini: "Antigravity", deepseek: "DeepSeek", openai: "OpenAI compatibile" };
 type Delivery = { version_state?: string; recovery?: { status: string; message: string; session_error: string }; unchanged_content?: boolean; change_kind?: string; content_version?: number | null; reused_archive_checks?: number; finalization_pending?: string[]; source_coverage?: { status: string; components: { name: string; tool: string; status: string; sources: {path: string; member?: string}[] }[] }; timing?: {status:string; cues:{name:string;status:string;delta_seconds:number}[]}; category?: string; version?: number | null; execution_status?: string; file_count?: number; role_title?: string; review?: { target_delivery_id: string | null; target_version?: number | null; target_label: string; status: string; validated: boolean; matches_current_brief: boolean; report_path: string; correction_count: number }; id: string; title: string; agent: string; at: string; current: boolean; contribution?: boolean; technical_status: string; issues: string[]; purpose: string };
@@ -17,11 +17,11 @@ type MethodStrategy = { state: string; method: string; reason: string; user_acti
 type RevisionAction = { requirement_id: string; action: string; reason?: string; priority: number; strategy: string };
 type Comparison = { baseline_path: string; criteria: { requirement_id: string; status: string; evidence: string }[] };
 type Criterion = { requirement_id?: string; criterion: string; status: string; evidence: string; method: string };
-type Outcome = { title: string; result: string; format: string; use: string; quality: string; constraints: string[]; assumptions: string[]; questions: string[] };
+type Outcome = { title: string; result: string; format: string; use: string; quality: string; constraints: string[]; assumptions: string[]; questions: string[]; tool_options?: ToolDecision[] };
 type ProjectRole = { capability_rationale?: string; tool_versions?: Record<string,string>; skills?: string[]; skill_bindings?: {name:string;revision:string}[]; experience?: { count: number; ids: string[] }; id: string; title: string; mission: string; version: string; expertise: string[]; procedure?: string[]; checks: string[]; tools: string[] };
 type Orientation = { active_step_ids?: string[]; history_step_ids?: string[]; history_count?: number; total: number; counts: Record<string, number>; current: { id: string; goal: string; role_id: string; task: string }[]; remaining: { id: string; goal: string; status: string }[]; roles?: Record<string, { attempts: number; completed: number; running: number }>; needs_briefing: boolean };
 type UserDirection = { visual_approach: string; instructions: string; revision: number };
-type Project = { governance?: Governance; review_findings?: { severity: string; location: string; evidence: string; impact: string }[]; version_selection?: { approved: string | null; candidate: string | null; partial: string | null }; designs?: Design[]; updated_at?: string; latest_sample?: Result | null; correction_focus?: { requirement_id: string; criterion: string; reassess_role: boolean; action: string }[]; user_control?: { paused: boolean; deliver_now?: boolean }; user_direction?: UserDirection | null; strategy?: MethodStrategy | null; method_recovery?: { message: string } | null; outcome?: Outcome | null; orientation?: Orientation; roles?: ProjectRole[]; acceptance?: { user_requests: string[]; request_manifest?: { path: string }; request_documents?: { path: string }[]; request_count?: number; criteria: { id: string; requirement: string; critical: boolean; origin?: string; source_quote?: string }[] } | null; review_criteria?: Criterion[]; revision_actions?: RevisionAction[]; comparison?: Comparison | null; deliveries?: Delivery[]; quality_status?: string; summary?: string; next_action?: string; status?: string; product_path?: string; results?: Result[]; attention?: { code: string; message: string; action: string } | null; id: string; brief: string; steps: { id: string; agent: string; goal: string;
+type Project = { review_findings?: { severity: string; location: string; evidence: string; impact: string }[]; version_selection?: { approved: string | null; candidate: string | null; partial: string | null }; designs?: Design[]; updated_at?: string; latest_sample?: Result | null; correction_focus?: { requirement_id: string; criterion: string; reassess_role: boolean; action: string }[]; user_control?: { paused: boolean; deliver_now?: boolean }; user_direction?: UserDirection | null; strategy?: MethodStrategy | null; method_recovery?: { message: string } | null; outcome?: Outcome | null; orientation?: Orientation; roles?: ProjectRole[]; acceptance?: { user_requests: string[]; request_manifest?: { path: string }; request_documents?: { path: string }[]; request_count?: number; criteria: { id: string; requirement: string; critical: boolean; origin?: string; source_quote?: string }[] } | null; review_criteria?: Criterion[]; revision_actions?: RevisionAction[]; comparison?: Comparison | null; deliveries?: Delivery[]; quality_status?: string; summary?: string; next_action?: string; status?: string; product_path?: string; results?: Result[]; attention?: { code: string; message: string; action: string } | null; id: string; brief: string; steps: { id: string; agent: string; goal: string;
   status: string; role_id?: string; role_title?: string; note?: string; error?: string; attempt_count?: number }[] };
 type Result = { path: string; agent: string; label: string; validated: boolean; at: string; delivery_id?: string; role?: string; open_with?: string; editability?: string; limitations?: string[] };
 const roles: Record<string, string> = { export: "Prodotto", editable_source: "Sorgente modificabile", source_archive: "Pacchetto sorgenti", preview: "Anteprima", report: "Rapporto", dependency: "Risorsa collegata", file: "File" };
@@ -92,6 +92,7 @@ function JobCard({ job, now, threadId, role }: { job: JobProgress; now: number; 
     {job.environment && <section className="space-y-1 text-xs" data-testid="job-environment">
       <p className="font-semibold">{job.resources_reclaimed ? "Sandbox chiusa · file salvati conservati" : terminal ? "Incarico terminato · controlla il rilascio delle risorse sotto" : "Ambiente dell’incarico"}</p>
       {assigned && <p>Strumenti assegnati: {assigned.length ? assigned.map(person).join(", ") : "strumenti di base"}.</p>}
+      {job.environment.profile&&<ProfileUseLine use={job.environment.profile}/>}
       {job.environment.versions&&Object.keys(job.environment.versions).length>0&&<p>Versioni scelte: {Object.entries(job.environment.versions).map(([tool,version])=>`${person(tool)} ${version}`).join(", ")}.</p>}
       <details><summary className="cursor-pointer">Programmi presenti nell’ambiente ({job.environment.tools.length})</summary>
         <p>{job.environment.tools.map(person).join(", ") || "Solo la base software"}.</p>
@@ -155,7 +156,7 @@ function artifactURL(threadId: string, path: string, download = false) {
 }
 
 export function DelegateProgress({ threadId, active, pending, coordinatorError = false, onContinue, onPause }: Props) {
-  const [snapshot, setSnapshot] = useState<{ threadId: string; jobs: JobProgress[]; project: Project | null } | null>(null);
+  const [snapshot, setSnapshot] = useState<{ threadId: string; jobs: JobProgress[]; project: Project | null; governance?: LiveGovernance | null } | null>(null);
   const [unavailable, setUnavailable] = useState(false);
   const [readingLesson, setReadingLesson] = useState(false);
   const [panel, setPanel] = useState<{ threadId: string; tab: string } | null>(null);
@@ -173,6 +174,7 @@ export function DelegateProgress({ threadId, active, pending, coordinatorError =
   const [now, setNow] = useState(Date.now);
   const jobs = snapshot?.threadId === threadId ? snapshot.jobs : [];
   const project = snapshot?.threadId === threadId ? snapshot.project : null;
+  const governance = snapshot?.threadId === threadId ? snapshot.governance : null;
   const tab = panel?.threadId === threadId ? panel.tab : null;
   const activeJobs=jobs.filter(job=>!terminalJob(job));
   const current = activeJobs[0];
@@ -268,9 +270,9 @@ export function DelegateProgress({ threadId, active, pending, coordinatorError =
     do {
       const response = await fetch(`${getBackendBaseURL()}/api/threads/${encodeURIComponent(threadId)}/harness-jobs`, { cache: "no-store" });
       if (!response.ok) throw new Error("Stato non disponibile");
-      const data = await response.json() as { jobs: JobProgress[]; project: Project | null };
+      const data = await response.json() as { jobs: JobProgress[]; project: Project | null; governance?: LiveGovernance | null };
       if (resumeOwner.current !== threadId) throw new Error("Conversazione cambiata");
-      setSnapshot({ threadId, jobs: data.jobs, project: data.project });
+      setSnapshot({ threadId, jobs: data.jobs, project: data.project, governance: data.governance ?? null });
       if (data.jobs.every(job => terminalJob(job) && (!job.can_stop || job.resources_reclaimed))) {
         setControlNotice("In pausa. I file salvati sono conservati."); return;
       }
@@ -350,10 +352,10 @@ export function DelegateProgress({ threadId, active, pending, coordinatorError =
         const response = await fetch(`${getBackendBaseURL()}/api/threads/${encodeURIComponent(threadId)}/harness-jobs`,
           { signal: controller.signal, cache: "no-store" });
         if (!response.ok) throw new Error("Progress unavailable");
-        const data = await response.json() as { jobs: JobProgress[]; project?: Project | null };
+        const data = await response.json() as { jobs: JobProgress[]; project?: Project | null; governance?: LiveGovernance | null };
         if (!Array.isArray(data.jobs)) throw new Error("Invalid progress");
         if (controller.signal.aborted) return;
-        setSnapshot({ threadId, jobs: data.jobs, project: data.project ?? null });
+        setSnapshot({ threadId, jobs: data.jobs, project: data.project ?? null, governance: data.governance ?? null });
         setUnavailable(false);
         running = data.jobs.some((job) => !terminalJob(job));
       } catch {
@@ -408,7 +410,8 @@ export function DelegateProgress({ threadId, active, pending, coordinatorError =
           {project.outcome?.use && <p><strong>Uso e destinatari:</strong> {project.outcome.use}</p>}
           {project.outcome?.quality && <p><strong>Qualità attesa:</strong> {project.outcome.quality}</p>}
         </section>
-        <ProjectGovernance governance={project.governance}/>
+        <ToolChoices decisions={project.outcome?.tool_options}/>
+        <GovernanceStrip governance={governance} expanded threadId={threadId} onChanged={next => setSnapshot(previous => previous?.threadId === threadId ? { ...previous, governance: next } : previous)}/>
         {questions.length > 0 && <section className="space-y-2 rounded-xl border border-amber-500/30 bg-amber-500/5 p-4" data-testid="brief-questions">
           <h4 className="font-semibold">Le scelte che mancano</h4>
           <ul className="list-inside list-disc">{questions.map((q, i) => <li key={i}>{q}</li>)}</ul>
@@ -601,6 +604,7 @@ export function DelegateProgress({ threadId, active, pending, coordinatorError =
         {selectedDelivery?.version && <p className="text-xs">{versionName(selectedDelivery)}{editing && editing.id !== selectedDelivery.id ? ` · ${versionName(editing)} in lavorazione` : ""}</p>}
         <p className="text-muted-foreground line-clamp-1 text-xs">Consegna: {project.outcome?.format || "da definire"}</p>
         {planned.length > 0 && <p className="text-muted-foreground line-clamp-2 text-xs">{completed} di {planned.length} incarichi conclusi</p>}
+        <GovernanceStrip governance={governance}/>
       </div>}
       <div className="flex items-center justify-between gap-2"><strong className="text-sm" data-testid="harness-status"><span aria-hidden="true" className={`mr-2 inline-block h-2 w-2 rounded-full ${working ? "bg-blue-500" : ready ? "bg-emerald-500" : attention || clarifying || coordinatorError ? "bg-amber-500" : "bg-muted-foreground"}`} />{title}</strong>
         {current && <span className="text-muted-foreground shrink-0 text-xs">{duration(secondsSince(current.started_at || current.created_at, now))}</span>}

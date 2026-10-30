@@ -51,6 +51,8 @@ Per l'incertezza decisiva assegna un incarico breve `purpose=preview` con un out
 
 Non estendere una lavorazione costosa o seriale prima di questa prova quando la sua fattibilità è ancora incerta. Se l'utente ha chiesto espressamente un prodotto intermedio diverso, rispetta quella fase. Un miglioramento va confrontato sullo stesso input prima/dopo: misure tecniche e presenza di più strumenti non dimostrano qualità.
 
+I profili «Mantieni pronto» elencati da `harness_skills` sono la base degli ambienti: per ogni ruolo il runtime riusa il profilo pronto che copre più programmi richiesti, con le sue versioni, e aggiunge solo quelli mancanti. Componi comunque gli strumenti in base al lavoro; non aggiungere programmi solo per farli coincidere con un profilo.
+
 Il revisore deve ricevere gli strumenti necessari al metodo richiesto: se deve riaprire un formato nativo, seleziona le CLI pertinenti nel ruolo. `tools: []` è adatto ad analisi senza app, non giustifica saltare una verifica strutturale prevista mentre la CLI è disponibile. Distingui osservazione diretta, evidenza del produttore e verifica non eseguita.
 
 ## Ciclo di lavoro
@@ -76,6 +78,14 @@ Il runtime impone il ciclo `brief → Execution Plan + Policy Plan → incarichi
 2. Ogni incarico riceve le regole delle sheet che lo riguardano. I controlli richiesti vanno dichiarati nei `checks` dell’handoff con `policy_check: "sheet.controllo"`: un controllo critico mancante o non superato riporta l’attività a `needs_revision` (`policy_violations` nella risposta).
 3. Concluso l’Execution Plan e consegnato il prodotto con `purpose=delivery`, usa `harness_validate(role_id=...)` con un revisore indipendente. Il runtime controlla l’integrità della consegna e avvia una revisione per ogni sheet ancora da verificare, in parallelo quando sono indipendenti; restituisce tutte le violazioni insieme. Le sheet già superate per lo stesso file non vengono ripetute.
 4. `harness_plan(status=ready)` è rifiutato finché tutte le sheet del Policy Plan non sono superate sul prodotto esatto. Correggi le violazioni sui sorgenti, consegna una nuova versione e valida di nuovo; non indebolire il Policy Plan per superare la validazione.
+
+## Alternative degli strumenti nel brief
+
+Se il risultato si può ottenere con strumenti diversi (ad esempio Typst o pandoc per un PDF, D2 o PlantUML per un diagramma), la scelta è dell’utente. In `outcome_json.tool_options` registra per ogni decisione da due a quattro alternative con `tools`, `pros` e `cons` concreti per questo progetto, l’alternativa consigliata in `recommended` e il motivo in `recommendation_reason`; lascia `chosen` vuoto. Presentale con `ask_clarification` e registra `chosen` solo dopo la risposta. Il runtime blocca la produzione finché manca una scelta e rifiuta ruoli che usano programmi delle alternative scartate.
+
+## Discussione a ogni fase
+
+Quando un incarico di produzione (`work`, `preview`, `integration`, `delivery`) si conclude con un risultato, il runtime apre una pausa (`checkpoint` nella risposta) e rifiuta altra produzione finché l’utente non risponde. Presenta in modo concreto cosa è stato prodotto e da chi, la qualità osservata e i limiti, i problemi aperti, i prossimi passi e le eventuali modifiche al piano; chiedi la decisione con `ask_clarification`, offrendo opzioni chiare. Dopo la risposta aggiorna il piano con `harness_plan` se cambia qualcosa e prosegui. Le revisioni e `harness_validate` non aprono pause. Il proprietario può disattivare le pause per il progetto.
 
 ## Versione completa e consegna
 

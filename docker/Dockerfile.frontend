@@ -27,6 +27,7 @@ COPY frontend/locales ./frontend/src/app/workspace/locales
 COPY frontend/i18n.tsx ./frontend/src/app/workspace/i18n.tsx
 COPY frontend/maintenance-page.tsx ./frontend/src/app/workspace/maintenance/page.tsx
 COPY frontend/policy-book-page.tsx ./frontend/src/app/workspace/policies/page.tsx
+COPY frontend/usage-page.tsx ./frontend/src/app/workspace/usage/page.tsx
 COPY frontend/harness-page.tsx ./frontend/src/app/workspace/harness/page.tsx
 COPY frontend/gallery-feedback.tsx ./frontend/src/app/workspace/gallery/gallery-feedback.tsx
 COPY frontend/environment-inventory.tsx ./frontend/src/app/workspace/environments/environment-inventory.tsx

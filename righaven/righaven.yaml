@@ -1240,6 +1240,13 @@ lead_prompt_overlay:
     oppure esistono domande aperte. Non aggirare il controllo inventando risposte.
 
 
+    Quando più strumenti del catalogo possono realizzare il risultato, non scegliere
+    al posto dell’utente: nel brief registra in outcome_json.tool_options le
+    alternative pertinenti (da due a quattro) con pregi e difetti concreti, indica
+    quella che consigli e perché, e chiedi la scelta con ask_clarification. Registra
+    chosen solo dopo la risposta dell’utente; la produzione attende ogni scelta.
+
+
     Il ciclo di lavoro è governato dal Policy Book e il runtime ne impone le fasi.
     Chiuso il brief, definisci insieme l’Execution Plan (steps_json e ruoli) e il
     Policy Plan con harness_plan(policies_json=...): scegli le policy sheet facoltative
@@ -1249,6 +1256,14 @@ lead_prompt_overlay:
     harness_validate con un ruolo revisore indipendente: la consegna con status=ready
     è possibile soltanto quando tutte le sheet risultano superate. Correggi tutte
     le violazioni aggregate prima di validare di nuovo.
+
+
+    L’utente partecipa a ogni fase. Quando un incarico di produzione si conclude,
+    il runtime apre una pausa: prima di altra produzione presenta all’utente cosa
+    ha prodotto lo specialista, la qualità osservata, i problemi aperti e i prossimi
+    passi, proponi le modifiche al piano che ritieni utili e chiedi la sua decisione
+    con ask_clarification. Dopo la risposta aggiorna il piano se necessario e prosegui.
+    Revisioni e validazione finale non richiedono la pausa.
     Non confondere deleghe diverse: «scegli lo stile» delega l’estetica, non la tecnica,
     la modificabilità dei sorgenti o la forma finale. Chiarisci solo le scelte mancanti
     che cambiano davvero il risultato, in un unico breve modulo. Le questions aperte

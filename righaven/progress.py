@@ -140,6 +140,13 @@ def update(path, phase=None, summary=None, **fields):
                            correlation=value.get('job_id',''), identifier=f"job:{value.get('job_id')}:{value['event_count']}", at=now, context=context)
                 except (OSError,ValueError):
                     pass
+            if phase in TERMINAL and os.environ.get('RIGHAVEN_ISOLATED_OUTPUT') != '1':
+                # One upserted row per assignment for the machine usage report.
+                try:
+                    from .usage_ledger import record
+                    record(Path(path).parents[2], value)
+                except ImportError:
+                    pass
         return value.copy()
 
 
@@ -442,6 +449,11 @@ def public_status(value):
         'started_at', 'finished_at', 'deadline_at', 'phase_started_at', 'execution_state', 'execution_started_at', 'last_model_event_at', 'last_file_change_at', 'last_activity_at', 'heartbeat_at', 'updated_at', 'error_code', 'action', 'worker_exit_at', 'cleanup_started_at', 'cleanup_finished_at', 'environment_started_at', 'environment_finished_at', 'worker_started_at')}
     if isinstance(value.get('environment'),dict):
         result['environment'] = {k:value['environment'].get(k) for k in ('id','status','tools','assigned_tools','versions')}
+        profile = value['environment'].get('profile')
+        if isinstance(profile, dict):
+            result['environment']['profile'] = {'mode': clean_summary(profile.get('mode'), 20), 'profile': clean_summary(profile.get('profile'), 80),
+                'wanted': profile.get('wanted') if type(profile.get('wanted')) is int else 0,
+                **{k: [clean_summary(t, 64) for t in profile.get(k, [])][:64] for k in ('covered', 'missing', 'added', 'skills', 'role_skills')}}
     result['resources_reclaimed'] = value.get('resources_reclaimed') is True
     result['cleanup_error'] = value.get('cleanup_error') is True
     result['cancel_error'] = value.get('cancel_error') is True

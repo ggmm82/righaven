@@ -1,4 +1,6 @@
 """Conversation-owned progress, separate from administrator configuration."""
+from pathlib import Path
+
 from fastapi import APIRouter, Request, Response, HTTPException
 from pydantic import BaseModel, Field
 from starlette.concurrency import run_in_threadpool
@@ -114,7 +116,37 @@ async def job_progress(thread_id: ThreadId, request: Request, response: Response
     workspace = get_paths().sandbox_user_data_dir(thread_id, user_id=get_effective_user_id())
     response.headers['Cache-Control'] = 'no-store'
     return {'jobs': await run_in_threadpool(list_jobs, workspace),
-            'project': await run_in_threadpool(read_project, workspace)}
+            'project': await run_in_threadpool(read_project, workspace),
+            'governance': await run_in_threadpool(project_governance, workspace)}
+
+
+def project_governance(workspace):
+    from .projects import governance_state
+    from .policy_workflow import live
+    if not (Path(workspace) / '.righaven-project' / 'project.json').exists():
+        return None
+    try:
+        value = governance_state(workspace)
+    except ValueError:
+        return None
+    return live(workspace, value) if value else None
+
+
+class CheckpointChoice(BaseModel):
+    enabled: bool
+
+
+@router.post('/api/threads/{thread_id}/harness-checkpoints')
+@require_permission('threads', 'write', owner_check=True, require_existing=True)
+async def checkpoint_choice(thread_id: ThreadId, body: CheckpointChoice, request: Request, response: Response):
+    from .projects import set_checkpoints
+    workspace = get_paths().sandbox_user_data_dir(thread_id, user_id=get_effective_user_id())
+    response.headers['Cache-Control'] = 'no-store'
+    try:
+        await run_in_threadpool(set_checkpoints, workspace, body.enabled)
+    except ValueError as error:
+        raise HTTPException(status_code=409, detail=str(error)) from error
+    return {'governance': await run_in_threadpool(project_governance, workspace)}
 
 
 class DeliveryAcceptance(BaseModel):

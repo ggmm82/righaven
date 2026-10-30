@@ -173,6 +173,50 @@ class PolicyWorkflowTests(unittest.TestCase):
         self.assertTrue(any(e['operation'] == 'Handoff non conforme al Policy Plan' and e['status'] == 'failed' for e in events))
 
 
+class PhaseCheckpointTests(unittest.TestCase):
+    def setUp(self):
+        temp = tempfile.TemporaryDirectory(); self.addCleanup(temp.cleanup)
+        self.root = Path(temp.name) / 'conversation'; self.root.mkdir()
+        fixture = patch.object(state, 'STATE', Path(temp.name) / 'state'); fixture.start(); self.addCleanup(fixture.stop)
+        projects.create_plan(self.root, 'Documento', [{'id': 'draft', 'agent': 'workspace', 'goal': 'Bozza'},
+                                                      {'id': 'final', 'agent': 'workspace', 'goal': 'Finale'}],
+                             outcome={'result': 'Documento', 'format': 'Markdown'})
+
+    def execute(self, step, turn, ok=True, purpose='work'):
+        folder = self.root / 'outputs' / (step + turn); folder.mkdir(parents=True, exist_ok=True)
+        (folder / 'out.md').write_text('testo')
+        reply = {'ok': ok, 'error': '' if ok else 'Worker interrotto', 'output_dir': str(folder), 'handoff': {'source_files': [], 'output_files': [str(folder / 'out.md')],
+                 'previews': [], 'checks': [{'name': 'Letto', 'status': 'passed', 'evidence': 'riaperto'}]}}
+        return json.loads(projects.execute_step(self.root, 'workspace', 'Esegui', step, lambda task, started: json.dumps(reply),
+                                                purpose=purpose, request_id=turn))
+
+    def test_production_waits_for_the_user_after_each_phase(self):
+        self.assertEqual(self.execute('draft', 'turn-1')['checkpoint']['steps'], ['draft'])
+        with self.assertRaisesRegex(ValueError, 'ask_clarification'):
+            self.execute('final', 'turn-1')
+        self.assertTrue(self.execute('draft', 'turn-1', purpose='review')['ok'])  # checks are not production
+        live = policy_workflow.live(self.root, projects.governance_state(self.root))
+        self.assertEqual(live['checkpoints']['pending']['steps'], ['draft'])
+        self.assertEqual(projects.read_project(self.root)['checkpoint']['status'], 'awaiting_user')
+        from righaven.completion_policy import needs_continuation
+        self.assertFalse(needs_continuation(projects.read_project(self.root)))
+        self.assertTrue(self.execute('final', 'turn-2')['ok'])  # the user replied
+        live = policy_workflow.live(self.root, projects.governance_state(self.root))
+        self.assertEqual((live['checkpoints']['pending']['steps'], live['checkpoints']['discussed']), (['final'], 1))
+        from righaven.audit_log import page
+        self.assertIn('Fase discussa con l’utente', [e['operation'] for e in page(self.root)['events']])
+
+    def test_failures_do_not_open_a_discussion_and_owners_can_turn_pauses_off(self):
+        self.assertNotIn('checkpoint', self.execute('draft', 'turn-1', ok=False))
+        self.assertTrue(self.execute('draft', 'turn-1')['ok'])
+        projects.set_checkpoints(self.root, False)
+        self.assertTrue(self.execute('final', 'turn-1')['ok'])
+        self.assertNotIn('checkpoint', self.execute('final', 'turn-1'))
+        self.assertEqual(projects.governance_state(self.root)['checkpoint']['status'], 'waived')
+        with self.assertRaises(ValueError):
+            projects.set_checkpoints(self.root, 'no')
+
+
 try:
     from righaven.tools import harness_delegate, harness_plan, harness_validate
 except ImportError:
@@ -212,6 +256,11 @@ class PolicyLifecycleTests(unittest.TestCase):
         self.lock = threading.Lock()
         # The three first-wave reviews only pass this barrier if they really run together.
         self.barrier = threading.Barrier(3, timeout=20)
+
+    def reply(self, text):
+        from types import SimpleNamespace
+        messages = self.runtime.state['messages']
+        messages.append(SimpleNamespace(type='human', id='reply-' + str(len(messages)), content=text))
 
     def worker(self, agent, instructions, workspace, **kwargs):
         from righaven.deliveries import read_review
@@ -291,7 +340,15 @@ class PolicyLifecycleTests(unittest.TestCase):
         self.assertIn('Non inserire credenziali', self.calls[0]['instructions'])
         self.assertEqual(first['policy_violations'], ['Policy security.no_secrets'])
         self.assertEqual(first['activity']['status'], 'needs_revision')
+        # Every completed phase waits for the user before further production.
+        self.assertEqual(first['checkpoint']['steps'], ['draft'])
+        launched = len(self.calls)
+        with self.assertRaisesRegex(ValueError, 'Fase conclusa'):
+            delegate('draft')
+        self.assertEqual(len(self.calls), launched)
+        self.reply('Correggi la bozza dichiarando il controllo sui segreti')
         self.assertEqual(delegate('draft')['activity']['status'], 'completed')
+        self.reply('Bene, prepara il documento finale')
         final = delegate('final', 'delivery')
         self.assertTrue(final['ok'])
         self.assertNotIn('security.no_secrets', self.calls[-1]['instructions'])  # scoped to draft only
@@ -306,6 +363,15 @@ class PolicyLifecycleTests(unittest.TestCase):
         report = json.loads(harness_validate.func(runtime=self.runtime, role_id='reviewer'))
         self.assertEqual(report['status'], 'failed')
         verdicts = {s['id']: s['status'] for s in report['sheets']}
+        # The chat panel recomputes the same verdicts live, with the evidence of each failure.
+        live = policy_workflow.live(self.root, projects.governance_state(self.root))
+        sheets = {s['id']: s for s in live['sheets']}
+        self.assertEqual({k: s['status'] for k, s in sheets.items()}, verdicts)
+        self.assertEqual(sheets['security']['findings'][0]['requirement_id'], 'secret_scan')
+        self.assertIn('Osservato sul file', sheets['security']['findings'][0]['evidence'])
+        self.assertTrue(sheets['quality_standard']['reviewed_at'])
+        self.assertEqual(sheets['security']['handoff'], {'required': 1, 'declared': 1, 'violations': []})
+        self.assertEqual((live['phase'], live['last_validation']['status']), ('validation', 'failed'))
         self.assertEqual(verdicts, {'quality_standard': 'passed', 'security': 'failed', 'accessibility': 'passed', 'publication': 'pending'})
         self.assertIn('In attesa', next(r['error'] for r in report['reviews'] if r['sheet'] == 'publication'))
         self.assertEqual(sorted(c['sheet'] or 'quality_standard' for c in self.calls if c['purpose'] == 'review'),
@@ -315,6 +381,7 @@ class PolicyLifecycleTests(unittest.TestCase):
 
         # Correct the violation: a new version is validated again; nothing is launched twice.
         self.secret_free = True
+        self.reply('Rimuovi il token e consegna di nuovo')
         corrected = delegate('final', 'delivery')
         plan(product_path='/mnt/user-data/' + Path(corrected['output_dir']).relative_to(self.root).as_posix() + '/documento.md', status='review')
         before = len(self.calls)
@@ -325,6 +392,9 @@ class PolicyLifecycleTests(unittest.TestCase):
         self.assertEqual(reviews[-1]['sheet'], 'publication')  # dependent sheet ran after its prerequisite
         again = json.loads(harness_validate.func(runtime=self.runtime, role_id='reviewer'))
         self.assertEqual(again['status'], 'passed')
+        live = policy_workflow.live(self.root, projects.governance_state(self.root))
+        self.assertEqual({s['status'] for s in live['sheets']}, {'passed'})
+        self.assertEqual(live['product']['integrity'], 'passed')
         self.assertEqual(len(self.calls), before + 4)  # passed sheets are reused, not re-run
         done = plan(status='ready')
         self.assertEqual(done['project']['status'], 'ready')

@@ -34,7 +34,16 @@ made mandatory later is added to existing plans.
 ## Managing sheets
 
 Administrators manage the book under **Configuration → Policy Book**; other users
-can read every sheet there. Organization sheets follow a lifecycle:
+read every sheet there. New sheets and new versions use a guided setup in six
+steps, each explaining its choices: purpose and when the policy applies
+(always, or when the coordinator finds it relevant), working rules, checks
+specialists declare during work (blocking or recorded), final verification
+(the project acceptance review or the sheet's own criteria with a readable
+verification method), the assignments that receive it and the policies to verify
+first, then a plain-language summary before saving a draft or publishing. Check
+codes are generated from the text.
+
+Organization sheets follow a lifecycle:
 
 | State | Meaning |
 |---|---|
@@ -48,8 +57,26 @@ version (v1, v2, …) after checking its dependencies. Any published version can
 restored as a draft. Every operation is recorded with its author and time. A sheet
 other active sheets depend on cannot be retired; built-in sheets are read-only.
 
-The project panel (**Project details**) shows the governance phase, the sheets of
-the Policy Plan and the latest validation verdict for each.
+## The user in the loop
+
+- **Tool alternatives.** When several catalog tools could produce the result, the
+  brief records `tool_options`: two to four alternatives with programs, pros, cons
+  and a motivated recommendation. Production waits for the user's choice, which
+  can only be recorded after a new user message; roles using programs of rejected
+  alternatives are refused.
+- **A pause after every phase.** When a production assignment completes with a
+  result, further production waits until the user replies: the coordinator
+  presents results, open issues and next steps and proposes plan changes. Reviews
+  and final validation do not pause. The owner can turn pauses off per project
+  from the Policy line.
+
+Every conversation shows a **Policy** line under the project title. It is
+recomputed from the recorded reviews at each refresh and expands to the governance
+phase, when the Policy Plan was pinned and by whom, each sheet with its version
+and why it applies, the handoff checks declared by the assignments, the verdict
+on the current product with the date of the review, every criterion not passed or
+not verified with its evidence, and the next step. **Project details** shows the
+same view expanded.
 
 The default sheet `quality_standard` (*Revisione di qualità standard*) is
 mandatory and uses `final_checks: "acceptance"`: it is satisfied by the existing

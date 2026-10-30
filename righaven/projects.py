@@ -468,6 +468,8 @@ def read_project(workspace):
     if accepted.get('product_path') == value.get('product_path') and accepted.get('status') == 'passed':
         result['quality_status'] = 'accepted_by_user'
     result['governance'] = policy_workflow.view(workspace, value)
+    if (value.get('checkpoint') or {}).get('status') == 'awaiting_user':
+        result['checkpoint'] = {k: value['checkpoint'][k] for k in ('status', 'steps', 'at')}
     attention = value.get('attention')
     result['attention'] = {k: clean_summary(attention.get(k)) for k in ('code', 'message', 'action')} if isinstance(attention, dict) else None
     if not result['attention'] and value.get('schema_version') != 2:
@@ -534,6 +536,15 @@ def create_plan(workspace, brief, steps, project_type='', omissions=None, *, sum
             if (value.get('outcome') or {}).get('questions') and not outcome.get('questions') and question_turn:
                 if not source_turn or source_turn == question_turn:
                     raise ValueError('Le domande sul risultato attendono una nuova risposta reale dell’utente; non cancellarle nello stesso turno.')
+            presented = value.setdefault('tool_options_turn', {})
+            previous_choices = {d['id']: d.get('chosen', '') for d in (value.get('outcome') or {}).get('tool_options', [])}
+            for decision in outcome.get('tool_options', []):
+                if not decision['chosen']:
+                    presented[decision['id']] = source_turn or presented.get(decision['id'], '')
+                elif previous_choices.get(decision['id']) != decision['chosen'] and (
+                        not source_turn or decision['id'] not in presented or presented[decision['id']] == source_turn):
+                    raise ValueError('La scelta tra le alternative «' + decision['decision'] + '» spetta all’utente: '
+                                     'presentale prima con pregi, difetti e consiglio, poi registra chosen dopo la sua risposta.')
             if outcome.get('questions') and source_turn:
                 value['brief_question_turn'] = source_turn
             elif not outcome.get('questions'):
@@ -673,6 +684,23 @@ def set_policy_plan(workspace, selections):
     record_policy_event(workspace, value, 'Policy Plan definito dal coordinatore')
 
 
+def set_checkpoints(workspace, enabled):
+    """Owner choice: pause after every phase to discuss results (default) or not."""
+    if type(enabled) is not bool:
+        raise ValueError('Indica se fermarsi a ogni fase')
+    with locked(workspace) as folder:
+        value = load(folder, workspace)
+        if not value or not policy_workflow.governed(value):
+            raise ValueError('Le pause per fase valgono per i progetti governati dal Policy Book')
+        value['checkpoints'] = {'enabled': enabled, 'updated_at': utcnow()}
+        if not enabled and (value.get('checkpoint') or {}).get('status') == 'awaiting_user':
+            value['checkpoint'] = {**value['checkpoint'], 'status': 'waived', 'closed_at': utcnow()}
+        value['updated_at'] = utcnow()
+        atomic_json(folder / 'project.json', value)
+    record_policy_event(workspace, value, 'Pause per fase ' + ('attivate' if enabled else 'disattivate dal proprietario'))
+    return value['checkpoints']
+
+
 def governance_state(workspace):
     """Full project record for the policy engine; histories stay out of LLM turns."""
     with locked(workspace) as folder:
@@ -804,6 +832,7 @@ def execute_step(workspace, agent, task, step_id, invoke, *, provider=None, purp
             raise ValueError('Prima della produzione completa le scelte sul risultato: ' + briefing_issue(value['outcome']))
         if purpose != 'review':
             policy_workflow.require_production(value)
+            discussed = policy_workflow.pass_checkpoint(value, request_id)
         if policy_sheet is not None and (purpose != 'review' or not policy_workflow.governed(value) or policy_sheet['id'] not in
                 {s['id'] for s in (value.get('policy_plan') or {}).get('sheets', [])}):
             raise ValueError('La validazione di una policy sheet richiede una revisione prevista dal Policy Plan')
@@ -914,6 +943,8 @@ def execute_step(workspace, agent, task, step_id, invoke, *, provider=None, purp
         value.pop('method_recovery', None)
         atomic_json(folder / 'project.json', value)
         project_id, sid = value['id'], step['id']
+    if purpose != 'review' and discussed:
+        record_policy_event(workspace, value, 'Fase discussa con l’utente', detail=', '.join(discussed['steps']))
 
     def started(output_dir):
         with locked(workspace) as folder:
@@ -943,6 +974,7 @@ def execute_step(workspace, agent, task, step_id, invoke, *, provider=None, purp
         if compliance:
             attempt['policy_compliance'] = compliance
             failed_checks += policy_workflow.violations(compliance)
+        checkpoint = policy_workflow.open_checkpoint(value, sid, purpose, request_id) if result.get('ok') else None
         step['status'] = ('needs_revision' if failed_checks else 'completed') if result.get('ok') else 'paused'
         attempt.update(status=step['status'], finished_at=utcnow(), validated=bool(result.get('ok')),
             runtime_image=clean_summary(result.get('runtime_image', ''), 512),
@@ -1005,6 +1037,8 @@ def execute_step(workspace, agent, task, step_id, invoke, *, provider=None, purp
         if (value.get('user_control') or {}).get('deliver_now'):
             value.update(summary='Consegna richiesta: file disponibili con i limiti registrati' if result.get('ok') else 'Chiusura richiesta: nessun nuovo prodotto verificato',next_action='Presenta i risultati disponibili e attendi nuove istruzioni dell’utente')
         atomic_json(folder / 'project.json', value)
+    if checkpoint:
+        result['checkpoint'] = policy_workflow.checkpoint_instruction(checkpoint)
     violations = policy_workflow.violations(compliance)
     if violations:
         record_policy_event(workspace, value, 'Handoff non conforme al Policy Plan', 'failed',
