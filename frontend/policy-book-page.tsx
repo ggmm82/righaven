@@ -72,10 +72,10 @@ export default function PolicyBookPage(){
 
  async function act(work:()=>Promise<void>,done?:string){setBusy(true);setError("");setMessage("");try{await work();await load();setMessage(done??"");}catch(e){setError(e instanceof Error?e.message:String(e));}finally{setBusy(false);}}
  const lifecycle=(action:string,body?:unknown)=>act(async()=>show(await request<Detail>("/sheets/"+selected+"/"+action,"POST",body)),actions[action==="publish"?"published":action==="retire"?"retired":action==="reactivate"?"reactivated":"restored_to_draft"]);
- function payload(){
+ function payload():Content{
   const f=form!;const used:string[]=[];
   const withCodes=<C extends HandoffCheck>(items:C[])=>items.filter(c=>c.requirement.trim()).map(c=>{const id=c.id||code(c.requirement,used);used.push(id);return {...c,id};});
-  return {...f,rules:f.rules.filter(r=>r.trim()),handoff_checks:withCodes(f.handoff_checks),final_checks:f.final_checks==="acceptance"?"acceptance":withCodes(f.final_checks)};
+  return {...f,rules:f.rules.filter(r=>r.trim()),handoff_checks:withCodes(f.handoff_checks),final_checks:f.final_checks==="acceptance"?"acceptance" as const:withCodes(f.final_checks)};
  }
  const saveDraft=(publishAfter:boolean)=>act(async()=>{
   const id=creating?newId:selected!;

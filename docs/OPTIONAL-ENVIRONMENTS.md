@@ -29,10 +29,11 @@ New catalog versions are defaults, not immutable UI restrictions. Existing versi
 
 ## Prepared profiles as the base of assignments
 
-Each role still requests the software it needs. Among the owner's **Keep ready**
-profiles that are prepared and authorized, the runtime selects the one covering
-most of those programs (then fewer missing programs, fewer unrequested programs,
-smaller image) and adopts that profile's versions for the covered programs. Its
+Each role brings its skills and the software they require. Among the owner's
+**Keep ready** profiles that are prepared and authorized, the runtime selects the
+one containing most of the role's skills, then covering most of its programs
+(then fewer missing programs, fewer unrequested programs, smaller image), and
+adopts that profile's versions for the covered programs. Its
 image is reused as is or extended with only the missing programs, through the
 same incremental preparation. **When needed** profiles are not candidates until
 prepared, and prepared profiles stay allocated.
@@ -41,6 +42,12 @@ Every assignment records the profile, the covered and added programs and the
 reason, shown in the assignment card of the conversation. The **Environments**
 page explains the criterion and shows, for each profile, how many assignments it
 served and the last one.
+
+**Configuration → Machine usage** reports who used which machine, how and how
+much: assignments, work and CPU hours and peak memory per machine (profile,
+dedicated environment or common base), per user and per role, with reuses and
+extensions of each profile and the latest assignments linked to their
+conversation. Administrators see every user; everyone else sees their own.
 
 ## What “ready” proves
 

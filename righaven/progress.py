@@ -140,6 +140,13 @@ def update(path, phase=None, summary=None, **fields):
                            correlation=value.get('job_id',''), identifier=f"job:{value.get('job_id')}:{value['event_count']}", at=now, context=context)
                 except (OSError,ValueError):
                     pass
+            if phase in TERMINAL and os.environ.get('RIGHAVEN_ISOLATED_OUTPUT') != '1':
+                # One upserted row per assignment for the machine usage report.
+                try:
+                    from .usage_ledger import record
+                    record(Path(path).parents[2], value)
+                except ImportError:
+                    pass
         return value.copy()
 
 

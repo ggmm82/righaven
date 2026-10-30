@@ -73,16 +73,22 @@ def main():
         entry='''import React from 'react';import {createRoot} from 'react-dom/client';
 import PolicyBook from PAGE;
 import {GovernanceStrip,ToolChoices} from PANEL;
+import Usage from USAGE;
 const kind=new URLSearchParams(location.search).get('page');
 function Panel(){const [g,setG]=React.useState(GOVERNANCE as any);return <><ToolChoices decisions={CHOICES as any}/><GovernanceStrip governance={g} threadId="t1" onChanged={setG}/></>;}
-createRoot(document.getElementById('root')!).render(kind==='project'?<Panel/>:<PolicyBook/>);'''
-        entry=entry.replace('PAGE',json.dumps(str(repo/'frontend/policy-book-page.tsx'))).replace('PANEL',json.dumps(str(repo/'frontend/project-governance.tsx'))).replace('GOVERNANCE',json.dumps(governance)).replace('CHOICES',json.dumps(choices))
+createRoot(document.getElementById('root')!).render(kind==='project'?<Panel/>:kind==='usage'?<Usage/>:<PolicyBook/>);'''
+        entry=entry.replace('PAGE',json.dumps(str(repo/'frontend/policy-book-page.tsx'))).replace('PANEL',json.dumps(str(repo/'frontend/project-governance.tsx'))).replace('USAGE',json.dumps(str(repo/'frontend/usage-page.tsx'))).replace('GOVERNANCE',json.dumps(governance)).replace('CHOICES',json.dumps(choices))
         (root/'entry.tsx').write_text(entry)
         aliases={'@/core/i18n/hooks':str(root/'hooks.ts'),'@/core/config':str(root/'config.ts'),'@/core/api/fetcher':str(root/'fetch.ts')}
         build={'entryPoints':[str(root/'entry.tsx')],'outfile':str(root/'bundle.js'),'bundle':True,'jsx':'automatic','nodePaths':[str(modules)],'alias':aliases}
         subprocess.run(['node','-e','require('+json.dumps(str(modules/'esbuild'))+').build('+json.dumps(build)+').catch(e=>{console.error(e);process.exit(1)})'],check=True,text=True)
         html='<html><body><div id="root"></div><script src="/bundle.js"></script></body></html>'
-        book=Book();role={'admin':True};calls=[]
+        book=Book();role={'admin':True};calls=[];usage_days=[]
+        group=lambda name,jobs,reused,extended:{'name':name,'jobs':jobs,'seconds':5400,'cpu_seconds':1800,'memory_peak_bytes':2*1024**3,'last_at':'2026-10-30T14:00:00','users':1,'reused':reused,'extended':extended,'completed':jobs}
+        usage={'days':30,'scope':'all','totals':{'jobs':3,'seconds':9000,'cpu_seconds':3000,'memory_peak_bytes':2*1024**3},
+               'machines':[group('documenti',2,1,1),group('dedicated',1,0,0)],'users':[group('u-anna',3,1,1)],'roles':[group('Impaginatore',2,1,1)],
+               'jobs':[{'job_id':'rh-job-1','user_id':'u-anna','thread_id':'chat-1','finished_at':'2026-10-30T14:00:00','duration_seconds':3600,'role':'Impaginatore','engine':'claude','model':'opus',
+                        'profile':'documenti','mode':'extended','tools':['typst','d2'],'cpu_seconds':1200,'memory_peak_bytes':1024**3,'outcome':'completed'}]}
         with sync_playwright() as p:
             browser=p.chromium.launch(headless=True);page=browser.new_page(viewport={'width':1200,'height':1100});errors=[]
             page.on('pageerror',lambda e:errors.append(str(e)))
@@ -92,6 +98,11 @@ createRoot(document.getElementById('root')!).render(kind==='project'?<Panel/>:<P
                 if path.startswith('/api/'):
                     body=request.post_data_json if request.method in ('PUT','POST') and request.post_data else None
                     calls.append((request.method,path,body))
+                    if path.startswith('/api/harness/usage'):
+                        usage_days.append(path)
+                        route.fulfill(json=usage);return
+                    if path=='/api/v1/admin/users':
+                        route.fulfill(json=[{'id':'u-anna','email':'anna@example.test'}]);return
                     if path=='/api/threads/t1/harness-checkpoints':
                         route.fulfill(json={'governance':{**governance,'checkpoints':{'enabled':body['enabled'],'pending':None,'discussed':2}}});return
                     value=book.overview(role['admin']) if path=='/api/harness/policy-book' else book.handle(request.method,path,body)
@@ -202,9 +213,23 @@ createRoot(document.getElementById('root')!).render(kind==='project'?<Panel/>:<P
                 expect(panel.get_by_test_id('checkpoint-settings')).to_contain_text('Pause after each phase is off')
                 expect(page.get_by_test_id('checkpoint-pending')).to_have_count(0)
                 assert [b for m,pth,b in calls if pth.endswith('/harness-checkpoints')]==[{'enabled':False}]
+                page.goto('http://policy.test/?page=usage')
+                usage_page=page.get_by_test_id('usage-page')
+                expect(usage_page).to_contain_text('You are an administrator: you see every user’s assignments.')
+                machines=page.get_by_role('region',name='By machine')
+                expect(machines.get_by_role('row').filter(has_text='documenti')).to_contain_text('2 (2 completed)')
+                expect(machines.get_by_role('row').filter(has_text='documenti')).to_contain_text('1 / 1')
+                expect(machines).to_contain_text('Dedicated environment')
+                expect(page.get_by_role('region',name='By user')).to_contain_text('anna@example.test')
+                latest=page.get_by_role('region',name='Latest assignments')
+                expect(latest).to_contain_text('documenti · profile extended')
+                expect(latest.get_by_role('link',name='Open conversation')).to_have_attribute('href','/workspace/chats/chat-1')
+                page.get_by_label('Period').select_option('7')
+                expect(page.get_by_test_id('usage-page')).to_be_visible();page.wait_for_timeout(300)
+                assert usage_days[-1].endswith('days=7'),usage_days
                 assert not errors,errors
             finally:browser.close()
-    print('Policy Book UI OK: guided six-step setup with explanations, generated codes and readable summary; publish, retire, reactivate, restore and new version; read-only team view; tool choices; live chat governance with checkpoints.')
+    print('Policy Book UI OK: guided six-step setup with explanations, generated codes and readable summary; publish, retire, reactivate, restore and new version; read-only team view; tool choices; live chat governance with checkpoints; machine usage report.')
 
 
 if __name__=='__main__':main()

@@ -31,6 +31,8 @@ from .version_routes import router as version_router
 app.include_router(version_router)
 from .policy_routes import router as policy_router
 app.include_router(policy_router)
+from .usage_routes import router as usage_router
+app.include_router(usage_router)
 from contextlib import asynccontextmanager
 from starlette.concurrency import run_in_threadpool
 _native_lifespan = app.router.lifespan_context
