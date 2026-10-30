@@ -306,6 +306,15 @@ class PolicyLifecycleTests(unittest.TestCase):
         report = json.loads(harness_validate.func(runtime=self.runtime, role_id='reviewer'))
         self.assertEqual(report['status'], 'failed')
         verdicts = {s['id']: s['status'] for s in report['sheets']}
+        # The chat panel recomputes the same verdicts live, with the evidence of each failure.
+        live = policy_workflow.live(self.root, projects.governance_state(self.root))
+        sheets = {s['id']: s for s in live['sheets']}
+        self.assertEqual({k: s['status'] for k, s in sheets.items()}, verdicts)
+        self.assertEqual(sheets['security']['findings'][0]['requirement_id'], 'secret_scan')
+        self.assertIn('Osservato sul file', sheets['security']['findings'][0]['evidence'])
+        self.assertTrue(sheets['quality_standard']['reviewed_at'])
+        self.assertEqual(sheets['security']['handoff'], {'required': 1, 'declared': 1, 'violations': []})
+        self.assertEqual((live['phase'], live['last_validation']['status']), ('validation', 'failed'))
         self.assertEqual(verdicts, {'quality_standard': 'passed', 'security': 'failed', 'accessibility': 'passed', 'publication': 'pending'})
         self.assertIn('In attesa', next(r['error'] for r in report['reviews'] if r['sheet'] == 'publication'))
         self.assertEqual(sorted(c['sheet'] or 'quality_standard' for c in self.calls if c['purpose'] == 'review'),
@@ -325,6 +334,9 @@ class PolicyLifecycleTests(unittest.TestCase):
         self.assertEqual(reviews[-1]['sheet'], 'publication')  # dependent sheet ran after its prerequisite
         again = json.loads(harness_validate.func(runtime=self.runtime, role_id='reviewer'))
         self.assertEqual(again['status'], 'passed')
+        live = policy_workflow.live(self.root, projects.governance_state(self.root))
+        self.assertEqual({s['status'] for s in live['sheets']}, {'passed'})
+        self.assertEqual(live['product']['integrity'], 'passed')
         self.assertEqual(len(self.calls), before + 4)  # passed sheets are reused, not re-run
         done = plan(status='ready')
         self.assertEqual(done['project']['status'], 'ready')

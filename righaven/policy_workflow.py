@@ -128,6 +128,28 @@ def sheet_reviews(value, sheet):
                   key=lambda a: a.get('finished_at', ''), reverse=True)
 
 
+def sheet_verdict(workspace, value, sheet, target_hash):
+    """Verdict of one sheet on the product with this hash, from the recorded reviews."""
+    from . import projects
+    if sheet['final_checks'] == 'acceptance':
+        review = projects.standard_review(workspace, value, target_hash)
+        attempts = projects.standard_reviews(value)
+    else:
+        expected = policy_book.contract(sheet, None)['hash']
+        attempts = sheet_reviews(value, sheet)
+        review = next((a['quality_review'] for a in attempts
+                       if a['quality_review'].get('sha256') == target_hash
+                       and a['quality_review'].get('contract_hash') == expected), None)
+    if review is None:
+        return {'status': 'pending'}
+    attempt = next((a for a in attempts if a['quality_review'].get('report_path') == review.get('report_path')), {})
+    return {'status': {'passed': 'passed', 'needs_revision': 'failed'}.get(review.get('status'), 'needs_review'),
+            'report_path': review.get('report_path', ''), 'reviewed_at': attempt.get('finished_at', ''),
+            'findings': [{k: c.get(k) for k in ('requirement_id', 'status', 'critical', 'method')}
+                         | {'criterion': clean_summary(c.get('criterion'), 200), 'evidence': clean_summary(c.get('evidence'), 240)}
+                         for c in review.get('criteria', []) if c.get('status') != 'passed'][:8]}
+
+
 def validation(workspace, value):
     """Aggregate verdict of every sheet on the current product, recomputed from files."""
     from . import projects
@@ -142,27 +164,46 @@ def validation(workspace, value):
         return report
     target_hash = report['sha256'] = digest(target)
     for sheet in plan['sheets']:
-        entry = {'id': sheet['id'], 'title': sheet['title'], 'depends_on': sheet['depends_on']}
-        if sheet['final_checks'] == 'acceptance':
-            review = projects.standard_review(workspace, value, target_hash)
-        else:
-            expected = policy_book.contract(sheet, None)['hash']
-            review = next((a['quality_review'] for a in sheet_reviews(value, sheet)
-                           if a['quality_review'].get('sha256') == target_hash
-                           and a['quality_review'].get('contract_hash') == expected), None)
-        if review is None:
-            entry['status'] = 'pending'
-        else:
-            entry['status'] = {'passed': 'passed', 'needs_revision': 'failed'}.get(review.get('status'), 'needs_review')
-            entry['report_path'] = review.get('report_path', '')
-            entry['findings'] = [{k: c.get(k) for k in ('requirement_id', 'status', 'critical')}
-                                 | {'evidence': clean_summary(c.get('evidence'), 200)}
-                                 for c in review.get('criteria', []) if c.get('status') != 'passed'][:8]
-        report['sheets'].append(entry)
+        verdict = sheet_verdict(workspace, value, sheet, target_hash)
+        report['sheets'].append({'id': sheet['id'], 'title': sheet['title'], 'depends_on': sheet['depends_on'],
+                                 **{k: verdict[k] for k in ('status', 'report_path', 'findings') if k in verdict}})
     states = {s['status'] for s in report['sheets']}
     report['status'] = ('passed' if states == {'passed'} else 'failed' if 'failed' in states
                         else 'pending' if 'pending' in states else 'needs_review')
     return report
+
+
+def live(workspace, value):
+    """What governs this project right now, computed from files for the chat panel."""
+    if not governed(value):
+        return {'phase': 'legacy'}
+    from . import projects
+    from .source_packages import digest
+    plan = value.get('policy_plan')
+    result = {'phase': phase(value), 'settled': policy_book.settled(plan), 'sheets': []}
+    if not plan:
+        return result
+    result.update(planned_at=plan.get('created_at', ''), selected_by=plan.get('selected_by'),
+                  optional_available=plan.get('optional_available', []))
+    target = projects.artifact_path(workspace, value.get('product_path', ''))
+    if target:
+        integrity = projects.delivery_integrity(workspace, value, target)
+        result['product'] = {'path': value.get('product_path', ''), 'integrity': 'failed' if integrity else 'passed', 'issue': integrity or ''}
+    target_hash = digest(target) if target else None
+    compliance = [c for s in value['steps'] if s.get('kind') != 'validation' and s['attempts']
+                  for c in s['attempts'][-1].get('policy_compliance', [])]
+    for sheet in plan['sheets']:
+        verdict = sheet_verdict(workspace, value, sheet, target_hash) if target_hash else {'status': 'pending'}
+        declared = [c for c in compliance if c['sheet'] == sheet['id']]
+        result['sheets'].append({**{k: sheet[k] for k in ('id', 'title', 'version', 'mandatory', 'reason', 'steps', 'depends_on')},
+            'final': 'acceptance' if sheet['final_checks'] == 'acceptance' else len(sheet['final_checks']),
+            'handoff': {'required': len(sheet['handoff_checks']), 'declared': sum(c['status'] == 'passed' for c in declared),
+                        'violations': [c['check'] for c in declared if c['critical'] and c['status'] != 'passed']},
+            **verdict})
+    saved = value.get('policy_validation') or {}
+    if saved:
+        result['last_validation'] = {'at': saved.get('at', ''), 'status': saved.get('status')}
+    return result
 
 
 def waves(sheets):

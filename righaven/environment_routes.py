@@ -140,9 +140,11 @@ async def catalogue(request:Request,response:Response):
                     'purpose':agent.description,'instructions':profiles.agent_instructions(user,agent), 'skills':agent.skills or [],'tools':[],
                     'deployment':profiles.preferences(user).get(agent.name,{'mode':'on_demand','ephemeral':False}),
                     'runtime':{'status':'invalid','error':str(e)}})
+        from . import environment_selection
         for entry in entries:
             runtime=entry.get('runtime',{})
             entry['activity']=environment_activity.for_runtime(activity,runtime.get('id'),runtime.get('status') in preparation.ACTIVE,entry['name'])
+            entry['reuse']=environment_selection.usage(user,entry['name'])
         from .state import applications
         tool_names={'skill-'+a['id'] for a in applications()}
         inventory=[]
@@ -154,7 +156,8 @@ async def catalogue(request:Request,response:Response):
         from .environment_transfers import for_user
         return {'transfers':for_user(user),'environments':entries,'presets':profiles.preset_catalog(),'skills':inventory,
                 'dynamic':runtimes.enabled(),'core_preloaded':True,
-                'preparation_serial':False,'parallelism':parallelism(),'activity':activity,'can_import_software':can_import,'can_configure_resources':can_import}
+                'preparation_serial':False,'parallelism':parallelism(),'activity':activity,'can_import_software':can_import,'can_configure_resources':can_import,
+                'reuse_policy':{'criteria':environment_selection.SCORE,'eligible':'preload'}}
     try:return await run_in_threadpool(load)
     except (OSError,ValueError,RuntimeError) as e:raise HTTPException(409,str(e)[:500]) from e
 

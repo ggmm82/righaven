@@ -9,7 +9,7 @@ from playwright.sync_api import sync_playwright,expect
 def main():
     parser=argparse.ArgumentParser();parser.add_argument('--node-modules',type=Path,required=True);parser.add_argument('--screenshots-dir',type=Path);args=parser.parse_args()
     repo=Path(__file__).resolve().parents[1];modules=args.node_modules.resolve()
-    state={'environments':[],'skills':[{'name':'skill-'+n,'kind':'tool','description':n+' capability','enabled':n!='blender','tools':[n],'error':''} for n in ('d2','pandoc','blender')], 'presets':[{'id':'progettazione','name':'Progettazione','purpose':'Transform ideas into editable models','skills':['skill-d2','skill-pandoc'],'missing_tools':[]}], 'dynamic':True,'can_import_software':True,'can_configure_resources':True}
+    state={'environments':[],'skills':[{'name':'skill-'+n,'kind':'tool','description':n+' capability','enabled':n!='blender','tools':[n],'error':''} for n in ('d2','pandoc','blender')], 'presets':[{'id':'progettazione','name':'Progettazione','purpose':'Transform ideas into editable models','skills':['skill-d2','skill-pandoc'],'missing_tools':[]}], 'dynamic':True,'can_import_software':True,'can_configure_resources':True,'reuse_policy':{'criteria':'programmi coperti, poi meno programmi mancanti','eligible':'preload'}}
     resources={'settings':{'mode':'auto','cpus':1.5,'memory_mib':1536,'model_wait_seconds':120,'max_workers':2},'effective':{'cpus':1.5,'memory_mib':3970},'warning':''}
     state['parallelism']={'limit':2,'preparations':0,'terminals':0,'terminal_limit':2,'monitor':{'observed_at':time.time(),'configured_limit':2,'cpus':1.5,'memory_mib':3970,'allocated_cpus':.5,'allocated_memory_mib':1024,'active':{'worker':1,'build':0,'terminal':0,'control':0},'waiting':{'worker':0,'build':1,'terminal':0,'control':0},'blocked':False}}
     posts=[];fail=[False];transfer={};terminal={};log_reply={"text":"Trusted installer log"};log_fail=[False]
@@ -95,6 +95,8 @@ def main():
                 dialog.get_by_text('Versioni e opzioni avanzate',exact=True).click();dialog.get_by_label('Versione d2',exact=True).select_option('latest')
                 dialog.get_by_role('button',name='Salva ambiente').click();expect(page.get_by_role('dialog')).to_have_count(0)
                 card=page.get_by_test_id('environment-card');expect(card).to_contain_text('Progettazione')
+                expect(page.get_by_test_id('profile-reuse-policy')).to_contain_text('Criterio di scelta: programmi coperti, poi meno programmi mancanti')
+                expect(card.get_by_test_id('profile-reuse')).to_contain_text('Nessun incarico l’ha ancora usato come base.')
                 assert posts[-1][1]['preload_tools']==['d2'];assert posts[-1][1]['tool_versions']=={'d2':'latest'}
                 page.reload();card.locator('summary').filter(has_text='Opzioni').click();card.get_by_role('button',name='Configura',exact=True).click();expect(programs.get_by_label('pandoc',exact=True)).not_to_be_checked()
                 dialog.get_by_text('Versioni e opzioni avanzate',exact=True).click();expect(dialog.get_by_label('Versione d2',exact=True)).to_have_value('latest')

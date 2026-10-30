@@ -48,8 +48,13 @@ version (v1, v2, …) after checking its dependencies. Any published version can
 restored as a draft. Every operation is recorded with its author and time. A sheet
 other active sheets depend on cannot be retired; built-in sheets are read-only.
 
-The project panel (**Project details**) shows the governance phase, the sheets of
-the Policy Plan and the latest validation verdict for each.
+Every conversation shows a **Policy** line under the project title. It is
+recomputed from the recorded reviews at each refresh and expands to the governance
+phase, when the Policy Plan was pinned and by whom, each sheet with its version
+and why it applies, the handoff checks declared by the assignments, the verdict
+on the current product with the date of the review, every criterion not passed or
+not verified with its evidence, and the next step. **Project details** shows the
+same view expanded.
 
 The default sheet `quality_standard` (*Revisione di qualità standard*) is
 mandatory and uses `final_checks: "acceptance"`: it is satisfied by the existing

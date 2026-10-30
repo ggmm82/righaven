@@ -27,6 +27,21 @@ Each environment uses its own software recipe and the existing assignment stagin
 
 New catalog versions are defaults, not immutable UI restrictions. Existing version selection supports explicit versions and `latest`. For Debian-packaged tools, `latest` means the stable candidate compatible with the managed Debian base, not the newest upstream version. KiCad uses the signed Debian backports repository for its native CLI. OpenModelica uses its official signed stable repository. Other sources are official GitHub releases, PyPI, npm and veraPDF's versioned distribution server; downloads have recorded SHA-256 and Python/npm dependencies are locked. Updates must pass native preparation checks before becoming ready.
 
+## Prepared profiles as the base of assignments
+
+Each role still requests the software it needs. Among the owner's **Keep ready**
+profiles that are prepared and authorized, the runtime selects the one covering
+most of those programs (then fewer missing programs, fewer unrequested programs,
+smaller image) and adopts that profile's versions for the covered programs. Its
+image is reused as is or extended with only the missing programs, through the
+same incremental preparation. **When needed** profiles are not candidates until
+prepared, and prepared profiles stay allocated.
+
+Every assignment records the profile, the covered and added programs and the
+reason, shown in the assignment card of the conversation. The **Environments**
+page explains the criterion and shows, for each profile, how many assignments it
+served and the last one.
+
 ## What “ready” proves
 
 Preparation checks the executable, CLI/MCP schemas and a real native workflow. The extended CI matrix installs all 20 additions in eight small environments, independently of the default core acceptance. Fixtures include known SQL totals, executed notebook outputs, PDF rendering and rejection, OCR from actual pixels, local API/browser tests, numerical simulations and native model exports.

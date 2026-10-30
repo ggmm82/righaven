@@ -58,14 +58,19 @@ def main():
         (root/'hooks.ts').write_text('export function useI18n(){return {locale:"en-US"}}')
         (root/'config.ts').write_text('export function getBackendBaseURL(){return ""}')
         (root/'fetch.ts').write_text('export const fetch=globalThis.fetch.bind(globalThis)')
-        governance={'phase':'validation','policy_plan':{'settled':True,'sheets':['quality_standard','security']},
-                    'policy_validation':{'status':'failed','at':'2026-10-30T12:00:00','integrity':{'status':'passed','issue':''},
-                                         'sheets':[{'id':'quality_standard','status':'passed'},{'id':'security','status':'failed'}]}}
+        governance={'phase':'validation','settled':True,'planned_at':'2026-10-30T14:03:29','selected_by':'coordinator','optional_available':[],
+                    'product':{'path':'/mnt/user-data/outputs/brochure.pdf','integrity':'passed','issue':''},'last_validation':{'at':'2026-10-30T15:00:00','status':'failed'},
+                    'sheets':[{'id':'quality_standard','title':'Standard quality review','version':1,'mandatory':True,'reason':'Obbligatoria nel Policy Book','steps':[],'depends_on':[],
+                               'final':'acceptance','handoff':{'required':0,'declared':0,'violations':[]},'status':'needs_review','reviewed_at':'2026-10-30T14:30:00',
+                               'findings':[{'requirement_id':'pr5_inclusa','status':'not_run','criterion':'PR #5 inclusa','evidence':'Riferimento non disponibile'}]},
+                              {'id':'security','title':'Security','version':2,'mandatory':False,'reason':'Documento pubblico','steps':['draft'],'depends_on':[],
+                               'final':1,'handoff':{'required':1,'declared':0,'violations':['no_secrets']},'status':'failed','reviewed_at':'2026-10-30T14:31:00',
+                               'findings':[{'requirement_id':'secret_scan','status':'failed','criterion':'No credentials','evidence':'Token found on page 2'}]}]}
         entry='''import React from 'react';import {createRoot} from 'react-dom/client';
 import PolicyBook from PAGE;
-import {ProjectGovernance} from PANEL;
+import {GovernanceStrip} from PANEL;
 const kind=new URLSearchParams(location.search).get('page');
-createRoot(document.getElementById('root')!).render(kind==='project'?<ProjectGovernance governance={GOVERNANCE}/>:<PolicyBook/>);'''
+createRoot(document.getElementById('root')!).render(kind==='project'?<GovernanceStrip governance={GOVERNANCE}/>:<PolicyBook/>);'''
         entry=entry.replace('PAGE',json.dumps(str(repo/'frontend/policy-book-page.tsx'))).replace('PANEL',json.dumps(str(repo/'frontend/project-governance.tsx'))).replace('GOVERNANCE',json.dumps(governance))
         (root/'entry.tsx').write_text(entry)
         aliases={'@/core/i18n/hooks':str(root/'hooks.ts'),'@/core/config':str(root/'config.ts'),'@/core/api/fetcher':str(root/'fetch.ts')}
@@ -143,12 +148,18 @@ createRoot(document.getElementById('root')!).render(kind==='project'?<ProjectGov
                 # The project panel names the pinned sheets and their validation verdicts.
                 page.goto('http://policy.test/?page=project')
                 panel=page.get_by_test_id('project-governance')
-                expect(panel).to_contain_text('Validazione finale delle policy')
-                expect(panel.get_by_role('listitem').filter(has_text='Standard quality review')).to_contain_text('Superata')
-                expect(panel.get_by_role('listitem').filter(has_text='Security')).to_contain_text('Da correggere')
+                expect(panel).to_contain_text('Validazione finale delle policy · 2 applicate (1 da correggere · 1 incomplete)')
+                expect(page.get_by_text('Ci sono violazioni da correggere prima della consegna.')).to_be_hidden()  # collapsed by default
+                panel.locator('summary').click()
+                expect(panel).to_contain_text('Ci sono violazioni da correggere prima della consegna.')
+                expect(panel.get_by_role('listitem').filter(has_text='Security v2')).to_contain_text('Scelta: Documento pubblico · solo per draft')
+                expect(panel).to_contain_text('Non superato (secret_scan): No credentials — Token found on page 2')
+                expect(panel).to_contain_text('Non verificato (pr5_inclusa): PR #5 inclusa — Riferimento non disponibile')
+                expect(panel.get_by_role('alert')).to_contain_text('no_secrets')
+                expect(panel).to_contain_text('Policy Plan fissato il 2026-10-30 14:03 dal coordinatore')
                 assert not errors,errors
             finally:browser.close()
-    print('Policy Book UI OK: draft validation, publish, retire, reactivate, restore and history; read-only team view; project governance verdicts.')
+    print('Policy Book UI OK: draft validation, publish, retire, reactivate, restore and history; read-only team view; live chat governance with findings and next step.')
 
 
 if __name__=='__main__':main()

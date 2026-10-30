@@ -442,6 +442,10 @@ def public_status(value):
         'started_at', 'finished_at', 'deadline_at', 'phase_started_at', 'execution_state', 'execution_started_at', 'last_model_event_at', 'last_file_change_at', 'last_activity_at', 'heartbeat_at', 'updated_at', 'error_code', 'action', 'worker_exit_at', 'cleanup_started_at', 'cleanup_finished_at', 'environment_started_at', 'environment_finished_at', 'worker_started_at')}
     if isinstance(value.get('environment'),dict):
         result['environment'] = {k:value['environment'].get(k) for k in ('id','status','tools','assigned_tools','versions')}
+        profile = value['environment'].get('profile')
+        if isinstance(profile, dict):
+            result['environment']['profile'] = {'mode': clean_summary(profile.get('mode'), 20), 'profile': clean_summary(profile.get('profile'), 80),
+                'reason': clean_summary(profile.get('reason'), 600), **{k: [clean_summary(t, 64) for t in profile.get(k, [])][:64] for k in ('covered', 'missing')}}
     result['resources_reclaimed'] = value.get('resources_reclaimed') is True
     result['cleanup_error'] = value.get('cleanup_error') is True
     result['cancel_error'] = value.get('cancel_error') is True

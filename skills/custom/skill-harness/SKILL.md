@@ -51,6 +51,8 @@ Per l'incertezza decisiva assegna un incarico breve `purpose=preview` con un out
 
 Non estendere una lavorazione costosa o seriale prima di questa prova quando la sua fattibilità è ancora incerta. Se l'utente ha chiesto espressamente un prodotto intermedio diverso, rispetta quella fase. Un miglioramento va confrontato sullo stesso input prima/dopo: misure tecniche e presenza di più strumenti non dimostrano qualità.
 
+I profili «Mantieni pronto» elencati da `harness_skills` sono la base degli ambienti: per ogni ruolo il runtime riusa il profilo pronto che copre più programmi richiesti, con le sue versioni, e aggiunge solo quelli mancanti. Componi comunque gli strumenti in base al lavoro; non aggiungere programmi solo per farli coincidere con un profilo.
+
 Il revisore deve ricevere gli strumenti necessari al metodo richiesto: se deve riaprire un formato nativo, seleziona le CLI pertinenti nel ruolo. `tools: []` è adatto ad analisi senza app, non giustifica saltare una verifica strutturale prevista mentre la CLI è disponibile. Distingui osservazione diretta, evidenza del produttore e verifica non eseguita.
 
 ## Ciclo di lavoro

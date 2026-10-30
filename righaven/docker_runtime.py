@@ -457,8 +457,16 @@ def delegate(agent_id, task, workspace, tool_call_id=None, on_started=None, requ
                    execution_state='environment', environment_started_at=utcnow())
             with heartbeat(progress):
                 from .tool_versions import software_selections
+                from . import environment_selection as profiles_base
                 chosen_versions=software_selections(policy.get('user_id'),policy.get('agent_name'),needed)
-                runtime_environment = environments.ensure(needed, acquire=True, progress=progress, cache_dependencies=not ephemeral_environment, claim=name,versions=chosen_versions)
+                # A ready owner profile covering these tools is reused or extended, not rebuilt.
+                base_profile=profiles_base.choose(policy.get('user_id'),needed,policy) if policy.get('source') == 'righaven_core' else None
+                chosen_versions=profiles_base.versions(chosen_versions,base_profile)
+                runtime_environment = environments.ensure(needed, acquire=True, progress=progress, cache_dependencies=not ephemeral_environment, claim=name,versions=chosen_versions,prefer=(base_profile or {}).get('id'))
+                profile_use=profiles_base.outcome(base_profile,runtime_environment)
+                if profile_use['mode'] in ('reused','extended'):
+                    environments.save(base_profile['id'],last_used=time.time())
+                    profiles_base.record_use(policy['user_id'],base_profile['name'],(role or {}).get('title') or agent_id,profile_use['mode'])
             runtime_image = runtime_environment.get('image_id') or runtime_environment['image']
             # Installation can take minutes: a newer native disable/scope must win before AI starts.
             policy = native_policy(policy['user_id'], policy.get('agent_name')) if policy.get('source') == 'righaven_core' else legacy_policy()
@@ -470,7 +478,8 @@ def delegate(agent_id, task, workspace, tool_call_id=None, on_started=None, requ
             if policy.get('source') == 'righaven_core':
                 settings['skills'] = [s for s in settings['skills'] if s in policy['skill_names']]
             update(progress, 'starting', environment_finished_at=utcnow(), environment={
-                'id':runtime_environment['id'],'tools':runtime_environment['tools'],'assigned_tools':needed,'status':'ready','versions':runtime_environment.get('version_names',{})})
+                'id':runtime_environment['id'],'tools':runtime_environment['tools'],'assigned_tools':needed,'status':'ready','versions':runtime_environment.get('version_names',{}),
+                'profile':profile_use})
         from .provider_bundle import prepare as prepare_provider,arguments as provider_arguments
         provider=prepare_provider(engine,policy.get('user_id'),policy.get('agent_name')) if environments.enabled() else None
         if provider:
@@ -480,7 +489,7 @@ def delegate(agent_id, task, workspace, tool_call_id=None, on_started=None, requ
                 runtime_environment['version_names']['provider-'+cli['binary']]=cli['version']
             update(progress,provider_cli={'binary':cli['binary'],'version':cli['version'],'bundle':cli['id']})
             if runtime_environment is not None:
-                update(progress,environment={'id':runtime_environment['id'],'tools':runtime_environment['tools'],'assigned_tools':needed,'status':'ready','versions':runtime_environment['version_names']})
+                update(progress,environment={'id':runtime_environment['id'],'tools':runtime_environment['tools'],'assigned_tools':needed,'status':'ready','versions':runtime_environment['version_names'],'profile':profile_use})
         if role and role.get('composition_version')==1:
             from .environments import required_tools
             task_tools=required_tools(needed) if runtime_environment is not None else role['tools']

@@ -1,6 +1,6 @@
 export type JobProgress = {
   environment_started_at?: string; environment_finished_at?: string; worker_started_at?: string;
-  environment?: {id:string;status:string;tools:string[];assigned_tools?:string[];versions?:Record<string,string>};
+  environment?: {id:string;status:string;tools:string[];assigned_tools?:string[];versions?:Record<string,string>;profile?:{mode:string;profile:string;reason:string;covered:string[];missing:string[]}};
   queue_reason?: string; queue_detail?: string; queue_activity_since?: string;
   finish_requested?: boolean; can_stop?: boolean; cancel_requested?: boolean; queue_position?: number;
   worker_exit_at?: string; cleanup_started_at?: string; cleanup_finished_at?: string;
