@@ -148,15 +148,15 @@ createRoot(document.getElementById('root')!).render(kind==='project'?<Governance
                 # The project panel names the pinned sheets and their validation verdicts.
                 page.goto('http://policy.test/?page=project')
                 panel=page.get_by_test_id('project-governance')
-                expect(panel).to_contain_text('Validazione finale delle policy · 2 applicate (1 da correggere · 1 incomplete)')
-                expect(page.get_by_text('Ci sono violazioni da correggere prima della consegna.')).to_be_hidden()  # collapsed by default
+                expect(panel).to_contain_text('Final policy validation · 2 applied (1 to fix · 1 incomplete)')
+                expect(page.get_by_text('There are violations to fix before delivery.')).to_be_hidden()  # collapsed by default
                 panel.locator('summary').click()
-                expect(panel).to_contain_text('Ci sono violazioni da correggere prima della consegna.')
-                expect(panel.get_by_role('listitem').filter(has_text='Security v2')).to_contain_text('Scelta: Documento pubblico · solo per draft')
-                expect(panel).to_contain_text('Non superato (secret_scan): No credentials — Token found on page 2')
-                expect(panel).to_contain_text('Non verificato (pr5_inclusa): PR #5 inclusa — Riferimento non disponibile')
+                expect(panel).to_contain_text('There are violations to fix before delivery.')
+                expect(panel.get_by_role('listitem').filter(has_text='Security v2')).to_contain_text('Selected: Documento pubblico · only for draft')
+                expect(panel).to_contain_text('Not passed (secret_scan): No credentials — Token found on page 2')
+                expect(panel).to_contain_text('Not verified (pr5_inclusa): PR #5 inclusa — Riferimento non disponibile')
                 expect(panel.get_by_role('alert')).to_contain_text('no_secrets')
-                expect(panel).to_contain_text('Policy Plan fissato il 2026-10-30 14:03 dal coordinatore')
+                expect(panel).to_contain_text('Policy Plan pinned on 2026-10-30 14:03 by the coordinator')
                 assert not errors,errors
             finally:browser.close()
     print('Policy Book UI OK: draft validation, publish, retire, reactivate, restore and history; read-only team view; live chat governance with findings and next step.')

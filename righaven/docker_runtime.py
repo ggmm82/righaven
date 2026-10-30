@@ -460,7 +460,7 @@ def delegate(agent_id, task, workspace, tool_call_id=None, on_started=None, requ
                 from . import environment_selection as profiles_base
                 chosen_versions=software_selections(policy.get('user_id'),policy.get('agent_name'),needed)
                 # A ready owner profile covering these tools is reused or extended, not rebuilt.
-                base_profile=profiles_base.choose(policy.get('user_id'),needed,policy) if policy.get('source') == 'righaven_core' else None
+                base_profile=profiles_base.choose(policy.get('user_id'),needed,policy,(role or {}).get('skills',[])) if policy.get('source') == 'righaven_core' else None
                 chosen_versions=profiles_base.versions(chosen_versions,base_profile)
                 runtime_environment = environments.ensure(needed, acquire=True, progress=progress, cache_dependencies=not ephemeral_environment, claim=name,versions=chosen_versions,prefer=(base_profile or {}).get('id'))
                 profile_use=profiles_base.outcome(base_profile,runtime_environment)

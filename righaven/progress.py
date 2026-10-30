@@ -445,7 +445,8 @@ def public_status(value):
         profile = value['environment'].get('profile')
         if isinstance(profile, dict):
             result['environment']['profile'] = {'mode': clean_summary(profile.get('mode'), 20), 'profile': clean_summary(profile.get('profile'), 80),
-                'reason': clean_summary(profile.get('reason'), 600), **{k: [clean_summary(t, 64) for t in profile.get(k, [])][:64] for k in ('covered', 'missing')}}
+                'wanted': profile.get('wanted') if type(profile.get('wanted')) is int else 0,
+                **{k: [clean_summary(t, 64) for t in profile.get(k, [])][:64] for k in ('covered', 'missing', 'added', 'skills', 'role_skills')}}
     result['resources_reclaimed'] = value.get('resources_reclaimed') is True
     result['cleanup_error'] = value.get('cleanup_error') is True
     result['cancel_error'] = value.get('cancel_error') is True

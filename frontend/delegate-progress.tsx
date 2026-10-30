@@ -9,7 +9,7 @@ import { ConversationAudit, OperationDetails } from "./conversation-audit";
 import { ExperiencePanel } from "./experience-panel";
 import { ProjectDesign, type Design } from "./project-design";
 import { ProjectGuide } from "./project-guide";
-import { GovernanceStrip, type LiveGovernance } from "./project-governance";
+import { GovernanceStrip, ProfileUseLine, type LiveGovernance } from "./project-governance";
 
 const providers: Record<string, string> = { codex: "Codex", gemini: "Antigravity", deepseek: "DeepSeek", openai: "OpenAI compatibile" };
 type Delivery = { version_state?: string; recovery?: { status: string; message: string; session_error: string }; unchanged_content?: boolean; change_kind?: string; content_version?: number | null; reused_archive_checks?: number; finalization_pending?: string[]; source_coverage?: { status: string; components: { name: string; tool: string; status: string; sources: {path: string; member?: string}[] }[] }; timing?: {status:string; cues:{name:string;status:string;delta_seconds:number}[]}; category?: string; version?: number | null; execution_status?: string; file_count?: number; role_title?: string; review?: { target_delivery_id: string | null; target_version?: number | null; target_label: string; status: string; validated: boolean; matches_current_brief: boolean; report_path: string; correction_count: number }; id: string; title: string; agent: string; at: string; current: boolean; contribution?: boolean; technical_status: string; issues: string[]; purpose: string };
@@ -92,7 +92,7 @@ function JobCard({ job, now, threadId, role }: { job: JobProgress; now: number; 
     {job.environment && <section className="space-y-1 text-xs" data-testid="job-environment">
       <p className="font-semibold">{job.resources_reclaimed ? "Sandbox chiusa · file salvati conservati" : terminal ? "Incarico terminato · controlla il rilascio delle risorse sotto" : "Ambiente dell’incarico"}</p>
       {assigned && <p>Strumenti assegnati: {assigned.length ? assigned.map(person).join(", ") : "strumenti di base"}.</p>}
-      {job.environment.profile&&<p data-testid="job-environment-profile">{job.environment.profile.mode==="none"?"Nessun profilo pronto copriva questi programmi: ambiente preparato su misura.":`Profilo ${job.environment.profile.profile} · ${job.environment.profile.mode==="reused"?"immagine riusata":job.environment.profile.mode==="extended"?"immagine estesa":"non riusabile"}. ${job.environment.profile.reason}`}</p>}
+      {job.environment.profile&&<ProfileUseLine use={job.environment.profile}/>}
       {job.environment.versions&&Object.keys(job.environment.versions).length>0&&<p>Versioni scelte: {Object.entries(job.environment.versions).map(([tool,version])=>`${person(tool)} ${version}`).join(", ")}.</p>}
       <details><summary className="cursor-pointer">Programmi presenti nell’ambiente ({job.environment.tools.length})</summary>
         <p>{job.environment.tools.map(person).join(", ") || "Solo la base software"}.</p>

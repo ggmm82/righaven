@@ -157,7 +157,7 @@ async def catalogue(request:Request,response:Response):
         return {'transfers':for_user(user),'environments':entries,'presets':profiles.preset_catalog(),'skills':inventory,
                 'dynamic':runtimes.enabled(),'core_preloaded':True,
                 'preparation_serial':False,'parallelism':parallelism(),'activity':activity,'can_import_software':can_import,'can_configure_resources':can_import,
-                'reuse_policy':{'criteria':environment_selection.SCORE,'eligible':'preload'}}
+                'reuse_policy':{'criteria':list(environment_selection.CRITERIA),'eligible':'preload'}}
     try:return await run_in_threadpool(load)
     except (OSError,ValueError,RuntimeError) as e:raise HTTPException(409,str(e)[:500]) from e
 

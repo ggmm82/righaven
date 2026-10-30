@@ -6,8 +6,8 @@ from unittest.mock import patch
 from righaven import environment_runtime as runtime, environment_selection as selection, state
 
 
-def profile(identifier, tools, size=1, versions=None):
-    return {'id': identifier * 64, 'tools': tools, 'size_bytes': size, 'versions': versions or {}}
+def profile(identifier, tools, size=1, versions=None, skills=()):
+    return {'id': identifier * 64, 'tools': tools, 'size_bytes': size, 'versions': versions or {}, 'skills': set(skills)}
 
 
 class ProfileSelectionTests(unittest.TestCase):
@@ -18,21 +18,32 @@ class ProfileSelectionTests(unittest.TestCase):
         (self.root / 'installation-id').write_text('fixture')
         self.policy = {'allowed': ['d2', 'poppler', 'typst', 'qpdf', 'pandoc', 'calibre']}
 
-    def choose(self, needed, profiles):
-        rows = [(name, record, set(record['tools']) & set(self.policy['allowed'])) for name, record in profiles]
+    def choose(self, needed, profiles, skills=()):
+        rows = [(name, record, set(record['tools']) & set(self.policy['allowed']), record['skills']) for name, record in profiles]
         with patch.object(selection, 'profiles', return_value=iter(rows)):
-            return selection.choose('owner', needed, self.policy)
+            return selection.choose('owner', needed, self.policy, skills)
 
     def test_the_profile_covering_most_tools_wins_and_records_its_reason(self):
         documents = ('documenti', profile('a', ['typst', 'pandoc', 'calibre'], versions={'typst': 'rev-typst', 'provider-codex': 'cli'}))
         design = ('progettazione', profile('b', ['d2', 'poppler', 'qpdf']))
         base = self.choose(['d2', 'poppler', 'typst'], [documents, design])
         self.assertEqual((base['name'], base['covered'], base['missing']), ('progettazione', ['d2', 'poppler'], ['typst']))
-        self.assertIn('2 di 3', base['reason']); self.assertIn('mancano typst', base['reason'])
+        self.assertEqual(base['wanted'], 3)
         base = self.choose(['typst', 'pandoc'], [documents, design])
         self.assertEqual(base['name'], 'documenti')
         # Model CLIs are mounted separately and never pinned through a profile.
         self.assertEqual(base['versions'], {'typst': 'rev-typst'})
+
+    def test_role_skills_present_in_a_profile_win_over_tool_coverage(self):
+        writing = ('scrittura', profile('a', ['pandoc'], skills=['skill-copywriting', 'skill-typst']))
+        tools = ('strumenti', profile('b', ['d2', 'poppler', 'typst']))
+        base = self.choose(['d2', 'poppler', 'typst'], [tools, writing], skills=['skill-copywriting', 'skill-harness'])
+        self.assertEqual((base['name'], base['skills'], base['role_skills']), ('scrittura', ['skill-copywriting'], ['skill-copywriting']))
+        self.assertEqual(base['missing'], ['d2', 'poppler', 'typst'])  # extended with every program it lacks
+        # A profile sharing only a skill is still a base when no program overlaps.
+        self.assertEqual(self.choose(['d2'], [writing], skills=['skill-typst'])['name'], 'scrittura')
+        # Coordination skills present in every profile do not count as a match.
+        self.assertIsNone(self.choose(['d2'], [('base', profile('c', ['typst'], skills=['skill-harness']))], skills=['skill-harness']))
 
     def test_ties_prefer_fewer_unrequested_tools_then_the_smaller_image(self):
         lean = ('lean', profile('c', ['d2', 'poppler'], size=9))
@@ -57,10 +68,12 @@ class ProfileSelectionTests(unittest.TestCase):
         self.assertIs(selection.versions(chosen, None), chosen)
 
     def test_outcome_states_how_the_profile_was_used(self):
-        base = {'name': 'documenti', 'id': 'a' * 64, 'covered': ['typst'], 'missing': ['d2'], 'versions': {}, 'reason': 'Motivo.'}
+        base = {'name': 'documenti', 'id': 'a' * 64, 'covered': ['typst'], 'missing': ['d2'], 'versions': {},
+                'skills': ['skill-typst'], 'role_skills': ['skill-typst'], 'wanted': 2}
         self.assertEqual(selection.outcome(base, {'id': 'a' * 64})['mode'], 'reused')
         extended = selection.outcome(base, {'id': 'x' * 64, 'base_environment_id': 'a' * 64, 'install_tools': ['d2']})
-        self.assertEqual(extended['mode'], 'extended'); self.assertIn('estesa con: d2', extended['reason'])
+        self.assertEqual((extended['mode'], extended['added'], extended['skills']), ('extended', ['d2'], ['skill-typst']))
+        self.assertNotIn('reason', extended)  # codes only: the interface words them per language
         self.assertEqual(selection.outcome(base, {'id': 'y' * 64})['mode'], 'not_reused')
         self.assertEqual(selection.outcome(None, {'id': 'z' * 64})['mode'], 'none')
 
