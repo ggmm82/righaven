@@ -64,6 +64,47 @@ def require_production(value):
                          ') con una motivazione, oppure [] se nessuna si applica. Le sheet obbligatorie sono incluse dal sistema.')
 
 
+def checkpoints_enabled(value):
+    return governed(value) and (value.get('checkpoints') or {}).get('enabled', True)
+
+
+def open_checkpoint(value, step_id, purpose, turn):
+    """After a production phase, wait for the user before any further production."""
+    if purpose not in PRODUCTION or not turn or not checkpoints_enabled(value) or (value.get('user_control') or {}).get('deliver_now'):
+        return None
+    pending = value.get('checkpoint') or {}
+    if pending.get('status') == 'awaiting_user' and pending.get('turn') == turn:
+        # Parallel assignments of the same user turn share one discussion.
+        pending['steps'] = list(dict.fromkeys([*pending['steps'], step_id]))
+        return pending
+    from .progress import utcnow
+    history = value.setdefault('checkpoint_history', [])
+    if pending:
+        history.append(pending)
+        value['checkpoint_history'] = history[-50:]
+    value['checkpoint'] = {'status': 'awaiting_user', 'turn': turn, 'steps': [step_id], 'at': utcnow()}
+    return value['checkpoint']
+
+
+def pass_checkpoint(value, turn):
+    """A new user message closes the discussion; the same turn cannot start more production."""
+    pending = value.get('checkpoint') or {}
+    if pending.get('status') != 'awaiting_user' or not checkpoints_enabled(value):
+        return None
+    if not turn or turn == pending.get('turn'):
+        raise ValueError(checkpoint_instruction(pending)['instruction'])
+    from .progress import utcnow
+    value['checkpoint'] = {**pending, 'status': 'discussed', 'discussed_turn': turn, 'closed_at': utcnow()}
+    return value['checkpoint']
+
+
+def checkpoint_instruction(pending):
+    return {'status': 'awaiting_user', 'steps': pending['steps'],
+            'instruction': 'Fase conclusa (' + ', '.join(pending['steps']) + '): prima di altri incarichi di produzione presenta '
+                           'all’utente risultati, problemi aperti e prossimi passi, proponi le eventuali modifiche al piano e '
+                           'chiedi la sua decisione con ask_clarification. Il runtime avvierà nuova produzione solo dopo la sua risposta.'}
+
+
 def applicable(plan, step_id, purpose):
     if not plan or purpose not in PRODUCTION:
         return []
@@ -203,6 +244,10 @@ def live(workspace, value):
     saved = value.get('policy_validation') or {}
     if saved:
         result['last_validation'] = {'at': saved.get('at', ''), 'status': saved.get('status')}
+    pending = value.get('checkpoint') or {}
+    result['checkpoints'] = {'enabled': checkpoints_enabled(value),
+        'pending': {k: pending[k] for k in ('steps', 'at')} if pending.get('status') == 'awaiting_user' else None,
+        'discussed': sum(c.get('status') == 'discussed' for c in [*value.get('checkpoint_history', []), pending])}
     return result
 
 

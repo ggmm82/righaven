@@ -79,6 +79,10 @@ Il runtime impone il ciclo `brief → Execution Plan + Policy Plan → incarichi
 3. Concluso l’Execution Plan e consegnato il prodotto con `purpose=delivery`, usa `harness_validate(role_id=...)` con un revisore indipendente. Il runtime controlla l’integrità della consegna e avvia una revisione per ogni sheet ancora da verificare, in parallelo quando sono indipendenti; restituisce tutte le violazioni insieme. Le sheet già superate per lo stesso file non vengono ripetute.
 4. `harness_plan(status=ready)` è rifiutato finché tutte le sheet del Policy Plan non sono superate sul prodotto esatto. Correggi le violazioni sui sorgenti, consegna una nuova versione e valida di nuovo; non indebolire il Policy Plan per superare la validazione.
 
+## Discussione a ogni fase
+
+Quando un incarico di produzione (`work`, `preview`, `integration`, `delivery`) si conclude con un risultato, il runtime apre una pausa (`checkpoint` nella risposta) e rifiuta altra produzione finché l’utente non risponde. Presenta in modo concreto cosa è stato prodotto e da chi, la qualità osservata e i limiti, i problemi aperti, i prossimi passi e le eventuali modifiche al piano; chiedi la decisione con `ask_clarification`, offrendo opzioni chiare. Dopo la risposta aggiorna il piano con `harness_plan` se cambia qualcosa e prosegui. Le revisioni e `harness_validate` non aprono pause. Il proprietario può disattivare le pause per il progetto.
+
 ## Versione completa e consegna
 
 Per un audiovisivo dichiara `project_type=animated_video` oppure `requirements_json` con `audio` e `video`. Prepara presto un piccolo montaggio con immagini, movimento e audio; se manca una parte, etichetta la prova come bozza e indica il limite. Un render muto non è il video finale di una danza con musica. Una base originale deve essere descritta come tale, senza promettere una registrazione commerciale non fornita.

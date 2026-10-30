@@ -60,6 +60,7 @@ def main():
         (root/'fetch.ts').write_text('export const fetch=globalThis.fetch.bind(globalThis)')
         governance={'phase':'validation','settled':True,'planned_at':'2026-10-30T14:03:29','selected_by':'coordinator','optional_available':[],
                     'product':{'path':'/mnt/user-data/outputs/brochure.pdf','integrity':'passed','issue':''},'last_validation':{'at':'2026-10-30T15:00:00','status':'failed'},
+                    'checkpoints':{'enabled':True,'pending':{'steps':['impaginazione'],'at':'2026-10-30T14:40:00'},'discussed':2},
                     'sheets':[{'id':'quality_standard','title':'Standard quality review','version':1,'mandatory':True,'reason':'Obbligatoria nel Policy Book','steps':[],'depends_on':[],
                                'final':'acceptance','handoff':{'required':0,'declared':0,'violations':[]},'status':'needs_review','reviewed_at':'2026-10-30T14:30:00',
                                'findings':[{'requirement_id':'pr5_inclusa','status':'not_run','criterion':'PR #5 inclusa','evidence':'Riferimento non disponibile'}]},
@@ -70,7 +71,8 @@ def main():
 import PolicyBook from PAGE;
 import {GovernanceStrip} from PANEL;
 const kind=new URLSearchParams(location.search).get('page');
-createRoot(document.getElementById('root')!).render(kind==='project'?<GovernanceStrip governance={GOVERNANCE}/>:<PolicyBook/>);'''
+function Panel(){const [g,setG]=React.useState(GOVERNANCE as any);return <GovernanceStrip governance={g} threadId="t1" onChanged={setG}/>;}
+createRoot(document.getElementById('root')!).render(kind==='project'?<Panel/>:<PolicyBook/>);'''
         entry=entry.replace('PAGE',json.dumps(str(repo/'frontend/policy-book-page.tsx'))).replace('PANEL',json.dumps(str(repo/'frontend/project-governance.tsx'))).replace('GOVERNANCE',json.dumps(governance))
         (root/'entry.tsx').write_text(entry)
         aliases={'@/core/i18n/hooks':str(root/'hooks.ts'),'@/core/config':str(root/'config.ts'),'@/core/api/fetcher':str(root/'fetch.ts')}
@@ -87,6 +89,8 @@ createRoot(document.getElementById('root')!).render(kind==='project'?<Governance
                 if path.startswith('/api/'):
                     body=request.post_data_json if request.method in ('PUT','POST') and request.post_data else None
                     calls.append((request.method,path,body))
+                    if path=='/api/threads/t1/harness-checkpoints':
+                        route.fulfill(json={'governance':{**governance,'checkpoints':{'enabled':body['enabled'],'pending':None,'discussed':2}}});return
                     value=book.overview(role['admin']) if path=='/api/harness/policy-book' else book.handle(request.method,path,body)
                     if isinstance(value,tuple):route.fulfill(status=value[0],json=value[1])
                     else:route.fulfill(json=value)
@@ -150,13 +154,20 @@ createRoot(document.getElementById('root')!).render(kind==='project'?<Governance
                 panel=page.get_by_test_id('project-governance')
                 expect(panel).to_contain_text('Final policy validation · 2 applied (1 to fix · 1 incomplete)')
                 expect(page.get_by_text('There are violations to fix before delivery.')).to_be_hidden()  # collapsed by default
+                expect(page.get_by_test_id('checkpoint-pending')).to_contain_text('Waiting for your reply on phase impaginazione')
                 panel.locator('summary').click()
+                expect(panel.get_by_test_id('checkpoint-settings')).to_contain_text('Pause after each phase is on')
+                expect(panel.get_by_test_id('checkpoint-settings')).to_contain_text('Phases discussed: 2')
                 expect(panel).to_contain_text('There are violations to fix before delivery.')
                 expect(panel.get_by_role('listitem').filter(has_text='Security v2')).to_contain_text('Selected: Documento pubblico · only for draft')
                 expect(panel).to_contain_text('Not passed (secret_scan): No credentials — Token found on page 2')
                 expect(panel).to_contain_text('Not verified (pr5_inclusa): PR #5 inclusa — Riferimento non disponibile')
                 expect(panel.get_by_role('alert')).to_contain_text('no_secrets')
                 expect(panel).to_contain_text('Policy Plan pinned on 2026-10-30 14:03 by the coordinator')
+                panel.get_by_role('button',name='Turn pauses off').click()
+                expect(panel.get_by_test_id('checkpoint-settings')).to_contain_text('Pause after each phase is off')
+                expect(page.get_by_test_id('checkpoint-pending')).to_have_count(0)
+                assert [b for m,pth,b in calls if pth.endswith('/harness-checkpoints')]==[{'enabled':False}]
                 assert not errors,errors
             finally:browser.close()
     print('Policy Book UI OK: draft validation, publish, retire, reactivate, restore and history; read-only team view; live chat governance with findings and next step.')

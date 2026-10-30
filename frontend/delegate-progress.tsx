@@ -410,7 +410,7 @@ export function DelegateProgress({ threadId, active, pending, coordinatorError =
           {project.outcome?.use && <p><strong>Uso e destinatari:</strong> {project.outcome.use}</p>}
           {project.outcome?.quality && <p><strong>Qualità attesa:</strong> {project.outcome.quality}</p>}
         </section>
-        <GovernanceStrip governance={governance} expanded/>
+        <GovernanceStrip governance={governance} expanded threadId={threadId} onChanged={next => setSnapshot(previous => previous?.threadId === threadId ? { ...previous, governance: next } : previous)}/>
         {questions.length > 0 && <section className="space-y-2 rounded-xl border border-amber-500/30 bg-amber-500/5 p-4" data-testid="brief-questions">
           <h4 className="font-semibold">Le scelte che mancano</h4>
           <ul className="list-inside list-disc">{questions.map((q, i) => <li key={i}>{q}</li>)}</ul>

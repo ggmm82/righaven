@@ -6,6 +6,8 @@ def needs_continuation(project):
         return False
     if any((project.get('user_control') or {}).get(k) for k in ('paused','deliver_now')):
         return False
+    if (project.get('checkpoint') or {}).get('status') == 'awaiting_user':
+        return False  # The user decides the next phase.
     attention = project.get('attention') or {}
     if attention.get('code') in ('provider_quota', 'provider_auth', 'resource_memory', 'work_cancelled'):
         return False

@@ -132,6 +132,23 @@ def project_governance(workspace):
     return live(workspace, value) if value else None
 
 
+class CheckpointChoice(BaseModel):
+    enabled: bool
+
+
+@router.post('/api/threads/{thread_id}/harness-checkpoints')
+@require_permission('threads', 'write', owner_check=True, require_existing=True)
+async def checkpoint_choice(thread_id: ThreadId, body: CheckpointChoice, request: Request, response: Response):
+    from .projects import set_checkpoints
+    workspace = get_paths().sandbox_user_data_dir(thread_id, user_id=get_effective_user_id())
+    response.headers['Cache-Control'] = 'no-store'
+    try:
+        await run_in_threadpool(set_checkpoints, workspace, body.enabled)
+    except ValueError as error:
+        raise HTTPException(status_code=409, detail=str(error)) from error
+    return {'governance': await run_in_threadpool(project_governance, workspace)}
+
+
 class DeliveryAcceptance(BaseModel):
     delivery_id: str = Field(min_length=1, max_length=100)
 

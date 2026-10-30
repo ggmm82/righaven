@@ -372,7 +372,7 @@ def delegate_step(agent, task, runtime, *, step_id='', purpose='work', role_id='
     from .control_memory import counts
     from .progress import clean_summary
     compact = {k: result[k] for k in ('ok', 'activity', 'output_dir', 'attention', 'recovery', 'retry_blocked', 'checkpoint_reassessment','goal','instruction',
-        'product_verified', 'verified_products', 'available_results', 'policy_violations', 'policy_compliance') if k in result}
+        'product_verified', 'verified_products', 'available_results', 'policy_violations', 'policy_compliance', 'checkpoint') if k in result}
     compact.update(error=clean_summary(result.get('error', '')),
         check_counts=counts(handoff.get('checks', [])),
         blocking_failed_checks=len(list(blocking_checks(handoff.get('checks', [])))),

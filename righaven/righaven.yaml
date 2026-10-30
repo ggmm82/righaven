@@ -1249,6 +1249,14 @@ lead_prompt_overlay:
     harness_validate con un ruolo revisore indipendente: la consegna con status=ready
     è possibile soltanto quando tutte le sheet risultano superate. Correggi tutte
     le violazioni aggregate prima di validare di nuovo.
+
+
+    L’utente partecipa a ogni fase. Quando un incarico di produzione si conclude,
+    il runtime apre una pausa: prima di altra produzione presenta all’utente cosa
+    ha prodotto lo specialista, la qualità osservata, i problemi aperti e i prossimi
+    passi, proponi le modifiche al piano che ritieni utili e chiedi la sua decisione
+    con ask_clarification. Dopo la risposta aggiorna il piano se necessario e prosegui.
+    Revisioni e validazione finale non richiedono la pausa.
     Non confondere deleghe diverse: «scegli lo stile» delega l’estetica, non la tecnica,
     la modificabilità dei sorgenti o la forma finale. Chiarisci solo le scelte mancanti
     che cambiano davvero il risultato, in un unico breve modulo. Le questions aperte

@@ -1,12 +1,16 @@
 "use client";
+import {useState} from "react";
 import {useI18n} from "@/core/i18n/hooks";
+import {fetch} from "@/core/api/fetcher";
+import {getBackendBaseURL} from "@/core/config";
 import type {ProfileUse} from "./delegate-progress-state";
 
 export type Finding={requirement_id?:string;status:string;critical?:boolean;method?:string;criterion:string;evidence:string};
 export type LiveSheet={id:string;title:string;version:number;mandatory:boolean;reason:string;steps:string[];depends_on:string[];
  final:"acceptance"|number;handoff:{required:number;declared:number;violations:string[]};status:string;reviewed_at?:string;findings?:Finding[]};
 export type LiveGovernance={phase:string;settled?:boolean;planned_at?:string;selected_by?:string;optional_available?:string[];
- product?:{path:string;integrity:string;issue:string};sheets?:LiveSheet[];last_validation?:{at:string;status:string}};
+ product?:{path:string;integrity:string;issue:string};sheets?:LiveSheet[];last_validation?:{at:string;status:string};
+ checkpoints?:{enabled:boolean;pending:{steps:string[];at:string}|null;discussed:number}};
 
 type T=(it:string,en:string)=>string;
 const phases=(t:T):Record<string,string>=>({briefing:t("Definizione del risultato","Defining the result"),planning:t("Execution Plan e Policy Plan","Execution Plan and Policy Plan"),
@@ -36,9 +40,17 @@ export function ProfileUseLine({use}:{use:ProfileUse}){
 }
 
 /** Policies governing this project, recomputed from the recorded reviews at every refresh. */
-export function GovernanceStrip({governance,expanded=false}:{governance?:LiveGovernance|null;expanded?:boolean}){
+export function GovernanceStrip({governance,expanded=false,threadId,onChanged}:{governance?:LiveGovernance|null;expanded?:boolean;threadId?:string;onChanged?:(g:LiveGovernance)=>void}){
  const t=useT();
+ const [busy,setBusy]=useState(false),[error,setError]=useState("");
  if(!governance)return null;
+ const checkpoints=governance.checkpoints;
+ async function toggle(enabled:boolean){
+  if(!threadId)return;setBusy(true);setError("");
+  try{const r=await fetch(`${getBackendBaseURL()}/api/threads/${encodeURIComponent(threadId)}/harness-checkpoints`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({enabled})});
+   const v=await r.json() as {governance?:LiveGovernance;detail?:string};if(!r.ok)throw Error(v.detail??String(r.status));if(v.governance)onChanged?.(v.governance);}
+  catch(e){setError(e instanceof Error?e.message:String(e));}finally{setBusy(false);}
+ }
  const PHASES=phases(t),VERDICTS=verdicts(t);
  if(governance.phase==="legacy")return <p className="text-muted-foreground text-xs" data-testid="project-governance">{t("Progetto avviato prima del Policy Book: valgono i controlli di qualità esistenti.","Project started before the Policy Book: existing quality checks apply.")}</p>;
  const sheets=governance.sheets??[];
@@ -46,8 +58,12 @@ export function GovernanceStrip({governance,expanded=false}:{governance?:LiveGov
  const summary=[["passed",t("superate","passed")],["failed",t("da correggere","to fix")],["needs_review",t("incomplete","incomplete")],["pending",t("da validare","to validate")]].filter(([s])=>count(s!)).map(([s,label])=>`${count(s!)} ${label}`).join(" · ");
  return <details className="rounded-lg border p-2 text-xs" open={expanded} data-testid="project-governance">
   <summary className="cursor-pointer"><strong>Policy</strong> · {PHASES[governance.phase]??governance.phase}{sheets.length?` · ${sheets.length} ${t("applicate","applied")}${summary?" ("+summary+")":""}`:""}</summary>
+  {checkpoints?.pending&&<p className="mt-1 font-medium" data-testid="checkpoint-pending">{t("In attesa della tua risposta sulla fase","Waiting for your reply on phase")} {checkpoints.pending.steps.join(", ")}: {t("leggi risultati e prossimi passi proposti e rispondi nella chat.","read the results and proposed next steps and reply in the chat.")}</p>}
   <div className="mt-2 space-y-2">
    <p>{nextStep(governance,t)}</p>
+   {checkpoints&&<div className="flex flex-wrap items-center gap-2" data-testid="checkpoint-settings"><span>{checkpoints.enabled?t("Pausa a ogni fase attiva: dopo ogni incarico il coordinatore discute con te risultati e prossimi passi.","Pause after each phase is on: after every assignment the coordinator discusses results and next steps with you."):t("Pausa a ogni fase disattivata: la squadra prosegue fino alla consegna.","Pause after each phase is off: the team continues until delivery.")}{checkpoints.discussed?` ${t("Fasi discusse","Phases discussed")}: ${checkpoints.discussed}.`:""}</span>
+    {threadId&&<button type="button" className="rounded border px-2 py-1 disabled:opacity-50" disabled={busy} onClick={()=>void toggle(!checkpoints.enabled)}>{checkpoints.enabled?t("Disattiva le pause","Turn pauses off"):t("Attiva le pause","Turn pauses on")}</button>}
+    {error&&<span role="alert">{error}</span>}</div>}
    {governance.planned_at&&<p className="text-muted-foreground">{t("Policy Plan fissato il","Policy Plan pinned on")} {when(governance.planned_at)}{governance.selected_by==="system"?t(" dal sistema (solo sheet obbligatorie)"," by the system (mandatory sheets only)"):t(" dal coordinatore"," by the coordinator")}.</p>}
    {!governance.settled&&!!governance.optional_available?.length&&<p>{t("Sheet facoltative da valutare","Optional sheets to evaluate")}: {governance.optional_available.join(", ")}.</p>}
    <ul className="space-y-2">{sheets.map(s=><li key={s.id} className={"space-y-1 rounded border-l-4 pl-2 "+(TONES[s.status]??"")}>
