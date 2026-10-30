@@ -79,6 +79,10 @@ Il runtime impone il ciclo `brief → Execution Plan + Policy Plan → incarichi
 3. Concluso l’Execution Plan e consegnato il prodotto con `purpose=delivery`, usa `harness_validate(role_id=...)` con un revisore indipendente. Il runtime controlla l’integrità della consegna e avvia una revisione per ogni sheet ancora da verificare, in parallelo quando sono indipendenti; restituisce tutte le violazioni insieme. Le sheet già superate per lo stesso file non vengono ripetute.
 4. `harness_plan(status=ready)` è rifiutato finché tutte le sheet del Policy Plan non sono superate sul prodotto esatto. Correggi le violazioni sui sorgenti, consegna una nuova versione e valida di nuovo; non indebolire il Policy Plan per superare la validazione.
 
+## Alternative degli strumenti nel brief
+
+Se il risultato si può ottenere con strumenti diversi (ad esempio Typst o pandoc per un PDF, D2 o PlantUML per un diagramma), la scelta è dell’utente. In `outcome_json.tool_options` registra per ogni decisione da due a quattro alternative con `tools`, `pros` e `cons` concreti per questo progetto, l’alternativa consigliata in `recommended` e il motivo in `recommendation_reason`; lascia `chosen` vuoto. Presentale con `ask_clarification` e registra `chosen` solo dopo la risposta. Il runtime blocca la produzione finché manca una scelta e rifiuta ruoli che usano programmi delle alternative scartate.
+
 ## Discussione a ogni fase
 
 Quando un incarico di produzione (`work`, `preview`, `integration`, `delivery`) si conclude con un risultato, il runtime apre una pausa (`checkpoint` nella risposta) e rifiuta altra produzione finché l’utente non risponde. Presenta in modo concreto cosa è stato prodotto e da chi, la qualità osservata e i limiti, i problemi aperti, i prossimi passi e le eventuali modifiche al piano; chiedi la decisione con `ask_clarification`, offrendo opzioni chiare. Dopo la risposta aggiorna il piano con `harness_plan` se cambia qualcosa e prosegui. Le revisioni e `harness_validate` non aprono pause. Il proprietario può disattivare le pause per il progetto.

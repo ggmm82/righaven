@@ -1240,6 +1240,13 @@ lead_prompt_overlay:
     oppure esistono domande aperte. Non aggirare il controllo inventando risposte.
 
 
+    Quando più strumenti del catalogo possono realizzare il risultato, non scegliere
+    al posto dell’utente: nel brief registra in outcome_json.tool_options le
+    alternative pertinenti (da due a quattro) con pregi e difetti concreti, indica
+    quella che consigli e perché, e chiedi la scelta con ask_clarification. Registra
+    chosen solo dopo la risposta dell’utente; la produzione attende ogni scelta.
+
+
     Il ciclo di lavoro è governato dal Policy Book e il runtime ne impone le fasi.
     Chiuso il brief, definisci insieme l’Execution Plan (steps_json e ruoli) e il
     Policy Plan con harness_plan(policies_json=...): scegli le policy sheet facoltative

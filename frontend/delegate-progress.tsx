@@ -9,7 +9,7 @@ import { ConversationAudit, OperationDetails } from "./conversation-audit";
 import { ExperiencePanel } from "./experience-panel";
 import { ProjectDesign, type Design } from "./project-design";
 import { ProjectGuide } from "./project-guide";
-import { GovernanceStrip, ProfileUseLine, type LiveGovernance } from "./project-governance";
+import { GovernanceStrip, ProfileUseLine, ToolChoices, type LiveGovernance, type ToolDecision } from "./project-governance";
 
 const providers: Record<string, string> = { codex: "Codex", gemini: "Antigravity", deepseek: "DeepSeek", openai: "OpenAI compatibile" };
 type Delivery = { version_state?: string; recovery?: { status: string; message: string; session_error: string }; unchanged_content?: boolean; change_kind?: string; content_version?: number | null; reused_archive_checks?: number; finalization_pending?: string[]; source_coverage?: { status: string; components: { name: string; tool: string; status: string; sources: {path: string; member?: string}[] }[] }; timing?: {status:string; cues:{name:string;status:string;delta_seconds:number}[]}; category?: string; version?: number | null; execution_status?: string; file_count?: number; role_title?: string; review?: { target_delivery_id: string | null; target_version?: number | null; target_label: string; status: string; validated: boolean; matches_current_brief: boolean; report_path: string; correction_count: number }; id: string; title: string; agent: string; at: string; current: boolean; contribution?: boolean; technical_status: string; issues: string[]; purpose: string };
@@ -17,7 +17,7 @@ type MethodStrategy = { state: string; method: string; reason: string; user_acti
 type RevisionAction = { requirement_id: string; action: string; reason?: string; priority: number; strategy: string };
 type Comparison = { baseline_path: string; criteria: { requirement_id: string; status: string; evidence: string }[] };
 type Criterion = { requirement_id?: string; criterion: string; status: string; evidence: string; method: string };
-type Outcome = { title: string; result: string; format: string; use: string; quality: string; constraints: string[]; assumptions: string[]; questions: string[] };
+type Outcome = { title: string; result: string; format: string; use: string; quality: string; constraints: string[]; assumptions: string[]; questions: string[]; tool_options?: ToolDecision[] };
 type ProjectRole = { capability_rationale?: string; tool_versions?: Record<string,string>; skills?: string[]; skill_bindings?: {name:string;revision:string}[]; experience?: { count: number; ids: string[] }; id: string; title: string; mission: string; version: string; expertise: string[]; procedure?: string[]; checks: string[]; tools: string[] };
 type Orientation = { active_step_ids?: string[]; history_step_ids?: string[]; history_count?: number; total: number; counts: Record<string, number>; current: { id: string; goal: string; role_id: string; task: string }[]; remaining: { id: string; goal: string; status: string }[]; roles?: Record<string, { attempts: number; completed: number; running: number }>; needs_briefing: boolean };
 type UserDirection = { visual_approach: string; instructions: string; revision: number };
@@ -410,6 +410,7 @@ export function DelegateProgress({ threadId, active, pending, coordinatorError =
           {project.outcome?.use && <p><strong>Uso e destinatari:</strong> {project.outcome.use}</p>}
           {project.outcome?.quality && <p><strong>Qualità attesa:</strong> {project.outcome.quality}</p>}
         </section>
+        <ToolChoices decisions={project.outcome?.tool_options}/>
         <GovernanceStrip governance={governance} expanded threadId={threadId} onChanged={next => setSnapshot(previous => previous?.threadId === threadId ? { ...previous, governance: next } : previous)}/>
         {questions.length > 0 && <section className="space-y-2 rounded-xl border border-amber-500/30 bg-amber-500/5 p-4" data-testid="brief-questions">
           <h4 className="font-semibold">Le scelte che mancano</h4>

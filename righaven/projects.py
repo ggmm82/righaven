@@ -536,6 +536,15 @@ def create_plan(workspace, brief, steps, project_type='', omissions=None, *, sum
             if (value.get('outcome') or {}).get('questions') and not outcome.get('questions') and question_turn:
                 if not source_turn or source_turn == question_turn:
                     raise ValueError('Le domande sul risultato attendono una nuova risposta reale dell’utente; non cancellarle nello stesso turno.')
+            presented = value.setdefault('tool_options_turn', {})
+            previous_choices = {d['id']: d.get('chosen', '') for d in (value.get('outcome') or {}).get('tool_options', [])}
+            for decision in outcome.get('tool_options', []):
+                if not decision['chosen']:
+                    presented[decision['id']] = source_turn or presented.get(decision['id'], '')
+                elif previous_choices.get(decision['id']) != decision['chosen'] and (
+                        not source_turn or decision['id'] not in presented or presented[decision['id']] == source_turn):
+                    raise ValueError('La scelta tra le alternative «' + decision['decision'] + '» spetta all’utente: '
+                                     'presentale prima con pregi, difetti e consiglio, poi registra chosen dopo la sua risposta.')
             if outcome.get('questions') and source_turn:
                 value['brief_question_turn'] = source_turn
             elif not outcome.get('questions'):

@@ -67,13 +67,16 @@ def main():
                               {'id':'security','title':'Security','version':2,'mandatory':False,'reason':'Documento pubblico','steps':['draft'],'depends_on':[],
                                'final':1,'handoff':{'required':1,'declared':0,'violations':['no_secrets']},'status':'failed','reviewed_at':'2026-10-30T14:31:00',
                                'findings':[{'requirement_id':'secret_scan','status':'failed','criterion':'No credentials','evidence':'Token found on page 2'}]}]}
+        choices=[{'id':'pdf','decision':'PDF layout','recommended':'typst','recommendation_reason':'Readable source, reproducible build','chosen':'',
+                  'options':[{'id':'typst','label':'Typst','tools':['typst'],'pros':['Fast'],'cons':['Less common']},
+                             {'id':'pandoc','label':'Pandoc','tools':['pandoc'],'pros':['Many formats'],'cons':['Limited typography']}]}]
         entry='''import React from 'react';import {createRoot} from 'react-dom/client';
 import PolicyBook from PAGE;
-import {GovernanceStrip} from PANEL;
+import {GovernanceStrip,ToolChoices} from PANEL;
 const kind=new URLSearchParams(location.search).get('page');
-function Panel(){const [g,setG]=React.useState(GOVERNANCE as any);return <GovernanceStrip governance={g} threadId="t1" onChanged={setG}/>;}
+function Panel(){const [g,setG]=React.useState(GOVERNANCE as any);return <><ToolChoices decisions={CHOICES as any}/><GovernanceStrip governance={g} threadId="t1" onChanged={setG}/></>;}
 createRoot(document.getElementById('root')!).render(kind==='project'?<Panel/>:<PolicyBook/>);'''
-        entry=entry.replace('PAGE',json.dumps(str(repo/'frontend/policy-book-page.tsx'))).replace('PANEL',json.dumps(str(repo/'frontend/project-governance.tsx'))).replace('GOVERNANCE',json.dumps(governance))
+        entry=entry.replace('PAGE',json.dumps(str(repo/'frontend/policy-book-page.tsx'))).replace('PANEL',json.dumps(str(repo/'frontend/project-governance.tsx'))).replace('GOVERNANCE',json.dumps(governance)).replace('CHOICES',json.dumps(choices))
         (root/'entry.tsx').write_text(entry)
         aliases={'@/core/i18n/hooks':str(root/'hooks.ts'),'@/core/config':str(root/'config.ts'),'@/core/api/fetcher':str(root/'fetch.ts')}
         build={'entryPoints':[str(root/'entry.tsx')],'outfile':str(root/'bundle.js'),'bundle':True,'jsx':'automatic','nodePaths':[str(modules)],'alias':aliases}
@@ -151,6 +154,11 @@ createRoot(document.getElementById('root')!).render(kind==='project'?<Panel/>:<P
                 expect(page.get_by_role('button',name='Restore to draft')).to_have_count(0)
                 # The project panel names the pinned sheets and their validation verdicts.
                 page.goto('http://policy.test/?page=project')
+                choices=page.get_by_test_id('tool-choices')
+                expect(choices).to_contain_text('PDF layout · waiting for your choice: reply in the chat')
+                expect(choices.get_by_role('listitem').filter(has_text='Typst')).to_contain_text('Typst · recommended')
+                expect(choices.get_by_role('listitem').filter(has_text='Pandoc')).to_contain_text('Cons: Limited typography')
+                expect(choices).to_contain_text('Why we recommend it: Readable source, reproducible build')
                 panel=page.get_by_test_id('project-governance')
                 expect(panel).to_contain_text('Final policy validation · 2 applied (1 to fix · 1 incomplete)')
                 expect(page.get_by_text('There are violations to fix before delivery.')).to_be_hidden()  # collapsed by default

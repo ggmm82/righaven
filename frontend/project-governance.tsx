@@ -31,6 +31,28 @@ function nextStep(g:LiveGovernance,t:T):string{
  return g.phase==="delivered"?t("Consegnato con tutte le policy superate.","Delivered with every policy passed."):t("Tutte le policy sono superate: la consegna è autorizzata.","Every policy passed: delivery is authorized.");
 }
 
+export type ToolDecision={id:string;decision:string;options:{id:string;label:string;tools:string[];pros:string[];cons:string[]}[];recommended:string;recommendation_reason:string;chosen:string};
+
+/** Tool alternatives from the brief: the team recommends, the user chooses. */
+export function ToolChoices({decisions}:{decisions?:ToolDecision[]}){
+ const t=useT();
+ if(!decisions?.length)return null;
+ return <section className="space-y-3 rounded-xl border p-4" data-testid="tool-choices">
+  <h4 className="font-semibold">{t("Scelta degli strumenti","Tool choices")}</h4>
+  <p className="text-muted-foreground text-xs">{t("La squadra propone e consiglia; la scelta è tua. La produzione attende le scelte ancora aperte.","The team proposes and recommends; you choose. Production waits for open choices.")}</p>
+  {decisions.map(d=><div key={d.id} className="space-y-2">
+   <p><strong>{d.decision}</strong> · {d.chosen?t("scelta registrata","choice recorded"):<span className="font-medium text-amber-700">{t("in attesa della tua scelta: rispondi nella chat","waiting for your choice: reply in the chat")}</span>}</p>
+   <ul className="grid gap-2 md:grid-cols-2">{d.options.map(o=><li key={o.id} className={"space-y-1 rounded border p-2 "+(d.chosen===o.id?"border-emerald-500":d.chosen?"opacity-60":"")}>
+    <p className="font-medium">{o.label}{o.id===d.recommended?` · ${t("consigliata","recommended")}`:""}{d.chosen===o.id?` · ${t("scelta","chosen")}`:""}</p>
+    {o.tools.length>0&&<p className="text-muted-foreground text-xs">{t("Programmi","Software")}: {o.tools.join(", ")}</p>}
+    <p className="text-xs">{t("Pregi","Pros")}: {o.pros.join("; ")}</p>
+    <p className="text-xs">{t("Difetti","Cons")}: {o.cons.join("; ")}</p>
+   </li>)}</ul>
+   <p className="text-xs">{t("Perché la consigliamo","Why we recommend it")}: {d.recommendation_reason}</p>
+  </div>)}
+ </section>;
+}
+
 /** How an assignment used the owner's prepared profiles, worded in the viewer's language. */
 export function ProfileUseLine({use}:{use:ProfileUse}){
  const t=useT();
