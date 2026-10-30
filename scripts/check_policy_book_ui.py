@@ -3,7 +3,7 @@
 
 Declared API fixtures only; tests/test_policy_book.py verifies the native routes.
 """
-import argparse,json,subprocess,tempfile
+import argparse,json,re,subprocess,tempfile
 from pathlib import Path
 from playwright.sync_api import sync_playwright,expect
 
@@ -102,33 +102,53 @@ createRoot(document.getElementById('root')!).render(kind==='project'?<Panel/>:<P
             page.route('http://policy.test/**',route)
             try:
                 page.goto('http://policy.test/')
+                page.wait_for_timeout(1500);print('PAGE ERRORS',errors) if errors else None
                 sheets=page.get_by_role('navigation',name='Policy sheets')
                 expect(sheets.get_by_text('Built into RigHaven')).to_be_visible()
                 sheets.get_by_role('button',name='Standard quality review').click()
                 expect(page.get_by_text('Separate review of the product against the project acceptance contract.')).to_be_visible()
-                expect(page.get_by_role('form',name='Draft')).to_have_count(0)  # built-in sheets are read-only
-                # Create, validate and save a draft: it is not active until published.
-                page.get_by_role('button',name='New policy sheet').click()
-                form=page.get_by_role('form',name='Draft')
+                expect(page.get_by_role('button',name='Prepare a new version')).to_have_count(0)  # built-in sheets are read-only
+                # Guided setup: each step explains its choices and blocks incomplete input.
+                page.get_by_role('button',name='New guided policy').click()
+                form=page.get_by_role('form',name='Guided setup')
+                expect(form).to_contain_text('the coordinator reads this description')
                 form.get_by_label('Identifier').fill('Security')
-                expect(form.get_by_text('Lowercase letters, digits and underscores')).to_be_visible()
-                expect(form.get_by_role('button',name='Save draft')).to_be_disabled()
+                expect(form.get_by_text('Choose an identifier')).to_be_visible()
+                expect(form.get_by_role('button',name='Next')).to_be_disabled()
                 form.get_by_label('Identifier').fill('security')
-                form.get_by_role('button',name='Save draft').click()
-                expect(page.get_by_role('alert')).to_contain_text('titolo')
+                expect(form.get_by_text('Give the policy a title.')).to_be_visible()
                 form.get_by_label('Title').fill('Security')
-                form.get_by_label('Rules for specialists (one per line)').fill('No credentials in files\nRotate exposed tokens')
-                form.get_by_role('button',name='Add handoff check').click()
-                form.get_by_label('ID',exact=True).first.fill('no_secrets');form.get_by_label('Requirement').first.fill('No credentials in delivered files')
-                form.get_by_role('button',name='Add final criterion').click()
-                form.get_by_label('ID',exact=True).nth(1).fill('secret_scan');form.get_by_label('Requirement').nth(1).fill('Product contains no credentials')
-                form.get_by_label('Method').select_option('technical')
-                form.get_by_role('button',name='Save draft').click()
+                form.get_by_label('What it is for').fill('No secrets in delivered products')
+                form.get_by_label(re.compile('^When relevant')).check()
+                form.get_by_role('button',name='Next').click()
+                expect(form.get_by_role('heading',name='2. Working rules')).to_be_visible()
+                form.get_by_label('Rules (one per line)').fill('No credentials in files\nRotate exposed tokens')
+                form.get_by_role('button',name='Next').click()
+                expect(form).to_contain_text('If a blocking check is missing or fails, the activity goes back to revision')
+                form.get_by_role('button',name='Add a check').click()
+                form.get_by_label('What must be true').first.fill('No credentials in delivered files')
+                form.get_by_role('button',name='Next').click()
+                form.get_by_label('This policy’s own criteria').check()
+                form.get_by_role('button',name='Add a criterion').click()
+                form.get_by_label('What must be true').first.fill('Product contains no credentials')
+                form.get_by_label('How it is verified').select_option('technical')
+                expect(form).to_contain_text('Automated tools: scans, counts, validators.')
+                form.get_by_role('button',name='Next').click()
+                expect(form.get_by_label('Final delivery')).to_be_checked()
+                form.get_by_label('Samples and trials').uncheck()
+                form.get_by_role('button',name='Next').click()
+                summary=form.get_by_test_id('policy-summary')
+                expect(summary).to_contain_text('Applies when the coordinator finds it relevant and explains why.')
+                expect(summary).to_contain_text('No credentials in delivered files · blocking: if missing, the activity goes back to revision')
+                expect(summary).to_contain_text('Product contains no credentials · Technical measurement · blocking')
+                expect(summary).not_to_contain_text('Samples and trials')
+                form.get_by_role('button',name='Save as draft').click()
                 expect(page.get_by_role('status')).to_have_text('Draft saved')
                 saved=[b for m,pth,b in calls if m=='PUT'][-1]
                 assert saved['rules']==['No credentials in files','Rotate exposed tokens'],saved
-                assert saved['handoff_checks']==[{'id':'no_secrets','requirement':'No credentials in delivered files','critical':True}],saved
-                assert saved['final_checks']==[{'id':'secret_scan','requirement':'Product contains no credentials','method':'technical','critical':True}],saved
+                assert saved['handoff_checks']==[{'id':'no_credentials_in_delivered_files','requirement':'No credentials in delivered files','critical':True}],saved
+                assert saved['final_checks']==[{'id':'product_contains_no_credentials','requirement':'Product contains no credentials','method':'technical','critical':True}],saved
+                assert saved['applies_to']==['work','integration','delivery'],saved
                 expect(sheets.get_by_role('button',name='Security')).to_contain_text('Draft')
                 expect(page.get_by_text('No published version: projects do not use it yet.')).to_be_visible()
                 # Publish, retire, reactivate and restore: every step is visible in history.
@@ -141,16 +161,22 @@ createRoot(document.getElementById('root')!).render(kind==='project'?<Panel/>:<P
                 page.get_by_role('button',name='Reactivate').click()
                 expect(sheets.get_by_role('button',name='Security')).to_contain_text('Active v1')
                 page.get_by_role('button',name='Restore to draft').click()
-                expect(page.get_by_role('button',name='Publish draft')).to_be_visible()
+                expect(page.get_by_text('the active version keeps applying until you publish it')).to_be_visible()
+                # A new version reuses the guided steps and keeps existing codes.
+                page.get_by_role('button',name='Continue the draft').click()
+                form.get_by_role('button',name='6. Summary').click()
+                form.get_by_role('button',name='Save and publish').click()
+                expect(page.get_by_role('status')).to_have_text('Published')
+                expect(sheets.get_by_role('button',name='Security')).to_contain_text('Active v2')
                 history=page.get_by_role('heading',name='History').locator('..')
-                for label in ('Draft saved','Published v1','Retired v1','Reactivated v1','Restored to draft v1'):
+                for label in ('Draft saved','Published v1','Retired v1','Reactivated v1','Restored to draft v1','Published v2'):
                     expect(history).to_contain_text(label)
                 # Team members read the book without management controls.
                 role['admin']=False;page.goto('http://policy.test/')
-                expect(page.get_by_role('button',name='New policy sheet')).to_have_count(0)
+                expect(page.get_by_role('button',name='New guided policy')).to_have_count(0)
                 page.get_by_role('navigation',name='Policy sheets').get_by_role('button',name='Security').click()
                 expect(page.get_by_role('article',name='Active version')).to_contain_text('No credentials in files')
-                expect(page.get_by_role('form',name='Draft')).to_have_count(0)
+                expect(page.get_by_role('button',name='Prepare a new version')).to_have_count(0)
                 expect(page.get_by_role('button',name='Restore to draft')).to_have_count(0)
                 # The project panel names the pinned sheets and their validation verdicts.
                 page.goto('http://policy.test/?page=project')
@@ -178,7 +204,7 @@ createRoot(document.getElementById('root')!).render(kind==='project'?<Panel/>:<P
                 assert [b for m,pth,b in calls if pth.endswith('/harness-checkpoints')]==[{'enabled':False}]
                 assert not errors,errors
             finally:browser.close()
-    print('Policy Book UI OK: draft validation, publish, retire, reactivate, restore and history; read-only team view; live chat governance with findings and next step.')
+    print('Policy Book UI OK: guided six-step setup with explanations, generated codes and readable summary; publish, retire, reactivate, restore and new version; read-only team view; tool choices; live chat governance with checkpoints.')
 
 
 if __name__=='__main__':main()
