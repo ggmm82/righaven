@@ -12,9 +12,9 @@ def reason(trigger,tool=''):
 
 def difference(previous,spec):
     if not previous:return {'code':'new_combination','message':'Prima preparazione di questa combinazione di programmi e versioni.'}
-    if previous.get('core')!=spec.get('core'):
+    if previous.get('core')!=spec.get('core') and (not previous.get('software_abi') or previous.get('software_abi')!=spec.get('software_abi')):
         return {'code':'base_changed','message':'La base software è cambiata: la variante precedente resta distinta da quella richiesta.'}
-    changes=sorted(k for k in set(previous.get('versions',{}))|set(spec.get('versions',{})) if previous.get('versions',{}).get(k)!=spec.get('versions',{}).get(k))
+    changes=sorted({k for k in set(previous.get('versions',{}))|set(spec.get('versions',{})) if not k.startswith('provider-') and previous.get('versions',{}).get(k)!=spec.get('versions',{}).get(k)}|{k for k in (spec.get('tool_fingerprints') or {}) if k in (previous.get('tool_fingerprints') or {}) and previous['tool_fingerprints'][k]!=spec['tool_fingerprints'][k]})
     if changes:return {'code':'versions_changed','tools':changes,'message':'Versioni selezionate cambiate: '+', '.join(changes)+'. Riutilizzo gli strumenti compatibili.'}
     if set(previous.get('tools',[]))!=set(spec.get('tools',[])):
         return {'code':'tools_changed','message':'La combinazione di programmi richiesta è cambiata.'}

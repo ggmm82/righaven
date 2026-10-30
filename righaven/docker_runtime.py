@@ -456,8 +456,8 @@ def delegate(agent_id, task, workspace, tool_call_id=None, on_started=None, requ
                    deadline_at=(datetime.now(timezone.utc)+timedelta(hours=1)).isoformat(),
                    execution_state='environment', environment_started_at=utcnow())
             with heartbeat(progress):
-                from .tool_versions import selections
-                chosen_versions=selections(policy.get('user_id'),policy.get('agent_name'),needed,engine)
+                from .tool_versions import software_selections
+                chosen_versions=software_selections(policy.get('user_id'),policy.get('agent_name'),needed)
                 runtime_environment = environments.ensure(needed, acquire=True, progress=progress, cache_dependencies=not ephemeral_environment, claim=name,versions=chosen_versions)
             runtime_image = runtime_environment.get('image_id') or runtime_environment['image']
             # Installation can take minutes: a newer native disable/scope must win before AI starts.
@@ -471,6 +471,16 @@ def delegate(agent_id, task, workspace, tool_call_id=None, on_started=None, requ
                 settings['skills'] = [s for s in settings['skills'] if s in policy['skill_names']]
             update(progress, 'starting', environment_finished_at=utcnow(), environment={
                 'id':runtime_environment['id'],'tools':runtime_environment['tools'],'assigned_tools':needed,'status':'ready','versions':runtime_environment.get('version_names',{})})
+        from .provider_bundle import prepare as prepare_provider,arguments as provider_arguments
+        provider=prepare_provider(engine,policy.get('user_id'),policy.get('agent_name')) if environments.enabled() else None
+        if provider:
+            cli=provider[1]
+            if runtime_environment is not None:
+                runtime_environment={**runtime_environment,'version_names':{k:v for k,v in runtime_environment.get('version_names',{}).items() if not k.startswith('provider-')}}
+                runtime_environment['version_names']['provider-'+cli['binary']]=cli['version']
+            update(progress,provider_cli={'binary':cli['binary'],'version':cli['version'],'bundle':cli['id']})
+            if runtime_environment is not None:
+                update(progress,environment={'id':runtime_environment['id'],'tools':runtime_environment['tools'],'assigned_tools':needed,'status':'ready','versions':runtime_environment['version_names']})
         if role and role.get('composition_version')==1:
             from .environments import required_tools
             task_tools=required_tools(needed) if runtime_environment is not None else role['tools']
@@ -545,7 +555,7 @@ def delegate(agent_id, task, workspace, tool_call_id=None, on_started=None, requ
             restrictions = worker_arguments(policy, host_path(blocker), projected_skills=projection is not None)
         if projection is not None:
             restrictions += ['--mount', mount(projection, '/mnt/skills/custom', True)]
-        args = base_arguments(name, resources) + runtime_arguments(skills=projection is None) + restrictions + ['--label', f'org.righaven.harness.installation={installation}',
+        args = base_arguments(name, resources) + runtime_arguments(skills=projection is None) + provider_arguments(provider) + restrictions + ['--label', f'org.righaven.harness.installation={installation}',
             '--label', f'org.righaven.harness.workspace={workspace_key(workspace)}',
             *staging.mounts(mount, progress),
             '--mount', (mount(credentials.directory/'api.json' if credentials is not None else custom_connection_path(settings.get('connection_id')), '/credentials/api.json', True)

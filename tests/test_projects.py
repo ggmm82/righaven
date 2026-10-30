@@ -61,6 +61,15 @@ class ProjectTests(unittest.TestCase):
             return json.dumps(response)
         return json.loads(projects.execute_step(self.root, agent, 'Esegui solo il lavoro utile', sid, invoke, **kwargs))
 
+    def test_completed_work_with_null_quality_review_returns_its_result(self):
+        # The worker reports quality_review=None for every non-review purpose.
+        self.plan()
+        response = self.result('photocraft')
+        response['quality_review'] = None
+        result = self.run_step('visual', response)
+        self.assertTrue(result['ok'])
+        self.assertEqual(result['activity'], {'id': 'visual', 'status': 'completed'})
+
     def test_any_catalog_team_and_input_order_are_allowed(self):
         roles = projects.applications()
         self.assertIn("blender", {a["id"] for a in roles})

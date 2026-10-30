@@ -34,7 +34,7 @@ class EnvironmentRouteTests(unittest.TestCase):
         self.assertTrue(result['runtime']['update_available'])
         self.assertEqual(result['runtime']['requested_id'],'b'*64)
 
-    def test_provider_change_keeps_preparation_history_without_claiming_new_runtime_ready(self):
+    def test_provider_change_preserves_program_readiness_and_never_requests_a_machine_update(self):
         for image_present in (True,False):
             with self.subTest(image_present=image_present):
                 agent=SimpleNamespace(name='docs')
@@ -53,14 +53,16 @@ class EnvironmentRouteTests(unittest.TestCase):
                      patch.object(routes.runtimes,'image_exists',return_value=image_present), \
                      patch.object(routes.preparation,'snapshot',return_value={'phase':'ready','label':'Pronto','active':False}):
                     result=routes.summary('owner',agent)
-                self.assertEqual(result['runtime']['status'],'on_demand')
-                self.assertEqual(result['configuration_change']['code'],'provider_changed')
-                self.assertEqual(result['configuration_change']['previous_available'],image_present)
-                self.assertEqual(result['configuration_change']['previous_providers'],['Antigravity'])
-                self.assertEqual(result['configuration_change']['requested_providers'],['Codex'])
-                self.assertEqual(result['preparation']['phase'],'configuration_changed')
-                self.assertTrue(result['preparation']['historical'])
-                self.assertEqual('previous_runtime' in result,image_present)
+                self.assertEqual(result['runtime']['status'],'ready' if image_present else 'on_demand')
+                self.assertNotIn('configuration_change',result)
+                self.assertFalse(result['preparation']['pending_changes'])
+                self.assertEqual(result['selected_versions'],{})
+
+    def test_provider_version_update_never_rebuilds_application_profiles(self):
+        with patch.object(routes,'schedule') as schedule:
+            for tool in ('provider-codex','provider-agy','provider-claude'):
+                self.assertEqual(routes.schedule_affected(tool),0)
+            schedule.assert_not_called()
 
     def test_native_config_loads_owner_scoped_soul_without_assuming_http_response_fields(self):
         from righaven_core.config.agents_config import AgentConfig

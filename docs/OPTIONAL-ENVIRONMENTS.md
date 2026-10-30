@@ -45,4 +45,13 @@ Review reports can declare `observation_limits` with an actual method, reason an
 
 Preparation records retain the trigger (manual, configuration, version activation, or startup) and an observed reason for a new recipe (base, versions, tools, or unavailable image). The interface shows the explanation in preparation details. These diagnostics do not claim to reconstruct a reason missing from historical records.
 
-Image sizes are uncompressed totals including the base and inherited layers, not RAM or exclusive disk usage. The UI explains that shared layers must not be summed across profiles. Newly prepared images also record the added size relative to the actual parent; this is not a measurement of exclusive disk space. Heavy programs and provider CLI overrides can increase image layers even when native tools are reused.
+Image sizes are uncompressed totals including the base and inherited layers, not RAM or exclusive disk usage. The UI explains that shared layers must not be summed across profiles. Newly prepared images also record the added size relative to the actual parent; this is not a measurement of exclusive disk space. Heavy programs can increase image layers even when other native tools are reused. Model-provider CLIs now live in separate persistent, verified bundles, mounted read-only into workers; changing a model or CLI does not add a provider layer to every application environment.
+
+
+### Reusing prepared software
+
+Application recipes use the software platform compatibility identity and per-tool installation inputs. Catalog prose, worker code, skill instructions and the selected model do not invalidate compatible program images. Existing owned images are inspected and their compatibility metadata is cached persistently; no account or project data is mounted for inspection. Missing images and genuinely incompatible software bases still require preparation.
+
+Preparation chooses the compatible parent with the most unchanged requested tools, including partial overlaps. It preserves those tools, removes unrequested application payloads in the disposable child, and replaces only missing or changed payloads. The parent is immutable. Shared system dependencies are retained; all required native checks run again before publication. The UI reports reused and added/updated tool counts.
+
+Codex, Antigravity and Claude Code use a shared version selection under Models & resources. Their immutable CLI bundles contain only executable software, never account credentials. Each worker mounts the selected bundle read-only and receives its own credential session. A CLI update affects subsequent workers; it does not modify active jobs or rebuild saved environments. DeepSeek and OpenAI-compatible API connections do not need a CLI bundle. Historical provider pins in saved environment preparation records no longer affect program readiness.

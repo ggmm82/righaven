@@ -17,6 +17,12 @@ class WorkResultTests(unittest.TestCase):
         self.assertEqual(failure_info('Chiave DeepSeek rifiutata')['code'], 'provider_auth')
         self.assertTrue(failure_info('Limite dei turni DeepSeek')['retryable'])
 
+    def test_interrupted_provider_stream_is_not_an_environment_installation_failure(self):
+        value=failure_info('Antigravity: The stream was interrupted. Please continue the task you were working on.')
+        self.assertEqual(value['code'],'provider_stream_interrupted')
+        self.assertTrue(value['retryable'])
+        self.assertIn('non richiede di reinstallare',value['action'])
+
     def test_inventory_keeps_useful_files_without_claiming_delivery_or_following_links(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

@@ -233,10 +233,10 @@ class VersionTests(unittest.TestCase):
             self.assertEqual(app_file.read_text(),'unchanged')
             self.assertEqual(json.loads((root/'catalog.lock.json').read_text())['cli_runtimes']['codex'],'builtin-test-version')
 
-    def test_cli_reset_can_use_application_layers_only_as_a_base_not_as_a_ready_runtime(self):
+    def test_application_readiness_is_independent_of_a_previously_selected_provider(self):
         spec={'tools':['d2'],'core':'sha256:base'}
         old={'tools':['d2'],'core':spec['core'],'versions':{'provider-agy':'a'*64}}
-        self.assertFalse(environment_runtime.matching_versions(old,spec))
+        self.assertTrue(environment_runtime.matching_versions(old,spec))
         self.assertTrue(environment_runtime.matching_versions(old,spec,True,reset_providers=True))
         old['versions']['d2']='b'*64
         self.assertFalse(environment_runtime.matching_versions(old,spec,True,reset_providers=True))

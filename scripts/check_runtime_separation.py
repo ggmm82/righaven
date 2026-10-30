@@ -76,22 +76,30 @@ def main():
                 command=['docker','run','--rm','--network=none',ready['image_id'],'/opt/righaven/apps/d2/bin/d2','--version']
                 assert '0.7.0' in subprocess.check_output(command,text=True)
                 factory.evict(original['id'])
+                from righaven import provider_bundle
+                defaults=tool_versions.directory()/'defaults.json'
                 for provider in ('provider-agy','provider-codex'):
                     pin=verify_release(provider,'1.4.8' if provider=='provider-agy' else tool_versions.builtins()[provider]['version'])
                     cli=factory.ensure([],versions={provider:pin})
                     assert cli['versions'][provider]==pin
-                    combined=factory.ensure(['d2'],exact=True,versions={'d2':version,provider:pin})
-                    factory.save(ready['id'],status='on_demand',image='',image_id='')
-                    ready=factory.ensure(['d2'],exact=True,versions={'d2':version})
-                    proof=json.loads(runtime.docker('run','--rm','--network=none',ready['image_id'],'cat','/opt/righaven/environment.json'))
-                    assert proof['installed_tools']==[] and proof['reused_tools']==['d2'],proof
+                    # Model CLI pins are not part of program environments: D2 is reused untouched.
+                    with patch.object(factory.subprocess,'Popen',side_effect=no_install):
+                        same=factory.ensure(['d2'],exact=True,versions={'d2':version})
+                    assert same['image_id']==ready['image_id'],same
+                    engine='gemini' if provider=='provider-agy' else 'codex'
                     command='agy' if provider=='provider-agy' else 'codex'
-                    actual=runtime.docker('run','--rm','--network=none',ready['image_id'],command,'--version')
-                    assert tool_versions.builtins()[provider]['version'].lstrip('v') in actual,actual
-                    if provider=='provider-codex':
-                        target=runtime.docker('run','--rm','--network=none',ready['image_id'],'readlink','/usr/local/bin/codex')
-                        assert '/usr/local/lib/node_modules/@openai/codex/' in target,target
-                    factory.evict(combined['id'])
+                    # Workers run the CLI from a read-only bundle mounted over the program image.
+                    for selected in (pin,None):
+                        if selected:state.atomic_json(defaults,{provider:selected})
+                        else:defaults.unlink()
+                        mounted=provider_bundle.prepare(engine)
+                        expected=(tool_versions.packages({provider:selected})[provider]['app'] if selected else tool_versions.builtins()[provider])['version']
+                        assert mounted[1]['version']==expected,mounted
+                        arguments=provider_bundle.arguments(mounted)
+                        actual=runtime.docker('run','--rm','--network=none',*arguments,ready['image_id'],command,'--version')
+                        assert expected.lstrip('v') in actual,actual
+                        target=runtime.docker('run','--rm','--network=none',*arguments,ready['image_id'],'sh','-c','command -v '+command)
+                        assert target==provider_bundle.TARGET+'/bin/'+command,target
                     factory.evict(cli['id'])
                 print('Tool versions Docker OK: official release resolver, two D2 versions, rollback without reinstall, native Codex and Antigravity CLI verification.')
                 from righaven.environment_portability import export_image,import_image
@@ -108,7 +116,7 @@ def main():
                 with patch.object(docker_archives.subprocess,'run',side_effect=incompatible_platform):
                     archive=export_image(ready,exporting)
                 assert fallback,'Platform compatibility fallback was not exercised'
-                print('Provider cache reuse OK: custom CLI reset retains D2 without reinstalling it; native versions confirmed. Complete export fallback exercised against the real Docker engine.')
+                print('Provider cache reuse OK: custom CLI pins retain D2 without reinstalling it; mounted CLI bundles report native versions. Complete export fallback exercised against the real Docker engine.')
                 # Rebuild the exported Dockerfile against the exact installed software base.
                 import tarfile
                 with tarfile.open(archive,'r:') as package:

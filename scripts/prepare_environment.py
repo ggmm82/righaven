@@ -23,6 +23,7 @@ def step(label,**fields):
 def installed_versions():
     installed=json.loads((ROOT/'installed.json').read_text())
     result={row['id']:row['version'] for row in installed}
+    if installed:return result  # Provider CLIs are a separate mounted runtime.
     lock=json.loads((ROOT/'catalog.lock.json').read_text())
     result.update({'provider-'+('agy' if key=='gemini' else key):value for key,value in lock.get('cli_runtimes',{}).items() if key in ('codex','claude')})
     agy=ROOT/'antigravity.lock.json'
@@ -40,8 +41,39 @@ def verify_native(tools):
     return tested
 
 
+def retain_unchanged(tools, known, bin_dir=Path('/usr/local/bin'),reinstall=()):
+    """Discard only changed tool payloads in this disposable child, never its parent."""
+    import platform
+    arch={'x86_64':'amd64','aarch64':'arm64'}[platform.machine()]
+    inherited=json.loads((ROOT/'installed.json').read_text());kept=[];changed=[]
+    for row in inherited:
+        tool=row['id']
+        if not __import__('re').fullmatch(r'[a-z0-9][a-z0-9-]{0,63}',tool):raise ValueError('Identificativo payload non valido')
+        app=known.get(tool)
+        if tool in tools and tool not in reinstall and row.get('version')==app['version'] and row.get('sha256')==app['assets'][arch]['sha256']:
+            kept.append(row);continue
+        target=ROOT/'apps'/tool
+        if target.is_symlink():raise ValueError('Payload dello strumento non valido')
+        # Archive-based commands own only links into their application directory.
+        # System-managed executables are updated by their package installer.
+        for link in bin_dir.iterdir():
+            if link.is_symlink() and link.resolve().is_relative_to(target.resolve()):link.unlink()
+        if target.exists():shutil.rmtree(target)
+        if tool in tools:changed.append(tool)
+    (ROOT/'installed.json').write_text(json.dumps(kept))
+    return {row['id'] for row in kept},changed
+
+
 def main():
     spec = json.loads(Path(sys.argv[1]).read_text())
+    for name,content in spec.get('catalog_files',{}).items():
+        target=ROOT/name
+        if not name.startswith('toolkit-lock/') or '..' in Path(name).parts or not target.resolve().is_relative_to((ROOT/'toolkit-lock').resolve()):raise ValueError('Dipendenza del catalogo fuori dalla directory prevista')
+        target.parent.mkdir(parents=True,exist_ok=True);target.write_text(content)
+    if spec.get('catalog'):
+        (ROOT/'catalog.lock.json').write_text(json.dumps(spec['catalog']))
+    if spec.get('capabilities'):
+        (ROOT/'catalog-capabilities.json').write_text(json.dumps(spec['capabilities']))
     if spec.get('reset_providers'):
         from apply_tool_versions import reset_providers
         reset_providers(spec['reset_providers'])
@@ -68,17 +100,18 @@ def main():
         Path('/mnt/user-data').mkdir(parents=True,exist_ok=True)
         step('verified',installed_versions=installed_versions())
         return
-    inherited=json.loads((ROOT/'installed.json').read_text())
-    reused={row['id'] for row in inherited}
-    if reused-set(tools):raise ValueError('Base environment contains tools outside the requested recipe')
+    reused,changed=retain_unchanged(tools,known,reinstall=spec.get('reinstall_tools',[]))
     missing=set(tools)-reused
     free = shutil.disk_usage('/').free
     estimate = max(512*1024**2, sum(max((v.get('size_bytes',0) for v in known[t]['assets'].values()), default=0) for t in missing)*3)
     if free < estimate + 512*1024**2:
         raise ValueError('Spazio insufficiente per preparare gli strumenti richiesti')
-    step('installing')
+    step('installing',reused_tools=sorted(reused),changed_tools=changed,install_tools=sorted(missing))
     if tools:subprocess.run([sys.executable,str(ROOT/'install_environment_tools.py'),'--apps',*tools],check=True)
     step('adapters')
+    for tool in tools:
+        app=known[tool];link=Path('/usr/local/bin')/app['executable']
+        if app.get('install') and app['executable'].endswith('-cli') and not link.exists() and not link.is_symlink():link.symlink_to(ROOT/'toolkit_cli.py')
     for app in sorted(missing):
         if known[app].get('install',{}).get('kind')=='design-node':
             subprocess.run(['node',str(ROOT/'build_design_web.cjs'),app,str(ROOT/'apps'/app),str(ROOT/'apps'/app/'web')],check=True)
@@ -107,7 +140,7 @@ def main():
         'checks':{'registries':'passed','native_workflows':tested,'workflows_not_run':sorted(set(tools)-set(tested))}}))
     shutil.rmtree('/mnt/user-data',ignore_errors=True)
     Path('/mnt/user-data').mkdir(parents=True,exist_ok=True)
-    step('verified',installed_versions=installed_versions())
+    step('verified',installed_versions=installed_versions(),reused_tools=sorted(reused),installed_tools=sorted(missing))
 
 
 if __name__=='__main__':

@@ -893,7 +893,7 @@ def execute_step(workspace, agent, task, step_id, invoke, *, provider=None, purp
         if (value.get('user_control') or {}).get('deliver_now'):
             value.update(summary='Consegna richiesta: file disponibili con i limiti registrati' if result.get('ok') else 'Chiusura richiesta: nessun nuovo prodotto verificato',next_action='Presenta i risultati disponibili e attendi nuove istruzioni dell’utente')
         atomic_json(folder / 'project.json', value)
-    if result.get('quality_review', {}).get('status') == 'passed' and not stale_contract and not newer_version:
+    if (result.get('quality_review') or {}).get('status') == 'passed' and not stale_contract and not newer_version:
         reconcile_completion(workspace)
     if result.get('user_requested_delivery'):
         result['instruction']='L’utente ha chiesto la consegna: presenta file e limiti e fermati senza nuove deleghe.'
