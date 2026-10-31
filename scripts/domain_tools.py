@@ -181,6 +181,9 @@ def invoke(app,action,args,cli):
     code=completed.returncode
     if code not in codes:
         raise RuntimeError(app+' failed ('+str(code)+'): '+stderr.read_text(errors='replace')[-2500:]+'\n'+stdout.read_text(errors='replace')[-1500:])
+    if app=='ajv':
+        # ajv-cli prints the verdict and JSON errors on stderr; keep both streams in the report.
+        stdout.write_bytes(stdout.read_bytes()+stderr.read_bytes())
     if stdout_to and not expected:expected=[stdout]
     if app=='abcm2ps':expected=sorted(output.glob('score*.svg'))[:1] or [output/'score001.svg']
     if any(not path.is_file() or not path.stat().st_size for path in expected):

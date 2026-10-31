@@ -260,7 +260,8 @@ def ajv(c):
     good=write(c,'ok.json','{"nome":"Ada","eta":36}');bad=write(c,'errato.json','{"nome":"Ada","eta":-1}')
     ok=operation(c,'validate',input=str(good),schema=str(schema),output=str(c.root/'Ok'))
     ko=operation(c,'validate',input=str(bad),schema=str(schema),output=str(c.root/'Ko'))
-    c.check('Valid document passes and a negative age is rejected',ok['status']=='passed' and ko['status']=='failed',[ok['status'],ko['status']])
+    report=(c.root/'Ko/result.txt').read_text()
+    c.check('Valid document passes and a negative age is rejected',ok['status']=='passed' and ko['status']=='failed' and 'minimum' in report,[ok['status'],ko['status'],report[-300:]])
 
 
 def mjml(c):
