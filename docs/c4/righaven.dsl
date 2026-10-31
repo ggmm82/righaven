@@ -18,7 +18,7 @@ workspace "RigHaven" "Governed multi-agent harness and on-demand CLI environment
             frontend = container "Workspace UI" "Chat with the coordinator, project details and Policy line, Environments, Policy Book, Machine usage and Gallery; Italian and English." "Next.js 16 / React 19 / TypeScript"
             gateway = container "Gateway and Harness" "Coordinator tools, project lifecycle, Policy Book, environments and delivery checks." "FastAPI / Python 3.12" {
                 coordinatorTools = component "Coordinator tools" "harness_plan, harness_delegate, harness_delegate_batch, harness_validate, harness_skills and harness_read_context." "tools.py"
-                projects = component "Project lifecycle" "Brief, Execution Plan, attempts, phase checkpoints, delivery gate and owner acceptance." "projects.py, project_brief.py"
+                projects = component "Project lifecycle" "Brief, Execution Plan, attempts, phase checkpoints, delivery gate and owner acceptance." "projects.py, project_store.py, brief.py, delivery_gate.py, project_brief.py"
                 policyBook = component "Policy Book" "Declarative policy sheets with draft, active and retired states and immutable versions." "policy_book.py, policy_routes.py"
                 policyWorkflow = component "Policy workflow" "Derives the governance phase, gates production, injects rules, checks handoff compliance and runs final multi-policy validation." "policy_workflow.py"
                 acceptance = component "Acceptance and review engine" "Acceptance contract, independent review reports and verdicts per requirement." "acceptance.py, deliveries.py, handoff.py"

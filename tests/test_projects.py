@@ -6,7 +6,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from righaven import projects
+from righaven import project_store, projects
 
 
 VIDEO = [
@@ -176,7 +176,7 @@ class ProjectTests(unittest.TestCase):
             raise KeyboardInterrupt()
         with self.assertRaises(KeyboardInterrupt):
             projects.execute_step(self.root, 'effectcraft', 'Revisione', 'motion', die)
-        with patch.object(projects, 'GATEWAY_SESSION', 'new-process'):
+        with patch.object(project_store, 'GATEWAY_SESSION', 'new-process'):  # one identity per Gateway process
             p = projects.read_project(self.root)
         self.assertEqual(next(s for s in p['steps'] if s['id'] == 'motion')['status'], 'paused')
         self.assertEqual(read_status(progress)['phase'], 'failed')
