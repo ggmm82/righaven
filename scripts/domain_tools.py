@@ -7,7 +7,7 @@ except ImportError:from domain_specs import TOOLS
 
 APPS=set(TOOLS)
 NODE={'spectral':'spectral','ajv':'ajv','mjml':'mjml'}
-BINARIES={'beancount':'bean-check','openbabel':'obabel','pari':'gp','nco':'ncks','fonttools':'ttx','abcmidi':'abc2midi','miller':'mlr'}
+BINARIES={'beancount':'bean-check','openbabel':'obabel','pari':'gp','nco':'ncks','fonttools':'ttx','abcmidi':'abc2midi','miller':'mlr','maxima':'maxima-sage'}
 VERSION_FLAGS={'openbabel':['-V'],'seqkit':['version'],'pari':['--version-short'],'exiftool':['-ver'],'abcm2ps':['-V'],
                'abcmidi':['-ver'],'actionlint':['-version'],'beancount':['--help'],'mat2':['--help'],'ajv':['help']}
 SUFFIXES={

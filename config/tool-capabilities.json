@@ -9623,7 +9623,7 @@
     },
     {
       "id": "maxima",
-      "version": "5.46.0",
+      "version": "5.45.1",
       "catalog_count": 1,
       "catalog_ids": [
         "maxima.evaluate"

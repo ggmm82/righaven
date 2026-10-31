@@ -3284,29 +3284,29 @@
         "maxima-cli commands",
         "maxima-cli call evaluate '{...}'"
       ],
-      "version": "5.46.0",
+      "version": "5.45.1",
       "assets": {
         "amd64": {
-          "name": "maxima_5.46.0-11_amd64.deb",
-          "url": "https://deb.debian.org/debian/pool/main/m/maxima/maxima_5.46.0-11_amd64.deb",
-          "sha256": "bff56a58e70018d81228981d4ede100f39a2a55ed7ea2a2d1c5c172ff1e05525",
-          "size_bytes": 6858600,
-          "package": "maxima",
-          "package_version": "5.46.0-11"
+          "name": "maxima-sage_5.45.1-2_amd64.deb",
+          "url": "https://deb.debian.org/debian/pool/main/m/maxima-sage/maxima-sage_5.45.1-2_amd64.deb",
+          "sha256": "31105906b2dc175c7174578d966aae1c1879a98a69609851b8d5145fda8bed57",
+          "size_bytes": 6803872,
+          "package": "maxima-sage",
+          "package_version": "5.45.1-2"
         },
         "arm64": {
-          "name": "maxima_5.46.0-11_arm64.deb",
-          "url": "https://deb.debian.org/debian/pool/main/m/maxima/maxima_5.46.0-11_arm64.deb",
-          "sha256": "f383099a0f81e1f6dbd5fd4b08a15ce898a6b3b502ec5c31730a5f0a26171244",
-          "size_bytes": 6243828,
-          "package": "maxima",
-          "package_version": "5.46.0-11"
+          "name": "maxima-sage_5.45.1-2_arm64.deb",
+          "url": "https://deb.debian.org/debian/pool/main/m/maxima-sage/maxima-sage_5.45.1-2_arm64.deb",
+          "sha256": "98243f4d146afafcda348866a8c723d3766df5d1bc9e56da90d0eb6dbb75462a",
+          "size_bytes": 5705136,
+          "package": "maxima-sage",
+          "package_version": "5.45.1-2"
         }
       },
       "download_base": "https://deb.debian.org/debian/",
       "install": {
         "kind": "debian",
-        "native_path": "/usr/bin/maxima"
+        "native_path": "/usr/bin/maxima-sage"
       }
     },
     {

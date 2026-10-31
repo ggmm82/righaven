@@ -1,6 +1,6 @@
 # Capacità operative: maxima
 
-Versione esaminata: **5.46.0**. Audit del catalogo nativo: 2026-10-25.
+Versione esaminata: **5.45.1**. Audit del catalogo nativo: 2026-10-25.
 
 **Sceglilo per:** Run a Maxima batch file (symbolic algebra, calculus, equations) and save the transcript.
 **Sorgenti:** Batch file and transcript.
