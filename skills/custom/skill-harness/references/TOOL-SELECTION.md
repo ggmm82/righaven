@@ -77,6 +77,40 @@ Un comando registrato non è un workflow collaudato: verifica prerequisiti, dati
 | [dlt](../../skill-dlt/references/CAPABILITIES.md) | Discover SQL/document source metadata and extract bounded data into a reproducible local pipeline. | Python pipeline, schema YAML/JSON, query/inputs, portable JSONL, DuckDB snapshot and row reconciliation. |
 | [sqlglot](../../skill-sqlglot/references/CAPABILITIES.md) | Parse SQL dialects and derive table/column lineage using real expressions and actual supplied schemas. | Original SQL, actual schema dictionary, normalized SQL, lineage JSON and limits. |
 | [sqlmesh](../../skill-sqlmesh/references/CAPABILITIES.md) | Plan, test and explain SQL/Python analytical transformations using an isolated local DuckDB project. | SQL/Python models, tests, configuration, copied project, DuckDB results and plan/audit evidence. |
+| [hledger](../../skill-hledger/references/CAPABILITIES.md) | Check a plain-text journal: parsing, balanced transactions and balance assertions; strict also requires declared accounts and commodities | Journal file, CSV reports and native check output |
+| [beancount](../../skill-beancount/references/CAPABILITIES.md) | Check a Beancount ledger: syntax, open accounts, balanced postings and balance assertions | Ledger file, BQL query and CSV results |
+| [openbabel](../../skill-openbabel/references/CAPABILITIES.md) | Convert molecules between SMILES, SDF, MOL, MOL2, XYZ, PDB, CML and InChI; optionally generate 3D coordinates | Original molecule file, converted structure and descriptor table |
+| [xtb](../../skill-xtb/references/CAPABILITIES.md) | Optimize a molecular geometry (XYZ) with the GFN2-xTB semiempirical method; save the optimized structure and native log | Input geometry, optimized structure and native log |
+| [seqkit](../../skill-seqkit/references/CAPABILITIES.md) | Summarize FASTA/FASTQ files: counts, lengths, N50, GC and quality fractions as TSV | Original sequences, filtered files and statistics |
+| [samtools](../../skill-samtools/references/CAPABILITIES.md) | Count mapped, paired and duplicate reads of a SAM/BAM/CRAM alignment as TSV | Original alignment, sorted BAM with index and flag statistics |
+| [bcftools](../../skill-bcftools/references/CAPABILITIES.md) | Summarize a VCF/BCF: records, SNPs, indels, transitions/transversions and quality distributions | Original VCF/BCF and native statistics |
+| [minimap2](../../skill-minimap2/references/CAPABILITIES.md) | Align reads or assemblies to a reference FASTA into SAM with an explicit preset; alignment is evidence for interpretation, not a variant call | Reads, reference and SAM alignment |
+| [mafft](../../skill-mafft/references/CAPABILITIES.md) | Build a multiple sequence alignment from FASTA with MAFFT --auto; save the aligned FASTA | Input sequences and aligned FASTA |
+| [z3](../../skill-z3/references/CAPABILITIES.md) | Check an SMT-LIB 2 problem with the Z3 solver; report sat, unsat or unknown with the model or core it prints | SMT-LIB problem, solver answer and model |
+| [minizinc](../../skill-minizinc/references/CAPABILITIES.md) | Solve a MiniZinc constraint model (optionally with a .dzn data file) using Gecode within a time limit; save every printed solution and the optimality status | Model, data file and printed solutions with status |
+| [maxima](../../skill-maxima/references/CAPABILITIES.md) | Run a Maxima batch file (symbolic algebra, calculus, equations) and save the transcript | Batch file and transcript |
+| [pari](../../skill-pari/references/CAPABILITIES.md) | Run a PARI/GP script (number theory, exact arithmetic, polynomials) and save its output | GP script and output |
+| [cdo](../../skill-cdo/references/CAPABILITIES.md) | Describe a NetCDF/GRIB dataset: variables, grid, levels and time steps | Original dataset, derived NetCDF and dataset description |
+| [nco](../../skill-nco/references/CAPABILITIES.md) | Print the metadata of a NetCDF file: dimensions, variables, attributes and units | Original NetCDF, metadata listing and subset file |
+| [exiftool](../../skill-exiftool/references/CAPABILITIES.md) | Read embedded metadata (EXIF, IPTC, XMP, GPS, document properties) of a file into grouped JSON, without changing it | Original file untouched and grouped metadata JSON |
+| [mat2](../../skill-mat2/references/CAPABILITIES.md) | List the metadata mat2 would remove from a document, image or media file | Original file preserved, cleaned copy and removed metadata list |
+| [fonttools](../../skill-fonttools/references/CAPABILITIES.md) | List the OpenType tables of a font file with their checksums and sizes | Original font, subset font and table listing |
+| [fontforge](../../skill-fontforge/references/CAPABILITIES.md) | Open a font (TTF, OTF, SFD, UFO, WOFF) and generate it in another format, reporting the glyph count | Original font, generated font and glyph count |
+| [zint](../../skill-zint/references/CAPABILITIES.md) | Encode data as a barcode or 2D code (QR, Data Matrix, PDF417, Code 128, EAN-13, GS1-128) in SVG or PNG; check scannability on the final medium | Encoded data file and SVG/PNG code |
+| [shellcheck](../../skill-shellcheck/references/CAPABILITIES.md) | Analyze a shell script for bugs and portability issues; save JSON findings | Script and JSON findings |
+| [hadolint](../../skill-hadolint/references/CAPABILITIES.md) | Lint a Dockerfile against best practices (including ShellCheck on RUN steps); save JSON findings | Dockerfile and JSON findings |
+| [actionlint](../../skill-actionlint/references/CAPABILITIES.md) | Check a GitHub Actions workflow: syntax, expressions, job dependencies and embedded scripts; save JSON findings | Workflow file and JSON findings |
+| [tflint](../../skill-tflint/references/CAPABILITIES.md) | Lint a Terraform module directory with the bundled core rules (no provider plugins downloaded); save JSON findings | Module folder and JSON findings |
+| [spectral](../../skill-spectral/references/CAPABILITIES.md) | Lint an OpenAPI or AsyncAPI document with the standard Spectral rulesets or a supplied ruleset; save JSON findings | API document, ruleset and JSON findings |
+| [jq](../../skill-jq/references/CAPABILITIES.md) | Apply a jq filter to JSON and save the result; the filter is kept with the output | Input JSON, filter and result |
+| [yq](../../skill-yq/references/CAPABILITIES.md) | Apply a jq filter to YAML (or XML/TOML read as YAML) and save YAML output | Input YAML, filter and YAML result |
+| [miller](../../skill-miller/references/CAPABILITIES.md) | Convert or transform CSV, TSV or JSON with Miller; an optional DSL script file is kept with the output | Input data, DSL script and converted result |
+| [ajv](../../skill-ajv/references/CAPABILITIES.md) | Validate JSON data against a JSON Schema (draft 2020-12, 2019-09 or 07) and save all errors | Data, schema and validation errors |
+| [mjml](../../skill-mjml/references/CAPABILITIES.md) | Compile an MJML email template into responsive HTML with strict validation | MJML source and compiled HTML |
+| [abcm2ps](../../skill-abcm2ps/references/CAPABILITIES.md) | Engrave ABC music notation into SVG pages, one per tune | ABC source and SVG score pages |
+| [abcmidi](../../skill-abcmidi/references/CAPABILITIES.md) | Convert ABC music notation into a MIDI file for listening checks | ABC source and MIDI file |
+| [hunspell](../../skill-hunspell/references/CAPABILITIES.md) | List words not found in the Italian or English Hunspell dictionary; names and technical terms need human review | Text and list of unknown words |
+| [vale](../../skill-vale/references/CAPABILITIES.md) | Check prose against style rules (Vale built-in rules or a supplied .vale.ini with local styles); save JSON alerts | Text, .vale.ini with styles and JSON alerts |
 
 ## Passaggi tra strumenti
 

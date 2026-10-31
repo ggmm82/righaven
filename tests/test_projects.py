@@ -75,8 +75,13 @@ class ProjectTests(unittest.TestCase):
         self.assertIn("blender", {a["id"] for a in roles})
         steps = [{'id': 'task' + str(i), 'agent': app['id'], 'goal': app['role'],
                   'depends_on': ['task12'] if i == 0 else []} for i, app in enumerate(roles)]
-        p = self.plan(steps)
-        self.assertEqual(len(p['steps']), len(roles))
+        # Every catalog tool can be assigned; one project still holds at most 64 activities.
+        p = self.plan(steps[:60])
+        self.assertEqual(len(p['steps']), 60)
+        for start in range(60, len(steps), 60):
+            root = self.root / ('more' + str(start)); root.mkdir()
+            chunk = [{**s, 'depends_on': []} for s in steps[start:start + 60]]
+            self.assertEqual(len(projects.create_plan(root, 'Altri strumenti', chunk)['steps']), len(chunk))
         # Even a video may start from existing source material and an integration role.
         p = self.plan([{'id': 'integrate', 'agent': 'filmcraft', 'goal': 'Monta gli input esistenti'}])
         self.assertTrue(any(s['id'] == 'integrate' for s in p['steps']))

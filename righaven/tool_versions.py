@@ -68,7 +68,7 @@ def validate(bundle):
     if tool=='playwright':paths={'toolkit-lock/package.json','toolkit-lock/package-lock.json'}
     if tool=='structurizr':paths={'toolkit-lock/design/structurizr/libraries.json'}
     if tool=='provider-codex':paths={'provider-clis/codex/package.json','provider-clis/codex/package-lock.json'}
-    if tool=='axe-core':paths={'toolkit-lock/extended/axe-core/package.json','toolkit-lock/extended/axe-core/package-lock.json'}
+    if tool in ('axe-core','spectral','ajv','mjml'):paths={'toolkit-lock/extended/'+tool+'/package.json','toolkit-lock/extended/'+tool+'/package-lock.json'}
     files=bundle.get('files',{})
     if not isinstance(files,dict) or set(files)-paths or sum(len(v.encode()) for v in files.values())>10*1024**2:
         raise ValueError('Dipendenze fuori dal contratto dello strumento')

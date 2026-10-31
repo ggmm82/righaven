@@ -37,3 +37,6 @@ TOOLS={
 try:from .data_specs import TOOLS as DATA_TOOLS
 except ImportError:from data_specs import TOOLS as DATA_TOOLS
 TOOLS.update(DATA_TOOLS)
+try:from .domain_specs import TOOLS as DOMAIN_TOOLS
+except ImportError:from domain_specs import TOOLS as DOMAIN_TOOLS
+TOOLS.update(DOMAIN_TOOLS)

@@ -199,3 +199,6 @@ CASES={name:globals()[name.replace('-','_')] for name in ('duckdb','jupyter','qu
 try:from .acceptance_data import CASES as DATA_CASES
 except ImportError:from acceptance_data import CASES as DATA_CASES
 CASES.update(DATA_CASES)
+try:from .acceptance_domain import CASES as DOMAIN_CASES
+except ImportError:from acceptance_domain import CASES as DOMAIN_CASES
+CASES.update(DOMAIN_CASES)

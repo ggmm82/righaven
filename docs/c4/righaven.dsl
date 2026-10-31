@@ -13,7 +13,7 @@ workspace "RigHaven" "Governed multi-agent harness and on-demand CLI environment
         apiProviders = softwareSystem "API model providers" "DeepSeek and OpenAI-compatible endpoints over HTTPS." "External"
         registries = softwareSystem "Upstream registries" "Docker, PyPI, npm and official release sources for locked tool versions." "External"
 
-        righaven = softwareSystem "RigHaven" "Governed agent harness with a catalog of 62 managed CLI tools (Community and hosted editions)." {
+        righaven = softwareSystem "RigHaven" "Governed agent harness with a catalog of 96 managed CLI tools (Community and hosted editions)." {
             proxy = container "Edge proxy" "Terminates TLS and routes UI, API and SSE traffic." "Caddy"
             frontend = container "Workspace UI" "Chat with the coordinator, project details and Policy line, Environments, Policy Book, Machine usage and Gallery; Italian and English." "Next.js 16 / React 19 / TypeScript"
             gateway = container "Gateway and Harness" "Coordinator tools, project lifecycle, Policy Book, environments and delivery checks." "FastAPI / Python 3.12" {

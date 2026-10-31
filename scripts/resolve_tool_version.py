@@ -11,7 +11,7 @@ import urllib.parse
 import urllib.request
 
 ROOT=Path('/opt/righaven')
-NPM={'playwright':'@playwright/test','mermaid':'@mermaid-js/mermaid-cli','excalidraw':'@excalidraw/excalidraw','bpmn':'bpmn-to-image','provider-codex':'@openai/codex','axe-core':'@axe-core/playwright'}
+NPM={'playwright':'@playwright/test','mermaid':'@mermaid-js/mermaid-cli','excalidraw':'@excalidraw/excalidraw','bpmn':'bpmn-to-image','provider-codex':'@openai/codex','axe-core':'@axe-core/playwright','spectral':'@stoplight/spectral-cli','ajv':'ajv-cli','mjml':'mjml'}
 PYPI={'dlt':'dlt','sqlmesh':'sqlmesh','sqlglot':'sqlglot','ifcopenshell':'ifcopenshell','manim':'manim','opentimelineio':'opentimelineio','pymeshlab':'pymeshlab','schemathesis':'schemathesis'}
 
 
@@ -27,7 +27,7 @@ def resolve(spec):
     if not re.fullmatch(r'[0-9A-Za-z][0-9A-Za-z.+:~_-]{0,100}',version):raise ValueError('Versione non valida')
     if not spec.get('resolve_dependencies'):return {'app':app,'files':files}
     if tool in NPM:
-        relative='provider-clis/codex' if tool=='provider-codex' else 'toolkit-lock' if tool=='playwright' else 'toolkit-lock/extended/'+tool if tool=='axe-core' else 'toolkit-lock/design/'+tool
+        relative='provider-clis/codex' if tool=='provider-codex' else 'toolkit-lock' if tool=='playwright' else 'toolkit-lock/extended/'+tool if tool in ('axe-core','spectral','ajv','mjml') else 'toolkit-lock/design/'+tool
         template=ROOT/relative/'package.json'
         package=json.loads(template.read_text()) if template.is_file() else {'name':'skill-provider-codex','version':'1.0.0','private':True,'dependencies':{}}
         package.setdefault('dependencies',{})[NPM[tool]]=version

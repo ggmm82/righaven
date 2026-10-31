@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0.0",
   "hub_name": "RigHaven Hub",
-  "total_packs": 119,
+  "total_packs": 200,
   "packs": [
     {
       "id": "env-data-engineering-rig",
@@ -7364,6 +7364,4529 @@
           "health_check": "craft capabilities sqlglot"
         }
       ]
+    },
+    {
+      "id": "cli-hledger",
+      "name": "hledger",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "cli-tool",
+      "tags": [
+        "cli-tool",
+        "hledger"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "hledger"
+      ],
+      "i18n": {
+        "en": {
+          "title": "hledger",
+          "description": "Check a plain-text journal: parsing, balanced transactions and balance assertions; strict also requires declared accounts and commodities."
+        },
+        "it": {
+          "title": "hledger",
+          "description": "Check a plain-text journal: parsing, balanced transactions and balance assertions; strict also requires declared accounts and commodities."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "hledger",
+          "executable": "/usr/local/bin/hledger-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities hledger"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Check a plain-text journal: parsing, balanced transactions and balance assertions; strict also requires declared accounts and commodities.",
+      "verification_command": "craft capabilities hledger",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "skill-hledger",
+      "name": "hledger skill",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "skill",
+      "tags": [
+        "skill",
+        "hledger"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "hledger"
+      ],
+      "i18n": {
+        "en": {
+          "title": "hledger skill",
+          "description": "Plain-text accounting. Check a plain-text journal: parsing, balanced transactions and balance assertions; strict also requires declared accounts and commodities."
+        },
+        "it": {
+          "title": "Skill hledger",
+          "description": "Plain-text accounting. Check a plain-text journal: parsing, balanced transactions and balance assertions; strict also requires declared accounts and commodities."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "hledger",
+          "executable": "/usr/local/bin/hledger-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities hledger"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Check a plain-text journal: parsing, balanced transactions and balance assertions; strict also requires declared accounts and commodities.",
+      "verification_command": "craft capabilities hledger",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "cli-beancount",
+      "name": "Beancount",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "cli-tool",
+      "tags": [
+        "cli-tool",
+        "beancount"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "beancount"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Beancount",
+          "description": "Check a Beancount ledger: syntax, open accounts, balanced postings and balance assertions."
+        },
+        "it": {
+          "title": "Beancount",
+          "description": "Check a Beancount ledger: syntax, open accounts, balanced postings and balance assertions."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "beancount",
+          "executable": "/usr/local/bin/beancount-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities beancount"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Check a Beancount ledger: syntax, open accounts, balanced postings and balance assertions.",
+      "verification_command": "craft capabilities beancount",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "skill-beancount",
+      "name": "Beancount skill",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "skill",
+      "tags": [
+        "skill",
+        "beancount"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "beancount"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Beancount skill",
+          "description": "Double-entry ledger checks and queries. Check a Beancount ledger: syntax, open accounts, balanced postings and balance assertions."
+        },
+        "it": {
+          "title": "Skill Beancount",
+          "description": "Double-entry ledger checks and queries. Check a Beancount ledger: syntax, open accounts, balanced postings and balance assertions."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "beancount",
+          "executable": "/usr/local/bin/beancount-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities beancount"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Check a Beancount ledger: syntax, open accounts, balanced postings and balance assertions.",
+      "verification_command": "craft capabilities beancount",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "cli-openbabel",
+      "name": "Open Babel",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "cli-tool",
+      "tags": [
+        "cli-tool",
+        "openbabel"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "openbabel"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Open Babel",
+          "description": "Convert molecules between SMILES, SDF, MOL, MOL2, XYZ, PDB, CML and InChI; optionally generate 3D coordinates."
+        },
+        "it": {
+          "title": "Open Babel",
+          "description": "Convert molecules between SMILES, SDF, MOL, MOL2, XYZ, PDB, CML and InChI; optionally generate 3D coordinates."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "openbabel",
+          "executable": "/usr/local/bin/openbabel-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities openbabel"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Convert molecules between SMILES, SDF, MOL, MOL2, XYZ, PDB, CML and InChI; optionally generate 3D coordinates.",
+      "verification_command": "craft capabilities openbabel",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "skill-openbabel",
+      "name": "Open Babel skill",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "skill",
+      "tags": [
+        "skill",
+        "openbabel"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "openbabel"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Open Babel skill",
+          "description": "Chemical format conversion and descriptors. Convert molecules between SMILES, SDF, MOL, MOL2, XYZ, PDB, CML and InChI; optionally generate 3D coordinates."
+        },
+        "it": {
+          "title": "Skill Open Babel",
+          "description": "Chemical format conversion and descriptors. Convert molecules between SMILES, SDF, MOL, MOL2, XYZ, PDB, CML and InChI; optionally generate 3D coordinates."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "openbabel",
+          "executable": "/usr/local/bin/openbabel-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities openbabel"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Convert molecules between SMILES, SDF, MOL, MOL2, XYZ, PDB, CML and InChI; optionally generate 3D coordinates.",
+      "verification_command": "craft capabilities openbabel",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "cli-xtb",
+      "name": "xtb",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "cli-tool",
+      "tags": [
+        "cli-tool",
+        "xtb"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "xtb"
+      ],
+      "i18n": {
+        "en": {
+          "title": "xtb",
+          "description": "Optimize a molecular geometry (XYZ) with the GFN2-xTB semiempirical method; save the optimized structure and native log."
+        },
+        "it": {
+          "title": "xtb",
+          "description": "Optimize a molecular geometry (XYZ) with the GFN2-xTB semiempirical method; save the optimized structure and native log."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "xtb",
+          "executable": "/usr/local/bin/xtb-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities xtb"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Optimize a molecular geometry (XYZ) with the GFN2-xTB semiempirical method; save the optimized structure and native log.",
+      "verification_command": "craft capabilities xtb",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "skill-xtb",
+      "name": "xtb skill",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "skill",
+      "tags": [
+        "skill",
+        "xtb"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "xtb"
+      ],
+      "i18n": {
+        "en": {
+          "title": "xtb skill",
+          "description": "Semiempirical quantum chemistry. Optimize a molecular geometry (XYZ) with the GFN2-xTB semiempirical method; save the optimized structure and native log."
+        },
+        "it": {
+          "title": "Skill xtb",
+          "description": "Semiempirical quantum chemistry. Optimize a molecular geometry (XYZ) with the GFN2-xTB semiempirical method; save the optimized structure and native log."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "xtb",
+          "executable": "/usr/local/bin/xtb-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities xtb"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Optimize a molecular geometry (XYZ) with the GFN2-xTB semiempirical method; save the optimized structure and native log.",
+      "verification_command": "craft capabilities xtb",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "cli-seqkit",
+      "name": "SeqKit",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "cli-tool",
+      "tags": [
+        "cli-tool",
+        "seqkit"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "seqkit"
+      ],
+      "i18n": {
+        "en": {
+          "title": "SeqKit",
+          "description": "Summarize FASTA/FASTQ files: counts, lengths, N50, GC and quality fractions as TSV."
+        },
+        "it": {
+          "title": "SeqKit",
+          "description": "Summarize FASTA/FASTQ files: counts, lengths, N50, GC and quality fractions as TSV."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "seqkit",
+          "executable": "/usr/local/bin/seqkit-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities seqkit"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Summarize FASTA/FASTQ files: counts, lengths, N50, GC and quality fractions as TSV.",
+      "verification_command": "craft capabilities seqkit",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "skill-seqkit",
+      "name": "SeqKit skill",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "skill",
+      "tags": [
+        "skill",
+        "seqkit"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "seqkit"
+      ],
+      "i18n": {
+        "en": {
+          "title": "SeqKit skill",
+          "description": "FASTA/FASTQ toolkit. Summarize FASTA/FASTQ files: counts, lengths, N50, GC and quality fractions as TSV."
+        },
+        "it": {
+          "title": "Skill SeqKit",
+          "description": "FASTA/FASTQ toolkit. Summarize FASTA/FASTQ files: counts, lengths, N50, GC and quality fractions as TSV."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "seqkit",
+          "executable": "/usr/local/bin/seqkit-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities seqkit"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Summarize FASTA/FASTQ files: counts, lengths, N50, GC and quality fractions as TSV.",
+      "verification_command": "craft capabilities seqkit",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "cli-samtools",
+      "name": "samtools",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "cli-tool",
+      "tags": [
+        "cli-tool",
+        "samtools"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "samtools"
+      ],
+      "i18n": {
+        "en": {
+          "title": "samtools",
+          "description": "Count mapped, paired and duplicate reads of a SAM/BAM/CRAM alignment as TSV."
+        },
+        "it": {
+          "title": "samtools",
+          "description": "Count mapped, paired and duplicate reads of a SAM/BAM/CRAM alignment as TSV."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "samtools",
+          "executable": "/usr/local/bin/samtools-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities samtools"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Count mapped, paired and duplicate reads of a SAM/BAM/CRAM alignment as TSV.",
+      "verification_command": "craft capabilities samtools",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "skill-samtools",
+      "name": "samtools skill",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "skill",
+      "tags": [
+        "skill",
+        "samtools"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "samtools"
+      ],
+      "i18n": {
+        "en": {
+          "title": "samtools skill",
+          "description": "Sequence alignment files. Count mapped, paired and duplicate reads of a SAM/BAM/CRAM alignment as TSV."
+        },
+        "it": {
+          "title": "Skill samtools",
+          "description": "Sequence alignment files. Count mapped, paired and duplicate reads of a SAM/BAM/CRAM alignment as TSV."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "samtools",
+          "executable": "/usr/local/bin/samtools-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities samtools"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Count mapped, paired and duplicate reads of a SAM/BAM/CRAM alignment as TSV.",
+      "verification_command": "craft capabilities samtools",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "cli-bcftools",
+      "name": "bcftools",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "cli-tool",
+      "tags": [
+        "cli-tool",
+        "bcftools"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "bcftools"
+      ],
+      "i18n": {
+        "en": {
+          "title": "bcftools",
+          "description": "Summarize a VCF/BCF: records, SNPs, indels, transitions/transversions and quality distributions."
+        },
+        "it": {
+          "title": "bcftools",
+          "description": "Summarize a VCF/BCF: records, SNPs, indels, transitions/transversions and quality distributions."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "bcftools",
+          "executable": "/usr/local/bin/bcftools-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities bcftools"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Summarize a VCF/BCF: records, SNPs, indels, transitions/transversions and quality distributions.",
+      "verification_command": "craft capabilities bcftools",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "skill-bcftools",
+      "name": "bcftools skill",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "skill",
+      "tags": [
+        "skill",
+        "bcftools"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "bcftools"
+      ],
+      "i18n": {
+        "en": {
+          "title": "bcftools skill",
+          "description": "Variant files. Summarize a VCF/BCF: records, SNPs, indels, transitions/transversions and quality distributions."
+        },
+        "it": {
+          "title": "Skill bcftools",
+          "description": "Variant files. Summarize a VCF/BCF: records, SNPs, indels, transitions/transversions and quality distributions."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "bcftools",
+          "executable": "/usr/local/bin/bcftools-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities bcftools"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Summarize a VCF/BCF: records, SNPs, indels, transitions/transversions and quality distributions.",
+      "verification_command": "craft capabilities bcftools",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "cli-minimap2",
+      "name": "minimap2",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "cli-tool",
+      "tags": [
+        "cli-tool",
+        "minimap2"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "minimap2"
+      ],
+      "i18n": {
+        "en": {
+          "title": "minimap2",
+          "description": "Align reads or assemblies to a reference FASTA into SAM with an explicit preset; alignment is evidence for interpretation, not a variant call."
+        },
+        "it": {
+          "title": "minimap2",
+          "description": "Align reads or assemblies to a reference FASTA into SAM with an explicit preset; alignment is evidence for interpretation, not a variant call."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "minimap2",
+          "executable": "/usr/local/bin/minimap2-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities minimap2"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Align reads or assemblies to a reference FASTA into SAM with an explicit preset; alignment is evidence for interpretation, not a variant call.",
+      "verification_command": "craft capabilities minimap2",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "skill-minimap2",
+      "name": "minimap2 skill",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "skill",
+      "tags": [
+        "skill",
+        "minimap2"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "minimap2"
+      ],
+      "i18n": {
+        "en": {
+          "title": "minimap2 skill",
+          "description": "Sequence alignment. Align reads or assemblies to a reference FASTA into SAM with an explicit preset; alignment is evidence for interpretation, not a variant call."
+        },
+        "it": {
+          "title": "Skill minimap2",
+          "description": "Sequence alignment. Align reads or assemblies to a reference FASTA into SAM with an explicit preset; alignment is evidence for interpretation, not a variant call."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "minimap2",
+          "executable": "/usr/local/bin/minimap2-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities minimap2"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Align reads or assemblies to a reference FASTA into SAM with an explicit preset; alignment is evidence for interpretation, not a variant call.",
+      "verification_command": "craft capabilities minimap2",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "cli-mafft",
+      "name": "MAFFT",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "cli-tool",
+      "tags": [
+        "cli-tool",
+        "mafft"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "mafft"
+      ],
+      "i18n": {
+        "en": {
+          "title": "MAFFT",
+          "description": "Build a multiple sequence alignment from FASTA with MAFFT --auto; save the aligned FASTA."
+        },
+        "it": {
+          "title": "MAFFT",
+          "description": "Build a multiple sequence alignment from FASTA with MAFFT --auto; save the aligned FASTA."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "mafft",
+          "executable": "/usr/local/bin/mafft-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities mafft"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Build a multiple sequence alignment from FASTA with MAFFT --auto; save the aligned FASTA.",
+      "verification_command": "craft capabilities mafft",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "skill-mafft",
+      "name": "MAFFT skill",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "skill",
+      "tags": [
+        "skill",
+        "mafft"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "mafft"
+      ],
+      "i18n": {
+        "en": {
+          "title": "MAFFT skill",
+          "description": "Multiple sequence alignment. Build a multiple sequence alignment from FASTA with MAFFT --auto; save the aligned FASTA."
+        },
+        "it": {
+          "title": "Skill MAFFT",
+          "description": "Multiple sequence alignment. Build a multiple sequence alignment from FASTA with MAFFT --auto; save the aligned FASTA."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "mafft",
+          "executable": "/usr/local/bin/mafft-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities mafft"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Build a multiple sequence alignment from FASTA with MAFFT --auto; save the aligned FASTA.",
+      "verification_command": "craft capabilities mafft",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "cli-z3",
+      "name": "Z3",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "cli-tool",
+      "tags": [
+        "cli-tool",
+        "z3"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "z3"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Z3",
+          "description": "Check an SMT-LIB 2 problem with the Z3 solver; report sat, unsat or unknown with the model or core it prints."
+        },
+        "it": {
+          "title": "Z3",
+          "description": "Check an SMT-LIB 2 problem with the Z3 solver; report sat, unsat or unknown with the model or core it prints."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "z3",
+          "executable": "/usr/local/bin/z3-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities z3"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Check an SMT-LIB 2 problem with the Z3 solver; report sat, unsat or unknown with the model or core it prints.",
+      "verification_command": "craft capabilities z3",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "skill-z3",
+      "name": "Z3 skill",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "skill",
+      "tags": [
+        "skill",
+        "z3"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "z3"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Z3 skill",
+          "description": "SMT solving and logical verification. Check an SMT-LIB 2 problem with the Z3 solver; report sat, unsat or unknown with the model or core it prints."
+        },
+        "it": {
+          "title": "Skill Z3",
+          "description": "SMT solving and logical verification. Check an SMT-LIB 2 problem with the Z3 solver; report sat, unsat or unknown with the model or core it prints."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "z3",
+          "executable": "/usr/local/bin/z3-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities z3"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Check an SMT-LIB 2 problem with the Z3 solver; report sat, unsat or unknown with the model or core it prints.",
+      "verification_command": "craft capabilities z3",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "cli-minizinc",
+      "name": "MiniZinc",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "cli-tool",
+      "tags": [
+        "cli-tool",
+        "minizinc"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "minizinc"
+      ],
+      "i18n": {
+        "en": {
+          "title": "MiniZinc",
+          "description": "Solve a MiniZinc constraint model (optionally with a .dzn data file) using Gecode within a time limit; save every printed solution and the optimality status."
+        },
+        "it": {
+          "title": "MiniZinc",
+          "description": "Solve a MiniZinc constraint model (optionally with a .dzn data file) using Gecode within a time limit; save every printed solution and the optimality status."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "minizinc",
+          "executable": "/usr/local/bin/minizinc-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities minizinc"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Solve a MiniZinc constraint model (optionally with a .dzn data file) using Gecode within a time limit; save every printed solution and the optimality status.",
+      "verification_command": "craft capabilities minizinc",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "skill-minizinc",
+      "name": "MiniZinc skill",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "skill",
+      "tags": [
+        "skill",
+        "minizinc"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "minizinc"
+      ],
+      "i18n": {
+        "en": {
+          "title": "MiniZinc skill",
+          "description": "Constraint modelling and scheduling. Solve a MiniZinc constraint model (optionally with a .dzn data file) using Gecode within a time limit; save every printed solution and the optimality status."
+        },
+        "it": {
+          "title": "Skill MiniZinc",
+          "description": "Constraint modelling and scheduling. Solve a MiniZinc constraint model (optionally with a .dzn data file) using Gecode within a time limit; save every printed solution and the optimality status."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "minizinc",
+          "executable": "/usr/local/bin/minizinc-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities minizinc"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Solve a MiniZinc constraint model (optionally with a .dzn data file) using Gecode within a time limit; save every printed solution and the optimality status.",
+      "verification_command": "craft capabilities minizinc",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "cli-maxima",
+      "name": "Maxima",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "cli-tool",
+      "tags": [
+        "cli-tool",
+        "maxima"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "maxima"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Maxima",
+          "description": "Run a Maxima batch file (symbolic algebra, calculus, equations) and save the transcript."
+        },
+        "it": {
+          "title": "Maxima",
+          "description": "Run a Maxima batch file (symbolic algebra, calculus, equations) and save the transcript."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "maxima",
+          "executable": "/usr/local/bin/maxima-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities maxima"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Run a Maxima batch file (symbolic algebra, calculus, equations) and save the transcript.",
+      "verification_command": "craft capabilities maxima",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "skill-maxima",
+      "name": "Maxima skill",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "skill",
+      "tags": [
+        "skill",
+        "maxima"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "maxima"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Maxima skill",
+          "description": "Symbolic computation. Run a Maxima batch file (symbolic algebra, calculus, equations) and save the transcript."
+        },
+        "it": {
+          "title": "Skill Maxima",
+          "description": "Symbolic computation. Run a Maxima batch file (symbolic algebra, calculus, equations) and save the transcript."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "maxima",
+          "executable": "/usr/local/bin/maxima-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities maxima"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Run a Maxima batch file (symbolic algebra, calculus, equations) and save the transcript.",
+      "verification_command": "craft capabilities maxima",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "cli-pari",
+      "name": "PARI/GP",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "cli-tool",
+      "tags": [
+        "cli-tool",
+        "pari"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "pari"
+      ],
+      "i18n": {
+        "en": {
+          "title": "PARI/GP",
+          "description": "Run a PARI/GP script (number theory, exact arithmetic, polynomials) and save its output."
+        },
+        "it": {
+          "title": "PARI/GP",
+          "description": "Run a PARI/GP script (number theory, exact arithmetic, polynomials) and save its output."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "pari",
+          "executable": "/usr/local/bin/pari-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities pari"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Run a PARI/GP script (number theory, exact arithmetic, polynomials) and save its output.",
+      "verification_command": "craft capabilities pari",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "skill-pari",
+      "name": "PARI/GP skill",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "skill",
+      "tags": [
+        "skill",
+        "pari"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "pari"
+      ],
+      "i18n": {
+        "en": {
+          "title": "PARI/GP skill",
+          "description": "Number theory and exact arithmetic. Run a PARI/GP script (number theory, exact arithmetic, polynomials) and save its output."
+        },
+        "it": {
+          "title": "Skill PARI/GP",
+          "description": "Number theory and exact arithmetic. Run a PARI/GP script (number theory, exact arithmetic, polynomials) and save its output."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "pari",
+          "executable": "/usr/local/bin/pari-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities pari"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Run a PARI/GP script (number theory, exact arithmetic, polynomials) and save its output.",
+      "verification_command": "craft capabilities pari",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "cli-cdo",
+      "name": "CDO",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "cli-tool",
+      "tags": [
+        "cli-tool",
+        "cdo"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "cdo"
+      ],
+      "i18n": {
+        "en": {
+          "title": "CDO",
+          "description": "Describe a NetCDF/GRIB dataset: variables, grid, levels and time steps."
+        },
+        "it": {
+          "title": "CDO",
+          "description": "Describe a NetCDF/GRIB dataset: variables, grid, levels and time steps."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "cdo",
+          "executable": "/usr/local/bin/cdo-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities cdo"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Describe a NetCDF/GRIB dataset: variables, grid, levels and time steps.",
+      "verification_command": "craft capabilities cdo",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "skill-cdo",
+      "name": "CDO skill",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "skill",
+      "tags": [
+        "skill",
+        "cdo"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "cdo"
+      ],
+      "i18n": {
+        "en": {
+          "title": "CDO skill",
+          "description": "Climate and weather data operators. Describe a NetCDF/GRIB dataset: variables, grid, levels and time steps."
+        },
+        "it": {
+          "title": "Skill CDO",
+          "description": "Climate and weather data operators. Describe a NetCDF/GRIB dataset: variables, grid, levels and time steps."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "cdo",
+          "executable": "/usr/local/bin/cdo-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities cdo"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Describe a NetCDF/GRIB dataset: variables, grid, levels and time steps.",
+      "verification_command": "craft capabilities cdo",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "cli-nco",
+      "name": "NCO",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "cli-tool",
+      "tags": [
+        "cli-tool",
+        "nco"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "nco"
+      ],
+      "i18n": {
+        "en": {
+          "title": "NCO",
+          "description": "Print the metadata of a NetCDF file: dimensions, variables, attributes and units."
+        },
+        "it": {
+          "title": "NCO",
+          "description": "Print the metadata of a NetCDF file: dimensions, variables, attributes and units."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "nco",
+          "executable": "/usr/local/bin/nco-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities nco"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Print the metadata of a NetCDF file: dimensions, variables, attributes and units.",
+      "verification_command": "craft capabilities nco",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "skill-nco",
+      "name": "NCO skill",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "skill",
+      "tags": [
+        "skill",
+        "nco"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "nco"
+      ],
+      "i18n": {
+        "en": {
+          "title": "NCO skill",
+          "description": "NetCDF operators. Print the metadata of a NetCDF file: dimensions, variables, attributes and units."
+        },
+        "it": {
+          "title": "Skill NCO",
+          "description": "NetCDF operators. Print the metadata of a NetCDF file: dimensions, variables, attributes and units."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "nco",
+          "executable": "/usr/local/bin/nco-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities nco"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Print the metadata of a NetCDF file: dimensions, variables, attributes and units.",
+      "verification_command": "craft capabilities nco",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "cli-exiftool",
+      "name": "ExifTool",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "cli-tool",
+      "tags": [
+        "cli-tool",
+        "exiftool"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "exiftool"
+      ],
+      "i18n": {
+        "en": {
+          "title": "ExifTool",
+          "description": "Read embedded metadata (EXIF, IPTC, XMP, GPS, document properties) of a file into grouped JSON, without changing it."
+        },
+        "it": {
+          "title": "ExifTool",
+          "description": "Read embedded metadata (EXIF, IPTC, XMP, GPS, document properties) of a file into grouped JSON, without changing it."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "exiftool",
+          "executable": "/usr/local/bin/exiftool-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities exiftool"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Read embedded metadata (EXIF, IPTC, XMP, GPS, document properties) of a file into grouped JSON, without changing it.",
+      "verification_command": "craft capabilities exiftool",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "skill-exiftool",
+      "name": "ExifTool skill",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "skill",
+      "tags": [
+        "skill",
+        "exiftool"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "exiftool"
+      ],
+      "i18n": {
+        "en": {
+          "title": "ExifTool skill",
+          "description": "File metadata reading. Read embedded metadata (EXIF, IPTC, XMP, GPS, document properties) of a file into grouped JSON, without changing it."
+        },
+        "it": {
+          "title": "Skill ExifTool",
+          "description": "File metadata reading. Read embedded metadata (EXIF, IPTC, XMP, GPS, document properties) of a file into grouped JSON, without changing it."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "exiftool",
+          "executable": "/usr/local/bin/exiftool-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities exiftool"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Read embedded metadata (EXIF, IPTC, XMP, GPS, document properties) of a file into grouped JSON, without changing it.",
+      "verification_command": "craft capabilities exiftool",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "cli-mat2",
+      "name": "mat2",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "cli-tool",
+      "tags": [
+        "cli-tool",
+        "mat2"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "mat2"
+      ],
+      "i18n": {
+        "en": {
+          "title": "mat2",
+          "description": "List the metadata mat2 would remove from a document, image or media file."
+        },
+        "it": {
+          "title": "mat2",
+          "description": "List the metadata mat2 would remove from a document, image or media file."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "mat2",
+          "executable": "/usr/local/bin/mat2-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities mat2"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. List the metadata mat2 would remove from a document, image or media file.",
+      "verification_command": "craft capabilities mat2",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "skill-mat2",
+      "name": "mat2 skill",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "skill",
+      "tags": [
+        "skill",
+        "mat2"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "mat2"
+      ],
+      "i18n": {
+        "en": {
+          "title": "mat2 skill",
+          "description": "Metadata removal for privacy. List the metadata mat2 would remove from a document, image or media file."
+        },
+        "it": {
+          "title": "Skill mat2",
+          "description": "Metadata removal for privacy. List the metadata mat2 would remove from a document, image or media file."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "mat2",
+          "executable": "/usr/local/bin/mat2-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities mat2"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. List the metadata mat2 would remove from a document, image or media file.",
+      "verification_command": "craft capabilities mat2",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "cli-fonttools",
+      "name": "fontTools",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "cli-tool",
+      "tags": [
+        "cli-tool",
+        "fonttools"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "fonttools"
+      ],
+      "i18n": {
+        "en": {
+          "title": "fontTools",
+          "description": "List the OpenType tables of a font file with their checksums and sizes."
+        },
+        "it": {
+          "title": "fontTools",
+          "description": "List the OpenType tables of a font file with their checksums and sizes."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "fonttools",
+          "executable": "/usr/local/bin/fonttools-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities fonttools"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. List the OpenType tables of a font file with their checksums and sizes.",
+      "verification_command": "craft capabilities fonttools",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "skill-fonttools",
+      "name": "fontTools skill",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "skill",
+      "tags": [
+        "skill",
+        "fonttools"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "fonttools"
+      ],
+      "i18n": {
+        "en": {
+          "title": "fontTools skill",
+          "description": "Font inspection and subsetting. List the OpenType tables of a font file with their checksums and sizes."
+        },
+        "it": {
+          "title": "Skill fontTools",
+          "description": "Font inspection and subsetting. List the OpenType tables of a font file with their checksums and sizes."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "fonttools",
+          "executable": "/usr/local/bin/fonttools-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities fonttools"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. List the OpenType tables of a font file with their checksums and sizes.",
+      "verification_command": "craft capabilities fonttools",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "cli-fontforge",
+      "name": "FontForge",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "cli-tool",
+      "tags": [
+        "cli-tool",
+        "fontforge"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "fontforge"
+      ],
+      "i18n": {
+        "en": {
+          "title": "FontForge",
+          "description": "Open a font (TTF, OTF, SFD, UFO, WOFF) and generate it in another format, reporting the glyph count."
+        },
+        "it": {
+          "title": "FontForge",
+          "description": "Open a font (TTF, OTF, SFD, UFO, WOFF) and generate it in another format, reporting the glyph count."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "fontforge",
+          "executable": "/usr/local/bin/fontforge-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities fontforge"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Open a font (TTF, OTF, SFD, UFO, WOFF) and generate it in another format, reporting the glyph count.",
+      "verification_command": "craft capabilities fontforge",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "skill-fontforge",
+      "name": "FontForge skill",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "skill",
+      "tags": [
+        "skill",
+        "fontforge"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "fontforge"
+      ],
+      "i18n": {
+        "en": {
+          "title": "FontForge skill",
+          "description": "Font editing and conversion. Open a font (TTF, OTF, SFD, UFO, WOFF) and generate it in another format, reporting the glyph count."
+        },
+        "it": {
+          "title": "Skill FontForge",
+          "description": "Font editing and conversion. Open a font (TTF, OTF, SFD, UFO, WOFF) and generate it in another format, reporting the glyph count."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "fontforge",
+          "executable": "/usr/local/bin/fontforge-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities fontforge"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Open a font (TTF, OTF, SFD, UFO, WOFF) and generate it in another format, reporting the glyph count.",
+      "verification_command": "craft capabilities fontforge",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "cli-zint",
+      "name": "Zint",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "cli-tool",
+      "tags": [
+        "cli-tool",
+        "zint"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "zint"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Zint",
+          "description": "Encode data as a barcode or 2D code (QR, Data Matrix, PDF417, Code 128, EAN-13, GS1-128) in SVG or PNG; check scannability on the final medium."
+        },
+        "it": {
+          "title": "Zint",
+          "description": "Encode data as a barcode or 2D code (QR, Data Matrix, PDF417, Code 128, EAN-13, GS1-128) in SVG or PNG; check scannability on the final medium."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "zint",
+          "executable": "/usr/local/bin/zint-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities zint"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Encode data as a barcode or 2D code (QR, Data Matrix, PDF417, Code 128, EAN-13, GS1-128) in SVG or PNG; check scannability on the final medium.",
+      "verification_command": "craft capabilities zint",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "skill-zint",
+      "name": "Zint skill",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "skill",
+      "tags": [
+        "skill",
+        "zint"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "zint"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Zint skill",
+          "description": "Barcodes and 2D codes. Encode data as a barcode or 2D code (QR, Data Matrix, PDF417, Code 128, EAN-13, GS1-128) in SVG or PNG; check scannability on the final medium."
+        },
+        "it": {
+          "title": "Skill Zint",
+          "description": "Barcodes and 2D codes. Encode data as a barcode or 2D code (QR, Data Matrix, PDF417, Code 128, EAN-13, GS1-128) in SVG or PNG; check scannability on the final medium."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "zint",
+          "executable": "/usr/local/bin/zint-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities zint"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Encode data as a barcode or 2D code (QR, Data Matrix, PDF417, Code 128, EAN-13, GS1-128) in SVG or PNG; check scannability on the final medium.",
+      "verification_command": "craft capabilities zint",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "cli-shellcheck",
+      "name": "ShellCheck",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "cli-tool",
+      "tags": [
+        "cli-tool",
+        "shellcheck"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "shellcheck"
+      ],
+      "i18n": {
+        "en": {
+          "title": "ShellCheck",
+          "description": "Analyze a shell script for bugs and portability issues; save JSON findings."
+        },
+        "it": {
+          "title": "ShellCheck",
+          "description": "Analyze a shell script for bugs and portability issues; save JSON findings."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "shellcheck",
+          "executable": "/usr/local/bin/shellcheck-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities shellcheck"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Analyze a shell script for bugs and portability issues; save JSON findings.",
+      "verification_command": "craft capabilities shellcheck",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "skill-shellcheck",
+      "name": "ShellCheck skill",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "skill",
+      "tags": [
+        "skill",
+        "shellcheck"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "shellcheck"
+      ],
+      "i18n": {
+        "en": {
+          "title": "ShellCheck skill",
+          "description": "Shell script analysis. Analyze a shell script for bugs and portability issues; save JSON findings."
+        },
+        "it": {
+          "title": "Skill ShellCheck",
+          "description": "Shell script analysis. Analyze a shell script for bugs and portability issues; save JSON findings."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "shellcheck",
+          "executable": "/usr/local/bin/shellcheck-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities shellcheck"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Analyze a shell script for bugs and portability issues; save JSON findings.",
+      "verification_command": "craft capabilities shellcheck",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "cli-hadolint",
+      "name": "Hadolint",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "cli-tool",
+      "tags": [
+        "cli-tool",
+        "hadolint"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "hadolint"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Hadolint",
+          "description": "Lint a Dockerfile against best practices (including ShellCheck on RUN steps); save JSON findings."
+        },
+        "it": {
+          "title": "Hadolint",
+          "description": "Lint a Dockerfile against best practices (including ShellCheck on RUN steps); save JSON findings."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "hadolint",
+          "executable": "/usr/local/bin/hadolint-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities hadolint"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Lint a Dockerfile against best practices (including ShellCheck on RUN steps); save JSON findings.",
+      "verification_command": "craft capabilities hadolint",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "skill-hadolint",
+      "name": "Hadolint skill",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "skill",
+      "tags": [
+        "skill",
+        "hadolint"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "hadolint"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Hadolint skill",
+          "description": "Dockerfile linting. Lint a Dockerfile against best practices (including ShellCheck on RUN steps); save JSON findings."
+        },
+        "it": {
+          "title": "Skill Hadolint",
+          "description": "Dockerfile linting. Lint a Dockerfile against best practices (including ShellCheck on RUN steps); save JSON findings."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "hadolint",
+          "executable": "/usr/local/bin/hadolint-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities hadolint"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Lint a Dockerfile against best practices (including ShellCheck on RUN steps); save JSON findings.",
+      "verification_command": "craft capabilities hadolint",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "cli-actionlint",
+      "name": "actionlint",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "cli-tool",
+      "tags": [
+        "cli-tool",
+        "actionlint"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "actionlint"
+      ],
+      "i18n": {
+        "en": {
+          "title": "actionlint",
+          "description": "Check a GitHub Actions workflow: syntax, expressions, job dependencies and embedded scripts; save JSON findings."
+        },
+        "it": {
+          "title": "actionlint",
+          "description": "Check a GitHub Actions workflow: syntax, expressions, job dependencies and embedded scripts; save JSON findings."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "actionlint",
+          "executable": "/usr/local/bin/actionlint-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities actionlint"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Check a GitHub Actions workflow: syntax, expressions, job dependencies and embedded scripts; save JSON findings.",
+      "verification_command": "craft capabilities actionlint",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "skill-actionlint",
+      "name": "actionlint skill",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "skill",
+      "tags": [
+        "skill",
+        "actionlint"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "actionlint"
+      ],
+      "i18n": {
+        "en": {
+          "title": "actionlint skill",
+          "description": "GitHub Actions workflow checks. Check a GitHub Actions workflow: syntax, expressions, job dependencies and embedded scripts; save JSON findings."
+        },
+        "it": {
+          "title": "Skill actionlint",
+          "description": "GitHub Actions workflow checks. Check a GitHub Actions workflow: syntax, expressions, job dependencies and embedded scripts; save JSON findings."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "actionlint",
+          "executable": "/usr/local/bin/actionlint-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities actionlint"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Check a GitHub Actions workflow: syntax, expressions, job dependencies and embedded scripts; save JSON findings.",
+      "verification_command": "craft capabilities actionlint",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "cli-tflint",
+      "name": "TFLint",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "cli-tool",
+      "tags": [
+        "cli-tool",
+        "tflint"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "tflint"
+      ],
+      "i18n": {
+        "en": {
+          "title": "TFLint",
+          "description": "Lint a Terraform module directory with the bundled core rules (no provider plugins downloaded); save JSON findings."
+        },
+        "it": {
+          "title": "TFLint",
+          "description": "Lint a Terraform module directory with the bundled core rules (no provider plugins downloaded); save JSON findings."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "tflint",
+          "executable": "/usr/local/bin/tflint-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities tflint"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Lint a Terraform module directory with the bundled core rules (no provider plugins downloaded); save JSON findings.",
+      "verification_command": "craft capabilities tflint",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "skill-tflint",
+      "name": "TFLint skill",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "skill",
+      "tags": [
+        "skill",
+        "tflint"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "tflint"
+      ],
+      "i18n": {
+        "en": {
+          "title": "TFLint skill",
+          "description": "Terraform linting. Lint a Terraform module directory with the bundled core rules (no provider plugins downloaded); save JSON findings."
+        },
+        "it": {
+          "title": "Skill TFLint",
+          "description": "Terraform linting. Lint a Terraform module directory with the bundled core rules (no provider plugins downloaded); save JSON findings."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "tflint",
+          "executable": "/usr/local/bin/tflint-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities tflint"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Lint a Terraform module directory with the bundled core rules (no provider plugins downloaded); save JSON findings.",
+      "verification_command": "craft capabilities tflint",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "cli-spectral",
+      "name": "Spectral",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "cli-tool",
+      "tags": [
+        "cli-tool",
+        "spectral"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "spectral"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Spectral",
+          "description": "Lint an OpenAPI or AsyncAPI document with the standard Spectral rulesets or a supplied ruleset; save JSON findings."
+        },
+        "it": {
+          "title": "Spectral",
+          "description": "Lint an OpenAPI or AsyncAPI document with the standard Spectral rulesets or a supplied ruleset; save JSON findings."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "spectral",
+          "executable": "/usr/local/bin/spectral-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities spectral"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Lint an OpenAPI or AsyncAPI document with the standard Spectral rulesets or a supplied ruleset; save JSON findings.",
+      "verification_command": "craft capabilities spectral",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "skill-spectral",
+      "name": "Spectral skill",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "skill",
+      "tags": [
+        "skill",
+        "spectral"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "spectral"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Spectral skill",
+          "description": "OpenAPI and AsyncAPI linting. Lint an OpenAPI or AsyncAPI document with the standard Spectral rulesets or a supplied ruleset; save JSON findings."
+        },
+        "it": {
+          "title": "Skill Spectral",
+          "description": "OpenAPI and AsyncAPI linting. Lint an OpenAPI or AsyncAPI document with the standard Spectral rulesets or a supplied ruleset; save JSON findings."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "spectral",
+          "executable": "/usr/local/bin/spectral-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities spectral"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Lint an OpenAPI or AsyncAPI document with the standard Spectral rulesets or a supplied ruleset; save JSON findings.",
+      "verification_command": "craft capabilities spectral",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "cli-jq",
+      "name": "jq",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "cli-tool",
+      "tags": [
+        "cli-tool",
+        "jq"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "jq"
+      ],
+      "i18n": {
+        "en": {
+          "title": "jq",
+          "description": "Apply a jq filter to JSON and save the result; the filter is kept with the output."
+        },
+        "it": {
+          "title": "jq",
+          "description": "Apply a jq filter to JSON and save the result; the filter is kept with the output."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "jq",
+          "executable": "/usr/local/bin/jq-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities jq"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Apply a jq filter to JSON and save the result; the filter is kept with the output.",
+      "verification_command": "craft capabilities jq",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "skill-jq",
+      "name": "jq skill",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "skill",
+      "tags": [
+        "skill",
+        "jq"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "jq"
+      ],
+      "i18n": {
+        "en": {
+          "title": "jq skill",
+          "description": "JSON transformation. Apply a jq filter to JSON and save the result; the filter is kept with the output."
+        },
+        "it": {
+          "title": "Skill jq",
+          "description": "JSON transformation. Apply a jq filter to JSON and save the result; the filter is kept with the output."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "jq",
+          "executable": "/usr/local/bin/jq-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities jq"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Apply a jq filter to JSON and save the result; the filter is kept with the output.",
+      "verification_command": "craft capabilities jq",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "cli-yq",
+      "name": "yq",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "cli-tool",
+      "tags": [
+        "cli-tool",
+        "yq"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "yq"
+      ],
+      "i18n": {
+        "en": {
+          "title": "yq",
+          "description": "Apply a jq filter to YAML (or XML/TOML read as YAML) and save YAML output."
+        },
+        "it": {
+          "title": "yq",
+          "description": "Apply a jq filter to YAML (or XML/TOML read as YAML) and save YAML output."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "yq",
+          "executable": "/usr/local/bin/yq-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities yq"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Apply a jq filter to YAML (or XML/TOML read as YAML) and save YAML output.",
+      "verification_command": "craft capabilities yq",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "skill-yq",
+      "name": "yq skill",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "skill",
+      "tags": [
+        "skill",
+        "yq"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "yq"
+      ],
+      "i18n": {
+        "en": {
+          "title": "yq skill",
+          "description": "YAML transformation with jq filters. Apply a jq filter to YAML (or XML/TOML read as YAML) and save YAML output."
+        },
+        "it": {
+          "title": "Skill yq",
+          "description": "YAML transformation with jq filters. Apply a jq filter to YAML (or XML/TOML read as YAML) and save YAML output."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "yq",
+          "executable": "/usr/local/bin/yq-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities yq"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Apply a jq filter to YAML (or XML/TOML read as YAML) and save YAML output.",
+      "verification_command": "craft capabilities yq",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "cli-miller",
+      "name": "Miller",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "cli-tool",
+      "tags": [
+        "cli-tool",
+        "miller"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "miller"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Miller",
+          "description": "Convert or transform CSV, TSV or JSON with Miller; an optional DSL script file is kept with the output."
+        },
+        "it": {
+          "title": "Miller",
+          "description": "Convert or transform CSV, TSV or JSON with Miller; an optional DSL script file is kept with the output."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "miller",
+          "executable": "/usr/local/bin/miller-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities miller"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Convert or transform CSV, TSV or JSON with Miller; an optional DSL script file is kept with the output.",
+      "verification_command": "craft capabilities miller",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "skill-miller",
+      "name": "Miller skill",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "skill",
+      "tags": [
+        "skill",
+        "miller"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "miller"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Miller skill",
+          "description": "CSV/TSV/JSON processing. Convert or transform CSV, TSV or JSON with Miller; an optional DSL script file is kept with the output."
+        },
+        "it": {
+          "title": "Skill Miller",
+          "description": "CSV/TSV/JSON processing. Convert or transform CSV, TSV or JSON with Miller; an optional DSL script file is kept with the output."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "miller",
+          "executable": "/usr/local/bin/miller-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities miller"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Convert or transform CSV, TSV or JSON with Miller; an optional DSL script file is kept with the output.",
+      "verification_command": "craft capabilities miller",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "cli-ajv",
+      "name": "Ajv",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "cli-tool",
+      "tags": [
+        "cli-tool",
+        "ajv"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "ajv"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Ajv",
+          "description": "Validate JSON data against a JSON Schema (draft 2020-12, 2019-09 or 07) and save all errors."
+        },
+        "it": {
+          "title": "Ajv",
+          "description": "Validate JSON data against a JSON Schema (draft 2020-12, 2019-09 or 07) and save all errors."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "ajv",
+          "executable": "/usr/local/bin/ajv-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities ajv"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Validate JSON data against a JSON Schema (draft 2020-12, 2019-09 or 07) and save all errors.",
+      "verification_command": "craft capabilities ajv",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "skill-ajv",
+      "name": "Ajv skill",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "skill",
+      "tags": [
+        "skill",
+        "ajv"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "ajv"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Ajv skill",
+          "description": "JSON Schema validation. Validate JSON data against a JSON Schema (draft 2020-12, 2019-09 or 07) and save all errors."
+        },
+        "it": {
+          "title": "Skill Ajv",
+          "description": "JSON Schema validation. Validate JSON data against a JSON Schema (draft 2020-12, 2019-09 or 07) and save all errors."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "ajv",
+          "executable": "/usr/local/bin/ajv-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities ajv"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Validate JSON data against a JSON Schema (draft 2020-12, 2019-09 or 07) and save all errors.",
+      "verification_command": "craft capabilities ajv",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "cli-mjml",
+      "name": "MJML",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "cli-tool",
+      "tags": [
+        "cli-tool",
+        "mjml"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "mjml"
+      ],
+      "i18n": {
+        "en": {
+          "title": "MJML",
+          "description": "Compile an MJML email template into responsive HTML with strict validation."
+        },
+        "it": {
+          "title": "MJML",
+          "description": "Compile an MJML email template into responsive HTML with strict validation."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "mjml",
+          "executable": "/usr/local/bin/mjml-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities mjml"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Compile an MJML email template into responsive HTML with strict validation.",
+      "verification_command": "craft capabilities mjml",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "skill-mjml",
+      "name": "MJML skill",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "skill",
+      "tags": [
+        "skill",
+        "mjml"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "mjml"
+      ],
+      "i18n": {
+        "en": {
+          "title": "MJML skill",
+          "description": "Responsive email templates. Compile an MJML email template into responsive HTML with strict validation."
+        },
+        "it": {
+          "title": "Skill MJML",
+          "description": "Responsive email templates. Compile an MJML email template into responsive HTML with strict validation."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "mjml",
+          "executable": "/usr/local/bin/mjml-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities mjml"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Compile an MJML email template into responsive HTML with strict validation.",
+      "verification_command": "craft capabilities mjml",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "cli-abcm2ps",
+      "name": "abcm2ps",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "cli-tool",
+      "tags": [
+        "cli-tool",
+        "abcm2ps"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "abcm2ps"
+      ],
+      "i18n": {
+        "en": {
+          "title": "abcm2ps",
+          "description": "Engrave ABC music notation into SVG pages, one per tune."
+        },
+        "it": {
+          "title": "abcm2ps",
+          "description": "Engrave ABC music notation into SVG pages, one per tune."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "abcm2ps",
+          "executable": "/usr/local/bin/abcm2ps-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities abcm2ps"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Engrave ABC music notation into SVG pages, one per tune.",
+      "verification_command": "craft capabilities abcm2ps",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "skill-abcm2ps",
+      "name": "abcm2ps skill",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "skill",
+      "tags": [
+        "skill",
+        "abcm2ps"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "abcm2ps"
+      ],
+      "i18n": {
+        "en": {
+          "title": "abcm2ps skill",
+          "description": "ABC music engraving. Engrave ABC music notation into SVG pages, one per tune."
+        },
+        "it": {
+          "title": "Skill abcm2ps",
+          "description": "ABC music engraving. Engrave ABC music notation into SVG pages, one per tune."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "abcm2ps",
+          "executable": "/usr/local/bin/abcm2ps-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities abcm2ps"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Engrave ABC music notation into SVG pages, one per tune.",
+      "verification_command": "craft capabilities abcm2ps",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "cli-abcmidi",
+      "name": "abcMIDI",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "cli-tool",
+      "tags": [
+        "cli-tool",
+        "abcmidi"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "abcmidi"
+      ],
+      "i18n": {
+        "en": {
+          "title": "abcMIDI",
+          "description": "Convert ABC music notation into a MIDI file for listening checks."
+        },
+        "it": {
+          "title": "abcMIDI",
+          "description": "Convert ABC music notation into a MIDI file for listening checks."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "abcmidi",
+          "executable": "/usr/local/bin/abcmidi-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities abcmidi"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Convert ABC music notation into a MIDI file for listening checks.",
+      "verification_command": "craft capabilities abcmidi",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "skill-abcmidi",
+      "name": "abcMIDI skill",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "skill",
+      "tags": [
+        "skill",
+        "abcmidi"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "abcmidi"
+      ],
+      "i18n": {
+        "en": {
+          "title": "abcMIDI skill",
+          "description": "ABC to MIDI. Convert ABC music notation into a MIDI file for listening checks."
+        },
+        "it": {
+          "title": "Skill abcMIDI",
+          "description": "ABC to MIDI. Convert ABC music notation into a MIDI file for listening checks."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "abcmidi",
+          "executable": "/usr/local/bin/abcmidi-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities abcmidi"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Convert ABC music notation into a MIDI file for listening checks.",
+      "verification_command": "craft capabilities abcmidi",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "cli-hunspell",
+      "name": "Hunspell",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "cli-tool",
+      "tags": [
+        "cli-tool",
+        "hunspell"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "hunspell"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Hunspell",
+          "description": "List words not found in the Italian or English Hunspell dictionary; names and technical terms need human review."
+        },
+        "it": {
+          "title": "Hunspell",
+          "description": "List words not found in the Italian or English Hunspell dictionary; names and technical terms need human review."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "hunspell",
+          "executable": "/usr/local/bin/hunspell-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities hunspell"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. List words not found in the Italian or English Hunspell dictionary; names and technical terms need human review.",
+      "verification_command": "craft capabilities hunspell",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "skill-hunspell",
+      "name": "Hunspell skill",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "skill",
+      "tags": [
+        "skill",
+        "hunspell"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "hunspell"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Hunspell skill",
+          "description": "Spell checking (Italian and English). List words not found in the Italian or English Hunspell dictionary; names and technical terms need human review."
+        },
+        "it": {
+          "title": "Skill Hunspell",
+          "description": "Spell checking (Italian and English). List words not found in the Italian or English Hunspell dictionary; names and technical terms need human review."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "hunspell",
+          "executable": "/usr/local/bin/hunspell-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities hunspell"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. List words not found in the Italian or English Hunspell dictionary; names and technical terms need human review.",
+      "verification_command": "craft capabilities hunspell",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "cli-vale",
+      "name": "Vale",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "cli-tool",
+      "tags": [
+        "cli-tool",
+        "vale"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "vale"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Vale",
+          "description": "Check prose against style rules (Vale built-in rules or a supplied .vale.ini with local styles); save JSON alerts."
+        },
+        "it": {
+          "title": "Vale",
+          "description": "Check prose against style rules (Vale built-in rules or a supplied .vale.ini with local styles); save JSON alerts."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "vale",
+          "executable": "/usr/local/bin/vale-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities vale"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Check prose against style rules (Vale built-in rules or a supplied .vale.ini with local styles); save JSON alerts.",
+      "verification_command": "craft capabilities vale",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "skill-vale",
+      "name": "Vale skill",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "skill",
+      "tags": [
+        "skill",
+        "vale"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "vale"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Vale skill",
+          "description": "Prose style linting. Check prose against style rules (Vale built-in rules or a supplied .vale.ini with local styles); save JSON alerts."
+        },
+        "it": {
+          "title": "Skill Vale",
+          "description": "Prose style linting. Check prose against style rules (Vale built-in rules or a supplied .vale.ini with local styles); save JSON alerts."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "vale",
+          "executable": "/usr/local/bin/vale-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities vale"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Check prose against style rules (Vale built-in rules or a supplied .vale.ini with local styles); save JSON alerts.",
+      "verification_command": "craft capabilities vale",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "env-contabilita",
+      "name": "Plain-text Accounting",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "environment",
+      "tags": [
+        "environment",
+        "hledger",
+        "beancount",
+        "miller"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "hledger",
+        "beancount",
+        "miller"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Plain-text Accounting",
+          "description": "Keep accounts, budgets and statements in verifiable text files with balance checks and reproducible reports."
+        },
+        "it": {
+          "title": "Contabilità in testo semplice",
+          "description": "Tenere conti, budget e rendiconti in file di testo verificabili, con controlli di quadratura e report riproducibili. Non sostituisce la consulenza contabile o fiscale."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "hledger",
+          "executable": "/usr/local/bin/hledger-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities hledger"
+        },
+        {
+          "name": "beancount",
+          "executable": "/usr/local/bin/beancount-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities beancount"
+        },
+        {
+          "name": "miller",
+          "executable": "/usr/local/bin/miller-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities miller"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Keep accounts, budgets and statements in verifiable text files with balance checks and reproducible reports.",
+      "verification_command": "craft capabilities hledger",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "env-chimica",
+      "name": "Computational Chemistry",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "environment",
+      "tags": [
+        "environment",
+        "openbabel",
+        "xtb"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "openbabel",
+        "xtb"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Computational Chemistry",
+          "description": "Convert and describe molecules and optimize geometries with semiempirical methods, keeping structures and logs."
+        },
+        "it": {
+          "title": "Chimica computazionale",
+          "description": "Convertire e descrivere molecole e ottimizzarne la geometria con metodi semiempirici, conservando strutture e log. I valori calcolati sono stime."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "openbabel",
+          "executable": "/usr/local/bin/openbabel-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities openbabel"
+        },
+        {
+          "name": "xtb",
+          "executable": "/usr/local/bin/xtb-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities xtb"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Convert and describe molecules and optimize geometries with semiempirical methods, keeping structures and logs.",
+      "verification_command": "craft capabilities openbabel",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "env-bioinformatica",
+      "name": "Bioinformatics",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "environment",
+      "tags": [
+        "environment",
+        "seqkit",
+        "minimap2",
+        "samtools",
+        "bcftools",
+        "mafft"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "seqkit",
+        "minimap2",
+        "samtools",
+        "bcftools",
+        "mafft"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Bioinformatics",
+          "description": "Analyze sequences, alignments and variants with standard tools, keeping data, parameters and statistics."
+        },
+        "it": {
+          "title": "Bioinformatica",
+          "description": "Analizzare sequenze, allineamenti e varianti con strumenti standard, conservando dati, parametri e statistiche. L’interpretazione biologica richiede revisione esperta."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "seqkit",
+          "executable": "/usr/local/bin/seqkit-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities seqkit"
+        },
+        {
+          "name": "minimap2",
+          "executable": "/usr/local/bin/minimap2-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities minimap2"
+        },
+        {
+          "name": "samtools",
+          "executable": "/usr/local/bin/samtools-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities samtools"
+        },
+        {
+          "name": "bcftools",
+          "executable": "/usr/local/bin/bcftools-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities bcftools"
+        },
+        {
+          "name": "mafft",
+          "executable": "/usr/local/bin/mafft-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities mafft"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Analyze sequences, alignments and variants with standard tools, keeping data, parameters and statistics.",
+      "verification_command": "craft capabilities seqkit",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "env-logica-calcolo",
+      "name": "Logic, Constraints and Symbolic Math",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "environment",
+      "tags": [
+        "environment",
+        "minizinc",
+        "z3",
+        "maxima",
+        "pari"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "minizinc",
+        "z3",
+        "maxima",
+        "pari"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Logic, Constraints and Symbolic Math",
+          "description": "Solve schedules and constraint problems, verify logical rules and perform symbolic or exact computation."
+        },
+        "it": {
+          "title": "Logica, vincoli e calcolo simbolico",
+          "description": "Risolvere turni, calendari e problemi con vincoli, verificare regole logiche e svolgere calcoli simbolici o esatti, distinguendo soluzioni provate e limiti di tempo."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "minizinc",
+          "executable": "/usr/local/bin/minizinc-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities minizinc"
+        },
+        {
+          "name": "z3",
+          "executable": "/usr/local/bin/z3-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities z3"
+        },
+        {
+          "name": "maxima",
+          "executable": "/usr/local/bin/maxima-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities maxima"
+        },
+        {
+          "name": "pari",
+          "executable": "/usr/local/bin/pari-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities pari"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Solve schedules and constraint problems, verify logical rules and perform symbolic or exact computation.",
+      "verification_command": "craft capabilities minizinc",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "env-clima-dati",
+      "name": "Climate and Scientific Data",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "environment",
+      "tags": [
+        "environment",
+        "cdo",
+        "nco"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "cdo",
+        "nco"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Climate and Scientific Data",
+          "description": "Analyze NetCDF/GRIB climate series: metadata, subsets and temporal or spatial statistics with checked units."
+        },
+        "it": {
+          "title": "Clima e dati scientifici",
+          "description": "Analizzare serie climatiche e meteorologiche NetCDF/GRIB: metadati, sottoinsiemi e statistiche temporali o spaziali con unità verificate."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "cdo",
+          "executable": "/usr/local/bin/cdo-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities cdo"
+        },
+        {
+          "name": "nco",
+          "executable": "/usr/local/bin/nco-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities nco"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Analyze NetCDF/GRIB climate series: metadata, subsets and temporal or spatial statistics with checked units.",
+      "verification_command": "craft capabilities cdo",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "env-archivio-privacy",
+      "name": "File Archive and Privacy",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "environment",
+      "tags": [
+        "environment",
+        "exiftool",
+        "mat2"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "exiftool",
+        "mat2"
+      ],
+      "i18n": {
+        "en": {
+          "title": "File Archive and Privacy",
+          "description": "Read file metadata and produce clean copies before publication, keeping the originals."
+        },
+        "it": {
+          "title": "Archivio e privacy dei file",
+          "description": "Leggere i metadati dei file e produrre copie pulite prima della pubblicazione, conservando gli originali."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "exiftool",
+          "executable": "/usr/local/bin/exiftool-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities exiftool"
+        },
+        {
+          "name": "mat2",
+          "executable": "/usr/local/bin/mat2-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities mat2"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Read file metadata and produce clean copies before publication, keeping the originals.",
+      "verification_command": "craft capabilities exiftool",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "env-caratteri",
+      "name": "Fonts and Typography",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "environment",
+      "tags": [
+        "environment",
+        "fonttools",
+        "fontforge"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "fonttools",
+        "fontforge"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Fonts and Typography",
+          "description": "Inspect, convert and subset fonts for web or print within their licences."
+        },
+        "it": {
+          "title": "Caratteri tipografici",
+          "description": "Ispezionare, convertire e ridurre font per il web o la stampa nel rispetto delle licenze."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "fonttools",
+          "executable": "/usr/local/bin/fonttools-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities fonttools"
+        },
+        {
+          "name": "fontforge",
+          "executable": "/usr/local/bin/fontforge-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities fontforge"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Inspect, convert and subset fonts for web or print within their licences.",
+      "verification_command": "craft capabilities fonttools",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "env-etichette-codici",
+      "name": "Labels and Codes",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "environment",
+      "tags": [
+        "environment",
+        "zint",
+        "typst"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "zint",
+        "typst"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Labels and Codes",
+          "description": "Generate barcodes and QR codes for labels, tickets and catalogs, laid out with Typst."
+        },
+        "it": {
+          "title": "Etichette e codici",
+          "description": "Generare codici a barre e QR per etichette, biglietti e cataloghi, impaginandoli con Typst."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "zint",
+          "executable": "/usr/local/bin/zint-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities zint"
+        },
+        {
+          "name": "typst",
+          "executable": "/usr/local/bin/typst-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities typst"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Generate barcodes and QR codes for labels, tickets and catalogs, laid out with Typst.",
+      "verification_command": "craft capabilities zint",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "env-devops-config",
+      "name": "DevOps Configuration Review",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "environment",
+      "tags": [
+        "environment",
+        "shellcheck",
+        "hadolint",
+        "actionlint",
+        "tflint",
+        "spectral"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "shellcheck",
+        "hadolint",
+        "actionlint",
+        "tflint",
+        "spectral"
+      ],
+      "i18n": {
+        "en": {
+          "title": "DevOps Configuration Review",
+          "description": "Check scripts, Dockerfiles, CI workflows, Terraform modules and API contracts with offline linters."
+        },
+        "it": {
+          "title": "Revisione configurazioni DevOps",
+          "description": "Controllare script, Dockerfile, workflow CI, moduli Terraform e contratti API con linter offline, consegnando evidenze ripetibili."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "shellcheck",
+          "executable": "/usr/local/bin/shellcheck-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities shellcheck"
+        },
+        {
+          "name": "hadolint",
+          "executable": "/usr/local/bin/hadolint-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities hadolint"
+        },
+        {
+          "name": "actionlint",
+          "executable": "/usr/local/bin/actionlint-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities actionlint"
+        },
+        {
+          "name": "tflint",
+          "executable": "/usr/local/bin/tflint-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities tflint"
+        },
+        {
+          "name": "spectral",
+          "executable": "/usr/local/bin/spectral-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities spectral"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Check scripts, Dockerfiles, CI workflows, Terraform modules and API contracts with offline linters.",
+      "verification_command": "craft capabilities shellcheck",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "env-dati-leggeri",
+      "name": "Lightweight Command-line Data",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "environment",
+      "tags": [
+        "environment",
+        "jq",
+        "yq",
+        "miller",
+        "ajv"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "jq",
+        "yq",
+        "miller",
+        "ajv"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Lightweight Command-line Data",
+          "description": "Clean, convert and validate CSV, JSON and YAML with reproducible filters and explicit schemas."
+        },
+        "it": {
+          "title": "Dati leggeri da riga di comando",
+          "description": "Pulire, convertire e validare CSV, JSON e YAML con filtri riproducibili e schemi espliciti."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "jq",
+          "executable": "/usr/local/bin/jq-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities jq"
+        },
+        {
+          "name": "yq",
+          "executable": "/usr/local/bin/yq-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities yq"
+        },
+        {
+          "name": "miller",
+          "executable": "/usr/local/bin/miller-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities miller"
+        },
+        {
+          "name": "ajv",
+          "executable": "/usr/local/bin/ajv-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities ajv"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Clean, convert and validate CSV, JSON and YAML with reproducible filters and explicit schemas.",
+      "verification_command": "craft capabilities jq",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "env-email-newsletter",
+      "name": "Email and Newsletters",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "environment",
+      "tags": [
+        "environment",
+        "mjml"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "mjml"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Email and Newsletters",
+          "description": "Build responsive emails with editable MJML sources and strictly validated compiled HTML."
+        },
+        "it": {
+          "title": "Email e newsletter",
+          "description": "Realizzare email responsive con sorgenti MJML modificabili e HTML compilato con validazione rigorosa."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "mjml",
+          "executable": "/usr/local/bin/mjml-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities mjml"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Build responsive emails with editable MJML sources and strictly validated compiled HTML.",
+      "verification_command": "craft capabilities mjml",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "env-musica-abc",
+      "name": "ABC Music Notation",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "environment",
+      "tags": [
+        "environment",
+        "abcm2ps",
+        "abcmidi"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "abcm2ps",
+        "abcmidi"
+      ],
+      "i18n": {
+        "en": {
+          "title": "ABC Music Notation",
+          "description": "Write melodies in text notation, engrave them as SVG scores and listen to them as MIDI."
+        },
+        "it": {
+          "title": "Musica in notazione ABC",
+          "description": "Scrivere melodie in notazione testuale, impaginarle come spartiti SVG e ascoltarle in MIDI."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "abcm2ps",
+          "executable": "/usr/local/bin/abcm2ps-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities abcm2ps"
+        },
+        {
+          "name": "abcmidi",
+          "executable": "/usr/local/bin/abcmidi-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities abcmidi"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Write melodies in text notation, engrave them as SVG scores and listen to them as MIDI.",
+      "verification_command": "craft capabilities abcm2ps",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
+    },
+    {
+      "id": "env-revisione-testi",
+      "name": "Text Proofreading",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "environment",
+      "tags": [
+        "environment",
+        "hunspell",
+        "vale"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "hunspell",
+        "vale"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Text Proofreading",
+          "description": "Check Italian and English spelling and style rules on long texts without external services."
+        },
+        "it": {
+          "title": "Revisione linguistica dei testi",
+          "description": "Controllare ortografia italiana e inglese e regole di stile su testi lunghi senza servizi esterni."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "hunspell",
+          "executable": "/usr/local/bin/hunspell-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities hunspell"
+        },
+        {
+          "name": "vale",
+          "executable": "/usr/local/bin/vale-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities vale"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Check Italian and English spelling and style rules on long texts without external services.",
+      "verification_command": "craft capabilities hunspell",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      }
     }
   ]
 }
