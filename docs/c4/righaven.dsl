@@ -29,7 +29,7 @@ workspace "RigHaven" "Governed multi-agent harness and on-demand CLI environment
             }
             broker = container "State and event broker" "Queues, locks and event streaming." "Redis 7.4" "Database"
             runtime = container "Internal container runtime" "Private Docker engine reached through unix:///runtime/docker.sock; the host Docker socket is never mounted." "Docker-in-Docker"
-            worker = container "Assignment worker" "One container per assignment: capabilities dropped, no-new-privileges, PID, CPU and memory limits, bridge networking. Reads the project read-only and writes only to its staging folder." "Debian / prepared tool image"
+            worker = container "Assignment worker" "One container per assignment: capabilities dropped, no-new-privileges, PID, CPU and memory limits, private credential copy; bridge network, or an internal network behind the egress proxy in allowlist mode. Reads the project read-only and writes only to its staging folder." "Debian / prepared tool image"
             data = container "Project data" "Conversation workspaces, outputs and project state (.righaven-project)." "Docker volume" "Database"
             state = container "Installation state" "Policy Book, prepared images records, tool versions, usage ledger and settings." "Docker volume / SQLite" "Database"
         }

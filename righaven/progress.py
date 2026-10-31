@@ -454,6 +454,11 @@ def public_status(value):
             result['environment']['profile'] = {'mode': clean_summary(profile.get('mode'), 20), 'profile': clean_summary(profile.get('profile'), 80),
                 'wanted': profile.get('wanted') if type(profile.get('wanted')) is int else 0,
                 **{k: [clean_summary(t, 64) for t in profile.get(k, [])][:64] for k in ('covered', 'missing', 'added', 'skills', 'role_skills')}}
+    egress = value.get('egress')
+    if isinstance(egress, dict) and egress.get('mode') == 'allowlist':
+        result['egress'] = {'mode': 'allowlist', 'domains': [clean_summary(d, 255) for d in egress.get('domains', []) if isinstance(d, str)][:24],
+            'refused': [{'destination': clean_summary(r.get('destination'), 270), 'attempts': r['attempts'] if type(r.get('attempts')) is int else 1}
+                        for r in egress.get('refused', []) if isinstance(r, dict)][:20]}
     result['resources_reclaimed'] = value.get('resources_reclaimed') is True
     result['cleanup_error'] = value.get('cleanup_error') is True
     result['cancel_error'] = value.get('cancel_error') is True

@@ -77,3 +77,23 @@ Application recipes use the software platform compatibility identity and per-too
 Preparation chooses the compatible parent with the most unchanged requested tools, including partial overlaps. It preserves those tools, removes unrequested application payloads in the disposable child, and replaces only missing or changed payloads. The parent is immutable. Shared system dependencies are retained; all required native checks run again before publication. The UI reports reused and added/updated tool counts.
 
 Codex, Antigravity and Claude Code use a shared version selection under Models & resources. Their immutable CLI bundles contain only executable software, never account credentials. Each worker mounts the selected bundle read-only and receives its own credential session. A CLI update affects subsequent workers; it does not modify active jobs or rebuild saved environments. DeepSeek and OpenAI-compatible API connections do not need a CLI bundle. Historical provider pins in saved environment preparation records no longer affect program readiness.
+
+## Worker network access
+
+`RIGHAVEN_WORKER_EGRESS` selects how assignment workers reach the Internet:
+
+| Value | Behaviour |
+| --- | --- |
+| `open` (default) | Workers use the Docker bridge network, as in earlier releases. |
+| `allowlist` | Workers join the internal network `righaven-egress`, which has no route outside. Their only exit is the `righaven-egress-proxy` container (started from the worker software image, capabilities dropped, read-only root). |
+
+In allowlist mode each assignment gets its own proxy token and grant:
+
+- the domains of its model provider (Codex, Claude Code, Antigravity, DeepSeek, or the host of the OpenAI-compatible endpoint) are always granted;
+- a role may add up to eight domains in its `network` field, each with the reason the coordinator declared, for example `{"domain": "fonts.googleapis.com", "reason": "Web fonts for the poster"}`; a leading dot (`.example.org`) grants subdomains;
+- only ports 80 and 443 are allowed, IP literals are refused, and names that resolve to private, loopback or link-local addresses are refused even when granted;
+- the grant is deleted when the assignment ends.
+
+Every refused connection is reported on the assignment card ("Blocked connections") and in the conversation log, so the coordinator can ask the user before granting a new domain. The worker receives `HTTPS_PROXY`, `HTTP_PROXY`, `ALL_PROXY` and `NODE_USE_ENV_PROXY=1`; tools that ignore proxy variables cannot reach the Internet in this mode. CI runs `scripts/check_worker_egress.py` against the real worker image: a granted domain goes through, another domain is refused and logged, and a direct connection fails.
+
+Each worker already receives a private copy of the provider credentials (`credential_sessions.py`): refreshed OAuth tokens are written back under the execution lock only when the shared copy has not changed meanwhile, and API keys are decrypted only into the job's disposable folder.

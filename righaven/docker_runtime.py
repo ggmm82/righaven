@@ -575,6 +575,14 @@ def delegate(agent_id, task, workspace, tool_call_id=None, on_started=None, requ
                         if engine == 'openai' else mount(credentials.directory if credentials is not None else credential_dir(engine), '/credentials', read_only=engine == 'deepseek')),
             '--mount', mount(job, '/job.json', True),
             runtime_image, 'python3', '/opt/righaven-worker/run_agent.py', '/job.json']
+        from .egress_policy import mode as egress_mode
+        if egress_mode() == 'allowlist':
+            from .egress_policy import allowed_domains
+            from .worker_egress import Grant, ensure as ensure_egress
+            ensure_egress()
+            egress = Grant(name, allowed_domains(engine, (role or {}).get('network'), settings.get('base_url', '')))
+            args = egress.arguments(args)
+            update(progress, egress={'mode': 'allowlist', 'domains': egress.domains, 'refused': []})
         from .task_staging import forward_worker_events
         with forward_worker_events(workspace, progress), watch(lambda: request_stop(workspace, name), lambda: lifecycle(progress, cancel_error=True)):
             completed = subprocess.run(['docker', *args], capture_output=True, text=True,
@@ -663,6 +671,17 @@ def delegate(agent_id, task, workspace, tool_call_id=None, on_started=None, requ
             release_claim(name)
             if 'credentials' in locals() and credentials is not None:
                 credentials.close()
+            if 'egress' in locals():
+                from .worker_egress import summary
+                try:
+                    refused = summary(egress.close())
+                    update(progress, egress={'mode': 'allowlist', 'domains': egress.domains, 'refused': refused})
+                except (OSError, ValueError):
+                    refused = []
+                if refused:
+                    from .audit_log import append
+                    append(workspace, 'Rete', 'Connessioni in uscita bloccate', 'blocked',
+                           ', '.join(f"{r['destination']} ×{r['attempts']}" for r in refused), correlation=name)
             if 'staging' in locals():
                 staging.quarantine()
             release_prepared_environment(runtime_environment, ephemeral_environment)

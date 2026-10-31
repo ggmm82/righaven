@@ -34,6 +34,7 @@ def main():
     job = {'job_id': 'rh-job-123456abcdef', 'agent': 'effectcraft', 'engine': 'codex',
         'model': 'fixture-model', 'can_stop': True, 'phase': 'running_tool', 'summary': 'Esporto il risultato con Effectcraft',
         'environment': {'id':'a'*64,'status':'ready','tools':['effectcraft','ffmpeg','soundcraft'],'assigned_tools':['effectcraft']},
+        'egress': {'mode':'allowlist','domains':['api.openai.com','fonts.googleapis.com'],'refused':[{'destination':'cdn.example.net:443','attempts':2}]},
         'resources': {'memory_bytes': 1073741824, 'memory_limit_bytes': 2147483648, 'oom_kills': 0},
         'limits': {'cpus': 1.5}, 'operations': [{'id': 'render', 'state': 'running', 'label': 'Render finale', 'elapsed_seconds': 600, 'progress': {'done': 12, 'total': 48}}],
         'work_summary': 'Correggo inquadratura e proporzioni del robot prima del render',
@@ -421,6 +422,7 @@ window.showThread();
                 expect(page.get_by_test_id('job-environment')).to_contain_text('Strumenti assegnati: Effectcraft.')
                 page.get_by_text('Programmi presenti nell’ambiente (3)',exact=True).click()
                 expect(page.get_by_test_id('job-environment')).to_contain_text('Effectcraft, Ffmpeg, Soundcraft')
+                expect(page.get_by_test_id('job-egress')).to_contain_text('Rete limitata a api.openai.com, fonts.googleapis.com. Connessioni bloccate: cdn.example.net:443 ×2.')
                 page.get_by_role('button',name='Interrompi questa fase',exact=True).click()
                 expect(page.get_by_role('button',name='Arresto richiesto…',exact=True)).to_be_disabled()
                 page.get_by_role('button', name='Chiudi dettagli del progetto').click()

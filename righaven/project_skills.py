@@ -96,6 +96,9 @@ def validate_roles(roles, apps):
         skills=role.get('skills',[])
         if not isinstance(skills,list) or len(skills)>12 or any(not isinstance(s,str) or not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.-]{0,127}',s) for s in skills) or len(set(skills))!=len(skills):
             raise ValueError('Seleziona al massimo 12 nomi di skill native per ruolo')
+        from .egress_policy import validate_network
+        network=validate_network(role.get('network'))
+        if network:value['network']=network
         value.update(skills=skills,composition_version=1)
         if len(json.dumps(value).encode()) > 16000:
             raise ValueError('Procedura troppo grande per il contesto del ruolo: sposta i dettagli nei file di input')

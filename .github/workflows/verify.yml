@@ -206,6 +206,9 @@ jobs:
       - name: Check pinned Codex native image protocol and vector-only choice offline
         if: matrix.component == 'sandbox'
         run: docker run --rm --network=none -e RIGHAVEN_REQUIRE_CODEX_NATIVE_TESTS=1 --mount "type=bind,src=$PWD,dst=/review,readonly" righaven-sandbox:0.1.0 python3 -m unittest discover -s /review/tests -p test_codex_native.py -v
+      - name: Check worker egress allowlist with real containers
+        if: matrix.component == 'sandbox'
+        run: python3 scripts/check_worker_egress.py --image righaven-sandbox:0.1.0
       - name: Validate proxy configuration
         if: matrix.component == 'proxy'
         run: |
