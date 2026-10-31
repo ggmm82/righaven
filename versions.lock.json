@@ -3926,23 +3926,23 @@
       "version": "1.6",
       "assets": {
         "amd64": {
-          "name": "jq_1.6-2.1+deb12u2_amd64.deb",
-          "url": "https://deb.debian.org/debian/pool/main/j/jq/jq_1.6-2.1+deb12u2_amd64.deb",
-          "sha256": "f2303584378ac85f6d3a9ae8e46412196061681e81610d3b020abe4b5d389eb0",
-          "size_bytes": 63984,
+          "name": "jq_1.6-2.1+deb12u3_amd64.deb",
+          "url": "https://deb.debian.org/debian-security/pool/updates/main/j/jq/jq_1.6-2.1+deb12u3_amd64.deb",
+          "sha256": "c25f3fda201207ed98b1d63686f2d81b9dfeb99f1ab2d1d35fb3f7b6a1c107dc",
+          "size_bytes": 64432,
           "package": "jq",
-          "package_version": "1.6-2.1+deb12u2"
+          "package_version": "1.6-2.1+deb12u3"
         },
         "arm64": {
-          "name": "jq_1.6-2.1+deb12u2_arm64.deb",
-          "url": "https://deb.debian.org/debian/pool/main/j/jq/jq_1.6-2.1+deb12u2_arm64.deb",
-          "sha256": "c232e9407e0f47006dd6077804c1274fd2e4f8be02efc78822db748ed65bea99",
-          "size_bytes": 63560,
+          "name": "jq_1.6-2.1+deb12u3_arm64.deb",
+          "url": "https://deb.debian.org/debian-security/pool/updates/main/j/jq/jq_1.6-2.1+deb12u3_arm64.deb",
+          "sha256": "0698e059c74db77412d975563ad7ca2d1748a45df379d0a71b574596d8eca3e8",
+          "size_bytes": 64000,
           "package": "jq",
-          "package_version": "1.6-2.1+deb12u2"
+          "package_version": "1.6-2.1+deb12u3"
         }
       },
-      "download_base": "https://deb.debian.org/debian/",
+      "download_base": "https://deb.debian.org/",
       "install": {
         "kind": "debian",
         "native_path": "/usr/bin/jq"

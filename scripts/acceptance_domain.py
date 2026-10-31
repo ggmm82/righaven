@@ -93,7 +93,7 @@ def mafft(c):
     operation(c,'align',input=str(source),output=str(c.root/'MSA'))
     records=[r for r in (c.root/'MSA/alignment.fasta').read_text().split('>') if r.strip()]
     lengths={len(''.join(r.splitlines()[1:])) for r in records}
-    c.check('Three aligned sequences of equal length',len(records)==3 and len(lengths)==1,lengths)
+    c.check('Three aligned sequences of equal length',len(records)==3 and len(lengths)==1,sorted(lengths))
 
 
 def z3(c):
