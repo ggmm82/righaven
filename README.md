@@ -7,7 +7,11 @@ every step: tool alternatives are proposed with their trade-offs, each phase is
 discussed with you, and the runtime, not the model's goodwill, enforces the
 organization's policies before anything is delivered.
 
-[![RigHaven teaser: 15-second video](docs/media/righaven-teaser-poster.png)](docs/media/righaven-teaser.mp4)
+
+
+https://github.com/user-attachments/assets/7e9b5874-ac3a-4100-b8ff-7424ed1f23cf
+
+
 
 *15-second teaser ([MP4](docs/media/righaven-teaser.mp4)), produced by RigHaven
 itself: an EffectCraft motion-graphics role and a SoundCraft sound role working
