@@ -761,7 +761,7 @@
  "Un trasferimento per questo ambiente è già in corso": "A transfer for this environment is already running",
  "Un vincolo attribuito all’utente richiede source_quote presente nei suoi messaggi reali": "A constraint attributed to the user needs a source_quote present in their actual messages",
  "Una lezione tecnica deve indicare gli strumenti pertinenti": "A technical lesson must name the relevant tools",
- "Una lezione tecnica richiede la versione dello strumento nelle sue fonti": "A technical lesson needs the tool version in its sources",
+ "Una lezione tecnica richiede la versione dello strumento nelle sue fonti: ": "A technical lesson needs the tool version in its sources: ",
  "Una valutazione delle lezioni è già in corso": "A lesson evaluation is already running",
  "Unknown category: ": null,
  "Unknown registry": null,
