@@ -43,7 +43,7 @@ def version(app,cli):
     else:flags=None
     if app in domain().APPS:flags=domain().version_flags(app)
     flags=flags or {'prusaslicer':['--help'],'poppler':['-v'],'tesseract':['--version'],'zap':['-cmd','-version'],'ngspice':['--version']}.get(app,['--version'])
-    result=subprocess.run([native,*flags],capture_output=True,text=True,timeout=120,
+    result=subprocess.run([native,*flags],capture_output=True,text=True,errors='replace',timeout=120,
         env={**os.environ,'QT_QPA_PLATFORM':'offscreen','QGIS_NO_OVERRIDE_IMPORT':'1'})
     if result.returncode:raise RuntimeError((result.stdout+result.stderr)[-2000:])
     record=next(row for row in json.loads((cli.INSTALL/'installed.json').read_text()) if row['id']==app)
