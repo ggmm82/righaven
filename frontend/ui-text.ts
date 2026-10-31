@@ -12,6 +12,8 @@ let active: "it" | "en" = "en";
 export function useUiLanguage(): "it" | "en" {
   const { locale } = useI18n();
   active = String(locale).toLowerCase().startsWith("it") ? "it" : "en";
+  // Shared with modules that cannot import this one (delegate-progress-state.ts).
+  (globalThis as { __righavenUiLanguage?: string }).__righavenUiLanguage = active;
   return active;
 }
 

@@ -67,6 +67,10 @@ assert.match(jobHealth(job, now), /Nessun nuovo avanzamento/);
 assert.match(jobHealth({ ...job, heartbeat_at: '' }, now), /Segnale del worker assente/);
 assert.match(jobHealth(job, now + 11000), /Tempo limite superato/);
 assert.equal(jobHealth({ ...job, phase: 'completed' }, now), null);
+globalThis.__righavenUiLanguage = 'en';
+assert.match(jobHealth(job, now), /No new progress/);
+assert.match(jobHealth({ ...job, heartbeat_at: '' }, now), /No signal from the worker/);
+delete globalThis.__righavenUiLanguage;
 console.log('Delegate status: pending tool correlation, idle worker, missing heartbeat and deadline verified');
 
 for (const relative of ['src/components/workspace/chats/chat-page.tsx', 'src/app/workspace/agents/[agent_name]/chats/[thread_id]/page.tsx']) {

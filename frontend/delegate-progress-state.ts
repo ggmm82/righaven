@@ -1,5 +1,8 @@
 
-import { tr } from "@/core/i18n/ui-text";
+// Pure module (also loaded directly by Node in scripts/check_chat_modes.mjs): no path aliases.
+// The language is published by useUiLanguage() in ui-text.ts; Italian until a component renders.
+const tr = (it: string, en: string): string =>
+  (globalThis as { __righavenUiLanguage?: string }).__righavenUiLanguage === "en" ? en : it;
 
 export type JobProgress = {
   environment_started_at?: string; environment_finished_at?: string; worker_started_at?: string;
