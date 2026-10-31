@@ -325,6 +325,7 @@ def _apply_status(workspace, value, status):
     value['status'] = status
     if status == 'ready':
         value['attention'] = None
+        policy_workflow.close_at_delivery(value)
     if status == 'blocked':
         recovery = method_recovery(workspace, value)
         if recovery:
