@@ -5,6 +5,7 @@ from unittest.mock import patch
 from scripts import toolkit_cli as cli
 from scripts import extended_tools as native
 from scripts.acceptance_extended import pdf
+from real_tools import requires
 
 
 class ExtendedToolTests(unittest.TestCase):
@@ -49,7 +50,7 @@ class ExtendedToolTests(unittest.TestCase):
         self.assertEqual([j['type'] for j in plan['jobs']],['spider','passiveScan-wait','report'])
         self.assertEqual(plan['env']['contexts'][0]['urls'],['https://example.test/authorized'])
 
-    @unittest.skipUnless(shutil.which('pdftoppm') and shutil.which('pdftotext'),'Requires real Poppler')
+    @requires('pdftoppm','pdftotext')
     def test_exact_pdf_is_rendered_and_text_extracted_without_modifying_original(self):
         source=self.root/'document.pdf';pdf(source);before=source.read_bytes()
         pages=self.root/'pages';cli.invoke('poppler','render',{'input':str(source),'output':str(pages),'dpi':72})

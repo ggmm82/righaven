@@ -91,7 +91,9 @@ class RealFileTests(unittest.TestCase):
             self.assertEqual(local('media_streams', fake)['status'], 'failed')
 
     def test_no_secrets_flags_a_private_key(self):
-        self.require('gitleaks')
+        # Not required in CI: the worker image pins gitleaks 8.30; distribution packages may predate `gitleaks dir`.
+        if shutil.which('gitleaks') is None:
+            self.skipTest('gitleaks not installed')
         with tempfile.TemporaryDirectory() as directory:
             clean = Path(directory) / 'clean'; clean.mkdir(); (clean / 'notes.txt').write_text('Nothing to hide here.')
             self.assertEqual(local('no_secrets', clean / 'notes.txt')['status'], 'passed')

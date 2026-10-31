@@ -14,6 +14,7 @@ from righaven.deliveries import build_delivery
 from righaven.progress import Reporter, read_status, public_status
 from righaven.sandbox_lessons import technical_validation
 from righaven.completion_policy import needs_continuation
+from real_tools import requires
 
 
 class VerificationTraceTests(unittest.TestCase):
@@ -21,7 +22,7 @@ class VerificationTraceTests(unittest.TestCase):
         temp = tempfile.TemporaryDirectory(); self.addCleanup(temp.cleanup)
         self.root = Path(temp.name)
 
-    @unittest.skipUnless(shutil.which('ffmpeg'), 'FFmpeg required')
+    @requires('ffmpeg')
     def test_normalized_observations_accept_equivalent_encodings_and_reject_real_changes(self):
         video, image, other = [self.root / n for n in ('master.mp4','quarter.png','different.png')]
         def run(*args): subprocess.run(['ffmpeg','-v','error','-y',*map(str,args)],check=True,capture_output=True)

@@ -70,6 +70,10 @@ RUN PUPPETEER_SKIP_DOWNLOAD=true npm ci --prefix /tmp/design-excalidraw --ignore
     && node /tmp/build_design_web.cjs excalidraw /tmp/design-excalidraw /app/frontend/public/rh-design/excalidraw \
     && node /tmp/build_design_web.cjs bpmn /tmp/design-bpmn /app/frontend/public/rh-design/bpmn
 RUN cd /app/frontend && pnpm install --frozen-lockfile
+# RigHaven overlays may not add ESLint errors beyond the committed baseline.
+COPY config/eslint-baseline.json /tmp/eslint-baseline.json
+COPY scripts/check_eslint_baseline.mjs /tmp/check_eslint_baseline.mjs
+RUN cd /app/frontend && node /tmp/check_eslint_baseline.mjs /tmp/eslint-baseline.json
 # Skip env validation — runtime vars are injected by nginx/container
 # App version stamp for the About page. Nightly CI passes
 # APP_VERSION=<base>-nightly.<date>-<sha>; release/local builds leave it empty

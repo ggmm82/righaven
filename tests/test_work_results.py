@@ -7,6 +7,7 @@ import tempfile
 import unittest
 
 from righaven.work_results import failure_info, partial_files, validate_media
+from real_tools import requires
 
 
 class WorkResultTests(unittest.TestCase):
@@ -32,7 +33,7 @@ class WorkResultTests(unittest.TestCase):
             (root / 'link.wav').symlink_to('/etc/passwd')
             self.assertEqual({Path(p).name for p in partial_files(root)}, {'mix.wav', 'session.scraft'})
 
-    @unittest.skipUnless(shutil.which('ffmpeg') and shutil.which('ffprobe'), 'Requires native media tools')
+    @requires('ffmpeg', 'ffprobe')
     def test_silent_or_audio_free_video_cannot_pass_final_delivery(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
