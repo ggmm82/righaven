@@ -3,330 +3,26 @@
 This records operational decisions and file handoffs, never model reasoning.
 The worker remains disposable; retries use saved files in a new output folder.
 """
-from contextlib import contextmanager
-import fcntl
 import json
-import os
 from pathlib import Path
-import re
 import uuid
 
-from .progress import JOB_ID, clean_summary, job_path, read_status, update, utcnow, workspace_key
-from .work_results import failure_info, partial_files
+from .progress import clean_summary, utcnow, workspace_key
+from .work_results import failure_info
 from .state import applications, atomic_json
 from .source_packages import digest
 from .handoff import product_files
-from .acceptance import contract, fingerprint
-from .project_skills import compact_acceptance, save_requests, read_document, scoped_file, validate_roles, compile_role, ROLE_ID, redact_memory
+from .acceptance import fingerprint
+from .project_skills import compact_acceptance, read_document, scoped_file, validate_roles, compile_role, ROLE_ID, redact_memory
 from .project_brief import validate_outcome, briefing_issue, orientation
 from .strategy import validate as validate_strategy, recovery as method_recovery
-from . import policy_workflow
-
-STEP_ID = re.compile(r'[a-z][a-z0-9_-]{0,47}\Z')
-PROJECT_ID = re.compile(r'[0-9a-f]{32}\Z')
-MAX_HISTORY = 20
-GATEWAY_SESSION = uuid.uuid4().hex
-
-
-@contextmanager
-def locked(workspace):
-    root = Path(workspace).resolve()
-    folder = root / '.righaven-project'
-    if folder.is_symlink() or not folder.resolve().is_relative_to(root):
-        raise ValueError('Percorso progetto non valido')
-    folder.mkdir(parents=True, exist_ok=True, mode=0o700)
-    fd = os.open(folder / 'project.lock', os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW, 0o600)
-    with os.fdopen(fd, 'a') as stream:
-        fcntl.flock(stream, fcntl.LOCK_EX)
-        try:
-            yield folder
-        finally:
-            fcntl.flock(stream, fcntl.LOCK_UN)
-
-
-def load(folder, workspace):
-    path = folder / 'project.json'
-    if not path.exists():
-        return None
-    if path.is_symlink() or path.stat().st_size > 1000000:
-        raise ValueError('Stato progetto non valido')
-    value = json.loads(path.read_text())
-    if not isinstance(value, dict) or not isinstance(value.get('id'), str) or not PROJECT_ID.fullmatch(value['id']):
-        raise ValueError('Identificatore progetto non valido')
-    steps = value.get('steps')
-    if not isinstance(steps, list) or not 0 <= len(steps) <= 64:
-        raise ValueError('Fasi del progetto non valide')
-    for step in steps:
-        if (not isinstance(step, dict) or not isinstance(step.get('id'), str)
-                or not STEP_ID.fullmatch(step['id']) or not isinstance(step.get('agent'), str)
-                or not isinstance(step.get('goal'), str) or not isinstance(step.get('depends_on'), list)
-                or not isinstance(step.get('attempts'), list) or len(step['attempts']) > 100
-                or any(not isinstance(a, dict) for a in step['attempts'])
-                or step.get('status') not in ('pending', 'running', 'completed', 'needs_revision', 'review', 'paused', 'skipped')
-                or (step['status'] in ('running', 'completed') and not step['attempts'])):
-            raise ValueError('Stato della fase non valido')
-    if value.get('workspace_key') != workspace_key(workspace):
-        return None
-    from .revisions import number_attempts
-    changed = number_attempts(value)
-    if value.get('project_type') == 'animated_video' and 'requirements' not in value:
-        value['requirements'] = {'video': True, 'audio': not bool(value.get('omissions', {}).get('soundcraft'))}
-        changed = True
-    for step in steps:
-        if step['status'] == 'running' and step['attempts'][-1].get('gateway_session') != GATEWAY_SESSION:
-            step['status'] = 'paused'
-            step['attempts'][-1].update(status='paused', finished_at=utcnow(),
-                error='Gateway riavviato: ispeziona i file persistenti e riprendi questa fase')
-            job_id = Path(step['attempts'][-1].get('output_dir', '')).name
-            if JOB_ID.fullmatch(job_id):
-                try:
-                    progress = job_path(workspace, job_id)
-                    saved = read_status(progress)
-                    if saved.get('workspace_key') == workspace_key(workspace) and saved['phase'] not in ('completed', 'failed', 'timed_out'):
-                        update(progress, 'failed', 'Incarico fermato dal riavvio; i file salvati sono recuperabili')
-                except (OSError, ValueError):
-                    pass
-            changed = True
-    if changed:
-        value['updated_at'] = utcnow()
-        atomic_json(path, value)
-    return value
-
-
-def workspace_path(workspace, filename, worker_root=Path('/mnt/user-data')):
-    root = Path(workspace).resolve()
-    path = Path(str(filename))
-    # A physical workspace may itself live below /mnt/user-data (native tests
-    # and some installations). Prefer an already-scoped path before translating
-    # the worker's virtual root, otherwise the conversation prefix is doubled.
-    if not path.is_relative_to(root) and path.is_relative_to(worker_root):
-        path = root / path.relative_to(worker_root)
-    if not path.is_absolute() or not path.resolve().is_relative_to(root):
-        return None
-    return path
-
-
-def artifact_path(workspace, filename):
-    path = workspace_path(workspace, filename)
-    if path is None:
-        return None
-    if not path.is_file() or path.is_symlink() or not path.stat().st_size:
-        return None
-    return path
-
-
-def public_artifact(workspace, filename):
-    path = artifact_path(workspace, filename)
-    return '/mnt/user-data/' + path.relative_to(Path(workspace).resolve()).as_posix() if path else None
-
-
-def available_paths(workspace, attempt):
-    paths = attempt.get('output_files', [])
-    if paths or not workspace or not attempt.get('output_dir'):
-        return paths
-    folder = workspace_path(workspace, attempt['output_dir'])
-    if folder is None:
-        return []
-    return partial_files(folder)
-
-
-def media_accepted(record, value):
-    if record.get('finalization_pending'):
-        return False
-    required = {k for k, v in value.get('requirements', {}).items() if v}
-    return not required or (value.get('product_path') in record.get('verified_products', [])
-        and all(record.get('requirements', {}).get(k) is True for k in required))
-
-
-def delivery_integrity(workspace, value, target):
-    """Technical gate shared by completion and final validation; returns the issue or None."""
-    if not target:
-        return 'Indica il prodotto finale verificato, non un elenco di file intermedi'
-    target_hash = digest(target)
-    deliveries = [a.get('delivery_record') or {} for s in value['steps'] for a in s['attempts']
-                  if any(artifact_path(workspace, p) == target for p in a.get('output_files', []))]
-    if not any(d.get('technical_status') == 'passed' and media_accepted(d, value) and all(
-            artifact_path(workspace, f.get('path', '')) and digest(artifact_path(workspace, f['path'])) == f.get('sha256')
-            for f in d.get('files', [])) and any(
-            artifact_path(workspace, f.get('path', '')) == target and f.get('sha256') == target_hash
-            for f in d.get('files', [])) for d in deliveries):
-        return 'Consegna non collaudata o sorgenti incompleti: usa purpose=delivery e correggi delivery.issues. I file restano disponibili come bozza.'
-    return None
-
-
-def standard_reviews(value):
-    """Reviews against the acceptance contract; policy-sheet reviews are tracked separately."""
-    return sorted((a for s in value['steps'] for a in s['attempts'] if a.get('quality_review') and not a.get('policy_review')),
-                  key=lambda a: a.get('finished_at', ''), reverse=True)
-
-
-def standard_review(workspace, value, target_hash):
-    """The latest separate review still valid for this product and request, if any."""
-    review = next((a['quality_review'] for a in standard_reviews(value)
-                   if review_matches(value, a['quality_review'], value.get('product_path'), workspace)), None)
-    if (not review or review.get('sha256') != target_hash
-            or (value.get('acceptance') and review.get('contract_hash') != value['acceptance']['hash'])
-            or not all(artifact_path(workspace, p) and digest(artifact_path(workspace, p)) == sha
-                       for p, sha in review.get('reference_hashes', {}).items())):
-        return None
-    if not value.get('acceptance') and value.get('requirements', {}).get('audio') and not any(
-            c.get('method') == 'listening' and c.get('status') == 'passed' for c in review.get('criteria', [])):
-        return {**review, 'status': 'needs_review'}
-    return review
-
-
-def delivery_summary(record):
-    if not record:
-        return None
-    return {**{k: record.get(k) for k in ('id', 'title', 'purpose', 'technical_status', 'requirements', 'verified_products', 'source_status')},
-        **{k:record[k] for k in ('environment_checks','source_coverage','timing','finalization_pending','source_package_status','reused_archive_checks','early_delivery','quality_status') if record.get(k)},
-        'historical_checks': [{k:clean_summary(c.get(k, '')) for k in ('name','status','evidence','scope','superseded_by')}
-                              for c in record.get('historical_checks', [])[:8]],
-        'issues': [clean_summary(s) for s in record.get('issues', [])[:8]],
-        'files': [{**{k: f.get(k) for k in ('path', 'sha256', 'role', 'primary')},
-                   **{k: clean_summary(f.get(k, '')) for k in ('open_with', 'editability')},
-                   'limitations': [clean_summary(s) for s in f.get('limitations', [])[:3]]}
-                  for f in record.get('files', [])[:40]]}
-
-
-def visible_attempts(step, product_path):
-    """A review is another attempt, not a replacement for the product it checks."""
-    attempts = step['attempts']
-    visible = list(reversed(attempts[-5:]))
-    selected = next((a for a in reversed(attempts) if product_path and product_path in a.get('output_files', [])), None)
-    if selected is not None and selected not in visible:
-        visible.append(selected)
-    return visible
-
-
-def sync_acceptance(workspace, requests, criteria=None):
-    if not requests:return
-    from .project_controls import operational_resume
-    requests=[r for r in requests if not operational_resume(r)]
-    with locked(workspace) as folder:
-        value = load(folder, workspace)
-        if not value:
-            return
-        old = value.get('acceptance') or {}
-        direction = value.get('user_direction')
-        if direction:
-            requests = [*requests, 'Scelta esplicita dell’utente dal pannello progetto: ' + json.dumps(direction, ensure_ascii=False)]
-        previous = old.get('user_requests', [])
-        documents = json.loads(read_document(workspace, old['request_manifest'])) if old.get('request_manifest') else []
-        documents=[d for d in documents if not operational_resume(read_document(workspace,d))]
-        previous=[r for r in previous if not operational_resume(r)]
-        if not documents and previous:
-            # Recover the original from complete human history after upgrading the 4000-char copy.
-            if requests and requests[0].startswith(previous[0]) and len(requests[0]) > len(previous[0]):
-                previous[0] = requests[0]
-            requests = previous + [r for r in requests if r not in previous]
-        if not requests and not documents:return
-        documents, manifest = save_requests(workspace, requests, documents)
-        selected = documents[:1] + documents[-8:] if len(documents) > 9 else documents
-        # Provenance must also resolve a quoted choice outside the compact
-        # first/latest previews. The contract still exposes only those previews.
-        texts = [read_document(workspace, d) for d in documents]
-        if criteria is None:
-            criteria = [c for c in old.get('criteria', []) if c['id'] != 'request_fidelity']
-        updated = compact_acceptance(contract(texts, criteria))
-        updated['hash'] = fingerprint({'contract': updated['hash'], 'history': [d['sha256'] for d in documents]})
-        updated.update(request_documents=selected, request_manifest=manifest, request_count=len(documents))
-        for rule in updated['criteria']:
-            if any(workspace_path(workspace, p) is None for p in rule['reference_paths']):
-                raise ValueError('I riferimenti devono appartenere alla conversazione')
-        if old.get('hash') == updated['hash']:
-            return
-        value['acceptance'] = updated
-        if value.get('status') == 'ready':
-            value['status'] = 'review'
-        value.pop('user_acceptance', None)
-        atomic_json(folder / 'project.json', value)
-
-
-def set_user_direction(workspace, visual_approach, instructions):
-    """Only the owner API writes this choice; coordinator plans cannot replace it."""
-    if visual_approach not in ('unspecified', 'generated', 'vector', 'mixed', 'automatic'):
-        raise ValueError('Tecnica visiva non riconosciuta')
-    if not isinstance(instructions, str) or len(instructions) > 2000:
-        raise ValueError('Istruzioni entro 2000 caratteri')
-    from .project_skills import request_text
-    with locked(workspace) as folder:
-        value = load(folder, workspace)
-        if not value:
-            raise ValueError('Definisci prima il progetto')
-        old = value.get('user_direction') or {}
-        if old.get('visual_approach') == visual_approach and old.get('instructions', '') == instructions.strip():
-            return _direction_result(value)
-        direction = {'visual_approach': visual_approach, 'instructions': request_text(instructions.strip()),
-                     'revision': old.get('revision', 0) + 1, 'updated_at': utcnow()}
-        value['user_direction'] = direction
-        value.pop('user_acceptance', None)
-        if value.get('status') == 'ready':
-            value['status'] = 'review'
-        value['updated_at'] = utcnow()
-        # Invalidate old approvals immediately, even before the next coordinator turn.
-        if value.get('acceptance'):
-            value['acceptance']['hash'] = fingerprint({'previous': value['acceptance']['hash'], 'user_direction': direction})
-        atomic_json(folder / 'project.json', value)
-        return _direction_result(value)
-
-
-def _direction_result(value):
-    return {'user_direction': value['user_direction'],
-            'running_step_ids': [s['id'] for s in value.get('steps', []) if s['status'] == 'running'],
-            'instruction': 'Scelta salvata per i prossimi incarichi. Le fasi già avviate conservano il loro incarico: interrompile dal pannello Attività per cambiare subito. Riporta questa scelta in chat per chiedere al coordinatore la ripianificazione.'}
-
-
-def set_user_control(workspace, paused):
-    if type(paused) is not bool:
-        raise ValueError('Indica se mettere in pausa il progetto')
-    with locked(workspace) as folder:
-        value = load(folder, workspace)
-        if not value:
-            value = {'id': uuid.uuid4().hex, 'workspace_key': workspace_key(workspace),
-                     'brief': 'Progetto da definire', 'project_type': 'custom', 'created_at': utcnow(),
-                     'steps': [], 'requirements': {}}
-        previous = value.get('user_control') or {}
-        if previous.get('paused') != paused or previous.get('deliver_now'):
-            value['user_control'] = {'paused': paused, 'revision': previous.get('revision', 0) + 1, 'updated_at': utcnow()}
-            value['updated_at'] = utcnow()
-            atomic_json(folder / 'project.json', value)
-        return value.get('user_control')
-
-
-def assert_user_allows_work(value, *, allow_delivery=False):
-    if (value.get('user_control') or {}).get('deliver_now') and not allow_delivery:
-        raise ValueError('Consegna ora richiesta: non avviare altri incarichi. Mostra i risultati disponibili e attendi nuove istruzioni.')
-    if (value.get('user_control') or {}).get('paused'):
-        raise ValueError('Progetto in pausa su richiesta dell’utente: attendi Riprendi dal pannello, senza avviare altre deleghe.')
-
-
-def review_matches(value, review, target_path, workspace):
-    target = artifact_path(workspace, target_path)
-    original = artifact_path(workspace, review.get('product_path', ''))
-    if not target:
-        return False
-    if original == target:
-        return not review.get('sha256') or digest(target) == review['sha256']
-    if not review.get('input_hashes') or digest(target) != review.get('sha256'):
-        return False
-    if review.get('report_sha256'):
-        report = artifact_path(workspace, review.get('report_path',''))
-        if not report or digest(report) != review['report_sha256']:
-            return False
-    if (value.get('acceptance') or {}).get('hash') != review.get('contract_hash'):
-        return False
-    for filename, expected in review['input_hashes'].items():
-        path = artifact_path(workspace, filename)
-        if not path or digest(path) != expected:
-            return False
-    reviewed_hashes = set(review['input_hashes'].values())
-    sources = [f for s in value['steps'] for a in s['attempts']
-               if any(artifact_path(workspace, p) == target for p in a.get('output_files', []))
-               for f in (a.get('delivery_record') or {}).get('files', [])
-               if f.get('role') in ('editable_source','source_archive')]
-    return bool(sources) and all(f.get('sha256') in reviewed_hashes and artifact_path(workspace, f.get('path',''))
-        and digest(artifact_path(workspace, f['path'])) == f['sha256'] for f in sources)
+from . import policy_workflow, project_store
+# Re-exported: callers and tests use projects.<name> for these.
+from .project_store import (STEP_ID, PROJECT_ID, MAX_HISTORY, GATEWAY_SESSION, locked, load, workspace_path,  # noqa: F401
+                            artifact_path, public_artifact, available_paths)
+from .delivery_gate import (media_accepted, delivery_integrity, standard_reviews, standard_review,  # noqa: F401
+                            delivery_summary, visible_attempts, review_matches)
+from .brief import sync_acceptance, set_user_direction, _direction_result, set_user_control, assert_user_allows_work  # noqa: F401
 
 
 def read_project(workspace):
@@ -490,9 +186,8 @@ def read_project(workspace):
     return result
 
 
-def create_plan(workspace, brief, steps, project_type='', omissions=None, *, summary='', next_action='',
-                status='', product_path='', requirements=None, outcome=None, strategy=None, source_turn='', require_settled=False):
-    """Update an evolving brief and activity board, preserving work and versions."""
+def _plan_input(project_type, steps, status, outcome, requirements):
+    """Validated outcome and activities of a plan update, before the project is locked."""
     if project_type not in ('', 'custom', 'animated_video'):
         raise ValueError('Tipo di progetto non valido')
     if not isinstance(steps, list) or len(steps) > 64:
@@ -520,6 +215,133 @@ def create_plan(workspace, brief, steps, project_type='', omissions=None, *, sum
         if step.get('status', 'pending') not in ('pending', 'skipped', 'review','completed'):
             raise ValueError('Le attività aggiornabili possono essere pending, skipped o review; completed può soltanto confermare un esito già registrato.')
         incoming.append({**step, 'depends_on': deps})
+    return outcome, incoming
+
+
+def _apply_outcome(value, outcome, source_turn):
+    """Record the intended result; tool choices and answers must come from a real user turn."""
+    question_turn = value.get('brief_question_turn')
+    if (value.get('outcome') or {}).get('questions') and not outcome.get('questions') and question_turn:
+        if not source_turn or source_turn == question_turn:
+            raise ValueError('Le domande sul risultato attendono una nuova risposta reale dell’utente; non cancellarle nello stesso turno.')
+    presented = value.setdefault('tool_options_turn', {})
+    previous_choices = {d['id']: d.get('chosen', '') for d in (value.get('outcome') or {}).get('tool_options', [])}
+    for decision in outcome.get('tool_options', []):
+        if not decision['chosen']:
+            presented[decision['id']] = source_turn or presented.get(decision['id'], '')
+        elif previous_choices.get(decision['id']) != decision['chosen'] and (
+                not source_turn or decision['id'] not in presented or presented[decision['id']] == source_turn):
+            raise ValueError('La scelta tra le alternative «' + decision['decision'] + '» spetta all’utente: '
+                             'presentale prima con pregi, difetti e consiglio, poi registra chosen dopo la sua risposta.')
+    if outcome.get('questions') and source_turn:
+        value['brief_question_turn'] = source_turn
+    elif not outcome.get('questions'):
+        value.pop('brief_question_turn', None)
+    if value.get('outcome') != outcome:
+        value.pop('user_acceptance', None)
+        if value.get('status') == 'ready':
+            value['status'] = 'review'
+    value['outcome'] = outcome
+    if not briefing_issue(outcome) and value.get('status') == 'clarifying':
+        value['status'] = 'working'
+
+
+def _merge_steps(value, incoming):
+    """Add or update activities; completed may only confirm a recorded, unchanged attempt."""
+    for item in incoming:
+        previous = next((s for s in value['steps'] if s['id'] == item['id']), None)
+        if item.get('status')=='completed':
+            if (not previous or previous['status']!='completed' or not previous['attempts']
+                    or any(item.get(k)!=previous.get(k) for k in ('agent','goal','depends_on'))
+                    or 'role_id' in item and item['role_id']!=previous.get('role_id')):
+                raise ValueError('completed richiede un incarico già concluso e invariato: il piano non può dichiarare un’esecuzione mai avvenuta.')
+            continue
+        if previous:
+            if previous['status'] == 'running':
+                raise ValueError('Non modificare un’attività in esecuzione')
+            previous.update(agent=item['agent'], goal=item['goal'], depends_on=item['depends_on'])
+            if 'role_id' in item:
+                previous['role_id'] = item['role_id']
+            if 'status' in item:
+                previous['status'] = item['status']
+        else:
+            value['steps'].append({**item, 'status': item.get('status', 'pending'), 'attempts': []})
+    if len(value['steps']) > 64:
+        raise ValueError('Il progetto ha raggiunto 64 attività; archivia quelle concluse prima di un nuovo progetto')
+
+
+def _set_product(workspace, value, product_path, status):
+    """The shown product must be a file actually produced and verified in this project."""
+    path = artifact_path(workspace, product_path)
+    draft = status == 'review'
+    produced = [p for s in value['steps'] for a in s['attempts']
+                if a.get('validated', a.get('status') == 'completed') for p in a.get('output_files', [])]
+    reviewed_draft = path and draft and any(
+        a.get('validated') and artifact_path(workspace, (a.get('quality_review') or {}).get('product_path', '')) == path
+        and (a.get('quality_review') or {}).get('sha256') == digest(path)
+        and (a.get('quality_review') or {}).get('contract_hash') == (value.get('acceptance') or {}).get('hash')
+        for s in value['steps'] for a in s['attempts'])
+    if not path or not (any(artifact_path(workspace, p) == path for p in produced) or reviewed_draft):
+        raise ValueError('Il prodotto deve essere un file realmente prodotto e verificato da uno specialista')
+    if not draft and value.get('requirements') and not any(product_path in a.get('verified_products', [])
+            for s in value['steps'] for a in s['attempts']):
+        raise ValueError('Prima della consegna finale usa harness_delegate con purpose=delivery per controllare il file completo')
+    if value.get('product_path') != product_path:
+        value.pop('policy_validation', None)
+    value['product_path'] = product_path
+
+
+def _check_ready(workspace, value, require_settled):
+    """Completion gate: brief answered, delivery integrity, separate review and Policy Plan validation."""
+    if require_settled and (not (value.get('acceptance') or {}).get('user_requests') or any(
+            step['status'] in ('pending','running','paused','needs_revision') for step in value['steps'])):
+        raise ValueError('Completamento automatico sospeso: richiesta o attività ancora da verificare')
+    if value.get('outcome') and briefing_issue(value['outcome']):
+        raise ValueError('Rispondi prima alle domande sul risultato atteso')
+    acceptance = value.get('acceptance') or {}
+    if acceptance.get('request_manifest'):
+        for document in json.loads(read_document(workspace, acceptance['request_manifest'])):
+            read_document(workspace, document)
+    target = artifact_path(workspace, value.get('product_path', ''))
+    integrity = delivery_integrity(workspace, value, target)
+    if integrity:
+        raise ValueError(integrity)
+    target_hash = digest(target)
+    accepted = value.get('user_acceptance') or {}
+    owner_accepted = accepted.get('product_path') == value.get('product_path') and accepted.get('sha256') == target_hash
+    if not owner_accepted and (standard_review(workspace, value, target_hash) or {}).get('status') != 'passed':
+        raise ValueError('Manca una revisione separata valida del prodotto rispetto alla richiesta corrente: usa purpose=review e quality-review.json, coprendo requisiti e riferimenti. Se il metodo richiesto non è disponibile mantieni status=review; non rigenerare né fingere la verifica.')
+    if policy_workflow.governed(value) and not owner_accepted:
+        report = policy_workflow.validation(workspace, value)
+        if report['status'] != 'passed':
+            pending = [s['id'] + ': ' + s['status'] for s in report['sheets'] if s['status'] != 'passed']
+            raise ValueError('La validazione finale del Policy Plan non è superata (' + ', '.join(pending) +
+                             '). Usa harness_validate sul prodotto finito e correggi le violazioni prima della consegna.')
+        value['policy_validation'] = {**report, 'at': utcnow()}
+
+
+def _apply_status(workspace, value, status):
+    """Set the visible status; a blocked project first looks for a method recovery."""
+    value['status'] = status
+    if status == 'ready':
+        value['attention'] = None
+    if status == 'blocked':
+        recovery = method_recovery(workspace, value)
+        if recovery:
+            value.update(status='review', method_recovery=recovery, summary=recovery['message'],
+                next_action='Rivalutare le scelte della squadra e il metodo; il risultato richiesto resta da completare.')
+        else:
+            value.pop('method_recovery', None)
+            if (value.get('strategy') or {}).get('state') == 'needs_user':
+                value['next_action'] = value['strategy']['user_action']
+    elif status in ('working', 'ready', 'idle'):
+        value.pop('method_recovery', None)
+
+
+def create_plan(workspace, brief, steps, project_type='', omissions=None, *, summary='', next_action='',
+                status='', product_path='', requirements=None, outcome=None, strategy=None, source_turn='', require_settled=False):
+    """Update an evolving brief and activity board, preserving work and versions."""
+    outcome, incoming = _plan_input(project_type, steps, status, outcome, requirements)
     with locked(workspace) as folder:
         value = load(folder, workspace)
         if not value:
@@ -532,123 +354,28 @@ def create_plan(workspace, brief, steps, project_type='', omissions=None, *, sum
         if brief:
             value['brief'] = clean_summary(brief, 4000)
         if outcome is not None:
-            question_turn = value.get('brief_question_turn')
-            if (value.get('outcome') or {}).get('questions') and not outcome.get('questions') and question_turn:
-                if not source_turn or source_turn == question_turn:
-                    raise ValueError('Le domande sul risultato attendono una nuova risposta reale dell’utente; non cancellarle nello stesso turno.')
-            presented = value.setdefault('tool_options_turn', {})
-            previous_choices = {d['id']: d.get('chosen', '') for d in (value.get('outcome') or {}).get('tool_options', [])}
-            for decision in outcome.get('tool_options', []):
-                if not decision['chosen']:
-                    presented[decision['id']] = source_turn or presented.get(decision['id'], '')
-                elif previous_choices.get(decision['id']) != decision['chosen'] and (
-                        not source_turn or decision['id'] not in presented or presented[decision['id']] == source_turn):
-                    raise ValueError('La scelta tra le alternative «' + decision['decision'] + '» spetta all’utente: '
-                                     'presentale prima con pregi, difetti e consiglio, poi registra chosen dopo la sua risposta.')
-            if outcome.get('questions') and source_turn:
-                value['brief_question_turn'] = source_turn
-            elif not outcome.get('questions'):
-                value.pop('brief_question_turn', None)
-            if value.get('outcome') != outcome:
-                value.pop('user_acceptance', None)
-                if value.get('status') == 'ready':
-                    value['status'] = 'review'
-            value['outcome'] = outcome
-            if not briefing_issue(outcome) and value.get('status') == 'clarifying':
-                value['status'] = 'working'
+            _apply_outcome(value, outcome, source_turn)
         if project_type:
             value['project_type'] = project_type
         if value['project_type'] == 'animated_video' and not value.get('requirements'):
             value['requirements'] = {'video': True, 'audio': not bool((omissions or {}).get('soundcraft'))}
         if requirements is not None:
             value['requirements'] = requirements
-        for item in incoming:
-            previous = next((s for s in value['steps'] if s['id'] == item['id']), None)
-            if item.get('status')=='completed':
-                if (not previous or previous['status']!='completed' or not previous['attempts']
-                        or any(item.get(k)!=previous.get(k) for k in ('agent','goal','depends_on'))
-                        or 'role_id' in item and item['role_id']!=previous.get('role_id')):
-                    raise ValueError('completed richiede un incarico già concluso e invariato: il piano non può dichiarare un’esecuzione mai avvenuta.')
-                continue
-            if previous:
-                if previous['status'] == 'running':
-                    raise ValueError('Non modificare un’attività in esecuzione')
-                previous.update(agent=item['agent'], goal=item['goal'], depends_on=item['depends_on'])
-                if 'role_id' in item:
-                    previous['role_id'] = item['role_id']
-                if 'status' in item:
-                    previous['status'] = item['status']
-            else:
-                value['steps'].append({**item, 'status': item.get('status', 'pending'), 'attempts': []})
-        if len(value['steps']) > 64:
-            raise ValueError('Il progetto ha raggiunto 64 attività; archivia quelle concluse prima di un nuovo progetto')
+        _merge_steps(value, incoming)
         for key, text in [('summary', summary), ('next_action', next_action)]:
             if text:
                 value[key] = clean_summary(text)
         if product_path:
-            path = artifact_path(workspace, product_path)
-            draft = status == 'review'
-            produced = [p for s in value['steps'] for a in s['attempts']
-                        if a.get('validated', a.get('status') == 'completed') for p in a.get('output_files', [])]
-            reviewed_draft = path and draft and any(
-                a.get('validated') and artifact_path(workspace, (a.get('quality_review') or {}).get('product_path', '')) == path
-                and (a.get('quality_review') or {}).get('sha256') == digest(path)
-                and (a.get('quality_review') or {}).get('contract_hash') == (value.get('acceptance') or {}).get('hash')
-                for s in value['steps'] for a in s['attempts'])
-            if not path or not (any(artifact_path(workspace, p) == path for p in produced) or reviewed_draft):
-                raise ValueError('Il prodotto deve essere un file realmente prodotto e verificato da uno specialista')
-            if not draft and value.get('requirements') and not any(product_path in a.get('verified_products', [])
-                    for s in value['steps'] for a in s['attempts']):
-                raise ValueError('Prima della consegna finale usa harness_delegate con purpose=delivery per controllare il file completo')
-            if value.get('product_path') != product_path:
-                value.pop('policy_validation', None)
-            value['product_path'] = product_path
+            _set_product(workspace, value, product_path, status)
         if strategy is not None:
             value['strategy'] = validate_strategy(workspace, strategy, applications(), (value.get('acceptance') or {}).get('hash'))
             value.pop('method_recovery', None)
             if value.get('status') == 'blocked' and value['strategy']['state'] != 'needs_user':
                 value['status'] = 'review'
         if status == 'ready':
-            if require_settled and (not (value.get('acceptance') or {}).get('user_requests') or any(
-                    step['status'] in ('pending','running','paused','needs_revision') for step in value['steps'])):
-                raise ValueError('Completamento automatico sospeso: richiesta o attività ancora da verificare')
-            if value.get('outcome') and briefing_issue(value['outcome']):
-                raise ValueError('Rispondi prima alle domande sul risultato atteso')
-            acceptance = value.get('acceptance') or {}
-            if acceptance.get('request_manifest'):
-                for document in json.loads(read_document(workspace, acceptance['request_manifest'])):
-                    read_document(workspace, document)
-            target = artifact_path(workspace, value.get('product_path', ''))
-            integrity = delivery_integrity(workspace, value, target)
-            if integrity:
-                raise ValueError(integrity)
-            target_hash = digest(target)
-            accepted = value.get('user_acceptance') or {}
-            owner_accepted = accepted.get('product_path') == value.get('product_path') and accepted.get('sha256') == target_hash
-            if not owner_accepted and (standard_review(workspace, value, target_hash) or {}).get('status') != 'passed':
-                raise ValueError('Manca una revisione separata valida del prodotto rispetto alla richiesta corrente: usa purpose=review e quality-review.json, coprendo requisiti e riferimenti. Se il metodo richiesto non è disponibile mantieni status=review; non rigenerare né fingere la verifica.')
-            if policy_workflow.governed(value) and not owner_accepted:
-                report = policy_workflow.validation(workspace, value)
-                if report['status'] != 'passed':
-                    pending = [s['id'] + ': ' + s['status'] for s in report['sheets'] if s['status'] != 'passed']
-                    raise ValueError('La validazione finale del Policy Plan non è superata (' + ', '.join(pending) +
-                                     '). Usa harness_validate sul prodotto finito e correggi le violazioni prima della consegna.')
-                value['policy_validation'] = {**report, 'at': utcnow()}
+            _check_ready(workspace, value, require_settled)
         if status:
-            value['status'] = status
-            if status == 'ready':
-                value['attention'] = None
-            if status == 'blocked':
-                recovery = method_recovery(workspace, value)
-                if recovery:
-                    value.update(status='review', method_recovery=recovery, summary=recovery['message'],
-                        next_action='Rivalutare le scelte della squadra e il metodo; il risultato richiesto resta da completare.')
-                else:
-                    value.pop('method_recovery', None)
-                    if (value.get('strategy') or {}).get('state') == 'needs_user':
-                        value['next_action'] = value['strategy']['user_action']
-            elif status in ('working', 'ready', 'idle'):
-                value.pop('method_recovery', None)
+            _apply_status(workspace, value, status)
         if value.get('outcome') and briefing_issue(value['outcome']):
             value['status'] = 'clarifying'
         changed = policy_workflow.ensure_plan(value) if policy_workflow.governed(value) else None
@@ -705,6 +432,20 @@ def governance_state(workspace):
     """Full project record for the policy engine; histories stay out of LLM turns."""
     with locked(workspace) as folder:
         return load(folder, workspace)
+
+
+def save_probe_results(workspace, results):
+    """Record executable probe outcomes, keyed by sheet/check and bound to the product hash."""
+    with locked(workspace) as folder:
+        value = load(folder, workspace)
+        if not value:
+            raise ValueError('Progetto non disponibile')
+        value['policy_probes'] = {**value.get('policy_probes', {}), **results}
+        value['updated_at'] = utcnow()
+        atomic_json(folder / 'project.json', value)
+    for key, result in results.items():
+        record_policy_event(workspace, value, 'Probe ' + key, 'completed' if result['status'] == 'passed' else 'failed',
+                            result.get('evidence', ''))
 
 
 def save_policy_validation(workspace, report):
@@ -851,6 +592,14 @@ def execute_step(workspace, agent, task, step_id, invoke, *, provider=None, purp
             value['steps'].append(step)
         if step['status'] == 'running':
             raise ValueError('Questa attività è già in esecuzione')
+        latest = step['attempts'][-1] if step['attempts'] else {}
+        if (request_id and step['status'] == 'completed' and latest.get('context', {}).get('request') == request_id
+                and latest.get('context', {}).get('purpose') == purpose and latest.get('task') == clean_summary(task, 1500)):
+            # The same assignment in the same user turn: return what is recorded instead of running it again.
+            return json.dumps({'ok': True, 'duplicate': True, 'activity': {'id': step['id'], 'status': step['status']},
+                               'output_dir': latest.get('output_dir', ''), 'available_files': latest.get('output_files', [])[:40],
+                               'instruction': 'Incarico identico già concluso in questo turno: usa il risultato registrato, non rilanciarlo.'},
+                              ensure_ascii=False)
         step.update(agent=agent, purpose=purpose)
         if role:
             step['role_id'] = role['id']
@@ -916,7 +665,7 @@ def execute_step(workspace, agent, task, step_id, invoke, *, provider=None, purp
         if previous:
             contract_text += '\nUltimo incarico da riprendere: ' + json.dumps({k: previous.get(k) for k in
                 ('output_dir', 'output_files', 'error')}, ensure_ascii=False)
-        attempt = {'started_at': utcnow(), 'status': 'running', 'gateway_session': GATEWAY_SESSION, 'context': context, 'task': clean_summary(task, 1500), 'role_id': role['id'] if role else '', 'role_title': role['title'] if role else ''}
+        attempt = {'started_at': utcnow(), 'status': 'running', 'gateway_session': project_store.GATEWAY_SESSION, 'context': context, 'task': clean_summary(task, 1500), 'role_id': role['id'] if role else '', 'role_title': role['title'] if role else ''}
         if policy_sheet is not None and policy_sheet['final_checks'] != 'acceptance':
             # Acceptance-contract sheets are satisfied by the standard quality review.
             attempt['policy_review'] = policy_sheet['id']

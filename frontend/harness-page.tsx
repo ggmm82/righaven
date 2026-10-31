@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState, type FormEvent } from "react";
 import { fetch as authenticatedFetch } from "@/core/api/fetcher";
 import { useI18n } from "@/core/i18n/hooks";
+import {tr, useUiLanguage, trMap} from "@/core/i18n/ui-text";
 
 type Profile = {engine:string; model:string; ready:boolean; connection_id?:string; base_url?:string};
 type Catalogue = {profiles:{coordinator:Profile;squad:Profile}; connections:Record<string,{credentials_present:boolean; connection_id?:string; base_url?:string}>};
@@ -15,14 +16,14 @@ async function api<T>(path:string, init?:RequestInit):Promise<T> {
   const response=await authenticatedFetch("/harness/api/"+path, init);
   if (!response.ok) {
     const value=await response.json().catch(()=>({})) as {detail?:string};
-    throw new Error(value.detail ?? "Request failed ("+response.status+")");
+    throw new Error(value.detail ?? tr("Richiesta non riuscita (", "Request failed (")+response.status+")");
   }
   return response.json() as Promise<T>;
 }
 const json=(value:unknown,method="POST"):RequestInit=>({method,headers:{"Content-Type":"application/json"},body:JSON.stringify(value)});
-const engines:Record<string,string>={claude:"Anthropic Claude Code",codex:"OpenAI Codex",gemini:"Google Antigravity",deepseek:"DeepSeek",openai:"OpenAI-compatible API"};
+const engines: Record<string, string> = trMap({claude:["Anthropic Claude Code", "Anthropic Claude Code"],codex:["OpenAI Codex", "OpenAI Codex"],gemini:["Google Antigravity", "Google Antigravity"],deepseek:["DeepSeek", "DeepSeek"],openai:["API compatibile OpenAI", "OpenAI-compatible API"]});
 
-export default function ModelsPage() {
+export default function ModelsPage() {useUiLanguage();
   const {locale}=useI18n(); const it=locale==="it-IT";
   const router=useRouter();
   const [data,setData]=useState<Catalogue>();
@@ -37,14 +38,14 @@ export default function ModelsPage() {
   useEffect(()=>{
     let alive=true;
     void authenticatedFetch("/api/v1/cloud/edition").then(async response=>{
-      if(!response.ok)throw Error("Deployment configuration unreachable");
+      if(!response.ok)throw Error(tr("Configurazione del deployment non raggiungibile", "Deployment configuration unreachable"));
       const edition=await response.json() as {edition:string};
       if(!alive)return;
       if(edition.edition==="cloud"){router.replace("/workspace/cloud");return;}
       const result=await authenticatedFetch("/harness/api/catalog");
       if(!alive)return;
       if(result.status===403){setAccess("user");return;}
-      if(!result.ok)throw Error("Model configuration unreachable");
+      if(!result.ok)throw Error(tr("Configurazione dei modelli non raggiungibile", "Model configuration unreachable"));
       const value=await result.json() as Catalogue;
       setData(value);select(value.profiles.coordinator);setAccess("admin");
     }).catch(reason=>{if(alive){setAccess("error");setError(String(reason.message));}});
@@ -91,9 +92,9 @@ export default function ModelsPage() {
       <section className="grid gap-4 sm:grid-cols-2">{(["coordinator","squad"] as const).map(target=><div key={target} className="space-y-2 rounded-2xl border p-6"><h2 className="text-sm text-muted-foreground">{target==="coordinator"?it?"Coordinatore":"Coordinator":it?"Squadra":"Team"}</h2><p className="font-semibold">{data.profiles[target].model||"—"}</p><p className="text-sm text-muted-foreground">{engines[data.profiles[target].engine]} · {data.profiles[target].ready?it?"Collegato":"Connected":it?"Da collegare":"Not connected"}</p></div>)}</section>
       <form onSubmit={event=>void save(event)} className="space-y-5 rounded-2xl border p-6">
         <h2 className="text-lg font-semibold">{it?"Configura una connessione":"Configure a connection"}</h2>
-        <div className="grid gap-5 sm:grid-cols-2"><label className="space-y-2 text-sm"><span>{it?"Assegna a":"Assign to"}</span><select disabled={busy} aria-label={it?"Assegna a":"Assign to"} className={field} value={scope} onChange={event=>{setScope(event.target.value);select(data.profiles[event.target.value==="squad"?"squad":"coordinator"]);}}><option value="both">{it?"Coordinatore e squadra":"Coordinator & team"}</option><option value="coordinator">{it?"Solo coordinatore":"Coordinator only"}</option><option value="squad">{it?"Solo squadra":"Team only"}</option></select></label><label className="space-y-2 text-sm"><span>Provider</span><select disabled={busy} aria-label="Provider" className={field} value={engine} onChange={event=>{setEngine(event.target.value);setModel(event.target.value==="gemini"?"auto":event.target.value==="deepseek"?"deepseek-chat":"");setModels([]);setKey("");setConnection(data.connections[event.target.value]?.connection_id);setBaseUrl(data.connections[event.target.value]?.base_url||"https://api.openai.com/v1");}}>{Object.entries(engines).map(([value,label])=><option key={value} value={value}>{label}</option>)}</select></label></div>
-        {engine==="openai"&&<label className="block space-y-2 text-sm"><span>Endpoint URL</span><input disabled={busy} type="url" required className={field} value={baseUrl} onChange={event=>setBaseUrl(event.target.value)} /></label>}
-        {account?<div className="flex flex-wrap items-center gap-3 rounded-xl bg-muted/40 p-4"><p className="flex-1 text-sm">{it?"Usa l’accesso ufficiale del tuo account; non inserire la password in RigHaven.":"Use your account's official sign-in; do not enter its password in RigHaven."}</p><button type="button" disabled={busy||!!sessionId&&!session?.finished} className={button} onClick={()=>void connect()}>{it?"Collega account":"Connect account"}</button></div>:<label className="block space-y-2 text-sm"><span>API key</span><input disabled={busy} className={field} type="password" autoComplete="new-password" value={key} onChange={event=>setKey(event.target.value)} placeholder={it?"Lascia vuoto per mantenere la chiave salvata":"Leave blank to keep the saved key"}/></label>}
+        <div className="grid gap-5 sm:grid-cols-2"><label className="space-y-2 text-sm"><span>{it?"Assegna a":"Assign to"}</span><select disabled={busy} aria-label={it?"Assegna a":"Assign to"} className={field} value={scope} onChange={event=>{setScope(event.target.value);select(data.profiles[event.target.value==="squad"?"squad":"coordinator"]);}}><option value="both">{it?"Coordinatore e squadra":"Coordinator & team"}</option><option value="coordinator">{it?"Solo coordinatore":"Coordinator only"}</option><option value="squad">{it?"Solo squadra":"Team only"}</option></select></label><label className="space-y-2 text-sm"><span>{"Provider"}</span><select disabled={busy} aria-label={"Provider"} className={field} value={engine} onChange={event=>{setEngine(event.target.value);setModel(event.target.value==="gemini"?"auto":event.target.value==="deepseek"?"deepseek-chat":"");setModels([]);setKey("");setConnection(data.connections[event.target.value]?.connection_id);setBaseUrl(data.connections[event.target.value]?.base_url||"https://api.openai.com/v1");}}>{Object.entries(engines).map(([value,label])=><option key={value} value={value}>{label}</option>)}</select></label></div>
+        {engine==="openai"&&<label className="block space-y-2 text-sm"><span>{tr("URL dell’endpoint", "Endpoint URL")}</span><input disabled={busy} type="url" required className={field} value={baseUrl} onChange={event=>setBaseUrl(event.target.value)} /></label>}
+        {account?<div className="flex flex-wrap items-center gap-3 rounded-xl bg-muted/40 p-4"><p className="flex-1 text-sm">{it?"Usa l’accesso ufficiale del tuo account; non inserire la password in RigHaven.":"Use your account's official sign-in; do not enter its password in RigHaven."}</p><button type="button" disabled={busy||!!sessionId&&!session?.finished} className={button} onClick={()=>void connect()}>{it?"Collega account":"Connect account"}</button></div>:<label className="block space-y-2 text-sm"><span>{tr("Chiave API", "API key")}</span><input disabled={busy} className={field} type="password" autoComplete="new-password" value={key} onChange={event=>setKey(event.target.value)} placeholder={it?"Lascia vuoto per mantenere la chiave salvata":"Leave blank to keep the saved key"}/></label>}
         <label className="block space-y-2 text-sm"><span>{it?"ID modello":"Model ID"}</span><input disabled={busy} className={field} list="provider-models" value={model} maxLength={200} onChange={event=>setModel(event.target.value)} placeholder={it?"Scegli dall’elenco o inserisci un ID":"Choose from the list or enter an ID"}/><datalist id="provider-models">{models.map(value=><option key={value} value={value}/>)}</datalist></label>
         {models.length>0&&<label className="block space-y-2 text-sm"><span>{it?"Modelli disponibili":"Available models"}</span><select disabled={busy} aria-label={it?"Modelli disponibili":"Available models"} className={field} value={models.includes(model)?model:""} onChange={event=>setModel(event.target.value)}><option value="" disabled>{it?"Scegli un modello":"Choose a model"}</option>{models.map(value=><option key={value} value={value}>{value}</option>)}</select></label>}
         <div className="flex flex-wrap gap-3"><button type="button" className={button} disabled={busy} onClick={()=>void loadModels()}>{it?"Carica modelli disponibili":"Load available models"}</button><button disabled={busy} className={button+" bg-primary text-primary-foreground"}>{busy?it?"Verifica in corso…":"Checking…":it?"Verifica e salva":"Check & save"}</button></div>

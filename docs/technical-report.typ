@@ -16,7 +16,7 @@
 
 *RigHaven* (`righaven`) combines two complementary engineering paradigms into a unified open-source platform:
 1. *Safe Home (The Agent Harness)*: A stateful, fault-tolerant multi-agent control plane (`gateway` + `redis` + `runtime-docker`) that receives user briefs, resolves ambiguities via `ask_clarification`, compiles dynamic project roles (`harness_plan`), enforces cgroup resource budgets, and validates deliverables before atomic promotion.
-2. *On-Demand Toolbox (The Ephemeral Sandbox & Community Gallery)*: Assignment worker containers with all capabilities dropped, `no-new-privileges`, PID/CPU/memory limits and bridge networking. They read the project read-only, write only to their staging folder, and use prepared images built from a catalog of 62 managed CLI tools and Gallery environment packs (`righaven-pack.json`).
+2. *On-Demand Toolbox (The Ephemeral Sandbox & Community Gallery)*: Assignment worker containers with all capabilities dropped, `no-new-privileges`, PID/CPU/memory limits, per-job credential copies and bridge networking (or, with `RIGHAVEN_WORKER_EGRESS=allowlist`, an internal network behind a per-job domain allowlist proxy). They read the project read-only, write only to their staging folder, and use prepared images built from a catalog of 62 managed CLI tools and Gallery environment packs (`righaven-pack.json`).
 
 = 2. The 6 Core Containers & Volume Isolation
 

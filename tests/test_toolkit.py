@@ -15,12 +15,13 @@ from scripts import toolkit_cli as cli
 from scripts.install_righaven import safe_unzip
 from scripts.toolkit_specs import TOOLS
 from righaven.source_packages import inspect_freecad
+from real_tools import requires
 
 REPO = Path(__file__).resolve().parents[1]
 
 
 class ToolkitTests(unittest.TestCase):
-    @unittest.skipUnless(shutil.which('ffmpeg') and shutil.which('ffprobe'), 'Real media tools required')
+    @requires('ffmpeg', 'ffprobe')
     def test_large_native_probe_survives_bounded_log_tail_without_flooding_model_context(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp);source = root / 'long-metadata.wav';output = root / 'probe.json'

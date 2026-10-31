@@ -240,7 +240,7 @@ def harness_plan(runtime: Runtime, brief: str = '', steps_json: str = '',
         status: clarifying, working, review, ready, blocked or idle.
         product_path: Existing verified final product to show prominently; ready requires it.
         requirements_json: Media acceptance requirements such as {"audio":true,"video":true}; follow the user's brief.
-        roles_json: JSON roles compiled for this project: id, title, mission, expertise, procedure, checks, deliverables, skills (exact authorized native names discovered with harness_skills), tools (available catalog IDs, optional), inputs and risks. Selected skill requirements add their tools automatically. Roles are dynamic, not tool identities; scope and package versions are recorded. Each role requires capability_rationale: explain why the selected capabilities can construct its actual content/model, not merely export the delivery format; consider relevant owner environments and justify simpler alternatives. Do not assign every available tool or impose a fixed team.
+        roles_json: JSON roles compiled for this project: id, title, mission, expertise, procedure, checks, deliverables, skills (exact authorized native names discovered with harness_skills), tools (available catalog IDs, optional), inputs and risks; optional network: up to eight {domain, reason} the role must reach beyond the model provider (for example fonts or a public dataset), granted only when the installation restricts worker egress. Selected skill requirements add their tools automatically. Roles are dynamic, not tool identities; scope and package versions are recorded. Each role requires capability_rationale: explain why the selected capabilities can construct its actual content/model, not merely export the delivery format; consider relevant owner environments and justify simpler alternatives. Do not assign every available tool or impose a fixed team.
         memory_json: JSON object with project-specific decisions, facts, questions and asset references; merge top-level keys, keep evidence and uncertainty explicit.
         outcome_json: JSON intended result with title, result, format (delivery form, not necessarily a file extension), use, quality, constraints, assumptions, questions. Questions are at most three decisive missing user choices; ask them with ask_clarification, then replace the object with the real answers and questions empty before delegating. Do not ask again for choices already explicit in the brief. tool_options lists up to four tool decisions when several catalog tools could produce the result: id, decision, 2–4 options (id, label, tools, pros, cons), recommended option and recommendation_reason, chosen empty. Present them with ask_clarification and set chosen only after the user's reply; production waits for every choice and roles cannot use tools of rejected options.
         strategy_json: Optional method selection, especially after a failed sample: method, reason, state (exploring/selected/needs_user), up to three alternatives with method, reason, tools, status (candidate/tested/unavailable) and evidence_paths (existing workspace files required for tested). To pause for user help include stop_reason (missing_input/capability_limit/user_choice/budget) and concrete user_action. A quality failure alone cannot establish an external blocker. Revisit team assumptions before requesting assets; changing method does not authorize lowering user requirements.
@@ -375,12 +375,27 @@ def delegate_step(agent, task, runtime, *, step_id='', purpose='work', role_id='
             requirements=requirements, purpose=purpose, acceptance=project.get('acceptance'), role=role,
             capability_policy=policy, **policy_review), provider={k: profile[k] for k in ('engine', 'model', 'connection_id') if k in profile},
         purpose=purpose, request_id=request_id, role=role, policy_sheet=policy_sheet))
+    try:
+        return delegation_reply(workspace, runtime, result, project, profile, purpose)
+    except Exception as error:
+        # The assignment is already recorded: never report it as failed or invite a re-run.
+        from .progress import clean_summary
+        from .audit_log import append
+        append(workspace, 'Coordinatore', 'Riepilogo dell’incarico non disponibile', 'failed', detail=clean_summary(error))
+        return json.dumps({k: result[k] for k in ('ok', 'activity', 'output_dir', 'error', 'checkpoint', 'policy_violations') if k in result}
+                          | {'available_files': result.get('available_files', [])[:20], 'summary_unavailable': True,
+                             'instruction': 'L’incarico è registrato con il suo esito: non rilanciarlo. Il riepilogo completo non è disponibile; '
+                                            'leggi i file indicati o lo stato con harness_plan.'}, ensure_ascii=False)
+
+
+def delegation_reply(workspace, runtime, result, project, profile, purpose):
+    """Compact coordinator view of a recorded assignment."""
     experience = preserve_experience(workspace, runtime)
     handoff = result.get('handoff') or {}
     from .handoff import blocking_checks
     from .control_memory import counts
     from .progress import clean_summary
-    compact = {k: result[k] for k in ('ok', 'activity', 'output_dir', 'attention', 'recovery', 'retry_blocked', 'checkpoint_reassessment','goal','instruction',
+    compact = {k: result[k] for k in ('ok', 'duplicate', 'activity', 'output_dir', 'attention', 'recovery', 'retry_blocked', 'checkpoint_reassessment','goal','instruction',
         'product_verified', 'verified_products', 'available_results', 'policy_violations', 'policy_compliance', 'checkpoint') if k in result}
     compact.update(error=clean_summary(result.get('error', '')),
         check_counts=counts(handoff.get('checks', [])),
@@ -475,7 +490,8 @@ def harness_validate(runtime: Runtime, role_id: str, task: str = '') -> str:
     """Run the final multi-policy validation of the finished product before delivery.
 
     Requires a completed Execution Plan and a product_path. The runtime first checks
-    delivery integrity, then runs one separate review per Policy Plan sheet that has
+    delivery integrity, then runs the executable probes the sheets require (qpdf,
+    pdftotext, veraPDF, ffprobe, gitleaks on the exact file, without network), then runs one separate review per Policy Plan sheet that has
     no valid verdict for this exact product: independent sheets in parallel, dependent
     sheets after their prerequisites. All violations are returned together. Delivery
     (status=ready) is refused until every sheet passes. Correct violations on the
@@ -512,6 +528,10 @@ def harness_validate(runtime: Runtime, role_id: str, task: str = '') -> str:
     report = policy_workflow.validation(workspace, value)
     runs = []
     if report['integrity']['status'] == 'passed':
+        probes = policy_workflow.run_probes(workspace, value)
+        if probes:
+            value = governance_state(workspace)
+            report = policy_workflow.validation(workspace, value)
         sheets = {s['id']: s for s in value['policy_plan']['sheets']}
         to_run = [sheets[s['id']] for s in report['sheets'] if s['status'] == 'pending']
         guidance = task.strip() or 'Valida il prodotto finito ' + value.get('product_path', '') + ' senza modificarlo.'

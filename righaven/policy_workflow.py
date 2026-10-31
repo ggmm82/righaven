@@ -169,9 +169,52 @@ def sheet_reviews(value, sheet):
                   key=lambda a: a.get('finished_at', ''), reverse=True)
 
 
-def sheet_verdict(workspace, value, sheet, target_hash):
-    """Verdict of one sheet on the product with this hash, from the recorded reviews."""
+def probe_findings(value, sheet, target_hash):
+    """(missing probe checks, failed findings, passed evidence) for this exact product."""
+    from .policy_probes import checks
+    recorded = value.get('policy_probes', {})
+    missing, failed, passed = [], [], []
+    for check in checks(sheet):
+        result = recorded.get(sheet['id'] + '/' + check['id'])
+        if not result or result.get('sha256') != target_hash or result.get('probe') != check['probe']:
+            missing.append(check)
+            continue
+        finding = {'requirement_id': check['id'], 'status': result['status'], 'critical': check['critical'], 'method': 'probe:' + check['probe'],
+                   'criterion': clean_summary(check['requirement'], 200), 'evidence': clean_summary(result.get('evidence'), 240)}
+        (passed if result['status'] == 'passed' or not check['critical'] else failed).append(finding)
+    return missing, failed, passed
+
+
+def run_probes(workspace, value, runner=None):
+    """Run the executable probes still missing for the current product; one run per probe and hash."""
     from . import projects
+    from .policy_probes import run
+    from .source_packages import digest
+    plan = value.get('policy_plan')
+    target = projects.artifact_path(workspace, value.get('product_path', ''))
+    if not plan or not target:
+        return {}
+    target_hash, done, results = digest(target), {}, {}
+    for sheet in plan['sheets']:
+        for check in probe_findings(value, sheet, target_hash)[0]:
+            if check['probe'] not in done:
+                done[check['probe']] = (runner or run)(check['probe'], target)
+            results[sheet['id'] + '/' + check['id']] = {**done[check['probe']], 'sha256': target_hash, 'probe': check['probe']}
+    if results:
+        projects.save_probe_results(workspace, results)
+    return results
+
+
+def sheet_verdict(workspace, value, sheet, target_hash):
+    """Verdict of one sheet on the product with this hash, from executable probes and recorded reviews."""
+    from . import projects
+    missing, failed, _ = probe_findings(value, sheet, target_hash)
+    if failed:
+        return {'status': 'failed', 'report_path': '', 'findings': failed[:8]}
+    if missing:
+        return {'status': 'pending', 'probes_pending': [c['id'] for c in missing]}
+    if sheet['final_checks'] != 'acceptance' and not policy_book.contract(sheet, None)['criteria']:
+        return {'status': 'passed', 'report_path': '', 'findings': []}
     if sheet['final_checks'] == 'acceptance':
         review = projects.standard_review(workspace, value, target_hash)
         attempts = projects.standard_reviews(value)

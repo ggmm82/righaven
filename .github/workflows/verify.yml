@@ -52,16 +52,21 @@ jobs:
           mirrors=Path('/etc/apt/apt-mirrors.txt')
           if mirrors.exists():mirrors.write_text('https://archive.ubuntu.com/ubuntu/\n')
           PYTHON
-      - name: Use available media tools or install them with bounded network waits
+      - name: Use available media and PDF tools or install them with bounded network waits
         timeout-minutes: 5
         run: |
-          if ! command -v ffmpeg >/dev/null || ! command -v ffprobe >/dev/null; then
+          if ! command -v ffmpeg >/dev/null || ! command -v ffprobe >/dev/null || ! command -v pdftoppm >/dev/null || ! command -v qpdf >/dev/null; then
             sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update
-            sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y --no-install-recommends ffmpeg
+            sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y --no-install-recommends ffmpeg poppler-utils qpdf
           fi
           ffmpeg -version | head -n 1
+          pdftotext -v 2>&1 | head -n 1
+          qpdf --version | head -n 1
       - run: python scripts/audit_skill_contracts.py
-      - run: python -m unittest discover -s tests -v
+      - name: Unit tests with the real programs required, not skipped
+        env:
+          RIGHAVEN_REQUIRE_TOOLS: '1'
+        run: python -m unittest discover -s tests -v
       - run: python scripts/validate.py
       - name: Check goal-oriented skills and pinned capability map
         run: |
@@ -189,6 +194,8 @@ jobs:
         run: |
           docker run --rm --entrypoint python -e RIGHAVEN_REQUIRE_GATEWAY_TESTS=1 --mount "type=bind,src=$PWD/tests,dst=/review,readonly" righaven-gateway:0.1.0 -m unittest discover -s /review -p 'test_tool_choices.py' -v
           docker run --rm --entrypoint python -e RIGHAVEN_REQUIRE_GATEWAY_TESTS=1 --mount "type=bind,src=$PWD/tests,dst=/review,readonly" righaven-gateway:0.1.0 -m unittest discover -s /review -p 'test_usage_ledger.py' -v
+          docker run --rm --entrypoint python -e RIGHAVEN_REQUIRE_GATEWAY_TESTS=1 --mount "type=bind,src=$PWD/tests,dst=/review,readonly" righaven-gateway:0.1.0 -m unittest discover -s /review -p 'test_delegation_reliability.py' -v
+          docker run --rm --entrypoint python -e RIGHAVEN_REQUIRE_GATEWAY_TESTS=1 --mount "type=bind,src=$PWD/tests,dst=/review,readonly" righaven-gateway:0.1.0 -m unittest discover -s /review -p 'test_error_catalog.py' -v
       - name: Check memory exhaustion using genuine cgroup counters
         if: matrix.component == 'sandbox'
         run: docker run --rm --init --network=none --memory=256m --memory-swap=256m --pids-limit=64 --cap-drop=ALL --security-opt=no-new-privileges --mount "type=bind,src=$PWD,dst=/review,readonly" righaven-sandbox:0.1.0 python3 /review/scripts/check_resource_supervision.py
@@ -204,6 +211,9 @@ jobs:
       - name: Check pinned Codex native image protocol and vector-only choice offline
         if: matrix.component == 'sandbox'
         run: docker run --rm --network=none -e RIGHAVEN_REQUIRE_CODEX_NATIVE_TESTS=1 --mount "type=bind,src=$PWD,dst=/review,readonly" righaven-sandbox:0.1.0 python3 -m unittest discover -s /review/tests -p test_codex_native.py -v
+      - name: Check worker egress allowlist with real containers
+        if: matrix.component == 'sandbox'
+        run: python3 scripts/check_worker_egress.py --image righaven-sandbox:0.1.0
       - name: Validate proxy configuration
         if: matrix.component == 'proxy'
         run: |

@@ -7,9 +7,10 @@ import tempfile
 import unittest
 import wave
 from righaven.timing import check_timing
+from real_tools import requires
 
 
-@unittest.skipUnless(shutil.which('ffmpeg'),'ffmpeg is required for genuine encoded-media timing checks')
+@requires('ffmpeg')
 class TimingTests(unittest.TestCase):
     def movie(self,root,event,continuous=False):
         source=root/('source-'+str(event)+'.wav');target=source.with_suffix('.mp4')

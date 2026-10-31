@@ -149,6 +149,28 @@ class RigHavenTests(unittest.TestCase):
         self.assertEqual(captured[-1][:3], ['docker', 'rm', '-f'])
         self.assertFalse(self.runtime.WORKERS.locked())
 
+    def test_allowlist_mode_puts_the_worker_behind_the_egress_proxy_for_the_job_only(self):
+        (self.state.credential_dir('codex') / 'auth.json').write_text('{}')
+        from righaven import worker_egress
+        captured, grants = [], []
+        def execute(argv, **kwargs):
+            captured.append(argv)
+            if argv[:2] == ['docker', 'run']:
+                grants.extend(json.loads(p.read_text()) for p in (self.state.STATE / 'egress/rules').glob('*.json'))
+            return type('Result', (), {'returncode': 0, 'stdout': '{"ok": true}', 'stderr': ''})()
+        with patch.dict(os.environ, {'RIGHAVEN_WORKER_EGRESS': 'allowlist'}), \
+             patch.object(worker_egress, 'STATE', self.state.STATE), patch.object(worker_egress, 'ensure') as ensure, \
+             patch.object(self.runtime, 'host_path', side_effect=lambda p: '/host/' + Path(p).name), \
+             patch.object(self.runtime.subprocess, 'run', side_effect=execute):
+            self.runtime.delegate('gridcraft', 'Analizza il foglio', Path(self.temp.name) / 'workspace')
+        ensure.assert_called_once()
+        argv = next(a for a in captured if a[:2] == ['docker', 'run'])
+        self.assertIn('--network=righaven-egress', argv)
+        self.assertNotIn('--network=bridge', argv)
+        self.assertTrue(any(arg.startswith('HTTPS_PROXY=http://rh-job-') and '@righaven-egress-proxy:3128' in arg for arg in argv))
+        self.assertEqual(grants[0]['domains'][:2], ['api.openai.com', 'chatgpt.com'])
+        self.assertEqual(list((self.state.STATE / 'egress/rules').glob('*.json')), [])
+
     def test_dynamic_role_and_selected_cli_skills_enter_actual_worker_payload(self):
         from righaven import projects
         from righaven.project_skills import load_compiled

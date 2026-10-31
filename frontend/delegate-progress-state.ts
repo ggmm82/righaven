@@ -1,6 +1,13 @@
+
+// Pure module (also loaded directly by Node in scripts/check_chat_modes.mjs): no path aliases.
+// The language is published by useUiLanguage() in ui-text.ts; Italian until a component renders.
+const tr = (it: string, en: string): string =>
+  (globalThis as { __righavenUiLanguage?: string }).__righavenUiLanguage === "en" ? en : it;
+
 export type JobProgress = {
   environment_started_at?: string; environment_finished_at?: string; worker_started_at?: string;
   environment?: {id:string;status:string;tools:string[];assigned_tools?:string[];versions?:Record<string,string>;profile?:ProfileUse};
+  egress?: {mode:"allowlist";domains:string[];refused:{destination:string;attempts:number}[]};
   queue_reason?: string; queue_detail?: string; queue_activity_since?: string;
   finish_requested?: boolean; can_stop?: boolean; cancel_requested?: boolean; queue_position?: number;
   worker_exit_at?: string; cleanup_started_at?: string; cleanup_finished_at?: string;
@@ -25,7 +32,7 @@ export function secondsSince(value: string, now: number): number | null {
 }
 
 export function duration(seconds: number | null): string {
-  if (seconds === null) return "non disponibile";
+  if (seconds === null) return tr("non disponibile", "unavailable");
   const minutes = Math.floor(seconds / 60);
   return minutes > 0 ? `${minutes} min ${seconds % 60} s` : `${seconds} s`;
 }
@@ -35,16 +42,16 @@ export function jobHealth(job: JobProgress, now: number): string | null {
   if (job.phase === "queued") return null;
   if (job.phase === "starting" && (secondsSince(job.started_at || job.created_at, now) ?? 0) < 30) return null;
   if (job.deadline_at && Date.parse(job.deadline_at) <= now)
-    return "Tempo limite superato: l’esito non è ancora stato ricevuto";
+    return tr("Tempo limite superato: l’esito non è ancora stato ricevuto", "Time limit exceeded: the outcome has not been received yet");
   const heartbeat = secondsSince(job.heartbeat_at, now);
   if (heartbeat === null || heartbeat > 15)
-    return "Segnale del worker assente: stato da verificare";
-  if (job.phase === 'preparing_environment') return 'Preparazione degli strumenti sul server; il modello non è ancora in esecuzione. Il primo utilizzo può richiedere download e compilazione.';
+    return tr("Segnale del worker assente: stato da verificare", "No signal from the worker: status to verify");
+  if (job.phase === 'preparing_environment') return tr("Preparazione degli strumenti sul server; il modello non è ancora in esecuzione. Il primo utilizzo può richiedere download e compilazione.", "Preparing the tools on the server; the model is not running yet. First use may require downloads and compilation.");
   const activity = secondsSince(job.last_activity_at, now);
   if (activity !== null && activity >= 90)
     return job.execution_state === 'model' || job.phase === 'waiting_model'
-      ? `Nessun nuovo avanzamento da ${duration(activity)}: sandbox presente, attesa del modello prolungata. La risposta non è confermata; non è una stima di consegna.`
-      : `Nessun nuovo avanzamento da ${duration(activity)}: comando ancora senza esito. La presenza della sandbox non dimostra che il comando avanzi.`;
+      ? tr(`Nessun nuovo avanzamento da ${duration(activity)}: sandbox presente, attesa del modello prolungata. La risposta non è confermata; non è una stima di consegna.`, `No new progress for ${duration(activity)}: sandbox present, long wait for the model. The reply is not confirmed; this is not a delivery estimate.`)
+      : tr(`Nessun nuovo avanzamento da ${duration(activity)}: comando ancora senza esito. La presenza della sandbox non dimostra che il comando avanzi.`, `No new progress for ${duration(activity)}: command still without outcome. The sandbox being present does not prove the command is progressing.`);
   return null;
 }
 

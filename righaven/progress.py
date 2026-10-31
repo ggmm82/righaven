@@ -225,6 +225,32 @@ def output_snapshot(output_dir):
     return files
 
 
+TOKEN_FIELDS = ('input', 'cached_input', 'output', 'reasoning')
+
+
+def token_counts(raw):
+    """One provider usage object (Codex, OpenAI/DeepSeek, Anthropic, Gemini) as input/cached/output/reasoning."""
+    if not isinstance(raw, dict):
+        return None
+    def number(*keys, source=raw):
+        for key in keys:
+            value = source.get(key) if isinstance(source, dict) else None
+            if type(value) in (int, float) and value >= 0:
+                return int(value)
+        return 0
+    details = raw.get('prompt_tokens_details') or {}
+    completion = raw.get('completion_tokens_details') or {}
+    counts = {'input': number('inputTokens', 'prompt_tokens', 'input_tokens', 'promptTokenCount'),
+              'cached_input': number('cachedInputTokens', 'prompt_cache_hit_tokens', 'cache_read_input_tokens', 'cachedContentTokenCount')
+                              or number('cached_tokens', source=details),
+              'output': number('outputTokens', 'completion_tokens', 'output_tokens', 'candidatesTokenCount'),
+              'reasoning': number('reasoningOutputTokens', 'thoughtsTokenCount') or number('reasoning_tokens', source=completion)}
+    if 'input_tokens' in raw and 'cache_read_input_tokens' in raw:
+        # Anthropic reports cached reads separately from input_tokens; count them as input too.
+        counts['input'] += counts['cached_input'] + number('cache_creation_input_tokens')
+    return counts if any(counts.values()) else None
+
+
 class Reporter:
     def __init__(self, output_dir, job):
         self.output_dir = Path(output_dir)
@@ -350,6 +376,21 @@ class Reporter:
             self.thread.join(timeout=3)
         self.pulse()
 
+    def tokens(self, raw, *, cumulative=False):
+        """Record model token usage: cumulative totals replace, per-call usage adds up."""
+        counts = token_counts(raw)
+        if counts is None:
+            return
+        try:
+            with edit_status(self.path) as value:
+                previous = value.get('tokens') if isinstance(value.get('tokens'), dict) else {}
+                if not cumulative:
+                    counts = {k: counts[k] + int(previous.get(k) or 0) for k in TOKEN_FIELDS}
+                value['tokens'] = {**counts, 'calls': int(previous.get('calls') or 0) + (0 if cumulative else 1),
+                                   'source': 'cumulative' if cumulative else 'calls'}
+        except (OSError, ValueError, TypeError):
+            pass
+
     def model_signal(self):
         # A provider event is distinct from the monitor heartbeat and file changes.
         try:
@@ -454,6 +495,14 @@ def public_status(value):
             result['environment']['profile'] = {'mode': clean_summary(profile.get('mode'), 20), 'profile': clean_summary(profile.get('profile'), 80),
                 'wanted': profile.get('wanted') if type(profile.get('wanted')) is int else 0,
                 **{k: [clean_summary(t, 64) for t in profile.get(k, [])][:64] for k in ('covered', 'missing', 'added', 'skills', 'role_skills')}}
+    tokens = value.get('tokens')
+    if isinstance(tokens, dict):
+        result['tokens'] = {k: tokens[k] if type(tokens.get(k)) is int and tokens[k] >= 0 else 0 for k in TOKEN_FIELDS}
+    egress = value.get('egress')
+    if isinstance(egress, dict) and egress.get('mode') == 'allowlist':
+        result['egress'] = {'mode': 'allowlist', 'domains': [clean_summary(d, 255) for d in egress.get('domains', []) if isinstance(d, str)][:24],
+            'refused': [{'destination': clean_summary(r.get('destination'), 270), 'attempts': r['attempts'] if type(r.get('attempts')) is int else 1}
+                        for r in egress.get('refused', []) if isinstance(r, dict)][:20]}
     result['resources_reclaimed'] = value.get('resources_reclaimed') is True
     result['cleanup_error'] = value.get('cleanup_error') is True
     result['cancel_error'] = value.get('cancel_error') is True

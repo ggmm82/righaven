@@ -1,0 +1,88 @@
+{
+ "note": "ESLint errors per rule in the RigHaven overlays (paths relative to the Next.js app). Lower counts with scripts/check_eslint_baseline.mjs --write; never raise them.",
+ "files": {
+  "src/app/workspace/i18n.tsx": {
+   "import/order": 2
+  },
+  "src/app/workspace/maintenance/page.tsx": {
+   "import/order": 2,
+   "@typescript-eslint/prefer-nullish-coalescing": 1
+  },
+  "src/app/workspace/policies/page.tsx": {
+   "import/order": 2
+  },
+  "src/app/workspace/usage/page.tsx": {
+   "import/order": 2
+  },
+  "src/app/workspace/harness/page.tsx": {
+   "import/order": 1,
+   "@typescript-eslint/prefer-nullish-coalescing": 3,
+   "@typescript-eslint/no-empty-function": 1
+  },
+  "src/app/workspace/gallery/gallery-feedback.tsx": {
+   "import/order": 1,
+   "@typescript-eslint/prefer-nullish-coalescing": 2,
+   "@typescript-eslint/prefer-optional-chain": 1
+  },
+  "src/app/workspace/environments/environment-inventory.tsx": {
+   "import/order": 1
+  },
+  "src/app/workspace/environments/environment-lifecycle.tsx": {
+   "import/order": 1,
+   "@typescript-eslint/prefer-nullish-coalescing": 1
+  },
+  "src/app/workspace/gallery/page.tsx": {
+   "import/order": 5,
+   "@typescript-eslint/prefer-nullish-coalescing": 2,
+   "@typescript-eslint/no-empty-function": 1
+  },
+  "src/app/workspace/cloud/page.tsx": {
+   "import/order": 2
+  },
+  "src/app/workspace/environments/page.tsx": {
+   "import/order": 4,
+   "@typescript-eslint/prefer-nullish-coalescing": 13,
+   "@typescript-eslint/no-empty-function": 1
+  },
+  "src/app/workspace/environments/tool-versions.tsx": {
+   "import/order": 1,
+   "@typescript-eslint/prefer-nullish-coalescing": 5
+  },
+  "src/app/terminal/page.tsx": {
+   "import/order": 1,
+   "@typescript-eslint/no-empty-function": 3,
+   "@typescript-eslint/prefer-nullish-coalescing": 4
+  },
+  "src/components/workspace/capabilities/skill-instructions.tsx": {
+   "import/order": 1
+  },
+  "src/components/workspace/team-onboarding.tsx": {},
+  "src/components/workspace/settings/model-settings-page.tsx": {},
+  "src/core/messages/run-start-time.ts": {},
+  "src/core/i18n/ui-text.ts": {},
+  "src/components/workspace/messages/delegate-progress.tsx": {
+   "import/order": 5,
+   "@typescript-eslint/prefer-nullish-coalescing": 18
+  },
+  "src/components/workspace/messages/delegate-progress-state.ts": {},
+  "src/components/workspace/messages/experience-panel.tsx": {
+   "import/order": 1,
+   "@typescript-eslint/prefer-nullish-coalescing": 2
+  },
+  "src/components/workspace/messages/conversation-audit.tsx": {
+   "import/order": 1,
+   "@typescript-eslint/prefer-optional-chain": 1,
+   "@typescript-eslint/prefer-nullish-coalescing": 1
+  },
+  "src/components/workspace/messages/project-guide.tsx": {
+   "import/order": 1
+  },
+  "src/components/workspace/messages/project-design.tsx": {
+   "import/order": 1,
+   "@typescript-eslint/prefer-nullish-coalescing": 2
+  },
+  "src/components/workspace/messages/project-governance.tsx": {
+   "import/order": 3
+  }
+ }
+}

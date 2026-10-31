@@ -290,9 +290,14 @@ surfaces still need localization. See [workspace guide](docs/WORKSPACE.md),
 
 The C4 model and the BPMN process were produced by a RigHaven project about its
 own repository, then checked against the code (the BPMN diagram keeps the Italian
-labels of that run). Running workers have bridge networking, all capabilities
-dropped and resource limits; they read the project read-only and write only to
-their own staging folder.
+labels of that run). Running workers have all capabilities dropped and resource
+limits; they read the project read-only, write only to their own staging folder
+and receive a private copy of the provider credentials. By default they use the
+bridge network; with `RIGHAVEN_WORKER_EGRESS=allowlist` they join an internal
+network whose only exit is the egress proxy, which lets each job reach its model
+provider plus the domains its role declares with a reason (role field
+`network`), and reports every blocked connection on the assignment card and in
+the conversation log.
 
 ## Development and verification
 

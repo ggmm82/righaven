@@ -6,6 +6,7 @@ import GalleryFeedback, {FeedbackModeration} from "./gallery-feedback";
 import { fetch } from "@/core/api/fetcher";
 import { getBackendBaseURL } from "@/core/config";
 import { I18nProvider, LanguageSelector, useI18n } from "@/app/workspace/i18n";
+import {tr, useUiLanguage} from "@/core/i18n/ui-text";
 
 export type GalleryPack = {
   id: string;
@@ -29,7 +30,7 @@ export type GalleryPack = {
   security_policy: { rootless: boolean; network_access: boolean; writable_paths: string[]; read_only_mounts: string[] };
 };
 
-function GalleryContent() {
+function GalleryContent() {useUiLanguage();
   const { locale, t } = useI18n();
   const [packs, setPacks] = useState<GalleryPack[]>([]);
   const [category, setCategory] = useState<string>("");
@@ -59,7 +60,7 @@ function GalleryContent() {
       const data = await response.json();
       if(!signal?.aborted)setPacks(data.packs ?? []);
     } catch (error) {
-      if(!signal?.aborted)setStatusMessage(error instanceof Error?error.message:"Catalog unavailable");
+      if(!signal?.aborted)setStatusMessage(error instanceof Error?error.message:tr("Catalogo non disponibile", "Catalog unavailable"));
     }
   }
 
@@ -108,13 +109,13 @@ function GalleryContent() {
         body: JSON.stringify(parsed),
       });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.detail || "Validation error");
+      if (!response.ok) throw new Error(data.detail || tr("Errore di validazione", "Validation error"));
       setStatusMessage(data.message);
       setShowPublish(false);
       setPublishJson("");
       await loadPacks();
     } catch (err) {
-      setStatusMessage(err instanceof Error ? err.message : "Invalid manifest");
+      setStatusMessage(err instanceof Error ? err.message : tr("Manifest non valido", "Invalid manifest"));
     }
   }
 
@@ -257,7 +258,7 @@ function GalleryContent() {
           <div className="flex items-center justify-between border-b pb-2">
             <h4 className="text-sm font-semibold">{selectedPack.display_title} ({selectedPack.id})</h4>
             <button type="button" onClick={() => setSelectedPack(null)} className="rounded border px-2 py-1">
-              Close
+              {tr("Chiudi", "Close")}
             </button>
           </div>
           <p className="mt-2 font-medium">{t("gallery.reopen_verification")}: <code>{selectedPack.verification_command}</code></p>
@@ -271,13 +272,13 @@ function GalleryContent() {
   );
 }
 
-function PackDialog({title,onClose,children}:{title:string;onClose:()=>void;children:React.ReactNode}){
+function PackDialog({title,onClose,children}:{title:string;onClose:()=>void;children:React.ReactNode}){useUiLanguage();
  const ref=useRef<HTMLDialogElement>(null);
  useEffect(()=>{const node=ref.current;node?.showModal();return()=>{if(node?.open)node.close();};},[]);
  return <dialog ref={ref} aria-label={title} onCancel={event=>{event.preventDefault();onClose();}} className="m-auto max-h-[92dvh] w-[calc(100%-2rem)] max-w-3xl overflow-y-auto rounded-xl border bg-background text-foreground shadow-xl backdrop:bg-black/50">{children}</dialog>;
 }
 
-function RegistryManager({base, locale, onChanged}: {base:string; locale:string; onChanged:()=>Promise<void>}) {
+function RegistryManager({base, locale, onChanged}: {base:string; locale:string; onChanged:()=>Promise<void>}) {useUiLanguage();
   const it = locale === 'it';
   const [admin,setAdmin] = useState(false);
   const [entries,setEntries] = useState<Record<string,{url:string;sha256:string}>>({});
@@ -297,7 +298,7 @@ function RegistryManager({base, locale, onChanged}: {base:string; locale:string;
       const result=await response.json();if(!response.ok)throw new Error(result.detail);
       setEntries(await (await fetch(base+'/registries')).json());await onChanged();
       setMessage(it?'Catalogo sincronizzato':'Catalog synchronized');
-    }catch(error){setMessage(error instanceof Error?error.message:'Registry unavailable');}
+    }catch(error){setMessage(error instanceof Error?error.message:tr("Registro non disponibile", "Registry unavailable"));}
     finally{setBusy(false);}
   }
   return <details className="rounded-lg border p-4"><summary>{it?'Cataloghi community e trasferimenti':'Community catalogs and transfers'}</summary>
@@ -305,8 +306,8 @@ function RegistryManager({base, locale, onChanged}: {base:string; locale:string;
     {admin&&<div className="space-y-3"><p>{it?'Autorizza il catalogo HTTPS e il suo hash SHA-256 prima di importarlo.':'Approve the HTTPS catalog and its SHA-256 hash before importing.'}</p>
       {Object.entries(entries).map(([key,value])=><div key={key} className="flex flex-wrap gap-3"><span>{key}: {value.url}</span><button disabled={busy} className="underline" onClick={()=>void sync(key)}>{it?'Sincronizza':'Sync'}</button></div>)}
       <form className="grid gap-3" onSubmit={event=>{event.preventDefault();void sync(name,true);}}>
-        <input className="rounded border p-2" required aria-label="Registry name" placeholder={it?'Nome catalogo':'Catalog name'} pattern="[a-z0-9][a-z0-9-]{0,31}" value={name} onChange={e=>setName(e.target.value)}/>
-        <input className="rounded border p-2" required type="url" aria-label="Registry URL" placeholder="https://example.org/catalog.json" value={url} onChange={e=>setUrl(e.target.value)}/>
+        <input className="rounded border p-2" required aria-label={tr("Nome del registro", "Registry name")} placeholder={it?'Nome catalogo':'Catalog name'} pattern="[a-z0-9][a-z0-9-]{0,31}" value={name} onChange={e=>setName(e.target.value)}/>
+        <input className="rounded border p-2" required type="url" aria-label={tr("URL del registro", "Registry URL")} placeholder="https://example.org/catalog.json" value={url} onChange={e=>setUrl(e.target.value)}/>
         <input className="rounded border p-2" required aria-label="SHA-256" placeholder="SHA-256" pattern="[a-f0-9]{64}" value={pin} onChange={e=>setPin(e.target.value)}/>
         <button className="rounded border p-2" disabled={busy}>{busy?(it?'Importazione…':'Importing…'):(it?'Autorizza e importa':'Approve and import')}</button>
       </form></div>}
@@ -314,7 +315,7 @@ function RegistryManager({base, locale, onChanged}: {base:string; locale:string;
   </details>;
 }
 
-export default function GalleryPage() {
+export default function GalleryPage() {useUiLanguage();
   return (
     <I18nProvider>
       <GalleryContent />

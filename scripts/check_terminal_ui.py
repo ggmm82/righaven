@@ -15,7 +15,8 @@ def main():
         root=Path(directory)
         (root/'fetch.ts').write_text('export const fetch=window.fetch.bind(window);');(root/'config.ts').write_text('export const getBackendBaseURL=()=>location.origin;')
         (root/'entry.tsx').write_text('import React from "react";import{createRoot}from"react-dom/client";import Page from '+json.dumps(str(repo/'frontend/environment-terminal-page.tsx'))+';createRoot(document.getElementById("root")!).render(<Page/>);')
-        options={'entryPoints':[str(root/'entry.tsx')],'outfile':str(root/'app.js'),'bundle':True,'jsx':'automatic','nodePaths':[str(modules)],'alias':{'@/core/api/fetcher':str(root/'fetch.ts'),'@/core/config':str(root/'config.ts')}}
+        (root/'hooks.ts').write_text('export function useI18n(){return {locale:"it-IT"}}')
+        options={'entryPoints':[str(root/'entry.tsx')],'outfile':str(root/'app.js'),'bundle':True,'jsx':'automatic','nodePaths':[str(modules)],'alias':{'@/core/i18n/ui-text':str(repo/'frontend/ui-text.ts'),'@/core/i18n/hooks':str(root/'hooks.ts'),'@/core/api/fetcher':str(root/'fetch.ts'),'@/core/config':str(root/'config.ts')}}
         subprocess.run(['node','-e','require('+json.dumps(str(modules/'esbuild'))+').buildSync('+json.dumps(options)+');'],check=True)
         (root/'source.css').write_text('@import "tailwindcss";\n@source '+json.dumps(str(repo/'frontend/environment-terminal-page.tsx'))+';\n')
         subprocess.run(['node',str(modules/'@tailwindcss/cli/dist/index.mjs'),'-i',str(root/'source.css'),'-o',str(root/'app.css')],env={**__import__('os').environ,'NODE_PATH':str(modules)},check=True,capture_output=True)

@@ -5,7 +5,10 @@ Thank you for contributing to **RigHaven** (*The Evolving Agent Harness & Open-S
 ## Codebase Standards (Non-Negotiable)
 
 1. **100% English Codebase & Documentation**: All Python/TypeScript/JavaScript source code, variable and function names, comments, log messages, configuration files, C4/D2/BPMN/Typst diagrams, and GitHub documentation must be written in professional English.
-2. **Native Bilingual UI (i18n)**: Every user-facing string added to the Frontend, Cloud Portal, or Community Gallery must be added to both `/locales/en/common.json` (Default) and `/locales/it/common.json` (100% key parity is enforced by `tests/test_i18n.py`).
+2. **Native Bilingual UI (i18n)**: Every user-facing string must exist in Italian and English.
+   - Shared labels go in both `/locales/en/common.json` (default) and `/locales/it/common.json`; key parity is enforced by `tests/test_i18n.py`.
+   - Text that belongs to one workspace panel is written inline as `tr("Italiano", "English")` from `frontend/ui-text.ts` (or `trMap({...})` for label tables). Every component that shows such text calls `useUiLanguage()` first, so a language change re-renders it.
+   - Gateway errors are written once (Italian or English) and translated by `locales/en/errors.json` and `locales/it/errors.json` according to the viewer's locale cookie or `Accept-Language`. `tests/test_error_catalog.py` fails when a raised message has no entry, or an entry is no longer raised.
 3. **Zero Legacy Branding**: Never introduce legacy identifiers (`rh-`, `righaven`, and `harness_` are the canonical prefixes).
 
 ## Submitting a New Pack to the Community Gallery

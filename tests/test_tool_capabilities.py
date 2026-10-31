@@ -10,13 +10,14 @@ import unittest
 from scripts.capability_catalog import command_ids
 from scripts.check_tool_capabilities import validate, check_bounce
 from scripts.render_capability_docs import render
+from real_tools import requires
 
 ROOT=Path(__file__).resolve().parents[1]
 APP_COUNT=len(json.loads((ROOT/'versions.lock.json').read_text())['applications'])
 
 
 class ToolCapabilitiesTests(unittest.TestCase):
-    @unittest.skipUnless(shutil.which('ffmpeg') and shutil.which('ffprobe'),'Real audio decoder required')
+    @requires('ffmpeg','ffprobe')
     def test_extensible_pcm24_is_decoded_but_silence_and_wrong_duration_are_rejected(self):
         with tempfile.TemporaryDirectory() as temp:
             root=Path(temp)

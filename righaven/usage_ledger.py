@@ -6,11 +6,14 @@ import logging
 from pathlib import Path
 import sqlite3
 
-from . import state
+from . import model_prices, state
 
 logger = logging.getLogger(__name__)
 COLUMNS = ('job_id', 'user_id', 'thread_id', 'started_at', 'finished_at', 'duration_seconds', 'role', 'agent', 'engine', 'model',
-           'profile', 'mode', 'environment_id', 'tools', 'cpu_seconds', 'memory_peak_bytes', 'outcome')
+           'profile', 'mode', 'environment_id', 'tools', 'cpu_seconds', 'memory_peak_bytes', 'outcome',
+           'input_tokens', 'cached_tokens', 'output_tokens', 'reasoning_tokens', 'error_code')
+ADDED = {'input_tokens': 'INTEGER', 'cached_tokens': 'INTEGER', 'output_tokens': 'INTEGER', 'reasoning_tokens': 'INTEGER', 'error_code': 'TEXT'}
+QUOTA_HOURS = 24
 
 
 def database():
@@ -23,6 +26,10 @@ def database():
                  'duration_seconds REAL, role TEXT, agent TEXT, engine TEXT, model TEXT, profile TEXT, mode TEXT, environment_id TEXT, '
                  'tools TEXT, cpu_seconds REAL, memory_peak_bytes INTEGER, outcome TEXT)')
     conn.execute('CREATE INDEX IF NOT EXISTS jobs_finished ON jobs(finished_at)')
+    present = {row[1] for row in conn.execute('PRAGMA table_info(jobs)')}
+    for column, kind in ADDED.items():
+        if column not in present:
+            conn.execute(f'ALTER TABLE jobs ADD COLUMN {column} {kind}')
     return conn
 
 
@@ -56,7 +63,10 @@ def record(workspace, status):
                'mode': profile.get('mode') or ('core' if not environment.get('tools') else 'dedicated'),
                'environment_id': environment.get('id', ''), 'tools': json.dumps(environment.get('tools', [])),
                'cpu_seconds': resources.get('cpu_seconds'), 'memory_peak_bytes': resources.get('memory_peak_bytes'),
-               'outcome': status.get('phase', '')}
+               'outcome': status.get('phase', ''), 'error_code': status.get('error_code') or ''}
+        tokens = status.get('tokens') if isinstance(status.get('tokens'), dict) else {}
+        for column, key in (('input_tokens', 'input'), ('cached_tokens', 'cached_input'), ('output_tokens', 'output'), ('reasoning_tokens', 'reasoning')):
+            row[column] = tokens.get(key) if type(tokens.get(key)) is int else None
         if not row['job_id']:
             return False
         with closing(database()) as conn, conn:
@@ -77,20 +87,46 @@ def report(user_id=None, days=30, limit=100):
     if user_id is not None:
         where += ' AND user_id = ?'
         args.append(user_id)
+    prices = model_prices.load()
     with closing(database()) as conn:
         conn.row_factory = sqlite3.Row
         machine = "CASE WHEN profile != '' THEN profile WHEN mode = 'core' THEN '' ELSE 'dedicated' END"
+        tokens = ('COALESCE(SUM(input_tokens),0) AS input_tokens, COALESCE(SUM(cached_tokens),0) AS cached_tokens, '
+                  'COALESCE(SUM(output_tokens),0) AS output_tokens, COALESCE(SUM(reasoning_tokens),0) AS reasoning_tokens')
         totals = dict(conn.execute('SELECT COUNT(*) AS jobs, COALESCE(SUM(duration_seconds),0) AS seconds, COALESCE(SUM(cpu_seconds),0) AS cpu_seconds, '
-                                   'MAX(memory_peak_bytes) AS memory_peak_bytes FROM jobs WHERE ' + where, args).fetchone())
+                                   'MAX(memory_peak_bytes) AS memory_peak_bytes, ' + tokens + ' FROM jobs WHERE ' + where, args).fetchone())
         def grouped(key):
             return [dict(r) for r in conn.execute(
                 'SELECT ' + key + ' AS name, COUNT(*) AS jobs, COALESCE(SUM(duration_seconds),0) AS seconds, COALESCE(SUM(cpu_seconds),0) AS cpu_seconds, '
                 'MAX(memory_peak_bytes) AS memory_peak_bytes, MAX(finished_at) AS last_at, COUNT(DISTINCT user_id) AS users, '
-                "SUM(mode = 'reused') AS reused, SUM(mode = 'extended') AS extended, SUM(outcome = 'completed') AS completed "
+                "SUM(mode = 'reused') AS reused, SUM(mode = 'extended') AS extended, SUM(outcome = 'completed') AS completed, " + tokens + ' '
                 'FROM jobs WHERE ' + where + ' GROUP BY ' + key + ' ORDER BY seconds DESC', args)]
+
+        def costs(key):
+            """Estimated cost per group, summed over the models used in it; None when no model has a price."""
+            values = {}
+            for row in conn.execute('SELECT ' + key + ' AS name, model, SUM(input_tokens) AS i, SUM(cached_tokens) AS c, SUM(output_tokens) AS o '
+                                    'FROM jobs WHERE ' + where + ' GROUP BY ' + key + ', model', args):
+                amount = model_prices.cost(prices, row['model'], row['i'], row['c'], row['o'])
+                if amount is not None:
+                    values[row['name']] = round(values.get(row['name'], 0) + amount, 6)
+            return values
+
+        def with_cost(rows, key):
+            amounts = costs(key)
+            return [{**row, 'cost': amounts.get(row['name'])} for row in rows]
         jobs = [dict(r) for r in conn.execute('SELECT * FROM jobs WHERE ' + where + ' ORDER BY finished_at DESC LIMIT ?', [*args, limit])]
-        result = {'days': days, 'totals': totals, 'machines': grouped(machine), 'users': grouped('user_id') if user_id is None else [],
-                  'roles': grouped('role'), 'jobs': jobs}
+        totals['cost'] = costs("''").get('')
+        quota_since = datetime.fromtimestamp(datetime.now(timezone.utc).timestamp() - QUOTA_HOURS * 3600, timezone.utc).isoformat()
+        quota = [dict(r) for r in conn.execute(
+            "SELECT engine, model, COUNT(*) AS jobs, COUNT(DISTINCT user_id) AS users, MAX(finished_at) AS last_at FROM jobs "
+            "WHERE error_code = 'provider_quota' AND finished_at >= ?" + (' AND user_id = ?' if user_id is not None else '') +
+            ' GROUP BY engine, model ORDER BY last_at DESC', [quota_since, *([user_id] if user_id is not None else [])])]
+        result = {'days': days, 'currency': prices['currency'], 'priced_models': sorted(prices['models']), 'totals': totals,
+                  'machines': with_cost(grouped(machine), machine), 'users': with_cost(grouped('user_id'), 'user_id') if user_id is None else [],
+                  'roles': with_cost(grouped('role'), 'role'), 'models': with_cost(grouped('model'), 'model'), 'jobs': jobs, 'quota_alerts': quota}
     for job in jobs:
         job['tools'] = json.loads(job['tools'] or '[]')
+        job['cost'] = model_prices.cost(prices, job['model'], job['input_tokens'], job['cached_tokens'], job['output_tokens']) \
+            if job.get('input_tokens') is not None or job.get('output_tokens') is not None else None
     return result

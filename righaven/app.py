@@ -16,6 +16,9 @@ async def harness_admin(request: Request):
     await require_admin_user(request, detail=translate('notifications.auth_Required', locale=locale))
 
 
+from starlette.exceptions import HTTPException as StarletteHTTPException
+from .error_catalog import localized_http_exception
+app.add_exception_handler(StarletteHTTPException, localized_http_exception)
 app.include_router(router, dependencies=[Depends(harness_admin)])
 app.include_router(progress_router)
 app.include_router(gallery_router)
