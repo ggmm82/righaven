@@ -1,0 +1,790 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                  xmlns:bioc="http://bpmn.io/schema/bpmn/biocolor/1.0"
+                  xmlns:color="http://www.omg.org/spec/BPMN/non-normative/color/1.0"
+                  id="Definitions_RigHaven_Harness"
+                  targetNamespace="http://righaven.local/bpmn/harness"
+                  exporter="RigHaven Process Modeler"
+                  exporterVersion="1.0.0">
+
+  <!-- COLLABORATION: Pools e Scambi Messaggi -->
+  <bpmn:collaboration id="Collaboration_HarnessLifecycle">
+    <bpmn:participant id="Participant_User" name="Utente / Committente" processRef="Process_User" />
+    <bpmn:participant id="Participant_RigHaven" name="RigHaven - Runtime di Orchestrazione Harness" processRef="Process_Harness" />
+
+    <!-- Flussi di Messaggio tra Utente e Harness -->
+    <bpmn:messageFlow id="MsgFlow_SubmitBrief" name="Invio Richiesta &amp; Brief Iniziale" sourceRef="Task_User_Submit" targetRef="Start_Harness" />
+    <bpmn:messageFlow id="MsgFlow_AskClarification" name="Quesiti &amp; outcome_json provvisorio" sourceRef="Task_AskClarification" targetRef="Task_User_Clarify" />
+    <bpmn:messageFlow id="MsgFlow_AnswerClarification" name="Scelte Esplicite &amp; Vincoli Fissati" sourceRef="Task_User_Clarify" targetRef="Catch_ClarificationResponse" />
+    <bpmn:messageFlow id="MsgFlow_PauseRequest" name="Notifica Pausa &amp; Richiesta Decisione" sourceRef="Task_RequestUserDirection" targetRef="Task_User_Decision" />
+    <bpmn:messageFlow id="MsgFlow_PauseDecision" name="Risoluzione &amp; Istruzione Operativa" sourceRef="Task_User_Decision" targetRef="Catch_UserDirection" />
+    <bpmn:messageFlow id="MsgFlow_DeliveryNotify" name="Consegna Finale &amp; Delivery Manifest" sourceRef="Task_BuildDelivery" targetRef="Task_User_ReviewDelivery" />
+  </bpmn:collaboration>
+
+  <!-- PROCESSO UTENTE (Pool Esterno) -->
+  <bpmn:process id="Process_User" isExecutable="false">
+    <bpmn:startEvent id="Start_User" name="Avvio Necessità Progetto">
+      <bpmn:outgoing>Flow_User_1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:userTask id="Task_User_Submit" name="Formulazione Brief e Requisiti Iniziali">
+      <bpmn:incoming>Flow_User_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_User_2</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="Task_User_Clarify" name="Chiarimento Requisiti e Selezione Opzioni">
+      <bpmn:incoming>Flow_User_2</bpmn:incoming>
+      <bpmn:outgoing>Flow_User_3</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="Task_User_Decision" name="Decisione su Bivio Operativo o Risorse">
+      <bpmn:incoming>Flow_User_3</bpmn:incoming>
+      <bpmn:outgoing>Flow_User_4</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="Task_User_ReviewDelivery" name="Verifica Accettazione e Validazione Output">
+      <bpmn:incoming>Flow_User_4</bpmn:incoming>
+      <bpmn:outgoing>Flow_User_5</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:endEvent id="End_User" name="Obiettivo Conseguito">
+      <bpmn:incoming>Flow_User_5</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_User_1" sourceRef="Start_User" targetRef="Task_User_Submit" />
+    <bpmn:sequenceFlow id="Flow_User_2" sourceRef="Task_User_Submit" targetRef="Task_User_Clarify" />
+    <bpmn:sequenceFlow id="Flow_User_3" sourceRef="Task_User_Clarify" targetRef="Task_User_Decision" />
+    <bpmn:sequenceFlow id="Flow_User_4" sourceRef="Task_User_Decision" targetRef="Task_User_ReviewDelivery" />
+    <bpmn:sequenceFlow id="Flow_User_5" sourceRef="Task_User_ReviewDelivery" targetRef="End_User" />
+  </bpmn:process>
+
+  <!-- PROCESSO CORE HARNESS (Con 4 Lane Operative) -->
+  <bpmn:process id="Process_Harness" isExecutable="false">
+    <bpmn:laneSet id="LaneSet_Harness">
+      <bpmn:lane id="Lane_Coordinator" name="Coordinatore &amp; Pianificazione&#10;(Brief, ask_clarification, Execution &amp; Policy Plan)">
+        <bpmn:flowNodeRef>Start_Harness</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_ParseBrief</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_ClarifyNeeded</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_AskClarification</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Catch_ClarificationResponse</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_ConsolidateBrief</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_ClarifyJoin</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_HarnessPlan</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_QueueRuntime" name="Coda FIFO &amp; Dispatcher Runtime&#10;(Schedulazione, Concorrenza, Staging Isolato, Pause)">
+        <bpmn:flowNodeRef>Task_EnqueueFIFO</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_ResourceCapacity</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_ProvisionStaging</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_DelegateStep</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Catch_UserDirection</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_ResumeExecution</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_Specialist" name="Ruolo Specialista (Worker Sandbox)&#10;(Staging Dedicato, Toolset Whitelist, Checkpoint, Handoff)">
+        <bpmn:flowNodeRef>Task_SpecialistWork</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_SpecialistDecision</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_RequestUserDirection</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_SpecialistResumeJoin</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_SaveCheckpoint</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_LocalVerification</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_CompileHandoff</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_ValidationDelivery" name="Validazione Multi-Policy &amp; Delivery&#10;(Audit Indipendente, Policy Book, Manifest, Packaging)">
+        <bpmn:flowNodeRef>Task_IndependentValidation</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_VerifyPolicyPlan</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_PolicyOutcome</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_RejectRevision</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_DAGComplete</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_UnlockNextStep</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_BuildDelivery</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>End_DeliverySuccess</bpmn:flowNodeRef>
+      </bpmn:lane>
+    </bpmn:laneSet>
+
+    <!-- FASE 1 & 2: COORDINATORE & PIANIFICAZIONE -->
+    <bpmn:startEvent id="Start_Harness" name="Brief Ricevuto">
+      <bpmn:outgoing>Flow_Coord_1</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MsgDef_Start" />
+    </bpmn:startEvent>
+
+    <bpmn:serviceTask id="Task_ParseBrief" name="Analisi Brief &amp; Rilevazione Ambiguità">
+      <bpmn:incoming>Flow_Coord_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_Coord_2</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:exclusiveGateway id="Gateway_ClarifyNeeded" name="Chiarimento necessario?" default="Flow_Coord_DirectPlan">
+      <bpmn:incoming>Flow_Coord_2</bpmn:incoming>
+      <bpmn:outgoing>Flow_Coord_NeedClarify</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Coord_DirectPlan</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:serviceTask id="Task_AskClarification" name="Invocazione ask_clarification (outcome_json)">
+      <bpmn:incoming>Flow_Coord_NeedClarify</bpmn:incoming>
+      <bpmn:outgoing>Flow_Coord_3</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:intermediateCatchEvent id="Catch_ClarificationResponse" name="Risposta Utente Ricevuta">
+      <bpmn:incoming>Flow_Coord_3</bpmn:incoming>
+      <bpmn:outgoing>Flow_Coord_4</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MsgDef_ClarifResp" />
+    </bpmn:intermediateCatchEvent>
+
+    <bpmn:serviceTask id="Task_ConsolidateBrief" name="Consolidamento Brief, Scelte &amp; Vincoli">
+      <bpmn:incoming>Flow_Coord_4</bpmn:incoming>
+      <bpmn:outgoing>Flow_Coord_5</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:exclusiveGateway id="Gateway_ClarifyJoin">
+      <bpmn:incoming>Flow_Coord_5</bpmn:incoming>
+      <bpmn:incoming>Flow_Coord_DirectPlan</bpmn:incoming>
+      <bpmn:outgoing>Flow_Coord_6</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:serviceTask id="Task_HarnessPlan" name="Pianificazione Congiunta: Execution Plan &amp; Policy Plan">
+      <bpmn:incoming>Flow_Coord_6</bpmn:incoming>
+      <bpmn:outgoing>Flow_Coord_ToQueue</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- FASE 3: CODA FIFO & DISPATCHER RUNTIME -->
+    <bpmn:serviceTask id="Task_EnqueueFIFO" name="Accodamento Step in Coda FIFO">
+      <bpmn:incoming>Flow_Coord_ToQueue</bpmn:incoming>
+      <bpmn:incoming>Flow_Unlock_ToQueue</bpmn:incoming>
+      <bpmn:incoming>Flow_Reject_ToQueue</bpmn:incoming>
+      <bpmn:outgoing>Flow_Queue_1</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:exclusiveGateway id="Gateway_ResourceCapacity" name="Slot Concorrenza &amp; Risorse Disponibili?">
+      <bpmn:incoming>Flow_Queue_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_Queue_Dispatch</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:serviceTask id="Task_ProvisionStaging" name="Provisioning Staging Isolato &amp; Tool Whitelist">
+      <bpmn:incoming>Flow_Queue_Dispatch</bpmn:incoming>
+      <bpmn:outgoing>Flow_Queue_2</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:serviceTask id="Task_DelegateStep" name="Dispacciamento Job Specialista (harness_delegate)">
+      <bpmn:incoming>Flow_Queue_2</bpmn:incoming>
+      <bpmn:outgoing>Flow_Queue_ToSpecialist</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:intermediateCatchEvent id="Catch_UserDirection" name="Input Decisionale Ricevuto">
+      <bpmn:outgoing>Flow_Queue_Resume</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MsgDef_UserDir" />
+    </bpmn:intermediateCatchEvent>
+
+    <bpmn:serviceTask id="Task_ResumeExecution" name="Aggiornamento Contesto &amp; Ripresa Job">
+      <bpmn:incoming>Flow_Queue_Resume</bpmn:incoming>
+      <bpmn:outgoing>Flow_Queue_ToResumeJoin</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- FASE 3 (Cont.): RUOLO SPECIALISTA -->
+    <bpmn:serviceTask id="Task_SpecialistWork" name="Esecuzione Incarico &amp; Authoring Sorgenti">
+      <bpmn:incoming>Flow_Queue_ToSpecialist</bpmn:incoming>
+      <bpmn:outgoing>Flow_Spec_1</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:exclusiveGateway id="Gateway_SpecialistDecision" name="Bivio o Pausa Decisionale?" default="Flow_Spec_NoPause">
+      <bpmn:incoming>Flow_Spec_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_Spec_NeedPause</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Spec_NoPause</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:serviceTask id="Task_RequestUserDirection" name="Richiesta Decisione Utente (Pausa Operativa)">
+      <bpmn:incoming>Flow_Spec_NeedPause</bpmn:incoming>
+      <bpmn:outgoing>Flow_Spec_ToWaitUser</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:exclusiveGateway id="Gateway_SpecialistResumeJoin">
+      <bpmn:incoming>Flow_Spec_NoPause</bpmn:incoming>
+      <bpmn:incoming>Flow_Queue_ToResumeJoin</bpmn:incoming>
+      <bpmn:outgoing>Flow_Spec_2</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:serviceTask id="Task_SaveCheckpoint" name="Salvataggio Checkpoint, Metodi &amp; Avanzamento">
+      <bpmn:incoming>Flow_Spec_2</bpmn:incoming>
+      <bpmn:outgoing>Flow_Spec_3</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:serviceTask id="Task_LocalVerification" name="Verifica Nativa Locale &amp; Riapertura Strumenti">
+      <bpmn:incoming>Flow_Spec_3</bpmn:incoming>
+      <bpmn:outgoing>Flow_Spec_4</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:serviceTask id="Task_CompileHandoff" name="Compilazione Manifest Handoff (handoff.py validate)">
+      <bpmn:incoming>Flow_Spec_4</bpmn:incoming>
+      <bpmn:outgoing>Flow_Spec_ToValidation</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- FASE 4 & 5: VALIDAZIONE MULTI-POLICY & DELIVERY -->
+    <bpmn:serviceTask id="Task_IndependentValidation" name="Validazione Tecnica Indipendente (Schema &amp; Parser)">
+      <bpmn:incoming>Flow_Spec_ToValidation</bpmn:incoming>
+      <bpmn:outgoing>Flow_Val_1</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:serviceTask id="Task_VerifyPolicyPlan" name="Audit Vincolante Policy Plan (quality_standard)">
+      <bpmn:incoming>Flow_Val_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_Val_2</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:exclusiveGateway id="Gateway_PolicyOutcome" name="Tutti i Controlli Policy Superati?">
+      <bpmn:incoming>Flow_Val_2</bpmn:incoming>
+      <bpmn:outgoing>Flow_Val_Passed</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Val_Failed</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:serviceTask id="Task_RejectRevision" name="Rifiuto Handoff &amp; Generazione Diagnostica">
+      <bpmn:incoming>Flow_Val_Failed</bpmn:incoming>
+      <bpmn:outgoing>Flow_Reject_ToQueue</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:exclusiveGateway id="Gateway_DAGComplete" name="Tutti gli Step del DAG Completati?">
+      <bpmn:incoming>Flow_Val_Passed</bpmn:incoming>
+      <bpmn:outgoing>Flow_DAG_Pending</bpmn:outgoing>
+      <bpmn:outgoing>Flow_DAG_AllDone</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:serviceTask id="Task_UnlockNextStep" name="Sblocco Step Successivi dell'Execution Plan">
+      <bpmn:incoming>Flow_DAG_Pending</bpmn:incoming>
+      <bpmn:outgoing>Flow_Unlock_ToQueue</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:serviceTask id="Task_BuildDelivery" name="Confezionamento Delivery (Sorgenti.zip &amp; Manifest)">
+      <bpmn:incoming>Flow_DAG_AllDone</bpmn:incoming>
+      <bpmn:outgoing>Flow_Deliv_End</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:endEvent id="End_DeliverySuccess" name="Consegna Finale Completata">
+      <bpmn:incoming>Flow_Deliv_End</bpmn:incoming>
+      <bpmn:terminateEventDefinition id="TermDef_End" />
+    </bpmn:endEvent>
+
+    <!-- Sequence Flows Processo Harness -->
+    <bpmn:sequenceFlow id="Flow_Coord_1" sourceRef="Start_Harness" targetRef="Task_ParseBrief" />
+    <bpmn:sequenceFlow id="Flow_Coord_2" sourceRef="Task_ParseBrief" targetRef="Gateway_ClarifyNeeded" />
+    <bpmn:sequenceFlow id="Flow_Coord_NeedClarify" name="Ambiguità o Opzioni [Sì]" sourceRef="Gateway_ClarifyNeeded" targetRef="Task_AskClarification" />
+    <bpmn:sequenceFlow id="Flow_Coord_DirectPlan" name="Brief Completo [No]" sourceRef="Gateway_ClarifyNeeded" targetRef="Gateway_ClarifyJoin" />
+    <bpmn:sequenceFlow id="Flow_Coord_3" sourceRef="Task_AskClarification" targetRef="Catch_ClarificationResponse" />
+    <bpmn:sequenceFlow id="Flow_Coord_4" sourceRef="Catch_ClarificationResponse" targetRef="Task_ConsolidateBrief" />
+    <bpmn:sequenceFlow id="Flow_Coord_5" sourceRef="Task_ConsolidateBrief" targetRef="Gateway_ClarifyJoin" />
+    <bpmn:sequenceFlow id="Flow_Coord_6" sourceRef="Gateway_ClarifyJoin" targetRef="Task_HarnessPlan" />
+    <bpmn:sequenceFlow id="Flow_Coord_ToQueue" sourceRef="Task_HarnessPlan" targetRef="Task_EnqueueFIFO" />
+
+    <bpmn:sequenceFlow id="Flow_Queue_1" sourceRef="Task_EnqueueFIFO" targetRef="Gateway_ResourceCapacity" />
+    <bpmn:sequenceFlow id="Flow_Queue_Dispatch" name="Slot Libero" sourceRef="Gateway_ResourceCapacity" targetRef="Task_ProvisionStaging" />
+    <bpmn:sequenceFlow id="Flow_Queue_2" sourceRef="Task_ProvisionStaging" targetRef="Task_DelegateStep" />
+    <bpmn:sequenceFlow id="Flow_Queue_ToSpecialist" sourceRef="Task_DelegateStep" targetRef="Task_SpecialistWork" />
+
+    <bpmn:sequenceFlow id="Flow_Spec_1" sourceRef="Task_SpecialistWork" targetRef="Gateway_SpecialistDecision" />
+    <bpmn:sequenceFlow id="Flow_Spec_NeedPause" name="Bivio Critico [Sì]" sourceRef="Gateway_SpecialistDecision" targetRef="Task_RequestUserDirection" />
+    <bpmn:sequenceFlow id="Flow_Spec_NoPause" name="Flusso Nominale [No]" sourceRef="Gateway_SpecialistDecision" targetRef="Gateway_SpecialistResumeJoin" />
+    <bpmn:sequenceFlow id="Flow_Spec_ToWaitUser" sourceRef="Task_RequestUserDirection" targetRef="Catch_UserDirection" />
+    <bpmn:sequenceFlow id="Flow_Queue_Resume" sourceRef="Catch_UserDirection" targetRef="Task_ResumeExecution" />
+    <bpmn:sequenceFlow id="Flow_Queue_ToResumeJoin" sourceRef="Task_ResumeExecution" targetRef="Gateway_SpecialistResumeJoin" />
+
+    <bpmn:sequenceFlow id="Flow_Spec_2" sourceRef="Gateway_SpecialistResumeJoin" targetRef="Task_SaveCheckpoint" />
+    <bpmn:sequenceFlow id="Flow_Spec_3" sourceRef="Task_SaveCheckpoint" targetRef="Task_LocalVerification" />
+    <bpmn:sequenceFlow id="Flow_Spec_4" sourceRef="Task_LocalVerification" targetRef="Task_CompileHandoff" />
+    <bpmn:sequenceFlow id="Flow_Spec_ToValidation" sourceRef="Task_CompileHandoff" targetRef="Task_IndependentValidation" />
+
+    <bpmn:sequenceFlow id="Flow_Val_1" sourceRef="Task_IndependentValidation" targetRef="Task_VerifyPolicyPlan" />
+    <bpmn:sequenceFlow id="Flow_Val_2" sourceRef="Task_VerifyPolicyPlan" targetRef="Gateway_PolicyOutcome" />
+    <bpmn:sequenceFlow id="Flow_Val_Passed" name="Conforme [OK]" sourceRef="Gateway_PolicyOutcome" targetRef="Gateway_DAGComplete" />
+    <bpmn:sequenceFlow id="Flow_Val_Failed" name="Difetti / Violazioni [Scarto]" sourceRef="Gateway_PolicyOutcome" targetRef="Task_RejectRevision" />
+    <bpmn:sequenceFlow id="Flow_Reject_ToQueue" name="Re-accodamento Revisione" sourceRef="Task_RejectRevision" targetRef="Task_EnqueueFIFO" />
+
+    <bpmn:sequenceFlow id="Flow_DAG_Pending" name="Step Residui nel DAG" sourceRef="Gateway_DAGComplete" targetRef="Task_UnlockNextStep" />
+    <bpmn:sequenceFlow id="Flow_DAG_AllDone" name="DAG Esaurito [Tutti OK]" sourceRef="Gateway_DAGComplete" targetRef="Task_BuildDelivery" />
+    <bpmn:sequenceFlow id="Flow_Unlock_ToQueue" name="Innesco Step Dipendenti" sourceRef="Task_UnlockNextStep" targetRef="Task_EnqueueFIFO" />
+    <bpmn:sequenceFlow id="Flow_Deliv_End" sourceRef="Task_BuildDelivery" targetRef="End_DeliverySuccess" />
+
+  </bpmn:process>
+
+  <!-- DIAGRAMMA BPMN DI: Coordinate e Geometria Completa -->
+  <bpmndi:BPMNDiagram id="BPMNDiagram_RigHaven">
+    <bpmndi:BPMNPlane id="BPMNPlane_RigHaven" bpmnElement="Collaboration_HarnessLifecycle">
+
+      <!-- PARTICIPANT UTENTE -->
+      <bpmndi:BPMNShape id="Participant_User_di" bpmnElement="Participant_User" isHorizontal="true" bioc:stroke="#1E88E5" bioc:fill="#E3F2FD">
+        <dc:Bounds x="160" y="80" width="2880" height="200" />
+      </bpmndi:BPMNShape>
+
+      <!-- ELEMENTI UTENTE -->
+      <bpmndi:BPMNShape id="Start_User_di" bpmnElement="Start_User">
+        <dc:Bounds x="230" y="162" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="207" y="205" width="82" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_User_Submit_di" bpmnElement="Task_User_Submit">
+        <dc:Bounds x="320" y="140" width="140" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_User_Clarify_di" bpmnElement="Task_User_Clarify">
+        <dc:Bounds x="670" y="140" width="150" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_User_Decision_di" bpmnElement="Task_User_Decision">
+        <dc:Bounds x="1750" y="140" width="150" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_User_ReviewDelivery_di" bpmnElement="Task_User_ReviewDelivery">
+        <dc:Bounds x="2740" y="140" width="150" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="End_User_di" bpmnElement="End_User">
+        <dc:Bounds x="2950" y="162" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2941" y="205" width="55" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNEdge id="Flow_User_1_di" bpmnElement="Flow_User_1">
+        <di:waypoint x="266" y="180" />
+        <di:waypoint x="320" y="180" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_User_2_di" bpmnElement="Flow_User_2">
+        <di:waypoint x="460" y="180" />
+        <di:waypoint x="670" y="180" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_User_3_di" bpmnElement="Flow_User_3">
+        <di:waypoint x="820" y="180" />
+        <di:waypoint x="1750" y="180" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_User_4_di" bpmnElement="Flow_User_4">
+        <di:waypoint x="1900" y="180" />
+        <di:waypoint x="2740" y="180" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_User_5_di" bpmnElement="Flow_User_5">
+        <di:waypoint x="2890" y="180" />
+        <di:waypoint x="2950" y="180" />
+      </bpmndi:BPMNEdge>
+
+      <!-- PARTICIPANT HARNESS -->
+      <bpmndi:BPMNShape id="Participant_RigHaven_di" bpmnElement="Participant_RigHaven" isHorizontal="true" bioc:stroke="#2E7D32" bioc:fill="#F1F8E9">
+        <dc:Bounds x="160" y="340" width="2880" height="1060" />
+      </bpmndi:BPMNShape>
+
+      <!-- LANES -->
+      <bpmndi:BPMNShape id="Lane_Coordinator_di" bpmnElement="Lane_Coordinator" isHorizontal="true" bioc:stroke="#00695C" bioc:fill="#E0F2F1">
+        <dc:Bounds x="190" y="340" width="2850" height="260" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Lane_QueueRuntime_di" bpmnElement="Lane_QueueRuntime" isHorizontal="true" bioc:stroke="#4527A0" bioc:fill="#EDE7F6">
+        <dc:Bounds x="190" y="600" width="2850" height="260" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Lane_Specialist_di" bpmnElement="Lane_Specialist" isHorizontal="true" bioc:stroke="#C2185B" bioc:fill="#FCE4EC">
+        <dc:Bounds x="190" y="860" width="2850" height="260" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Lane_ValidationDelivery_di" bpmnElement="Lane_ValidationDelivery" isHorizontal="true" bioc:stroke="#E65100" bioc:fill="#FFF3E0">
+        <dc:Bounds x="190" y="1120" width="2850" height="280" />
+      </bpmndi:BPMNShape>
+
+      <!-- FORME LANE COORDINATOR -->
+      <bpmndi:BPMNShape id="Start_Harness_di" bpmnElement="Start_Harness" bioc:stroke="#2E7D32" bioc:fill="#C8E6C9">
+        <dc:Bounds x="232" y="442" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="215" y="485" width="71" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_ParseBrief_di" bpmnElement="Task_ParseBrief">
+        <dc:Bounds x="320" y="420" width="140" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Gateway_ClarifyNeeded_di" bpmnElement="Gateway_ClarifyNeeded" isMarkerVisible="true" bioc:stroke="#F57C00" bioc:fill="#FFE0B2">
+        <dc:Bounds x="505" y="435" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="498" y="495" width="64" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_AskClarification_di" bpmnElement="Task_AskClarification">
+        <dc:Bounds x="610" y="360" width="150" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Catch_ClarificationResponse_di" bpmnElement="Catch_ClarificationResponse" bioc:stroke="#1E88E5" bioc:fill="#BBDEFB">
+        <dc:Bounds x="802" y="382" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="782" y="425" width="77" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_ConsolidateBrief_di" bpmnElement="Task_ConsolidateBrief">
+        <dc:Bounds x="880" y="360" width="150" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Gateway_ClarifyJoin_di" bpmnElement="Gateway_ClarifyJoin" isMarkerVisible="true">
+        <dc:Bounds x="1065" y="435" width="50" height="50" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_HarnessPlan_di" bpmnElement="Task_HarnessPlan" bioc:stroke="#00695C" bioc:fill="#B2DFDB">
+        <dc:Bounds x="1160" y="420" width="160" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- FORME LANE QUEUE & RUNTIME -->
+      <bpmndi:BPMNShape id="Task_EnqueueFIFO_di" bpmnElement="Task_EnqueueFIFO" bioc:stroke="#4527A0" bioc:fill="#D1C4E9">
+        <dc:Bounds x="1160" y="670" width="160" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Gateway_ResourceCapacity_di" bpmnElement="Gateway_ResourceCapacity" isMarkerVisible="true" bioc:stroke="#F57C00" bioc:fill="#FFE0B2">
+        <dc:Bounds x="1365" y="685" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1348" y="742" width="85" height="40" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_ProvisionStaging_di" bpmnElement="Task_ProvisionStaging">
+        <dc:Bounds x="1460" y="670" width="160" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_DelegateStep_di" bpmnElement="Task_DelegateStep" bioc:stroke="#4527A0" bioc:fill="#D1C4E9">
+        <dc:Bounds x="1660" y="670" width="160" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Catch_UserDirection_di" bpmnElement="Catch_UserDirection" bioc:stroke="#1E88E5" bioc:fill="#BBDEFB">
+        <dc:Bounds x="1952" y="642" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1928" y="685" width="85" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_ResumeExecution_di" bpmnElement="Task_ResumeExecution">
+        <dc:Bounds x="2030" y="620" width="140" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- FORME LANE SPECIALIST -->
+      <bpmndi:BPMNShape id="Task_SpecialistWork_di" bpmnElement="Task_SpecialistWork" bioc:stroke="#C2185B" bioc:fill="#F8BBD0">
+        <dc:Bounds x="1460" y="930" width="160" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Gateway_SpecialistDecision_di" bpmnElement="Gateway_SpecialistDecision" isMarkerVisible="true" bioc:stroke="#F57C00" bioc:fill="#FFE0B2">
+        <dc:Bounds x="1675" y="945" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1663" y="1002" width="74" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_RequestUserDirection_di" bpmnElement="Task_RequestUserDirection" bioc:stroke="#C2185B" bioc:fill="#FCE4EC">
+        <dc:Bounds x="1750" y="870" width="150" height="75" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Gateway_SpecialistResumeJoin_di" bpmnElement="Gateway_SpecialistResumeJoin" isMarkerVisible="true">
+        <dc:Bounds x="2075" y="945" width="50" height="50" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_SaveCheckpoint_di" bpmnElement="Task_SaveCheckpoint">
+        <dc:Bounds x="2160" y="930" width="160" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_LocalVerification_di" bpmnElement="Task_LocalVerification">
+        <dc:Bounds x="2360" y="930" width="160" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_CompileHandoff_di" bpmnElement="Task_CompileHandoff" bioc:stroke="#C2185B" bioc:fill="#F8BBD0">
+        <dc:Bounds x="2560" y="930" width="160" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- FORME LANE VALIDATION & DELIVERY -->
+      <bpmndi:BPMNShape id="Task_IndependentValidation_di" bpmnElement="Task_IndependentValidation" bioc:stroke="#E65100" bioc:fill="#FFE0B2">
+        <dc:Bounds x="2160" y="1170" width="160" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_VerifyPolicyPlan_di" bpmnElement="Task_VerifyPolicyPlan" bioc:stroke="#E65100" bioc:fill="#FFE0B2">
+        <dc:Bounds x="2360" y="1170" width="160" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Gateway_PolicyOutcome_di" bpmnElement="Gateway_PolicyOutcome" isMarkerVisible="true" bioc:stroke="#F57C00" bioc:fill="#FFE0B2">
+        <dc:Bounds x="2565" y="1185" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2550" y="1146" width="80" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_RejectRevision_di" bpmnElement="Task_RejectRevision" bioc:stroke="#C62828" bioc:fill="#FFCDD2">
+        <dc:Bounds x="2510" y="1290" width="160" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Gateway_DAGComplete_di" bpmnElement="Gateway_DAGComplete" isMarkerVisible="true" bioc:stroke="#F57C00" bioc:fill="#FFE0B2">
+        <dc:Bounds x="2675" y="1185" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2656" y="1146" width="87" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_UnlockNextStep_di" bpmnElement="Task_UnlockNextStep">
+        <dc:Bounds x="2620" y="1290" width="160" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_BuildDelivery_di" bpmnElement="Task_BuildDelivery" bioc:stroke="#2E7D32" bioc:fill="#C8E6C9">
+        <dc:Bounds x="2780" y="1170" width="160" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="End_DeliverySuccess_di" bpmnElement="End_DeliverySuccess" bioc:stroke="#2E7D32" bioc:fill="#C8E6C9">
+        <dc:Bounds x="2982" y="1192" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2960" y="1235" width="81" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- SEQUENCE FLOWS HARNESS -->
+      <bpmndi:BPMNEdge id="Flow_Coord_1_di" bpmnElement="Flow_Coord_1">
+        <di:waypoint x="268" y="460" />
+        <di:waypoint x="320" y="460" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_Coord_2_di" bpmnElement="Flow_Coord_2">
+        <di:waypoint x="460" y="460" />
+        <di:waypoint x="505" y="460" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_Coord_NeedClarify_di" bpmnElement="Flow_Coord_NeedClarify">
+        <di:waypoint x="530" y="435" />
+        <di:waypoint x="530" y="400" />
+        <di:waypoint x="610" y="400" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="525" y="373" width="70" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_Coord_DirectPlan_di" bpmnElement="Flow_Coord_DirectPlan">
+        <di:waypoint x="555" y="460" />
+        <di:waypoint x="1065" y="460" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="765" y="466" width="75" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_Coord_3_di" bpmnElement="Flow_Coord_3">
+        <di:waypoint x="760" y="400" />
+        <di:waypoint x="802" y="400" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_Coord_4_di" bpmnElement="Flow_Coord_4">
+        <di:waypoint x="838" y="400" />
+        <di:waypoint x="880" y="400" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_Coord_5_di" bpmnElement="Flow_Coord_5">
+        <di:waypoint x="1030" y="400" />
+        <di:waypoint x="1090" y="400" />
+        <di:waypoint x="1090" y="435" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_Coord_6_di" bpmnElement="Flow_Coord_6">
+        <di:waypoint x="1115" y="460" />
+        <di:waypoint x="1160" y="460" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_Coord_ToQueue_di" bpmnElement="Flow_Coord_ToQueue">
+        <di:waypoint x="1240" y="500" />
+        <di:waypoint x="1240" y="670" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_Queue_1_di" bpmnElement="Flow_Queue_1">
+        <di:waypoint x="1320" y="710" />
+        <di:waypoint x="1365" y="710" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_Queue_Dispatch_di" bpmnElement="Flow_Queue_Dispatch">
+        <di:waypoint x="1415" y="710" />
+        <di:waypoint x="1460" y="710" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1408" y="692" width="53" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_Queue_2_di" bpmnElement="Flow_Queue_2">
+        <di:waypoint x="1620" y="710" />
+        <di:waypoint x="1660" y="710" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_Queue_ToSpecialist_di" bpmnElement="Flow_Queue_ToSpecialist">
+        <di:waypoint x="1740" y="750" />
+        <di:waypoint x="1740" y="810" />
+        <di:waypoint x="1540" y="810" />
+        <di:waypoint x="1540" y="930" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_Spec_1_di" bpmnElement="Flow_Spec_1">
+        <di:waypoint x="1620" y="970" />
+        <di:waypoint x="1675" y="970" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_Spec_NeedPause_di" bpmnElement="Flow_Spec_NeedPause">
+        <di:waypoint x="1700" y="945" />
+        <di:waypoint x="1700" y="910" />
+        <di:waypoint x="1750" y="910" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1685" y="888" width="79" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_Spec_NoPause_di" bpmnElement="Flow_Spec_NoPause">
+        <di:waypoint x="1725" y="970" />
+        <di:waypoint x="2075" y="970" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1860" y="976" width="81" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_Spec_ToWaitUser_di" bpmnElement="Flow_Spec_ToWaitUser">
+        <di:waypoint x="1900" y="910" />
+        <di:waypoint x="1970" y="910" />
+        <di:waypoint x="1970" y="678" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_Queue_Resume_di" bpmnElement="Flow_Queue_Resume">
+        <di:waypoint x="1988" y="660" />
+        <di:waypoint x="2030" y="660" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_Queue_ToResumeJoin_di" bpmnElement="Flow_Queue_ToResumeJoin">
+        <di:waypoint x="2100" y="700" />
+        <di:waypoint x="2100" y="945" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_Spec_2_di" bpmnElement="Flow_Spec_2">
+        <di:waypoint x="2125" y="970" />
+        <di:waypoint x="2160" y="970" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_Spec_3_di" bpmnElement="Flow_Spec_3">
+        <di:waypoint x="2320" y="970" />
+        <di:waypoint x="2360" y="970" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_Spec_4_di" bpmnElement="Flow_Spec_4">
+        <di:waypoint x="2520" y="970" />
+        <di:waypoint x="2560" y="970" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_Spec_ToValidation_di" bpmnElement="Flow_Spec_ToValidation">
+        <di:waypoint x="2640" y="1010" />
+        <di:waypoint x="2640" y="1090" />
+        <di:waypoint x="2240" y="1090" />
+        <di:waypoint x="2240" y="1170" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_Val_1_di" bpmnElement="Flow_Val_1">
+        <di:waypoint x="2320" y="1210" />
+        <di:waypoint x="2360" y="1210" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_Val_2_di" bpmnElement="Flow_Val_2">
+        <di:waypoint x="2520" y="1210" />
+        <di:waypoint x="2565" y="1210" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_Val_Passed_di" bpmnElement="Flow_Val_Passed">
+        <di:waypoint x="2615" y="1210" />
+        <di:waypoint x="2675" y="1210" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2608" y="1183" width="76" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_Val_Failed_di" bpmnElement="Flow_Val_Failed">
+        <di:waypoint x="2590" y="1235" />
+        <di:waypoint x="2590" y="1290" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2594" y="1243" width="84" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_Reject_ToQueue_di" bpmnElement="Flow_Reject_ToQueue">
+        <di:waypoint x="2510" y="1330" />
+        <di:waypoint x="1190" y="1330" />
+        <di:waypoint x="1190" y="750" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1800" y="1335" width="88" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_DAG_Pending_di" bpmnElement="Flow_DAG_Pending">
+        <di:waypoint x="2700" y="1235" />
+        <di:waypoint x="2700" y="1290" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2705" y="1243" width="85" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_DAG_AllDone_di" bpmnElement="Flow_DAG_AllDone">
+        <di:waypoint x="2725" y="1210" />
+        <di:waypoint x="2780" y="1210" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2719" y="1176" width="67" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_Unlock_ToQueue_di" bpmnElement="Flow_Unlock_ToQueue">
+        <di:waypoint x="2620" y="1350" />
+        <di:waypoint x="1210" y="1350" />
+        <di:waypoint x="1210" y="750" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1880" y="1355" width="70" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_Deliv_End_di" bpmnElement="Flow_Deliv_End">
+        <di:waypoint x="2940" y="1210" />
+        <di:waypoint x="2982" y="1210" />
+      </bpmndi:BPMNEdge>
+
+      <!-- MESSAGE FLOWS -->
+      <bpmndi:BPMNEdge id="MsgFlow_SubmitBrief_di" bpmnElement="MsgFlow_SubmitBrief" bioc:stroke="#1E88E5">
+        <di:waypoint x="390" y="220" />
+        <di:waypoint x="390" y="320" />
+        <di:waypoint x="250" y="320" />
+        <di:waypoint x="250" y="442" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="268" y="295" width="86" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="MsgFlow_AskClarification_di" bpmnElement="MsgFlow_AskClarification" bioc:stroke="#1E88E5">
+        <di:waypoint x="685" y="360" />
+        <di:waypoint x="685" y="220" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="600" y="275" width="79" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="MsgFlow_AnswerClarification_di" bpmnElement="MsgFlow_AnswerClarification" bioc:stroke="#1E88E5">
+        <di:waypoint x="780" y="220" />
+        <di:waypoint x="780" y="320" />
+        <di:waypoint x="820" y="320" />
+        <di:waypoint x="820" y="382" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="785" y="295" width="79" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="MsgFlow_PauseRequest_di" bpmnElement="MsgFlow_PauseRequest" bioc:stroke="#1E88E5">
+        <di:waypoint x="1825" y="870" />
+        <di:waypoint x="1825" y="220" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1832" y="300" width="81" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="MsgFlow_PauseDecision_di" bpmnElement="MsgFlow_PauseDecision" bioc:stroke="#1E88E5">
+        <di:waypoint x="1870" y="220" />
+        <di:waypoint x="1870" y="550" />
+        <di:waypoint x="1970" y="550" />
+        <di:waypoint x="1970" y="642" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1880" y="515" width="75" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="MsgFlow_DeliveryNotify_di" bpmnElement="MsgFlow_DeliveryNotify" bioc:stroke="#2E7D32">
+        <di:waypoint x="2860" y="1170" />
+        <di:waypoint x="2860" y="220" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2868" y="300" width="85" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

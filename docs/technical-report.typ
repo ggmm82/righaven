@@ -16,7 +16,7 @@
 
 *RigHaven* (`righaven`) combines two complementary engineering paradigms into a unified open-source platform:
 1. *Safe Home (The Agent Harness)*: A stateful, fault-tolerant multi-agent control plane (`gateway` + `redis` + `runtime-docker`) that receives user briefs, resolves ambiguities via `ask_clarification`, compiles dynamic project roles (`harness_plan`), enforces cgroup resource budgets, and validates deliverables before atomic promotion.
-2. *On-Demand Toolbox (The Ephemeral Sandbox & Community Gallery)*: Rootless, network-sealed worker containers (`worker-sandbox`) equipped with 37+ open-source CLI tools and dynamically mounted *Environment Packs* from the *RigHaven Hub* (`righaven-pack.json`).
+2. *On-Demand Toolbox (The Ephemeral Sandbox & Community Gallery)*: Assignment worker containers with all capabilities dropped, `no-new-privileges`, PID/CPU/memory limits and bridge networking. They read the project read-only, write only to their staging folder, and use prepared images built from a catalog of 62 managed CLI tools and Gallery environment packs (`righaven-pack.json`).
 
 = 2. The 6 Core Containers & Volume Isolation
 
@@ -29,7 +29,7 @@
   [`gateway`], [FastAPI Python 3.12], [Core orchestrator (`harness_plan`, `harness_delegate`), Gallery REST API, Cloud Multi-Tenant Auth/Vault, and `Accept-Language` localization.],
   [`redis`], [Redis 7.4], [FIFO execution queues, distributed locking (`distlock`), and SSE Pub/Sub telemetry.],
   [`runtime-docker`], [Docker-in-Docker], [Security mediator over `unix:///runtime/docker.sock` enforcing CPU/RAM/PID cgroups and least-privilege mounts.],
-  [`worker-sandbox`], [Debian Bookworm], [Rootless ephemeral container executing 37+ CLIs and mounting Gallery Environment Packs.]
+  [`worker-sandbox`], [Debian Bookworm], [One container per assignment with capabilities dropped and resource limits, running prepared images from 62 managed CLI tools and Gallery environment packs.]
 )
 
 - *Workspace Data Volume (`righaven-data` / `/mnt/user-data`)*: Mounted *Read-Only* inside `worker-sandbox` and *Read-Write* only for final Gateway consolidation.
