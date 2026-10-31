@@ -23,9 +23,13 @@ gets an isolated working area; other roles consume deliberately published
 contributions. Prepared software can be reused without sharing private project
 files or reusing a previous assignment's writable workspace.
 
-The managed catalog contains **62 tools** for documents, graphics, audio/video,
+The managed catalog contains **96 tools** for documents, graphics, audio/video,
 CAD, diagrams, data analysis, PDF/OCR checks, GIS, software testing, security,
-simulation, electronics and print preparation. Skills describe methods and tool
+simulation, electronics and print preparation, plus lightweight command-line
+tools for plain-text accounting, chemistry, bioinformatics, constraint solving
+and symbolic math, climate data, file metadata and privacy, fonts, barcodes,
+DevOps configuration linting, JSON/YAML/CSV data, email templates, ABC music
+notation and offline proofreading. Skills describe methods and tool
 expertise; environments combine software capabilities; roles are composed for
 the objective. See [optional environments](docs/OPTIONAL-ENVIRONMENTS.md).
 

@@ -1,6 +1,6 @@
 # Optional open-source environments
 
-RigHaven's managed catalog contains 62 tools. Tool availability is not an instruction to use every tool: roles are compiled from the project's outcome, enabled skills and available environments. The core still installs no optional application. Existing environments and user-selected skills are not silently expanded when the catalog grows.
+RigHaven's managed catalog contains 96 tools. Tool availability is not an instruction to use every tool: roles are compiled from the project's outcome, enabled skills and available environments. The core still installs no optional application. Existing environments and user-selected skills are not silently expanded when the catalog grows.
 
 ## New capabilities
 
@@ -16,6 +16,21 @@ RigHaven's managed catalog contains 62 tools. Tool availability is not an instru
 | Simulation and optimization | OpenModelica, HiGHS | MO/MOS and LP/MPS → simulation data, solver solution and native status |
 | Electronics | KiCad CLI, ngspice | Native KiCad documents and SPICE netlists → SVG previews and simulation data |
 | 3D print preparation | PrusaSlicer | Existing mesh plus explicit printer/material INI → G-code with retained source/settings |
+| Plain-text accounting | hledger, Beancount, Miller | Journal/ledger → strict checks and CSV reports (balance, income statement, BQL queries) |
+| Computational chemistry | Open Babel, xtb | SMILES/SDF/XYZ → converted structures, descriptors and GFN2-xTB optimized geometry |
+| Bioinformatics | SeqKit, minimap2, samtools, bcftools, MAFFT | FASTA/FASTQ, SAM/BAM, VCF → statistics, alignments, sorted indexed BAM and MSA |
+| Logic, constraints and symbolic math | MiniZinc (Gecode), Z3, Maxima, PARI/GP | MZN/DZN, SMT-LIB, batch scripts → solutions with optimality status, sat/unsat with model, symbolic and exact results |
+| Climate and scientific data | CDO, NCO | NetCDF/GRIB → dataset description, temporal/spatial statistics, variable subsets |
+| File archive and privacy | ExifTool, mat2 | Any file → grouped metadata JSON with sensitive tags; cleaned copy with the original preserved |
+| Fonts | fontTools, FontForge | TTF/OTF/SFD → table listing, subsets (TTF/WOFF/WOFF2), converted fonts with glyph count |
+| Labels and codes | Zint, Typst | Data → QR, Data Matrix, PDF417, Code 128, EAN-13, GS1-128 in SVG/PNG |
+| DevOps configuration review | ShellCheck, Hadolint, actionlint, TFLint, Spectral | Scripts, Dockerfiles, workflows, Terraform modules, OpenAPI/AsyncAPI → JSON findings (offline rules only) |
+| Lightweight data | jq, yq, Miller, Ajv | JSON/YAML/CSV → filtered or converted data and JSON Schema validation errors |
+| Email and newsletters | MJML | MJML → responsive HTML with strict validation |
+| ABC music notation | abcm2ps, abcMIDI | ABC → SVG score pages and MIDI |
+| Text proofreading | Hunspell (it_IT, en_US), Vale | Text/Markdown → unknown-word list and style alerts |
+
+All tools of the second group are small command-line programs: 25 come from signed Debian 12 packages pinned by version and SHA-256, four are official single binaries (Vale, Hadolint, actionlint, TFLint) and three are npm packages with a committed lockfile (Spectral, Ajv, MJML). None runs a server; their acceptance fixtures run without network. TFLint uses only its bundled core rules; Vale uses its built-in rules unless a `.vale.ini` with local styles is supplied.
 
 The existing security preset retains OpenGrep and Trivy, and the web preset retains Playwright. New tools complement these capabilities. No second coordinator, provider configuration or fixed professional role is introduced.
 

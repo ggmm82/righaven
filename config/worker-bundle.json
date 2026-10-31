@@ -50,7 +50,10 @@
     "data_specs.py": "scripts/data_specs.py",
     "data_tools.py": "scripts/data_tools.py",
     "data_job.py": "scripts/data_job.py",
-    "acceptance_data.py": "scripts/acceptance_data.py"
+    "acceptance_data.py": "scripts/acceptance_data.py",
+    "domain_specs.py": "scripts/domain_specs.py",
+    "domain_tools.py": "scripts/domain_tools.py",
+    "acceptance_domain.py": "scripts/acceptance_domain.py"
   },
   "righaven-worker": {
     "run_agent.py": "righaven/run_agent.py",

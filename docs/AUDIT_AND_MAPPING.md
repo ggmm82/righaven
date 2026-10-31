@@ -10,7 +10,7 @@ This document specifies the canonical **RigHaven** (`righaven`, `rh-`, `harness_
 | `righaven.sh` | CLI Entrypoint Script | Build, launch, stop, inspect logs, and execute full validation & unit test suites |
 | `config/righaven.yaml` & `righaven/righaven.yaml` | Orchestrator Configuration | Model profiles (`rh-codex`, `rh-squad`), tool groups (`harness`), and custom agents |
 | `config/righaven-pack.schema.json` | Gallery Schema | JSON Schema for `righaven-pack.json` manifests |
-| `config/gallery-packs.json` | Gallery Catalog | Default catalog of 119 Environment Rigs, Open-Source CLI Tools, and Agent Skills |
+| `config/gallery-packs.json` | Gallery Catalog | Default catalog of 200 Environment Rigs, Open-Source CLI Tools, and Agent Skills |
 | `scripts/install_righaven.py` | Sandbox Tool Installer | Checksum-verified installer for sandbox CLI applications |
 | `frontend/harness-page.tsx` | Frontend Harness Console | Harness administration and provider configuration view |
 | `frontend/gallery-page.tsx` | Frontend Gallery UI | Community Gallery exploration, activation, and pack publishing view |

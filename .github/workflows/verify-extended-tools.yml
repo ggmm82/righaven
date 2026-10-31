@@ -9,6 +9,8 @@ on:
       - 'scripts/apply_tool_versions.py'
       - 'scripts/acceptance_data.py'
       - 'scripts/acceptance_extended.py'
+      - 'scripts/domain_*'
+      - 'scripts/acceptance_domain.py'
       - 'scripts/install_extended.py'
       - 'config/toolkit/**'
       - '.github/workflows/verify-extended-tools.yml'
@@ -49,6 +51,26 @@ jobs:
             tools: kicad ngspice
           - environment: fabrication
             tools: prusaslicer
+          - environment: accounting
+            tools: hledger beancount miller
+          - environment: chemistry
+            tools: openbabel xtb
+          - environment: bioinformatics
+            tools: seqkit samtools bcftools minimap2 mafft
+          - environment: logic
+            tools: z3 minizinc maxima pari
+          - environment: climate
+            tools: cdo nco
+          - environment: privacy
+            tools: exiftool mat2
+          - environment: fonts-codes
+            tools: fonttools fontforge zint
+          - environment: devops
+            tools: shellcheck hadolint actionlint tflint spectral
+          - environment: data-light
+            tools: jq yq ajv
+          - environment: publishing
+            tools: mjml abcm2ps abcmidi hunspell vale
     steps:
       - uses: actions/checkout@v4
       - uses: docker/setup-buildx-action@v3

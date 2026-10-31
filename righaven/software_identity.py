@@ -15,7 +15,7 @@ def lock_paths(tool):
     paths=['python/'+tool+'.txt','design/'+tool+'/package.json','design/'+tool+'/package-lock.json']
     if tool=='playwright':paths=['package.json','package-lock.json']
     if tool=='structurizr':paths=['design/structurizr/libraries.json']
-    if tool=='axe-core':paths=['extended/axe-core/package.json','extended/axe-core/package-lock.json']
+    if tool in ('axe-core','spectral','ajv','mjml'):paths=['extended/'+tool+'/package.json','extended/'+tool+'/package-lock.json']
     return paths
 
 
@@ -38,7 +38,7 @@ def paths(tool):
  p=['python/'+tool+'.txt','design/'+tool+'/package.json','design/'+tool+'/package-lock.json']
  if tool=='playwright':p=['package.json','package-lock.json']
  if tool=='structurizr':p=['design/structurizr/libraries.json']
- if tool=='axe-core':p=['extended/axe-core/package.json','extended/axe-core/package-lock.json']
+ if tool in ('axe-core','spectral','ajv','mjml'):p=['extended/'+tool+'/package.json','extended/'+tool+'/package-lock.json']
  return p
 fingerprints={}
 for app in catalog['applications']:

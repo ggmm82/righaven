@@ -11,7 +11,7 @@ frontend: "2. frontend (Next.js / React 19 + TypeScript)\nChat Workspace, Artifa
 gateway: "3. gateway (FastAPI Python 3.12 Core Orchestrator)\nharness_plan, harness_delegate, Gallery API, Cloud Multi-Tenant Auth & Vault"
 redis: "4. redis (Redis 7.4 Broker)\nFIFO Queues, distlock, Real-Time Pub/Sub SSE"
 runtime_docker: "5. runtime-docker (Docker SDK / DinD Controller)\ncgroups CPU/RAM/PID Limits, Least-Privilege Mounts"
-worker_sandbox: "6. Assignment worker (capabilities dropped, resource limits)\nRead-only project, writable staging; 62 managed CLI tools on demand"
+worker_sandbox: "6. Assignment worker (capabilities dropped, resource limits)\nRead-only project, writable staging; 96 managed CLI tools on demand"
 
 volumes: "Persistent Volumes & Isolation Boundaries" {
   righaven_data: "righaven-data (/mnt/user-data)\nRead-Only for worker-sandbox | Read-Write for Gateway Promotion\nStaging: outputs/workspace/rh-job-<id> (RIGHAVEN_OUTPUT_DIR)"

@@ -2744,6 +2744,1570 @@
         "kind": "pip-native",
         "native_commands": []
       }
+    },
+    {
+      "id": "hledger",
+      "name": "hledger",
+      "role": "Plain-text accounting",
+      "description": "Check a plain-text journal: parsing, balanced transactions and balance assertions; strict also requires declared accounts and commodities.",
+      "repository": "https://github.com/simonmichael/hledger",
+      "executable": "hledger-cli",
+      "registry_args": [
+        "commands"
+      ],
+      "mcp_args": [
+        "mcp"
+      ],
+      "adapter": "toolkit",
+      "checks": [
+        "Preserve and reopen native sources.",
+        "Reports reflect only the recorded entries; a balanced journal is not an audited account or tax advice."
+      ],
+      "examples": [
+        "hledger-cli commands",
+        "hledger-cli call check '{...}'"
+      ],
+      "version": "1.25",
+      "assets": {
+        "amd64": {
+          "name": "hledger_1.25-2+b5_amd64.deb",
+          "url": "https://deb.debian.org/debian/pool/main/h/haskell-hledger/hledger_1.25-2+b5_amd64.deb",
+          "sha256": "e60bff466f5fdc90eeeb36f245523c93fb5505fca4df55acff14d1b31b175e6b",
+          "size_bytes": 4676560,
+          "package": "hledger",
+          "package_version": "1.25-2+b5"
+        },
+        "arm64": {
+          "name": "hledger_1.25-2+b4_arm64.deb",
+          "url": "https://deb.debian.org/debian/pool/main/h/haskell-hledger/hledger_1.25-2+b4_arm64.deb",
+          "sha256": "2be72afb8be146f0ebac9f7a8d78ebf2112385aacc4413a8c155de1dd7f7c3c1",
+          "size_bytes": 8450452,
+          "package": "hledger",
+          "package_version": "1.25-2+b4"
+        }
+      },
+      "download_base": "https://deb.debian.org/debian/",
+      "install": {
+        "kind": "debian",
+        "native_path": "/usr/bin/hledger"
+      }
+    },
+    {
+      "id": "beancount",
+      "name": "Beancount",
+      "role": "Double-entry ledger checks and queries",
+      "description": "Check a Beancount ledger: syntax, open accounts, balanced postings and balance assertions.",
+      "repository": "https://github.com/beancount/beancount",
+      "executable": "beancount-cli",
+      "registry_args": [
+        "commands"
+      ],
+      "mcp_args": [
+        "mcp"
+      ],
+      "adapter": "toolkit",
+      "checks": [
+        "Preserve and reopen native sources.",
+        "bean-check validates syntax, accounts and assertions; it does not certify accounting or tax correctness."
+      ],
+      "examples": [
+        "beancount-cli commands",
+        "beancount-cli call check '{...}'"
+      ],
+      "version": "2.3.5",
+      "assets": {
+        "amd64": {
+          "name": "beancount_2.3.5-2_all.deb",
+          "url": "https://deb.debian.org/debian/pool/main/b/beancount/beancount_2.3.5-2_all.deb",
+          "sha256": "b7bd1abce1e9bf8817756ff8e6dfb76949a3a8f4fa448bfc5c7fde32c425c5f4",
+          "size_bytes": 167624,
+          "package": "beancount",
+          "package_version": "2.3.5-2"
+        },
+        "arm64": {
+          "name": "beancount_2.3.5-2_all.deb",
+          "url": "https://deb.debian.org/debian/pool/main/b/beancount/beancount_2.3.5-2_all.deb",
+          "sha256": "b7bd1abce1e9bf8817756ff8e6dfb76949a3a8f4fa448bfc5c7fde32c425c5f4",
+          "size_bytes": 167624,
+          "package": "beancount",
+          "package_version": "2.3.5-2"
+        }
+      },
+      "download_base": "https://deb.debian.org/debian/",
+      "install": {
+        "kind": "debian",
+        "native_path": "/usr/bin/bean-check"
+      }
+    },
+    {
+      "id": "openbabel",
+      "name": "Open Babel",
+      "role": "Chemical format conversion and descriptors",
+      "description": "Convert molecules between SMILES, SDF, MOL, MOL2, XYZ, PDB, CML and InChI; optionally generate 3D coordinates.",
+      "repository": "https://github.com/openbabel/openbabel",
+      "executable": "openbabel-cli",
+      "registry_args": [
+        "commands"
+      ],
+      "mcp_args": [
+        "mcp"
+      ],
+      "adapter": "toolkit",
+      "checks": [
+        "Preserve and reopen native sources.",
+        "Generated 3D coordinates and descriptors (logP, TPSA) are estimates; they are not validated conformers or measurements."
+      ],
+      "examples": [
+        "openbabel-cli commands",
+        "openbabel-cli call convert '{...}'"
+      ],
+      "version": "3.1.1",
+      "assets": {
+        "amd64": {
+          "name": "openbabel_3.1.1+dfsg-9+b3_amd64.deb",
+          "url": "https://deb.debian.org/debian/pool/main/o/openbabel/openbabel_3.1.1+dfsg-9+b3_amd64.deb",
+          "sha256": "6835acd2af22865214fd587ad9ee5b03ed7981e59b46b9c7ee100e1f94e666aa",
+          "size_bytes": 124964,
+          "package": "openbabel",
+          "package_version": "3.1.1+dfsg-9+b3"
+        },
+        "arm64": {
+          "name": "openbabel_3.1.1+dfsg-9+b3_arm64.deb",
+          "url": "https://deb.debian.org/debian/pool/main/o/openbabel/openbabel_3.1.1+dfsg-9+b3_arm64.deb",
+          "sha256": "4fe1f1452d5d14bbb4e0b201e97dc3de3ed114a97b9ffa635f2e4f8a3d08c4b9",
+          "size_bytes": 118092,
+          "package": "openbabel",
+          "package_version": "3.1.1+dfsg-9+b3"
+        }
+      },
+      "download_base": "https://deb.debian.org/debian/",
+      "install": {
+        "kind": "debian",
+        "native_path": "/usr/bin/obabel"
+      }
+    },
+    {
+      "id": "xtb",
+      "name": "xtb",
+      "role": "Semiempirical quantum chemistry",
+      "description": "Optimize a molecular geometry (XYZ) with the GFN2-xTB semiempirical method; save the optimized structure and native log.",
+      "repository": "https://github.com/grimme-lab/xtb",
+      "executable": "xtb-cli",
+      "registry_args": [
+        "commands"
+      ],
+      "mcp_args": [
+        "mcp"
+      ],
+      "adapter": "toolkit",
+      "checks": [
+        "Preserve and reopen native sources.",
+        "GFN2-xTB is approximate; confirm critical energies or geometries with higher-level methods before relying on them."
+      ],
+      "examples": [
+        "xtb-cli commands",
+        "xtb-cli call optimize '{...}'"
+      ],
+      "version": "6.5.1",
+      "assets": {
+        "amd64": {
+          "name": "xtb_6.5.1-3_amd64.deb",
+          "url": "https://deb.debian.org/debian/pool/main/x/xtb/xtb_6.5.1-3_amd64.deb",
+          "sha256": "d603e80b5639172ffceab7458c0aaa4c729e3ac2cbefe258a1bb7a56b6954b10",
+          "size_bytes": 1593212,
+          "package": "xtb",
+          "package_version": "6.5.1-3"
+        },
+        "arm64": {
+          "name": "xtb_6.5.1-3_arm64.deb",
+          "url": "https://deb.debian.org/debian/pool/main/x/xtb/xtb_6.5.1-3_arm64.deb",
+          "sha256": "0ab55386c78590431c5039c689fa3fac704b7364bb26dbf6353e371dbaf3c549",
+          "size_bytes": 1454548,
+          "package": "xtb",
+          "package_version": "6.5.1-3"
+        }
+      },
+      "download_base": "https://deb.debian.org/debian/",
+      "install": {
+        "kind": "debian",
+        "native_path": "/usr/bin/xtb"
+      }
+    },
+    {
+      "id": "seqkit",
+      "name": "SeqKit",
+      "role": "FASTA/FASTQ toolkit",
+      "description": "Summarize FASTA/FASTQ files: counts, lengths, N50, GC and quality fractions as TSV.",
+      "repository": "https://github.com/shenwei356/seqkit",
+      "executable": "seqkit-cli",
+      "registry_args": [
+        "commands"
+      ],
+      "mcp_args": [
+        "mcp"
+      ],
+      "adapter": "toolkit",
+      "checks": [
+        "Preserve and reopen native sources.",
+        "Statistics describe the files; they do not assess biological quality, contamination or sample identity."
+      ],
+      "examples": [
+        "seqkit-cli commands",
+        "seqkit-cli call stats '{...}'"
+      ],
+      "version": "2.3.1",
+      "assets": {
+        "amd64": {
+          "name": "seqkit_2.3.1+ds-1+b4_amd64.deb",
+          "url": "https://deb.debian.org/debian/pool/main/s/seqkit/seqkit_2.3.1+ds-1+b4_amd64.deb",
+          "sha256": "932c9627692a189f21526cde1e06d3a098076f5d5884e627c182b7b93a1f778d",
+          "size_bytes": 6521328,
+          "package": "seqkit",
+          "package_version": "2.3.1+ds-1+b4"
+        },
+        "arm64": {
+          "name": "seqkit_2.3.1+ds-1+b4_arm64.deb",
+          "url": "https://deb.debian.org/debian/pool/main/s/seqkit/seqkit_2.3.1+ds-1+b4_arm64.deb",
+          "sha256": "4221fae1c06abdeb367f54af8a00f02c13e95e0999b5c931efd799591e6fb0d3",
+          "size_bytes": 5899520,
+          "package": "seqkit",
+          "package_version": "2.3.1+ds-1+b4"
+        }
+      },
+      "download_base": "https://deb.debian.org/debian/",
+      "install": {
+        "kind": "debian",
+        "native_path": "/usr/bin/seqkit"
+      }
+    },
+    {
+      "id": "samtools",
+      "name": "samtools",
+      "role": "Sequence alignment files",
+      "description": "Count mapped, paired and duplicate reads of a SAM/BAM/CRAM alignment as TSV.",
+      "repository": "https://github.com/samtools/samtools",
+      "executable": "samtools-cli",
+      "registry_args": [
+        "commands"
+      ],
+      "mcp_args": [
+        "mcp"
+      ],
+      "adapter": "toolkit",
+      "checks": [
+        "Preserve and reopen native sources.",
+        "Counts depend on the aligner and flags; they are not a variant call or a clinical result."
+      ],
+      "examples": [
+        "samtools-cli commands",
+        "samtools-cli call flagstat '{...}'"
+      ],
+      "version": "1.16.1",
+      "assets": {
+        "amd64": {
+          "name": "samtools_1.16.1-1_amd64.deb",
+          "url": "https://deb.debian.org/debian/pool/main/s/samtools/samtools_1.16.1-1_amd64.deb",
+          "sha256": "8e5a0d98d99a1fcacf454e13fb6d39a8db2aae9b68fd03cd4b748cf9a93e8075",
+          "size_bytes": 606624,
+          "package": "samtools",
+          "package_version": "1.16.1-1"
+        },
+        "arm64": {
+          "name": "samtools_1.16.1-1_arm64.deb",
+          "url": "https://deb.debian.org/debian/pool/main/s/samtools/samtools_1.16.1-1_arm64.deb",
+          "sha256": "ec43bace99f70f1bd9601ab2db05165fae819c4f8b5b7e4cf370b8edf8a627bc",
+          "size_bytes": 579996,
+          "package": "samtools",
+          "package_version": "1.16.1-1"
+        }
+      },
+      "download_base": "https://deb.debian.org/debian/",
+      "install": {
+        "kind": "debian",
+        "native_path": "/usr/bin/samtools"
+      }
+    },
+    {
+      "id": "bcftools",
+      "name": "bcftools",
+      "role": "Variant files",
+      "description": "Summarize a VCF/BCF: records, SNPs, indels, transitions/transversions and quality distributions.",
+      "repository": "https://github.com/samtools/bcftools",
+      "executable": "bcftools-cli",
+      "registry_args": [
+        "commands"
+      ],
+      "mcp_args": [
+        "mcp"
+      ],
+      "adapter": "toolkit",
+      "checks": [
+        "Preserve and reopen native sources.",
+        "Variant statistics are descriptive; interpretation, filtering thresholds and clinical meaning need expert review."
+      ],
+      "examples": [
+        "bcftools-cli commands",
+        "bcftools-cli call stats '{...}'"
+      ],
+      "version": "1.16",
+      "assets": {
+        "amd64": {
+          "name": "bcftools_1.16-1_amd64.deb",
+          "url": "https://deb.debian.org/debian/pool/main/b/bcftools/bcftools_1.16-1_amd64.deb",
+          "sha256": "d6ae8a3e98b601014bfca11184a3b8da1c9a3c003967b71655da8ef7b8d5edf1",
+          "size_bytes": 692188,
+          "package": "bcftools",
+          "package_version": "1.16-1"
+        },
+        "arm64": {
+          "name": "bcftools_1.16-1_arm64.deb",
+          "url": "https://deb.debian.org/debian/pool/main/b/bcftools/bcftools_1.16-1_arm64.deb",
+          "sha256": "0359ce635281c51fb184d712f37d6638c95c05a16cc6b17245b4c56511ac94c0",
+          "size_bytes": 624860,
+          "package": "bcftools",
+          "package_version": "1.16-1"
+        }
+      },
+      "download_base": "https://deb.debian.org/debian/",
+      "install": {
+        "kind": "debian",
+        "native_path": "/usr/bin/bcftools"
+      }
+    },
+    {
+      "id": "minimap2",
+      "name": "minimap2",
+      "role": "Sequence alignment",
+      "description": "Align reads or assemblies to a reference FASTA into SAM with an explicit preset; alignment is evidence for interpretation, not a variant call.",
+      "repository": "https://github.com/lh3/minimap2",
+      "executable": "minimap2-cli",
+      "registry_args": [
+        "commands"
+      ],
+      "mcp_args": [
+        "mcp"
+      ],
+      "adapter": "toolkit",
+      "checks": [
+        "Preserve and reopen native sources.",
+        "Mapping positions depend on preset and reference; alignment is evidence for interpretation, not a variant call."
+      ],
+      "examples": [
+        "minimap2-cli commands",
+        "minimap2-cli call align '{...}'"
+      ],
+      "version": "2.24",
+      "assets": {
+        "amd64": {
+          "name": "minimap2_2.24+dfsg-3+b1_amd64.deb",
+          "url": "https://deb.debian.org/debian/pool/main/m/minimap2/minimap2_2.24+dfsg-3+b1_amd64.deb",
+          "sha256": "67d14a588de14ee17f77d00d2252430999baccb5d8225952cc326af60a0eaebb",
+          "size_bytes": 386280,
+          "package": "minimap2",
+          "package_version": "2.24+dfsg-3+b1"
+        },
+        "arm64": {
+          "name": "minimap2_2.24+dfsg-3+b1_arm64.deb",
+          "url": "https://deb.debian.org/debian/pool/main/m/minimap2/minimap2_2.24+dfsg-3+b1_arm64.deb",
+          "sha256": "bbf6f0a445e17606c202e466f0aefebc72ac586a40f54c5e6434367de11764d3",
+          "size_bytes": 377888,
+          "package": "minimap2",
+          "package_version": "2.24+dfsg-3+b1"
+        }
+      },
+      "download_base": "https://deb.debian.org/debian/",
+      "install": {
+        "kind": "debian",
+        "native_path": "/usr/bin/minimap2"
+      }
+    },
+    {
+      "id": "mafft",
+      "name": "MAFFT",
+      "role": "Multiple sequence alignment",
+      "description": "Build a multiple sequence alignment from FASTA with MAFFT --auto; save the aligned FASTA.",
+      "repository": "https://mafft.cbrc.jp/alignment/software/",
+      "executable": "mafft-cli",
+      "registry_args": [
+        "commands"
+      ],
+      "mcp_args": [
+        "mcp"
+      ],
+      "adapter": "toolkit",
+      "checks": [
+        "Preserve and reopen native sources.",
+        "Automatic strategy selection may not suit every family; inspect gaps and conserved regions before phylogenetic use."
+      ],
+      "examples": [
+        "mafft-cli commands",
+        "mafft-cli call align '{...}'"
+      ],
+      "version": "7.505",
+      "assets": {
+        "amd64": {
+          "name": "mafft_7.505-1_amd64.deb",
+          "url": "https://deb.debian.org/debian/pool/main/m/mafft/mafft_7.505-1_amd64.deb",
+          "sha256": "48f4087e6603d03cb18e7fc41a1b27111ca6710bfe076d2f3b4b068dd03afdec",
+          "size_bytes": 1077772,
+          "package": "mafft",
+          "package_version": "7.505-1"
+        },
+        "arm64": {
+          "name": "mafft_7.505-1_arm64.deb",
+          "url": "https://deb.debian.org/debian/pool/main/m/mafft/mafft_7.505-1_arm64.deb",
+          "sha256": "ef441d24c007fb8fba98a12fdce23b1f0a52eef8f24a78f8a4909b08f9ca1c46",
+          "size_bytes": 932908,
+          "package": "mafft",
+          "package_version": "7.505-1"
+        }
+      },
+      "download_base": "https://deb.debian.org/debian/",
+      "install": {
+        "kind": "debian",
+        "native_path": "/usr/bin/mafft"
+      }
+    },
+    {
+      "id": "z3",
+      "name": "Z3",
+      "role": "SMT solving and logical verification",
+      "description": "Check an SMT-LIB 2 problem with the Z3 solver; report sat, unsat or unknown with the model or core it prints.",
+      "repository": "https://github.com/Z3Prover/z3",
+      "executable": "z3-cli",
+      "registry_args": [
+        "commands"
+      ],
+      "mcp_args": [
+        "mcp"
+      ],
+      "adapter": "toolkit",
+      "checks": [
+        "Preserve and reopen native sources.",
+        "unknown or a timeout is not a proof; a model satisfies the encoded constraints only, not unstated requirements."
+      ],
+      "examples": [
+        "z3-cli commands",
+        "z3-cli call solve '{...}'"
+      ],
+      "version": "4.8.12",
+      "assets": {
+        "amd64": {
+          "name": "z3_4.8.12-3.1_amd64.deb",
+          "url": "https://deb.debian.org/debian/pool/main/z/z3/z3_4.8.12-3.1_amd64.deb",
+          "sha256": "ea6f8b31e4ab7912b9293f7a8acbbc3b74f3c36162fa3ce578d6bf17d2164e53",
+          "size_bytes": 7229996,
+          "package": "z3",
+          "package_version": "4.8.12-3.1"
+        },
+        "arm64": {
+          "name": "z3_4.8.12-3.1_arm64.deb",
+          "url": "https://deb.debian.org/debian/pool/main/z/z3/z3_4.8.12-3.1_arm64.deb",
+          "sha256": "5c4986e9edf544ecc7985def6e02244e532e92ad772041518cf6360f14446b7b",
+          "size_bytes": 6286332,
+          "package": "z3",
+          "package_version": "4.8.12-3.1"
+        }
+      },
+      "download_base": "https://deb.debian.org/debian/",
+      "install": {
+        "kind": "debian",
+        "native_path": "/usr/bin/z3"
+      }
+    },
+    {
+      "id": "minizinc",
+      "name": "MiniZinc",
+      "role": "Constraint modelling and scheduling",
+      "description": "Solve a MiniZinc constraint model (optionally with a .dzn data file) using Gecode within a time limit; save every printed solution and the optimality status.",
+      "repository": "https://github.com/MiniZinc/libminizinc",
+      "executable": "minizinc-cli",
+      "registry_args": [
+        "commands"
+      ],
+      "mcp_args": [
+        "mcp"
+      ],
+      "adapter": "toolkit",
+      "checks": [
+        "Preserve and reopen native sources.",
+        "A time limit may stop before optimality; only ========== marks a proven optimum for the encoded model."
+      ],
+      "examples": [
+        "minizinc-cli commands",
+        "minizinc-cli call solve '{...}'"
+      ],
+      "version": "2.6.4",
+      "assets": {
+        "amd64": {
+          "name": "minizinc_2.6.4+dfsg1-1_amd64.deb",
+          "url": "https://deb.debian.org/debian/pool/main/m/minizinc/minizinc_2.6.4+dfsg1-1_amd64.deb",
+          "sha256": "ccb8fe49c78d6e6785fa02a53e0e3bd87efc37655069d8e1d2240d61b7805ade",
+          "size_bytes": 2031904,
+          "package": "minizinc",
+          "package_version": "2.6.4+dfsg1-1"
+        },
+        "arm64": {
+          "name": "minizinc_2.6.4+dfsg1-1_arm64.deb",
+          "url": "https://deb.debian.org/debian/pool/main/m/minizinc/minizinc_2.6.4+dfsg1-1_arm64.deb",
+          "sha256": "12882dc753a6b859634ffc9ed1a9f0ea58e9d5c8ea27776e3dbd051f8030c603",
+          "size_bytes": 1733724,
+          "package": "minizinc",
+          "package_version": "2.6.4+dfsg1-1"
+        }
+      },
+      "download_base": "https://deb.debian.org/debian/",
+      "install": {
+        "kind": "debian",
+        "native_path": "/usr/bin/minizinc"
+      }
+    },
+    {
+      "id": "maxima",
+      "name": "Maxima",
+      "role": "Symbolic computation",
+      "description": "Run a Maxima batch file (symbolic algebra, calculus, equations) and save the transcript.",
+      "repository": "https://maxima.sourceforge.io",
+      "executable": "maxima-cli",
+      "registry_args": [
+        "commands"
+      ],
+      "mcp_args": [
+        "mcp"
+      ],
+      "adapter": "toolkit",
+      "checks": [
+        "Preserve and reopen native sources.",
+        "Symbolic results depend on assumptions (domains, signs); check special cases and conditions stated in the transcript."
+      ],
+      "examples": [
+        "maxima-cli commands",
+        "maxima-cli call evaluate '{...}'"
+      ],
+      "version": "5.46.0",
+      "assets": {
+        "amd64": {
+          "name": "maxima_5.46.0-11_amd64.deb",
+          "url": "https://deb.debian.org/debian/pool/main/m/maxima/maxima_5.46.0-11_amd64.deb",
+          "sha256": "bff56a58e70018d81228981d4ede100f39a2a55ed7ea2a2d1c5c172ff1e05525",
+          "size_bytes": 6858600,
+          "package": "maxima",
+          "package_version": "5.46.0-11"
+        },
+        "arm64": {
+          "name": "maxima_5.46.0-11_arm64.deb",
+          "url": "https://deb.debian.org/debian/pool/main/m/maxima/maxima_5.46.0-11_arm64.deb",
+          "sha256": "f383099a0f81e1f6dbd5fd4b08a15ce898a6b3b502ec5c31730a5f0a26171244",
+          "size_bytes": 6243828,
+          "package": "maxima",
+          "package_version": "5.46.0-11"
+        }
+      },
+      "download_base": "https://deb.debian.org/debian/",
+      "install": {
+        "kind": "debian",
+        "native_path": "/usr/bin/maxima"
+      }
+    },
+    {
+      "id": "pari",
+      "name": "PARI/GP",
+      "role": "Number theory and exact arithmetic",
+      "description": "Run a PARI/GP script (number theory, exact arithmetic, polynomials) and save its output.",
+      "repository": "https://pari.math.u-bordeaux.fr",
+      "executable": "pari-cli",
+      "registry_args": [
+        "commands"
+      ],
+      "mcp_args": [
+        "mcp"
+      ],
+      "adapter": "toolkit",
+      "checks": [
+        "Preserve and reopen native sources.",
+        "Some functions are probabilistic (e.g. ispseudoprime); state which results are proven."
+      ],
+      "examples": [
+        "pari-cli commands",
+        "pari-cli call evaluate '{...}'"
+      ],
+      "version": "2.15.2",
+      "assets": {
+        "amd64": {
+          "name": "pari-gp_2.15.2-1_amd64.deb",
+          "url": "https://deb.debian.org/debian/pool/main/p/pari/pari-gp_2.15.2-1_amd64.deb",
+          "sha256": "a9e75f6781f35af3044e4e3a726e01fde598343d1a380e3124a7466880bf5d27",
+          "size_bytes": 3835932,
+          "package": "pari-gp",
+          "package_version": "2.15.2-1"
+        },
+        "arm64": {
+          "name": "pari-gp_2.15.2-1_arm64.deb",
+          "url": "https://deb.debian.org/debian/pool/main/p/pari/pari-gp_2.15.2-1_arm64.deb",
+          "sha256": "02e56aee0cd27078e7a0ce6eae9cda0f10758855d2d644024341af1e1c59841b",
+          "size_bytes": 3313516,
+          "package": "pari-gp",
+          "package_version": "2.15.2-1"
+        }
+      },
+      "download_base": "https://deb.debian.org/debian/",
+      "install": {
+        "kind": "debian",
+        "native_path": "/usr/bin/gp"
+      }
+    },
+    {
+      "id": "cdo",
+      "name": "CDO",
+      "role": "Climate and weather data operators",
+      "description": "Describe a NetCDF/GRIB dataset: variables, grid, levels and time steps.",
+      "repository": "https://code.mpimet.mpg.de/projects/cdo",
+      "executable": "cdo-cli",
+      "registry_args": [
+        "commands"
+      ],
+      "mcp_args": [
+        "mcp"
+      ],
+      "adapter": "toolkit",
+      "checks": [
+        "Preserve and reopen native sources.",
+        "Statistics follow the grid and calendar of the data; check units, missing values and grid cell areas before conclusions."
+      ],
+      "examples": [
+        "cdo-cli commands",
+        "cdo-cli call info '{...}'"
+      ],
+      "version": "2.1.1",
+      "assets": {
+        "amd64": {
+          "name": "cdo_2.1.1-1+deb12u1_amd64.deb",
+          "url": "https://deb.debian.org/debian/pool/main/c/cdo/cdo_2.1.1-1+deb12u1_amd64.deb",
+          "sha256": "dbf49ca55b8b53f41bc5eb1b1239e244731a86166b19fcdafcfbc7fda4b895aa",
+          "size_bytes": 2667216,
+          "package": "cdo",
+          "package_version": "2.1.1-1+deb12u1"
+        },
+        "arm64": {
+          "name": "cdo_2.1.1-1+deb12u1_arm64.deb",
+          "url": "https://deb.debian.org/debian/pool/main/c/cdo/cdo_2.1.1-1+deb12u1_arm64.deb",
+          "sha256": "d81aa7d61da253d2c6ef880bbe619ffb2d25369d9992e0b5f753f6a24aa65910",
+          "size_bytes": 2376176,
+          "package": "cdo",
+          "package_version": "2.1.1-1+deb12u1"
+        }
+      },
+      "download_base": "https://deb.debian.org/debian/",
+      "install": {
+        "kind": "debian",
+        "native_path": "/usr/bin/cdo"
+      }
+    },
+    {
+      "id": "nco",
+      "name": "NCO",
+      "role": "NetCDF operators",
+      "description": "Print the metadata of a NetCDF file: dimensions, variables, attributes and units.",
+      "repository": "https://github.com/nco/nco",
+      "executable": "nco-cli",
+      "registry_args": [
+        "commands"
+      ],
+      "mcp_args": [
+        "mcp"
+      ],
+      "adapter": "toolkit",
+      "checks": [
+        "Preserve and reopen native sources.",
+        "Metadata reflects what the producer wrote; units and conventions still need checking against CF rules."
+      ],
+      "examples": [
+        "nco-cli commands",
+        "nco-cli call inspect '{...}'"
+      ],
+      "version": "5.1.4",
+      "assets": {
+        "amd64": {
+          "name": "nco_5.1.4-1+deb12u1_amd64.deb",
+          "url": "https://deb.debian.org/debian/pool/main/n/nco/nco_5.1.4-1+deb12u1_amd64.deb",
+          "sha256": "ffc9bdc6e7ba3127dd164dde5fa2e32987eaaeab59b734458934cea0e36a6988",
+          "size_bytes": 2168772,
+          "package": "nco",
+          "package_version": "5.1.4-1+deb12u1"
+        },
+        "arm64": {
+          "name": "nco_5.1.4-1+deb12u1_arm64.deb",
+          "url": "https://deb.debian.org/debian/pool/main/n/nco/nco_5.1.4-1+deb12u1_arm64.deb",
+          "sha256": "0fc84c5f6bba69122ce1eee2a65f3befbb04859637ee0c02a35e5818400803fc",
+          "size_bytes": 2030460,
+          "package": "nco",
+          "package_version": "5.1.4-1+deb12u1"
+        }
+      },
+      "download_base": "https://deb.debian.org/debian/",
+      "install": {
+        "kind": "debian",
+        "native_path": "/usr/bin/ncks"
+      }
+    },
+    {
+      "id": "exiftool",
+      "name": "ExifTool",
+      "role": "File metadata reading",
+      "description": "Read embedded metadata (EXIF, IPTC, XMP, GPS, document properties) of a file into grouped JSON, without changing it.",
+      "repository": "https://exiftool.org",
+      "executable": "exiftool-cli",
+      "registry_args": [
+        "commands"
+      ],
+      "mcp_args": [
+        "mcp"
+      ],
+      "adapter": "toolkit",
+      "checks": [
+        "Preserve and reopen native sources.",
+        "Listing metadata does not remove it; personal data may also be visible in the content itself."
+      ],
+      "examples": [
+        "exiftool-cli commands",
+        "exiftool-cli call read '{...}'"
+      ],
+      "version": "12.57",
+      "assets": {
+        "amd64": {
+          "name": "libimage-exiftool-perl_12.57+dfsg-1_all.deb",
+          "url": "https://deb.debian.org/debian/pool/main/libi/libimage-exiftool-perl/libimage-exiftool-perl_12.57+dfsg-1_all.deb",
+          "sha256": "d2df8a61a0e65d7697f75866fb29fbc4370386f66ac51eb268f295241a3731dd",
+          "size_bytes": 3854120,
+          "package": "libimage-exiftool-perl",
+          "package_version": "12.57+dfsg-1"
+        },
+        "arm64": {
+          "name": "libimage-exiftool-perl_12.57+dfsg-1_all.deb",
+          "url": "https://deb.debian.org/debian/pool/main/libi/libimage-exiftool-perl/libimage-exiftool-perl_12.57+dfsg-1_all.deb",
+          "sha256": "d2df8a61a0e65d7697f75866fb29fbc4370386f66ac51eb268f295241a3731dd",
+          "size_bytes": 3854120,
+          "package": "libimage-exiftool-perl",
+          "package_version": "12.57+dfsg-1"
+        }
+      },
+      "download_base": "https://deb.debian.org/debian/",
+      "install": {
+        "kind": "debian",
+        "native_path": "/usr/bin/exiftool"
+      }
+    },
+    {
+      "id": "mat2",
+      "name": "mat2",
+      "role": "Metadata removal for privacy",
+      "description": "List the metadata mat2 would remove from a document, image or media file.",
+      "repository": "https://0xacab.org/jvoisin/mat2",
+      "executable": "mat2-cli",
+      "registry_args": [
+        "commands"
+      ],
+      "mcp_args": [
+        "mcp"
+      ],
+      "adapter": "toolkit",
+      "checks": [
+        "Preserve and reopen native sources.",
+        "Removes embedded metadata only; faces, text, watermarks or hidden layers in the visible content are not anonymized."
+      ],
+      "examples": [
+        "mat2-cli commands",
+        "mat2-cli call inspect '{...}'"
+      ],
+      "version": "0.13.3",
+      "assets": {
+        "amd64": {
+          "name": "mat2_0.13.3-1_all.deb",
+          "url": "https://deb.debian.org/debian/pool/main/m/mat2/mat2_0.13.3-1_all.deb",
+          "sha256": "ff64e184a72c39657d82695fbf924264bb1ad29ce2ce7a67a571c7ac618f4c2a",
+          "size_bytes": 71012,
+          "package": "mat2",
+          "package_version": "0.13.3-1"
+        },
+        "arm64": {
+          "name": "mat2_0.13.3-1_all.deb",
+          "url": "https://deb.debian.org/debian/pool/main/m/mat2/mat2_0.13.3-1_all.deb",
+          "sha256": "ff64e184a72c39657d82695fbf924264bb1ad29ce2ce7a67a571c7ac618f4c2a",
+          "size_bytes": 71012,
+          "package": "mat2",
+          "package_version": "0.13.3-1"
+        }
+      },
+      "download_base": "https://deb.debian.org/debian/",
+      "install": {
+        "kind": "debian",
+        "native_path": "/usr/bin/mat2"
+      }
+    },
+    {
+      "id": "fonttools",
+      "name": "fontTools",
+      "role": "Font inspection and subsetting",
+      "description": "List the OpenType tables of a font file with their checksums and sizes.",
+      "repository": "https://github.com/fonttools/fonttools",
+      "executable": "fonttools-cli",
+      "registry_args": [
+        "commands"
+      ],
+      "mcp_args": [
+        "mcp"
+      ],
+      "adapter": "toolkit",
+      "checks": [
+        "Preserve and reopen native sources.",
+        "Subsetting must be allowed by the font licence; check rendering of every required language after subsetting."
+      ],
+      "examples": [
+        "fonttools-cli commands",
+        "fonttools-cli call inspect '{...}'"
+      ],
+      "version": "4.38.0",
+      "assets": {
+        "amd64": {
+          "name": "fonttools_4.38.0-1+deb12u1_all.deb",
+          "url": "https://deb.debian.org/debian/pool/main/f/fonttools/fonttools_4.38.0-1+deb12u1_all.deb",
+          "sha256": "f3a6fd92f72f5ba67eef6bd629d3c9a4d14b42cd59dc2338956c76bb44db7f1d",
+          "size_bytes": 11084,
+          "package": "fonttools",
+          "package_version": "4.38.0-1+deb12u1"
+        },
+        "arm64": {
+          "name": "fonttools_4.38.0-1+deb12u1_all.deb",
+          "url": "https://deb.debian.org/debian/pool/main/f/fonttools/fonttools_4.38.0-1+deb12u1_all.deb",
+          "sha256": "f3a6fd92f72f5ba67eef6bd629d3c9a4d14b42cd59dc2338956c76bb44db7f1d",
+          "size_bytes": 11084,
+          "package": "fonttools",
+          "package_version": "4.38.0-1+deb12u1"
+        }
+      },
+      "download_base": "https://deb.debian.org/debian/",
+      "install": {
+        "kind": "debian",
+        "native_path": "/usr/bin/ttx"
+      }
+    },
+    {
+      "id": "fontforge",
+      "name": "FontForge",
+      "role": "Font editing and conversion",
+      "description": "Open a font (TTF, OTF, SFD, UFO, WOFF) and generate it in another format, reporting the glyph count.",
+      "repository": "https://github.com/fontforge/fontforge",
+      "executable": "fontforge-cli",
+      "registry_args": [
+        "commands"
+      ],
+      "mcp_args": [
+        "mcp"
+      ],
+      "adapter": "toolkit",
+      "checks": [
+        "Preserve and reopen native sources.",
+        "Format conversion keeps outlines but may drop hinting or features; font licences still apply."
+      ],
+      "examples": [
+        "fontforge-cli commands",
+        "fontforge-cli call convert '{...}'"
+      ],
+      "version": "20230101",
+      "assets": {
+        "amd64": {
+          "name": "fontforge-nox_20230101~dfsg-1.1~deb12u1_amd64.deb",
+          "url": "https://deb.debian.org/debian/pool/main/f/fontforge/fontforge-nox_20230101~dfsg-1.1~deb12u1_amd64.deb",
+          "sha256": "1dc311971309a0e5f9af658d20b918c4f932e7207eb3957ee4b817a6fa21f538",
+          "size_bytes": 25832,
+          "package": "fontforge-nox",
+          "package_version": "1:20230101~dfsg-1.1~deb12u1"
+        },
+        "arm64": {
+          "name": "fontforge-nox_20230101~dfsg-1.1~deb12u1_arm64.deb",
+          "url": "https://deb.debian.org/debian/pool/main/f/fontforge/fontforge-nox_20230101~dfsg-1.1~deb12u1_arm64.deb",
+          "sha256": "e1dfcaa2ab3e1353a074ea950e44dd53769c2b4bf5959d53cbbd0787438a303d",
+          "size_bytes": 25972,
+          "package": "fontforge-nox",
+          "package_version": "1:20230101~dfsg-1.1~deb12u1"
+        }
+      },
+      "download_base": "https://deb.debian.org/debian/",
+      "install": {
+        "kind": "debian",
+        "native_path": "/usr/bin/fontforge"
+      }
+    },
+    {
+      "id": "zint",
+      "name": "Zint",
+      "role": "Barcodes and 2D codes",
+      "description": "Encode data as a barcode or 2D code (QR, Data Matrix, PDF417, Code 128, EAN-13, GS1-128) in SVG or PNG; check scannability on the final medium.",
+      "repository": "https://github.com/zint/zint",
+      "executable": "zint-cli",
+      "registry_args": [
+        "commands"
+      ],
+      "mcp_args": [
+        "mcp"
+      ],
+      "adapter": "toolkit",
+      "checks": [
+        "Preserve and reopen native sources.",
+        "Generation is not a scan test; check size, quiet zone and contrast on the final printed medium."
+      ],
+      "examples": [
+        "zint-cli commands",
+        "zint-cli call encode '{...}'"
+      ],
+      "version": "2.11.1",
+      "assets": {
+        "amd64": {
+          "name": "zint_2.11.1-1_amd64.deb",
+          "url": "https://deb.debian.org/debian/pool/main/z/zint/zint_2.11.1-1_amd64.deb",
+          "sha256": "e7824788f4341fda57270723ca8b61fac25b95bb2c00b0e27bf9dab8957fa004",
+          "size_bytes": 38216,
+          "package": "zint",
+          "package_version": "2.11.1-1"
+        },
+        "arm64": {
+          "name": "zint_2.11.1-1_arm64.deb",
+          "url": "https://deb.debian.org/debian/pool/main/z/zint/zint_2.11.1-1_arm64.deb",
+          "sha256": "0e18f9cf6aee0244518df087a6bebb07f38aed1238119022b57d886cabc7071d",
+          "size_bytes": 37592,
+          "package": "zint",
+          "package_version": "2.11.1-1"
+        }
+      },
+      "download_base": "https://deb.debian.org/debian/",
+      "install": {
+        "kind": "debian",
+        "native_path": "/usr/bin/zint"
+      }
+    },
+    {
+      "id": "shellcheck",
+      "name": "ShellCheck",
+      "role": "Shell script analysis",
+      "description": "Analyze a shell script for bugs and portability issues; save JSON findings.",
+      "repository": "https://github.com/koalaman/shellcheck",
+      "executable": "shellcheck-cli",
+      "registry_args": [
+        "commands"
+      ],
+      "mcp_args": [
+        "mcp"
+      ],
+      "adapter": "toolkit",
+      "checks": [
+        "Preserve and reopen native sources.",
+        "No finding does not prove correctness; behaviour still needs tests on the target shell and system."
+      ],
+      "examples": [
+        "shellcheck-cli commands",
+        "shellcheck-cli call lint '{...}'"
+      ],
+      "version": "0.9.0",
+      "assets": {
+        "amd64": {
+          "name": "shellcheck_0.9.0-1_amd64.deb",
+          "url": "https://deb.debian.org/debian/pool/main/s/shellcheck/shellcheck_0.9.0-1_amd64.deb",
+          "sha256": "8c40f8a4ecccf3d746b933853972f1cd1be6df84fc5977d0137269d4debefa4f",
+          "size_bytes": 2621160,
+          "package": "shellcheck",
+          "package_version": "0.9.0-1"
+        },
+        "arm64": {
+          "name": "shellcheck_0.9.0-1_arm64.deb",
+          "url": "https://deb.debian.org/debian/pool/main/s/shellcheck/shellcheck_0.9.0-1_arm64.deb",
+          "sha256": "5336357097400b170dcaf5633951b8f46264456b4d6f88ea748130114882e587",
+          "size_bytes": 5718548,
+          "package": "shellcheck",
+          "package_version": "0.9.0-1"
+        }
+      },
+      "download_base": "https://deb.debian.org/debian/",
+      "install": {
+        "kind": "debian",
+        "native_path": "/usr/bin/shellcheck"
+      }
+    },
+    {
+      "id": "hadolint",
+      "name": "Hadolint",
+      "role": "Dockerfile linting",
+      "description": "Lint a Dockerfile against best practices (including ShellCheck on RUN steps); save JSON findings.",
+      "repository": "https://github.com/hadolint/hadolint",
+      "executable": "hadolint-cli",
+      "registry_args": [
+        "commands"
+      ],
+      "mcp_args": [
+        "mcp"
+      ],
+      "adapter": "toolkit",
+      "checks": [
+        "Preserve and reopen native sources.",
+        "Best-practice findings do not prove the image builds or is secure; build and scan it separately."
+      ],
+      "examples": [
+        "hadolint-cli commands",
+        "hadolint-cli call lint '{...}'"
+      ],
+      "version": "v2.14.0",
+      "assets": {
+        "amd64": {
+          "name": "hadolint-linux-x86_64",
+          "url": "https://github.com/hadolint/hadolint/releases/download/v2.14.0/hadolint-linux-x86_64",
+          "sha256": "6bf226944684f56c84dd014e8b979d27425c0148f61b3bd99bcc6f39e9dc5a47",
+          "size_bytes": 54727336
+        },
+        "arm64": {
+          "name": "hadolint-linux-arm64",
+          "url": "https://github.com/hadolint/hadolint/releases/download/v2.14.0/hadolint-linux-arm64",
+          "sha256": "331f1d3511b84a4f1e3d18d52fec284723e4019552f4f47b19322a53ce9a40ed",
+          "size_bytes": 59451320
+        }
+      },
+      "install": {
+        "kind": "extended-native",
+        "native_binary": "hadolint",
+        "raw_binary": true
+      }
+    },
+    {
+      "id": "actionlint",
+      "name": "actionlint",
+      "role": "GitHub Actions workflow checks",
+      "description": "Check a GitHub Actions workflow: syntax, expressions, job dependencies and embedded scripts; save JSON findings.",
+      "repository": "https://github.com/rhysd/actionlint",
+      "executable": "actionlint-cli",
+      "registry_args": [
+        "commands"
+      ],
+      "mcp_args": [
+        "mcp"
+      ],
+      "adapter": "toolkit",
+      "checks": [
+        "Preserve and reopen native sources.",
+        "Static checks cannot prove secrets, permissions or runners behave as intended at run time."
+      ],
+      "examples": [
+        "actionlint-cli commands",
+        "actionlint-cli call lint '{...}'"
+      ],
+      "version": "v1.7.11",
+      "assets": {
+        "amd64": {
+          "name": "actionlint_1.7.11_linux_amd64.tar.gz",
+          "url": "https://github.com/rhysd/actionlint/releases/download/v1.7.11/actionlint_1.7.11_linux_amd64.tar.gz",
+          "sha256": "900919a84f2229bac68ca9cd4103ea297abc35e9689ebb842c6e34a3d1b01b0a",
+          "size_bytes": 2265519
+        },
+        "arm64": {
+          "name": "actionlint_1.7.11_linux_arm64.tar.gz",
+          "url": "https://github.com/rhysd/actionlint/releases/download/v1.7.11/actionlint_1.7.11_linux_arm64.tar.gz",
+          "sha256": "21bc0dfb57a913fe175298c2a9e906ee630f747cb66d0a934d0d4b69f4ee1235",
+          "size_bytes": 2043156
+        }
+      },
+      "install": {
+        "kind": "extended-native",
+        "native_binary": "actionlint"
+      }
+    },
+    {
+      "id": "tflint",
+      "name": "TFLint",
+      "role": "Terraform linting",
+      "description": "Lint a Terraform module directory with the bundled core rules (no provider plugins downloaded); save JSON findings.",
+      "repository": "https://github.com/terraform-linters/tflint",
+      "executable": "tflint-cli",
+      "registry_args": [
+        "commands"
+      ],
+      "mcp_args": [
+        "mcp"
+      ],
+      "adapter": "toolkit",
+      "checks": [
+        "Preserve and reopen native sources.",
+        "Only bundled core rules run offline; provider-specific rules and real plans need the provider plugins and credentials."
+      ],
+      "examples": [
+        "tflint-cli commands",
+        "tflint-cli call lint '{...}'"
+      ],
+      "version": "v0.64.0",
+      "assets": {
+        "amd64": {
+          "name": "tflint_linux_amd64.zip",
+          "url": "https://github.com/terraform-linters/tflint/releases/download/v0.64.0/tflint_linux_amd64.zip",
+          "sha256": "cca9d13e2e1d7a2c627af60ff899a3c9b74212899416aeb96ec764d2ef954537",
+          "size_bytes": 17105397
+        },
+        "arm64": {
+          "name": "tflint_linux_arm64.zip",
+          "url": "https://github.com/terraform-linters/tflint/releases/download/v0.64.0/tflint_linux_arm64.zip",
+          "sha256": "560da89aacf59389d4eb029730dd5b109b7288096c32f2726a0d9e783a5ea8eb",
+          "size_bytes": 15476601
+        }
+      },
+      "install": {
+        "kind": "extended-native",
+        "native_binary": "tflint"
+      }
+    },
+    {
+      "id": "spectral",
+      "name": "Spectral",
+      "role": "OpenAPI and AsyncAPI linting",
+      "description": "Lint an OpenAPI or AsyncAPI document with the standard Spectral rulesets or a supplied ruleset; save JSON findings.",
+      "repository": "https://github.com/stoplightio/spectral",
+      "executable": "spectral-cli",
+      "registry_args": [
+        "commands"
+      ],
+      "mcp_args": [
+        "mcp"
+      ],
+      "adapter": "toolkit",
+      "checks": [
+        "Preserve and reopen native sources.",
+        "A clean lint is not a working API; test the implementation against the contract separately."
+      ],
+      "examples": [
+        "spectral-cli commands",
+        "spectral-cli call lint '{...}'"
+      ],
+      "version": "6.17.0",
+      "assets": {
+        "amd64": {
+          "name": "spectral-cli-6.17.0.tgz",
+          "url": "https://registry.npmjs.org/@stoplight/spectral-cli/-/spectral-cli-6.17.0.tgz",
+          "sha256": "fdff616155068111f5fe00cd06ae8fdb640630f1082ad1e59187d466af7039bf",
+          "size_bytes": 21319
+        },
+        "arm64": {
+          "name": "spectral-cli-6.17.0.tgz",
+          "url": "https://registry.npmjs.org/@stoplight/spectral-cli/-/spectral-cli-6.17.0.tgz",
+          "sha256": "fdff616155068111f5fe00cd06ae8fdb640630f1082ad1e59187d466af7039bf",
+          "size_bytes": 21319
+        }
+      },
+      "download_base": "https://registry.npmjs.org/",
+      "install": {
+        "kind": "extension-node"
+      }
+    },
+    {
+      "id": "jq",
+      "name": "jq",
+      "role": "JSON transformation",
+      "description": "Apply a jq filter to JSON and save the result; the filter is kept with the output.",
+      "repository": "https://github.com/jqlang/jq",
+      "executable": "jq-cli",
+      "registry_args": [
+        "commands"
+      ],
+      "mcp_args": [
+        "mcp"
+      ],
+      "adapter": "toolkit",
+      "checks": [
+        "Preserve and reopen native sources.",
+        "A filter that runs is not a validated transformation; compare counts and key values with the source."
+      ],
+      "examples": [
+        "jq-cli commands",
+        "jq-cli call transform '{...}'"
+      ],
+      "version": "1.6",
+      "assets": {
+        "amd64": {
+          "name": "jq_1.6-2.1+deb12u2_amd64.deb",
+          "url": "https://deb.debian.org/debian/pool/main/j/jq/jq_1.6-2.1+deb12u2_amd64.deb",
+          "sha256": "f2303584378ac85f6d3a9ae8e46412196061681e81610d3b020abe4b5d389eb0",
+          "size_bytes": 63984,
+          "package": "jq",
+          "package_version": "1.6-2.1+deb12u2"
+        },
+        "arm64": {
+          "name": "jq_1.6-2.1+deb12u2_arm64.deb",
+          "url": "https://deb.debian.org/debian/pool/main/j/jq/jq_1.6-2.1+deb12u2_arm64.deb",
+          "sha256": "c232e9407e0f47006dd6077804c1274fd2e4f8be02efc78822db748ed65bea99",
+          "size_bytes": 63560,
+          "package": "jq",
+          "package_version": "1.6-2.1+deb12u2"
+        }
+      },
+      "download_base": "https://deb.debian.org/debian/",
+      "install": {
+        "kind": "debian",
+        "native_path": "/usr/bin/jq"
+      }
+    },
+    {
+      "id": "yq",
+      "name": "yq",
+      "role": "YAML transformation with jq filters",
+      "description": "Apply a jq filter to YAML (or XML/TOML read as YAML) and save YAML output.",
+      "repository": "https://github.com/kislyuk/yq",
+      "executable": "yq-cli",
+      "registry_args": [
+        "commands"
+      ],
+      "mcp_args": [
+        "mcp"
+      ],
+      "adapter": "toolkit",
+      "checks": [
+        "Preserve and reopen native sources.",
+        "Comments and anchors are not preserved by the jq round trip; keep the original as the editable source."
+      ],
+      "examples": [
+        "yq-cli commands",
+        "yq-cli call transform '{...}'"
+      ],
+      "version": "3.1.0",
+      "assets": {
+        "amd64": {
+          "name": "yq_3.1.0-3_all.deb",
+          "url": "https://deb.debian.org/debian/pool/main/y/yq/yq_3.1.0-3_all.deb",
+          "sha256": "977e041c6caf8edfe799ccd6648d0588f47415f1db1b60c00525c85cdd44bf28",
+          "size_bytes": 19228,
+          "package": "yq",
+          "package_version": "3.1.0-3"
+        },
+        "arm64": {
+          "name": "yq_3.1.0-3_all.deb",
+          "url": "https://deb.debian.org/debian/pool/main/y/yq/yq_3.1.0-3_all.deb",
+          "sha256": "977e041c6caf8edfe799ccd6648d0588f47415f1db1b60c00525c85cdd44bf28",
+          "size_bytes": 19228,
+          "package": "yq",
+          "package_version": "3.1.0-3"
+        }
+      },
+      "download_base": "https://deb.debian.org/debian/",
+      "install": {
+        "kind": "debian",
+        "native_path": "/usr/bin/yq"
+      }
+    },
+    {
+      "id": "miller",
+      "name": "Miller",
+      "role": "CSV/TSV/JSON processing",
+      "description": "Convert or transform CSV, TSV or JSON with Miller; an optional DSL script file is kept with the output.",
+      "repository": "https://github.com/johnkerl/miller",
+      "executable": "miller-cli",
+      "registry_args": [
+        "commands"
+      ],
+      "mcp_args": [
+        "mcp"
+      ],
+      "adapter": "toolkit",
+      "checks": [
+        "Preserve and reopen native sources.",
+        "Type inference may change number formats; check separators, encodings and totals against the source."
+      ],
+      "examples": [
+        "miller-cli commands",
+        "miller-cli call transform '{...}'"
+      ],
+      "version": "6.6.0",
+      "assets": {
+        "amd64": {
+          "name": "miller_6.6.0-2+b3_amd64.deb",
+          "url": "https://deb.debian.org/debian/pool/main/m/miller/miller_6.6.0-2+b3_amd64.deb",
+          "sha256": "f1642d11581246c223653539df385a90ab719245f080ff98252127804061e1df",
+          "size_bytes": 2962688,
+          "package": "miller",
+          "package_version": "6.6.0-2+b3"
+        },
+        "arm64": {
+          "name": "miller_6.6.0-2+b3_arm64.deb",
+          "url": "https://deb.debian.org/debian/pool/main/m/miller/miller_6.6.0-2+b3_arm64.deb",
+          "sha256": "96977e4402f448dd83a52c54ea38786adb7324c3ab5207f8ce3ed15046aed095",
+          "size_bytes": 2570716,
+          "package": "miller",
+          "package_version": "6.6.0-2+b3"
+        }
+      },
+      "download_base": "https://deb.debian.org/debian/",
+      "install": {
+        "kind": "debian",
+        "native_path": "/usr/bin/mlr"
+      }
+    },
+    {
+      "id": "ajv",
+      "name": "Ajv",
+      "role": "JSON Schema validation",
+      "description": "Validate JSON data against a JSON Schema (draft 2020-12, 2019-09 or 07) and save all errors.",
+      "repository": "https://github.com/ajv-validator/ajv-cli",
+      "executable": "ajv-cli",
+      "registry_args": [
+        "commands"
+      ],
+      "mcp_args": [
+        "mcp"
+      ],
+      "adapter": "toolkit",
+      "checks": [
+        "Preserve and reopen native sources.",
+        "Schema validity covers structure and declared formats only, not business rules outside the schema."
+      ],
+      "examples": [
+        "ajv-cli commands",
+        "ajv-cli call validate '{...}'"
+      ],
+      "version": "5.0.0",
+      "assets": {
+        "amd64": {
+          "name": "ajv-cli-5.0.0.tgz",
+          "url": "https://registry.npmjs.org/ajv-cli/-/ajv-cli-5.0.0.tgz",
+          "sha256": "d5bec37d30a8ed0add0ee1c63bb2b6e3ea279124e1a615b0a7806fe089963737",
+          "size_bytes": 35281
+        },
+        "arm64": {
+          "name": "ajv-cli-5.0.0.tgz",
+          "url": "https://registry.npmjs.org/ajv-cli/-/ajv-cli-5.0.0.tgz",
+          "sha256": "d5bec37d30a8ed0add0ee1c63bb2b6e3ea279124e1a615b0a7806fe089963737",
+          "size_bytes": 35281
+        }
+      },
+      "download_base": "https://registry.npmjs.org/",
+      "install": {
+        "kind": "extension-node"
+      }
+    },
+    {
+      "id": "mjml",
+      "name": "MJML",
+      "role": "Responsive email templates",
+      "description": "Compile an MJML email template into responsive HTML with strict validation.",
+      "repository": "https://github.com/mjmlio/mjml",
+      "executable": "mjml-cli",
+      "registry_args": [
+        "commands"
+      ],
+      "mcp_args": [
+        "mcp"
+      ],
+      "adapter": "toolkit",
+      "checks": [
+        "Preserve and reopen native sources.",
+        "Compiled HTML still renders differently across email clients; test in the target clients before sending."
+      ],
+      "examples": [
+        "mjml-cli commands",
+        "mjml-cli call compile '{...}'"
+      ],
+      "version": "5.4.1",
+      "assets": {
+        "amd64": {
+          "name": "mjml-5.4.1.tgz",
+          "url": "https://registry.npmjs.org/mjml/-/mjml-5.4.1.tgz",
+          "sha256": "8cb5e04d3ec9b9b150197a6d9933e17adc9736c8c773268261a57cd8692d00f4",
+          "size_bytes": 4736
+        },
+        "arm64": {
+          "name": "mjml-5.4.1.tgz",
+          "url": "https://registry.npmjs.org/mjml/-/mjml-5.4.1.tgz",
+          "sha256": "8cb5e04d3ec9b9b150197a6d9933e17adc9736c8c773268261a57cd8692d00f4",
+          "size_bytes": 4736
+        }
+      },
+      "download_base": "https://registry.npmjs.org/",
+      "install": {
+        "kind": "extension-node"
+      }
+    },
+    {
+      "id": "abcm2ps",
+      "name": "abcm2ps",
+      "role": "ABC music engraving",
+      "description": "Engrave ABC music notation into SVG pages, one per tune.",
+      "repository": "https://github.com/lewdlime/abcm2ps",
+      "executable": "abcm2ps-cli",
+      "registry_args": [
+        "commands"
+      ],
+      "mcp_args": [
+        "mcp"
+      ],
+      "adapter": "toolkit",
+      "checks": [
+        "Preserve and reopen native sources.",
+        "Engraving shows notation only; listen to the MIDI and review layout before publication."
+      ],
+      "examples": [
+        "abcm2ps-cli commands",
+        "abcm2ps-cli call engrave '{...}'"
+      ],
+      "version": "8.14.14",
+      "assets": {
+        "amd64": {
+          "name": "abcm2ps_8.14.14-1_amd64.deb",
+          "url": "https://deb.debian.org/debian/pool/main/a/abcm2ps/abcm2ps_8.14.14-1_amd64.deb",
+          "sha256": "269084468d5ca79b03240521fc12f4f0818a5a6b87fcc554ae02efa86cbe7534",
+          "size_bytes": 225940,
+          "package": "abcm2ps",
+          "package_version": "8.14.14-1"
+        },
+        "arm64": {
+          "name": "abcm2ps_8.14.14-1_arm64.deb",
+          "url": "https://deb.debian.org/debian/pool/main/a/abcm2ps/abcm2ps_8.14.14-1_arm64.deb",
+          "sha256": "67013695de73788443921f5c2899eff45619da72942e19ba30a9df6aa7511b47",
+          "size_bytes": 206936,
+          "package": "abcm2ps",
+          "package_version": "8.14.14-1"
+        }
+      },
+      "download_base": "https://deb.debian.org/debian/",
+      "install": {
+        "kind": "debian",
+        "native_path": "/usr/bin/abcm2ps"
+      }
+    },
+    {
+      "id": "abcmidi",
+      "name": "abcMIDI",
+      "role": "ABC to MIDI",
+      "description": "Convert ABC music notation into a MIDI file for listening checks.",
+      "repository": "https://github.com/sshlien/abcmidi",
+      "executable": "abcmidi-cli",
+      "registry_args": [
+        "commands"
+      ],
+      "mcp_args": [
+        "mcp"
+      ],
+      "adapter": "toolkit",
+      "checks": [
+        "Preserve and reopen native sources.",
+        "MIDI playback uses default instruments and tempo; it is a listening check, not a final mix."
+      ],
+      "examples": [
+        "abcmidi-cli commands",
+        "abcmidi-cli call midi '{...}'"
+      ],
+      "version": "20230208",
+      "assets": {
+        "amd64": {
+          "name": "abcmidi_20230208+ds1-1_amd64.deb",
+          "url": "https://deb.debian.org/debian/pool/main/a/abcmidi/abcmidi_20230208+ds1-1_amd64.deb",
+          "sha256": "b4b177976324fb5a7b50108c5f1c35ae9a4b3c3897dbcc88c3683559a8aadda4",
+          "size_bytes": 450944,
+          "package": "abcmidi",
+          "package_version": "20230208+ds1-1"
+        },
+        "arm64": {
+          "name": "abcmidi_20230208+ds1-1_arm64.deb",
+          "url": "https://deb.debian.org/debian/pool/main/a/abcmidi/abcmidi_20230208+ds1-1_arm64.deb",
+          "sha256": "9907f1269a78e0afa12908c5f36ce55c245da2a23d3d12a55d1d34d26026978f",
+          "size_bytes": 436564,
+          "package": "abcmidi",
+          "package_version": "20230208+ds1-1"
+        }
+      },
+      "download_base": "https://deb.debian.org/debian/",
+      "install": {
+        "kind": "debian",
+        "native_path": "/usr/bin/abc2midi"
+      }
+    },
+    {
+      "id": "hunspell",
+      "name": "Hunspell",
+      "role": "Spell checking (Italian and English)",
+      "description": "List words not found in the Italian or English Hunspell dictionary; names and technical terms need human review.",
+      "repository": "https://github.com/hunspell/hunspell",
+      "executable": "hunspell-cli",
+      "registry_args": [
+        "commands"
+      ],
+      "mcp_args": [
+        "mcp"
+      ],
+      "adapter": "toolkit",
+      "checks": [
+        "Preserve and reopen native sources.",
+        "Unknown words include names and technical terms; grammar, style and meaning are not checked."
+      ],
+      "examples": [
+        "hunspell-cli commands",
+        "hunspell-cli call check '{...}'"
+      ],
+      "version": "1.7.1",
+      "assets": {
+        "amd64": {
+          "name": "hunspell_1.7.1-1_amd64.deb",
+          "url": "https://deb.debian.org/debian/pool/main/h/hunspell/hunspell_1.7.1-1_amd64.deb",
+          "sha256": "4d4fcf9fc20aee93cfdf517525e4c5363bcb4cb45488a47e4a7134d7c1595a48",
+          "size_bytes": 151324,
+          "package": "hunspell",
+          "package_version": "1.7.1-1"
+        },
+        "arm64": {
+          "name": "hunspell_1.7.1-1_arm64.deb",
+          "url": "https://deb.debian.org/debian/pool/main/h/hunspell/hunspell_1.7.1-1_arm64.deb",
+          "sha256": "f39753056b5fda7fbb5b9d98df11d379238438a8f906b53090a9342f539964f8",
+          "size_bytes": 145944,
+          "package": "hunspell",
+          "package_version": "1.7.1-1"
+        }
+      },
+      "download_base": "https://deb.debian.org/debian/",
+      "install": {
+        "kind": "debian",
+        "native_path": "/usr/bin/hunspell"
+      }
+    },
+    {
+      "id": "vale",
+      "name": "Vale",
+      "role": "Prose style linting",
+      "description": "Check prose against style rules (Vale built-in rules or a supplied .vale.ini with local styles); save JSON alerts.",
+      "repository": "https://github.com/errata-ai/vale",
+      "executable": "vale-cli",
+      "registry_args": [
+        "commands"
+      ],
+      "mcp_args": [
+        "mcp"
+      ],
+      "adapter": "toolkit",
+      "checks": [
+        "Preserve and reopen native sources.",
+        "Rules check style mechanically; they do not judge content, tone or accuracy."
+      ],
+      "examples": [
+        "vale-cli commands",
+        "vale-cli call lint '{...}'"
+      ],
+      "version": "v3.24.0",
+      "assets": {
+        "amd64": {
+          "name": "vale_3.24.0_Linux_64-bit.tar.gz",
+          "url": "https://github.com/errata-ai/vale/releases/download/v3.24.0/vale_3.24.0_Linux_64-bit.tar.gz",
+          "sha256": "867534ddb678abca7f214bc4706ead0922bd5252ffe8035fc227013f66c8b214",
+          "size_bytes": 13052499
+        },
+        "arm64": {
+          "name": "vale_3.24.0_Linux_arm64.tar.gz",
+          "url": "https://github.com/errata-ai/vale/releases/download/v3.24.0/vale_3.24.0_Linux_arm64.tar.gz",
+          "sha256": "104cbd349279e50c4cb40adb70adf345d93cc4a3a0191f9e68bdccb97086b582",
+          "size_bytes": 12303894
+        }
+      },
+      "install": {
+        "kind": "extended-native",
+        "native_binary": "vale"
+      }
     }
   ],
   "cli_runtimes": {

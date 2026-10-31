@@ -10,7 +10,7 @@ import urllib.request
 import xml.etree.ElementTree as ET
 
 VERSION=re.compile(r'[0-9A-Za-z][0-9A-Za-z.+:~_-]{0,100}\Z')
-NPM={'playwright':'@playwright/test','mermaid':'@mermaid-js/mermaid-cli','excalidraw':'@excalidraw/excalidraw','bpmn':'bpmn-to-image','provider-codex':'@openai/codex','provider-claude':'@anthropic-ai/claude-code','axe-core':'@axe-core/playwright'}
+NPM={'playwright':'@playwright/test','mermaid':'@mermaid-js/mermaid-cli','excalidraw':'@excalidraw/excalidraw','bpmn':'bpmn-to-image','provider-codex':'@openai/codex','provider-claude':'@anthropic-ai/claude-code','axe-core':'@axe-core/playwright','spectral':'@stoplight/spectral-cli','ajv':'ajv-cli','mjml':'mjml'}
 PYPI={'dlt':'dlt','sqlmesh':'sqlmesh','sqlglot':'sqlglot','ifcopenshell':'ifcopenshell','manim':'manim','opentimelineio':'opentimelineio','pymeshlab':'pymeshlab','schemathesis':'schemathesis'}
 
 

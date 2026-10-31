@@ -9327,6 +9327,860 @@
           "evidence": "registered"
         }
       ]
+    },
+    {
+      "id": "hledger",
+      "version": "1.25",
+      "catalog_count": 2,
+      "catalog_ids": [
+        "hledger.check",
+        "hledger.report"
+      ],
+      "ids_sha256": "8c98326801629e4c1174e64d195251a55efe94f5ea8c13aee943a3cfcb289e6f",
+      "catalog_sha256": "a6d6d5979f9b8ca5e2262f8e78ea8d937f10ae3147421a455fb19ba385f715e2",
+      "choose_for": "Check a plain-text journal: parsing, balanced transactions and balance assertions; strict also requires declared accounts and commodities",
+      "sources": "Journal file, CSV reports and native check output",
+      "limits": "Reports reflect only the recorded entries; a balanced journal is not an audited account or tax advice.",
+      "reference": "https://github.com/simonmichael/hledger",
+      "groups": [
+        {
+          "goal": "Check a plain-text journal: parsing, balanced transactions and balance assertions; strict also requires declared accounts and commodities. Errors are reported, never corrected.",
+          "commands": [
+            "hledger.check"
+          ],
+          "evidence": "registered"
+        },
+        {
+          "goal": "Run a native report on a plain-text journal and save CSV; the journal stays the editable source. Totals reflect only the recorded entries.",
+          "commands": [
+            "hledger.report"
+          ],
+          "evidence": "registered"
+        }
+      ]
+    },
+    {
+      "id": "beancount",
+      "version": "2.3.5",
+      "catalog_count": 2,
+      "catalog_ids": [
+        "beancount.check",
+        "beancount.query"
+      ],
+      "ids_sha256": "88fee9fa89fbc07d35dbd1664f7a1cf1647a8fe1e3d1ead38ae582d6e9926034",
+      "catalog_sha256": "fa4bc28ef1bba425c1ca6c0a0a589c12be5cad33bc5d0fb00f33d8934abf8fb3",
+      "choose_for": "Check a Beancount ledger: syntax, open accounts, balanced postings and balance assertions",
+      "sources": "Ledger file, BQL query and CSV results",
+      "limits": "bean-check validates syntax, accounts and assertions; it does not certify accounting or tax correctness.",
+      "reference": "https://github.com/beancount/beancount",
+      "groups": [
+        {
+          "goal": "Check a Beancount ledger: syntax, open accounts, balanced postings and balance assertions. Errors are reported, never corrected.",
+          "commands": [
+            "beancount.check"
+          ],
+          "evidence": "registered"
+        },
+        {
+          "goal": "Run a read-only BQL query on a Beancount ledger and save CSV results.",
+          "commands": [
+            "beancount.query"
+          ],
+          "evidence": "registered"
+        }
+      ]
+    },
+    {
+      "id": "openbabel",
+      "version": "3.1.1",
+      "catalog_count": 2,
+      "catalog_ids": [
+        "openbabel.convert",
+        "openbabel.properties"
+      ],
+      "ids_sha256": "ac5685190dc69ff8082e8c855bf44bdb4a1fd31017da4dabf48c95ca25e05435",
+      "catalog_sha256": "9af7e54878a0b125742c5f8dbdb655c06d664d1377dcbda18f5618ede16b363a",
+      "choose_for": "Convert molecules between SMILES, SDF, MOL, MOL2, XYZ, PDB, CML and InChI; optionally generate 3D coordinates",
+      "sources": "Original molecule file, converted structure and descriptor table",
+      "limits": "Generated 3D coordinates and descriptors (logP, TPSA) are estimates; they are not validated conformers or measurements.",
+      "reference": "https://github.com/openbabel/openbabel",
+      "groups": [
+        {
+          "goal": "Convert molecules between SMILES, SDF, MOL, MOL2, XYZ, PDB, CML and InChI; optionally generate 3D coordinates. Generated geometry is a starting point, not a validated conformer.",
+          "commands": [
+            "openbabel.convert"
+          ],
+          "evidence": "registered"
+        },
+        {
+          "goal": "Compute formula, molecular weight, logP and TPSA per molecule. Descriptors are estimates, not measurements.",
+          "commands": [
+            "openbabel.properties"
+          ],
+          "evidence": "registered"
+        }
+      ]
+    },
+    {
+      "id": "xtb",
+      "version": "6.5.1",
+      "catalog_count": 1,
+      "catalog_ids": [
+        "xtb.optimize"
+      ],
+      "ids_sha256": "e27911416c23240537e11540eaffcac1d48b1b2141533087ac775d71c2ae6249",
+      "catalog_sha256": "32219834ec176f7a86558cbccd8f76cd97a1769aa00ce07fda41ad63f1e8731c",
+      "choose_for": "Optimize a molecular geometry (XYZ) with the GFN2-xTB semiempirical method; save the optimized structure and native log",
+      "sources": "Input geometry, optimized structure and native log",
+      "limits": "GFN2-xTB is approximate; confirm critical energies or geometries with higher-level methods before relying on them.",
+      "reference": "https://github.com/grimme-lab/xtb",
+      "groups": [
+        {
+          "goal": "Optimize a molecular geometry (XYZ) with the GFN2-xTB semiempirical method; save the optimized structure and native log. Semiempirical energies are approximate.",
+          "commands": [
+            "xtb.optimize"
+          ],
+          "evidence": "registered"
+        }
+      ]
+    },
+    {
+      "id": "seqkit",
+      "version": "2.3.1",
+      "catalog_count": 2,
+      "catalog_ids": [
+        "seqkit.filter",
+        "seqkit.stats"
+      ],
+      "ids_sha256": "5db2cd2d1a9ec643db2160079561f9caf495c342c6f6734e3ef73589fe62999f",
+      "catalog_sha256": "248f85ed6b2bc24fe395f7ff9c308292de479e0fdfa7055d38f19a7859249074",
+      "choose_for": "Summarize FASTA/FASTQ files: counts, lengths, N50, GC and quality fractions as TSV",
+      "sources": "Original sequences, filtered files and statistics",
+      "limits": "Statistics describe the files; they do not assess biological quality, contamination or sample identity.",
+      "reference": "https://github.com/shenwei356/seqkit",
+      "groups": [
+        {
+          "goal": "Summarize FASTA/FASTQ files: counts, lengths, N50, GC and quality fractions as TSV.",
+          "commands": [
+            "seqkit.stats"
+          ],
+          "evidence": "registered"
+        },
+        {
+          "goal": "Keep sequences within a length range, optionally reverse-complemented, into a new FASTA/FASTQ.",
+          "commands": [
+            "seqkit.filter"
+          ],
+          "evidence": "registered"
+        }
+      ]
+    },
+    {
+      "id": "samtools",
+      "version": "1.16.1",
+      "catalog_count": 2,
+      "catalog_ids": [
+        "samtools.flagstat",
+        "samtools.sort"
+      ],
+      "ids_sha256": "ecff71bd54ee3a18b39cc64b8d92405020c35acae3c63b54f50f20dccb8bb993",
+      "catalog_sha256": "4e1d5e66027b6ab3058cbd3081a8381b06677cc6e52ac51217f13b9eb2ceb806",
+      "choose_for": "Count mapped, paired and duplicate reads of a SAM/BAM/CRAM alignment as TSV",
+      "sources": "Original alignment, sorted BAM with index and flag statistics",
+      "limits": "Counts depend on the aligner and flags; they are not a variant call or a clinical result.",
+      "reference": "https://github.com/samtools/samtools",
+      "groups": [
+        {
+          "goal": "Count mapped, paired and duplicate reads of a SAM/BAM/CRAM alignment as TSV.",
+          "commands": [
+            "samtools.flagstat"
+          ],
+          "evidence": "registered"
+        },
+        {
+          "goal": "Sort an alignment by coordinate into BAM and build its index.",
+          "commands": [
+            "samtools.sort"
+          ],
+          "evidence": "registered"
+        }
+      ]
+    },
+    {
+      "id": "bcftools",
+      "version": "1.16",
+      "catalog_count": 1,
+      "catalog_ids": [
+        "bcftools.stats"
+      ],
+      "ids_sha256": "c2cf0385773df0578638f8b08c4b6298a237459d7527161750ff99416e119488",
+      "catalog_sha256": "0702ab2771f88728cccc2ff6f8dbbe9749e5312192a0b3a00d18c1599a5bb396",
+      "choose_for": "Summarize a VCF/BCF: records, SNPs, indels, transitions/transversions and quality distributions",
+      "sources": "Original VCF/BCF and native statistics",
+      "limits": "Variant statistics are descriptive; interpretation, filtering thresholds and clinical meaning need expert review.",
+      "reference": "https://github.com/samtools/bcftools",
+      "groups": [
+        {
+          "goal": "Summarize a VCF/BCF: records, SNPs, indels, transitions/transversions and quality distributions.",
+          "commands": [
+            "bcftools.stats"
+          ],
+          "evidence": "registered"
+        }
+      ]
+    },
+    {
+      "id": "minimap2",
+      "version": "2.24",
+      "catalog_count": 1,
+      "catalog_ids": [
+        "minimap2.align"
+      ],
+      "ids_sha256": "8349ed52fcb13ebd4b1401c9289825396b581706f2fafe293d4f62ab94bddf1c",
+      "catalog_sha256": "f600f0e650fd2e173480e95ed0f83fd1b8cae259469dc7fa79cf8e6aa223765b",
+      "choose_for": "Align reads or assemblies to a reference FASTA into SAM with an explicit preset; alignment is evidence for interpretation, not a variant call",
+      "sources": "Reads, reference and SAM alignment",
+      "limits": "Mapping positions depend on preset and reference; alignment is evidence for interpretation, not a variant call.",
+      "reference": "https://github.com/lh3/minimap2",
+      "groups": [
+        {
+          "goal": "Align reads or assemblies to a reference FASTA into SAM with an explicit preset; alignment is evidence for interpretation, not a variant call.",
+          "commands": [
+            "minimap2.align"
+          ],
+          "evidence": "registered"
+        }
+      ]
+    },
+    {
+      "id": "mafft",
+      "version": "7.505",
+      "catalog_count": 1,
+      "catalog_ids": [
+        "mafft.align"
+      ],
+      "ids_sha256": "a12c4a54628f8aa148905d424ec70b703b2f359e86e0dee76bff1eef7a578239",
+      "catalog_sha256": "27b1645beb6463da53a7c0a56d6d5e5012563d3bbcb6c09d2dc14c104458188d",
+      "choose_for": "Build a multiple sequence alignment from FASTA with MAFFT --auto; save the aligned FASTA",
+      "sources": "Input sequences and aligned FASTA",
+      "limits": "Automatic strategy selection may not suit every family; inspect gaps and conserved regions before phylogenetic use.",
+      "reference": "https://mafft.cbrc.jp/alignment/software/",
+      "groups": [
+        {
+          "goal": "Build a multiple sequence alignment from FASTA with MAFFT --auto; save the aligned FASTA.",
+          "commands": [
+            "mafft.align"
+          ],
+          "evidence": "registered"
+        }
+      ]
+    },
+    {
+      "id": "z3",
+      "version": "4.8.12",
+      "catalog_count": 1,
+      "catalog_ids": [
+        "z3.solve"
+      ],
+      "ids_sha256": "ba9ec01f836095fdee3808aef2363f3b75361548b39a9c9693215c413ceb3ba5",
+      "catalog_sha256": "0e86f900625978b9d5d4a0328b112afa2e81596e77c24e856a22d2b473786608",
+      "choose_for": "Check an SMT-LIB 2 problem with the Z3 solver; report sat, unsat or unknown with the model or core it prints",
+      "sources": "SMT-LIB problem, solver answer and model",
+      "limits": "unknown or a timeout is not a proof; a model satisfies the encoded constraints only, not unstated requirements.",
+      "reference": "https://github.com/Z3Prover/z3",
+      "groups": [
+        {
+          "goal": "Check an SMT-LIB 2 problem with the Z3 solver; report sat, unsat or unknown with the model or core it prints. unknown is not a proof.",
+          "commands": [
+            "z3.solve"
+          ],
+          "evidence": "registered"
+        }
+      ]
+    },
+    {
+      "id": "minizinc",
+      "version": "2.6.4",
+      "catalog_count": 1,
+      "catalog_ids": [
+        "minizinc.solve"
+      ],
+      "ids_sha256": "bde422a267852c0c99f37ea00a10fc07fec7d32ced7efbc46b8fbb5d98e82c8f",
+      "catalog_sha256": "892384029fe8a9f33849ac5449a7d6c0a5a78da4ff466dbadc5fd84474498e5e",
+      "choose_for": "Solve a MiniZinc constraint model (optionally with a .dzn data file) using Gecode within a time limit; save every printed solution and the optimality status",
+      "sources": "Model, data file and printed solutions with status",
+      "limits": "A time limit may stop before optimality; only ========== marks a proven optimum for the encoded model.",
+      "reference": "https://github.com/MiniZinc/libminizinc",
+      "groups": [
+        {
+          "goal": "Solve a MiniZinc constraint model (optionally with a .dzn data file) using Gecode within a time limit; save every printed solution and the optimality status.",
+          "commands": [
+            "minizinc.solve"
+          ],
+          "evidence": "registered"
+        }
+      ]
+    },
+    {
+      "id": "maxima",
+      "version": "5.46.0",
+      "catalog_count": 1,
+      "catalog_ids": [
+        "maxima.evaluate"
+      ],
+      "ids_sha256": "0fd16df589e7e753f0df855bc726f08145e0010c5430a646f20a6b9908857299",
+      "catalog_sha256": "a0ff7e117a57523919d3aa89970d9a13a3cc14ae3e81a102fbea65fcb9c5eaa3",
+      "choose_for": "Run a Maxima batch file (symbolic algebra, calculus, equations) and save the transcript",
+      "sources": "Batch file and transcript",
+      "limits": "Symbolic results depend on assumptions (domains, signs); check special cases and conditions stated in the transcript.",
+      "reference": "https://maxima.sourceforge.io",
+      "groups": [
+        {
+          "goal": "Run a Maxima batch file (symbolic algebra, calculus, equations) and save the transcript. Check results against the problem statement.",
+          "commands": [
+            "maxima.evaluate"
+          ],
+          "evidence": "registered"
+        }
+      ]
+    },
+    {
+      "id": "pari",
+      "version": "2.15.2",
+      "catalog_count": 1,
+      "catalog_ids": [
+        "pari.evaluate"
+      ],
+      "ids_sha256": "3e64a9858156d7036030d9a4634d64c71425e93b890f934ff489bf58b7b5e422",
+      "catalog_sha256": "3986725d9bb41a6321ea4004e44d2c19dfcbdc8d8e1dba1d42d730bda9f33447",
+      "choose_for": "Run a PARI/GP script (number theory, exact arithmetic, polynomials) and save its output",
+      "sources": "GP script and output",
+      "limits": "Some functions are probabilistic (e.g. ispseudoprime); state which results are proven.",
+      "reference": "https://pari.math.u-bordeaux.fr",
+      "groups": [
+        {
+          "goal": "Run a PARI/GP script (number theory, exact arithmetic, polynomials) and save its output.",
+          "commands": [
+            "pari.evaluate"
+          ],
+          "evidence": "registered"
+        }
+      ]
+    },
+    {
+      "id": "cdo",
+      "version": "2.1.1",
+      "catalog_count": 2,
+      "catalog_ids": [
+        "cdo.info",
+        "cdo.statistic"
+      ],
+      "ids_sha256": "8a70940c93086ed0a70a4f5a7b48c00fe95fd57304ec3dd5c9fa9e98f33f00ec",
+      "catalog_sha256": "37d338f8494b40942d307553648300288c48a217ac6384b5c518f26e4ecd53b8",
+      "choose_for": "Describe a NetCDF/GRIB dataset: variables, grid, levels and time steps",
+      "sources": "Original dataset, derived NetCDF and dataset description",
+      "limits": "Statistics follow the grid and calendar of the data; check units, missing values and grid cell areas before conclusions.",
+      "reference": "https://code.mpimet.mpg.de/projects/cdo",
+      "groups": [
+        {
+          "goal": "Describe a NetCDF/GRIB dataset: variables, grid, levels and time steps.",
+          "commands": [
+            "cdo.info"
+          ],
+          "evidence": "registered"
+        },
+        {
+          "goal": "Compute a time or field statistic of a NetCDF/GRIB dataset into a new NetCDF file.",
+          "commands": [
+            "cdo.statistic"
+          ],
+          "evidence": "registered"
+        }
+      ]
+    },
+    {
+      "id": "nco",
+      "version": "5.1.4",
+      "catalog_count": 2,
+      "catalog_ids": [
+        "nco.inspect",
+        "nco.subset"
+      ],
+      "ids_sha256": "9f2a93fcd4c7bfc066803ca12a916bd0a984064e142b3e782908125174b98f94",
+      "catalog_sha256": "5ff29b5c3c65fa5b5d09771142598948e6370459fe4527809a1b1d11bab7c2fd",
+      "choose_for": "Print the metadata of a NetCDF file: dimensions, variables, attributes and units",
+      "sources": "Original NetCDF, metadata listing and subset file",
+      "limits": "Metadata reflects what the producer wrote; units and conventions still need checking against CF rules.",
+      "reference": "https://github.com/nco/nco",
+      "groups": [
+        {
+          "goal": "Print the metadata of a NetCDF file: dimensions, variables, attributes and units.",
+          "commands": [
+            "nco.inspect"
+          ],
+          "evidence": "registered"
+        },
+        {
+          "goal": "Extract selected variables of a NetCDF file into a new file.",
+          "commands": [
+            "nco.subset"
+          ],
+          "evidence": "registered"
+        }
+      ]
+    },
+    {
+      "id": "exiftool",
+      "version": "12.57",
+      "catalog_count": 1,
+      "catalog_ids": [
+        "exiftool.read"
+      ],
+      "ids_sha256": "55543f71cb530c3d1c1727d446bec7d47d8b12d2ce19e48a40f690a26b303990",
+      "catalog_sha256": "ee8d741cd03f704418c8db405e2cacda3e648957c3c8b937cc8d28bd497fabf1",
+      "choose_for": "Read embedded metadata (EXIF, IPTC, XMP, GPS, document properties) of a file into grouped JSON, without changing it",
+      "sources": "Original file untouched and grouped metadata JSON",
+      "limits": "Listing metadata does not remove it; personal data may also be visible in the content itself.",
+      "reference": "https://exiftool.org",
+      "groups": [
+        {
+          "goal": "Read embedded metadata (EXIF, IPTC, XMP, GPS, document properties) of a file into grouped JSON, without changing it.",
+          "commands": [
+            "exiftool.read"
+          ],
+          "evidence": "registered"
+        }
+      ]
+    },
+    {
+      "id": "mat2",
+      "version": "0.13.3",
+      "catalog_count": 2,
+      "catalog_ids": [
+        "mat2.clean",
+        "mat2.inspect"
+      ],
+      "ids_sha256": "e994897b1ac514ade98f33e7542bcbc14a1f2e58119562290126185ac3978e1b",
+      "catalog_sha256": "8917b11467c8bab6489a96ffe01001c4d85c4f7b536adc7a1ab086fb9e7c53b8",
+      "choose_for": "List the metadata mat2 would remove from a document, image or media file",
+      "sources": "Original file preserved, cleaned copy and removed metadata list",
+      "limits": "Removes embedded metadata only; faces, text, watermarks or hidden layers in the visible content are not anonymized.",
+      "reference": "https://0xacab.org/jvoisin/mat2",
+      "groups": [
+        {
+          "goal": "List the metadata mat2 would remove from a document, image or media file.",
+          "commands": [
+            "mat2.inspect"
+          ],
+          "evidence": "registered"
+        },
+        {
+          "goal": "Write a cleaned copy without metadata; the original is preserved. Visible content (faces, text, watermarks) is not anonymized.",
+          "commands": [
+            "mat2.clean"
+          ],
+          "evidence": "registered"
+        }
+      ]
+    },
+    {
+      "id": "fonttools",
+      "version": "4.38.0",
+      "catalog_count": 2,
+      "catalog_ids": [
+        "fonttools.inspect",
+        "fonttools.subset"
+      ],
+      "ids_sha256": "e2206999b8eac5ff221b067140b9bbbbd3cda23063f637919b05d5da79cb0c4e",
+      "catalog_sha256": "b95a894453722b7e3f75602b3dcaed393f3a0c899ec69ccbcd67fb62de489691",
+      "choose_for": "List the OpenType tables of a font file with their checksums and sizes",
+      "sources": "Original font, subset font and table listing",
+      "limits": "Subsetting must be allowed by the font licence; check rendering of every required language after subsetting.",
+      "reference": "https://github.com/fonttools/fonttools",
+      "groups": [
+        {
+          "goal": "List the OpenType tables of a font file with their checksums and sizes.",
+          "commands": [
+            "fonttools.inspect"
+          ],
+          "evidence": "registered"
+        },
+        {
+          "goal": "Subset a font to the characters of a given text and save TTF, WOFF or WOFF2; licences must allow subsetting.",
+          "commands": [
+            "fonttools.subset"
+          ],
+          "evidence": "registered"
+        }
+      ]
+    },
+    {
+      "id": "fontforge",
+      "version": "20230101",
+      "catalog_count": 1,
+      "catalog_ids": [
+        "fontforge.convert"
+      ],
+      "ids_sha256": "9bd5d7b1202e6f721394ed5d097e159d78924c273af85e9bc04886519655b1a4",
+      "catalog_sha256": "f249629b93498d28ab0b7bfaa78af5101751f18205cacee7d1b75f8335266b57",
+      "choose_for": "Open a font (TTF, OTF, SFD, UFO, WOFF) and generate it in another format, reporting the glyph count",
+      "sources": "Original font, generated font and glyph count",
+      "limits": "Format conversion keeps outlines but may drop hinting or features; font licences still apply.",
+      "reference": "https://github.com/fontforge/fontforge",
+      "groups": [
+        {
+          "goal": "Open a font (TTF, OTF, SFD, UFO, WOFF) and generate it in another format, reporting the glyph count. Font licences still apply.",
+          "commands": [
+            "fontforge.convert"
+          ],
+          "evidence": "registered"
+        }
+      ]
+    },
+    {
+      "id": "zint",
+      "version": "2.11.1",
+      "catalog_count": 1,
+      "catalog_ids": [
+        "zint.encode"
+      ],
+      "ids_sha256": "1a0c1055e77a5b341565cc598628d10e131442fad6cf82e5e063556d5839df4c",
+      "catalog_sha256": "3c15c8e939dac065cadb8088dc71df01bf9e28589468101684a4543c0dd05085",
+      "choose_for": "Encode data as a barcode or 2D code (QR, Data Matrix, PDF417, Code 128, EAN-13, GS1-128) in SVG or PNG; check scannability on the final medium",
+      "sources": "Encoded data file and SVG/PNG code",
+      "limits": "Generation is not a scan test; check size, quiet zone and contrast on the final printed medium.",
+      "reference": "https://github.com/zint/zint",
+      "groups": [
+        {
+          "goal": "Encode data as a barcode or 2D code (QR, Data Matrix, PDF417, Code 128, EAN-13, GS1-128) in SVG or PNG; check scannability on the final medium.",
+          "commands": [
+            "zint.encode"
+          ],
+          "evidence": "registered"
+        }
+      ]
+    },
+    {
+      "id": "shellcheck",
+      "version": "0.9.0",
+      "catalog_count": 1,
+      "catalog_ids": [
+        "shellcheck.lint"
+      ],
+      "ids_sha256": "cc368dce35224cce12969f1a0d53e22cc2782209847d9c657b765a469fca72af",
+      "catalog_sha256": "8c4c960f18892855bda06abaf2c03af875302f7a7db0e04b19e9ddd53b2ab176",
+      "choose_for": "Analyze a shell script for bugs and portability issues; save JSON findings",
+      "sources": "Script and JSON findings",
+      "limits": "No finding does not prove correctness; behaviour still needs tests on the target shell and system.",
+      "reference": "https://github.com/koalaman/shellcheck",
+      "groups": [
+        {
+          "goal": "Analyze a shell script for bugs and portability issues; save JSON findings. No finding does not prove the script is correct.",
+          "commands": [
+            "shellcheck.lint"
+          ],
+          "evidence": "registered"
+        }
+      ]
+    },
+    {
+      "id": "hadolint",
+      "version": "v2.14.0",
+      "catalog_count": 1,
+      "catalog_ids": [
+        "hadolint.lint"
+      ],
+      "ids_sha256": "574bed38fcd403459e8c426c904f5686bcb15226e164a82bbe57ea476f5f2763",
+      "catalog_sha256": "494b139c24d2f187dd0d7bb8538fe582eccdae492c34cfac75bce824f80d3aee",
+      "choose_for": "Lint a Dockerfile against best practices (including ShellCheck on RUN steps); save JSON findings",
+      "sources": "Dockerfile and JSON findings",
+      "limits": "Best-practice findings do not prove the image builds or is secure; build and scan it separately.",
+      "reference": "https://github.com/hadolint/hadolint",
+      "groups": [
+        {
+          "goal": "Lint a Dockerfile against best practices (including ShellCheck on RUN steps); save JSON findings.",
+          "commands": [
+            "hadolint.lint"
+          ],
+          "evidence": "registered"
+        }
+      ]
+    },
+    {
+      "id": "actionlint",
+      "version": "v1.7.11",
+      "catalog_count": 1,
+      "catalog_ids": [
+        "actionlint.lint"
+      ],
+      "ids_sha256": "e0a5da3ee5a954d06ce022e476fac36c649c596dbf8167e7179af74a2553c4cf",
+      "catalog_sha256": "ec0e1c0dd6ea226ec09c60e2f25378c363356744cdc87316c3fd8af90265070e",
+      "choose_for": "Check a GitHub Actions workflow: syntax, expressions, job dependencies and embedded scripts; save JSON findings",
+      "sources": "Workflow file and JSON findings",
+      "limits": "Static checks cannot prove secrets, permissions or runners behave as intended at run time.",
+      "reference": "https://github.com/rhysd/actionlint",
+      "groups": [
+        {
+          "goal": "Check a GitHub Actions workflow: syntax, expressions, job dependencies and embedded scripts; save JSON findings.",
+          "commands": [
+            "actionlint.lint"
+          ],
+          "evidence": "registered"
+        }
+      ]
+    },
+    {
+      "id": "tflint",
+      "version": "v0.64.0",
+      "catalog_count": 1,
+      "catalog_ids": [
+        "tflint.lint"
+      ],
+      "ids_sha256": "b7c8c07b3b42508a4b001ae12690bef06248791132bfc84e1b161c7668b6b6ed",
+      "catalog_sha256": "eca81d705354b9339257b6bcf03d7ac138eceedaa5a7d166f51c039320af8631",
+      "choose_for": "Lint a Terraform module directory with the bundled core rules (no provider plugins downloaded); save JSON findings",
+      "sources": "Module folder and JSON findings",
+      "limits": "Only bundled core rules run offline; provider-specific rules and real plans need the provider plugins and credentials.",
+      "reference": "https://github.com/terraform-linters/tflint",
+      "groups": [
+        {
+          "goal": "Lint a Terraform module directory with the bundled core rules (no provider plugins downloaded); save JSON findings.",
+          "commands": [
+            "tflint.lint"
+          ],
+          "evidence": "registered"
+        }
+      ]
+    },
+    {
+      "id": "spectral",
+      "version": "6.17.0",
+      "catalog_count": 1,
+      "catalog_ids": [
+        "spectral.lint"
+      ],
+      "ids_sha256": "fafc6e7c571962a9778310ee30745567c5c8804cad80cf1f1ba481506b809515",
+      "catalog_sha256": "606e2cccdc9e2117dc87eac482864a5b8b6f178bd84e45b4fbd58c6f584dc4fe",
+      "choose_for": "Lint an OpenAPI or AsyncAPI document with the standard Spectral rulesets or a supplied ruleset; save JSON findings",
+      "sources": "API document, ruleset and JSON findings",
+      "limits": "A clean lint is not a working API; test the implementation against the contract separately.",
+      "reference": "https://github.com/stoplightio/spectral",
+      "groups": [
+        {
+          "goal": "Lint an OpenAPI or AsyncAPI document with the standard Spectral rulesets or a supplied ruleset; save JSON findings.",
+          "commands": [
+            "spectral.lint"
+          ],
+          "evidence": "registered"
+        }
+      ]
+    },
+    {
+      "id": "jq",
+      "version": "1.6",
+      "catalog_count": 1,
+      "catalog_ids": [
+        "jq.transform"
+      ],
+      "ids_sha256": "93ee049f7bde23c2f48c1464e161a3e39e4d18140b8f4f00aaf5366be1fb5042",
+      "catalog_sha256": "9a5984e8ba09f722c04fb12b1bdbade39c23bdbde7fd2cc563a1883a00131f40",
+      "choose_for": "Apply a jq filter to JSON and save the result; the filter is kept with the output",
+      "sources": "Input JSON, filter and result",
+      "limits": "A filter that runs is not a validated transformation; compare counts and key values with the source.",
+      "reference": "https://github.com/jqlang/jq",
+      "groups": [
+        {
+          "goal": "Apply a jq filter to JSON and save the result; the filter is kept with the output.",
+          "commands": [
+            "jq.transform"
+          ],
+          "evidence": "registered"
+        }
+      ]
+    },
+    {
+      "id": "yq",
+      "version": "3.1.0",
+      "catalog_count": 1,
+      "catalog_ids": [
+        "yq.transform"
+      ],
+      "ids_sha256": "8c25bb399626a245c5bd84b39af135c5967737c4e91fcd13920114b9226f5bec",
+      "catalog_sha256": "31f5ecabc1a96231a3a7cd38ee4ff1660ef520ef8be7994d83b14023bd1fde6e",
+      "choose_for": "Apply a jq filter to YAML (or XML/TOML read as YAML) and save YAML output",
+      "sources": "Input YAML, filter and YAML result",
+      "limits": "Comments and anchors are not preserved by the jq round trip; keep the original as the editable source.",
+      "reference": "https://github.com/kislyuk/yq",
+      "groups": [
+        {
+          "goal": "Apply a jq filter to YAML (or XML/TOML read as YAML) and save YAML output.",
+          "commands": [
+            "yq.transform"
+          ],
+          "evidence": "registered"
+        }
+      ]
+    },
+    {
+      "id": "miller",
+      "version": "6.6.0",
+      "catalog_count": 1,
+      "catalog_ids": [
+        "miller.transform"
+      ],
+      "ids_sha256": "7c9e1f25c294aaf4d04a572e61b275653b2e65f72de173d75699e2e50bfa3fdc",
+      "catalog_sha256": "48b08a88ea455460e9b9189dbdad0ef92a06befbce5886462d525f3b53ee2bc9",
+      "choose_for": "Convert or transform CSV, TSV or JSON with Miller; an optional DSL script file is kept with the output",
+      "sources": "Input data, DSL script and converted result",
+      "limits": "Type inference may change number formats; check separators, encodings and totals against the source.",
+      "reference": "https://github.com/johnkerl/miller",
+      "groups": [
+        {
+          "goal": "Convert or transform CSV, TSV or JSON with Miller; an optional DSL script file is kept with the output.",
+          "commands": [
+            "miller.transform"
+          ],
+          "evidence": "registered"
+        }
+      ]
+    },
+    {
+      "id": "ajv",
+      "version": "5.0.0",
+      "catalog_count": 1,
+      "catalog_ids": [
+        "ajv.validate"
+      ],
+      "ids_sha256": "7bb00dfc543da9ecf8112af07d50a7a9c726225a54ab128efc219e40d46f70a5",
+      "catalog_sha256": "e5cfc4771ed1948515656be81a1488ff2335d9cc7593efe0ca4066116c00d83b",
+      "choose_for": "Validate JSON data against a JSON Schema (draft 2020-12, 2019-09 or 07) and save all errors",
+      "sources": "Data, schema and validation errors",
+      "limits": "Schema validity covers structure and declared formats only, not business rules outside the schema.",
+      "reference": "https://github.com/ajv-validator/ajv-cli",
+      "groups": [
+        {
+          "goal": "Validate JSON data against a JSON Schema (draft 2020-12, 2019-09 or 07) and save all errors.",
+          "commands": [
+            "ajv.validate"
+          ],
+          "evidence": "registered"
+        }
+      ]
+    },
+    {
+      "id": "mjml",
+      "version": "5.4.1",
+      "catalog_count": 1,
+      "catalog_ids": [
+        "mjml.compile"
+      ],
+      "ids_sha256": "8752107f6d267b37a3e8fb85bd9d91e17824e1de77914318a04049d90a2e6742",
+      "catalog_sha256": "6d8b98557446e81a744b95c440c7f7ed9ab607f43f6a624113cf6d76c1889017",
+      "choose_for": "Compile an MJML email template into responsive HTML with strict validation",
+      "sources": "MJML source and compiled HTML",
+      "limits": "Compiled HTML still renders differently across email clients; test in the target clients before sending.",
+      "reference": "https://github.com/mjmlio/mjml",
+      "groups": [
+        {
+          "goal": "Compile an MJML email template into responsive HTML with strict validation. Rendering still differs by email client.",
+          "commands": [
+            "mjml.compile"
+          ],
+          "evidence": "registered"
+        }
+      ]
+    },
+    {
+      "id": "abcm2ps",
+      "version": "8.14.14",
+      "catalog_count": 1,
+      "catalog_ids": [
+        "abcm2ps.engrave"
+      ],
+      "ids_sha256": "55b14bdde8f13f54ed883e9ba234c0b6d05bc43bb751846d5c0a5ec5fc5714eb",
+      "catalog_sha256": "4ddf22f60e4e32eae30873b27de5d2f3a0936e7c5ba35de48f7024aa30a8ef34",
+      "choose_for": "Engrave ABC music notation into SVG pages, one per tune",
+      "sources": "ABC source and SVG score pages",
+      "limits": "Engraving shows notation only; listen to the MIDI and review layout before publication.",
+      "reference": "https://github.com/lewdlime/abcm2ps",
+      "groups": [
+        {
+          "goal": "Engrave ABC music notation into SVG pages, one per tune.",
+          "commands": [
+            "abcm2ps.engrave"
+          ],
+          "evidence": "registered"
+        }
+      ]
+    },
+    {
+      "id": "abcmidi",
+      "version": "20230208",
+      "catalog_count": 1,
+      "catalog_ids": [
+        "abcmidi.midi"
+      ],
+      "ids_sha256": "8f2de6242c96497cca901ed9ae72c1141633171ccac24c2aee4e19b4fc153b62",
+      "catalog_sha256": "8ee9ee155f8c4ac6ec83f701ccd8abd0dc58cc2739993a475831864341e1f260",
+      "choose_for": "Convert ABC music notation into a MIDI file for listening checks",
+      "sources": "ABC source and MIDI file",
+      "limits": "MIDI playback uses default instruments and tempo; it is a listening check, not a final mix.",
+      "reference": "https://github.com/sshlien/abcmidi",
+      "groups": [
+        {
+          "goal": "Convert ABC music notation into a MIDI file for listening checks.",
+          "commands": [
+            "abcmidi.midi"
+          ],
+          "evidence": "registered"
+        }
+      ]
+    },
+    {
+      "id": "hunspell",
+      "version": "1.7.1",
+      "catalog_count": 1,
+      "catalog_ids": [
+        "hunspell.check"
+      ],
+      "ids_sha256": "14e5f40f3e988f8e6d15cb069494f8e72db78008f978462a6265add9d6f53b13",
+      "catalog_sha256": "b23b6d6013b7827a0348438b87e191d271202e7d1fcbadb109a10e1166fb23a1",
+      "choose_for": "List words not found in the Italian or English Hunspell dictionary; names and technical terms need human review",
+      "sources": "Text and list of unknown words",
+      "limits": "Unknown words include names and technical terms; grammar, style and meaning are not checked.",
+      "reference": "https://github.com/hunspell/hunspell",
+      "groups": [
+        {
+          "goal": "List words not found in the Italian or English Hunspell dictionary; names and technical terms need human review.",
+          "commands": [
+            "hunspell.check"
+          ],
+          "evidence": "registered"
+        }
+      ]
+    },
+    {
+      "id": "vale",
+      "version": "v3.24.0",
+      "catalog_count": 1,
+      "catalog_ids": [
+        "vale.lint"
+      ],
+      "ids_sha256": "3cf1c9ebec1abf41a6dbefd704683d80dced6cb47b6a97bf8c73a1da2c03efa0",
+      "catalog_sha256": "e71c0d21b114f4e7f957cd5cf910e1fdd1d33c5714de39e605a7268816f24ece",
+      "choose_for": "Check prose against style rules (Vale built-in rules or a supplied .vale.ini with local styles); save JSON alerts",
+      "sources": "Text, .vale.ini with styles and JSON alerts",
+      "limits": "Rules check style mechanically; they do not judge content, tone or accuracy.",
+      "reference": "https://github.com/errata-ai/vale",
+      "groups": [
+        {
+          "goal": "Check prose against style rules (Vale built-in rules or a supplied .vale.ini with local styles); save JSON alerts.",
+          "commands": [
+            "vale.lint"
+          ],
+          "evidence": "registered"
+        }
+      ]
     }
   ]
 }

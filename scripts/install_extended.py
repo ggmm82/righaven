@@ -24,7 +24,10 @@ def install(app,archive,destination,root,bin_dir,arch,base):
     kind=app['install']['kind'];destination.mkdir(parents=True,exist_ok=True)
     repository(app,root,base.download)
     if kind=='extended-native':
-        if archive.name.endswith('.zip'):base.safe_unzip(archive,destination)
+        if app['install'].get('raw_binary'):
+            # Some upstreams publish the executable itself; its sha256 was already verified on download.
+            shutil.copy2(archive,destination/app['install']['native_binary'])
+        elif archive.name.endswith('.zip'):base.safe_unzip(archive,destination)
         else:base.safe_extract(archive,destination)
         name=app['install']['native_binary']
         matches=[p for p in destination.rglob(name) if p.is_file() and p.resolve().is_relative_to(destination.resolve())]
