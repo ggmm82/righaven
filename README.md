@@ -2,7 +2,17 @@
 
 RigHaven is a home and an on-demand toolbox for AI agents. Describe an objective;
 the coordinator composes project-specific roles, selects useful skills and CLI
-tools, and follows the work through execution, review and delivery.
+tools, and follows the work through execution, review and delivery. You decide at
+every step: tool alternatives are proposed with their trade-offs, each phase is
+discussed with you, and the runtime, not the model's goodwill, enforces the
+organization's policies before anything is delivered.
+
+[![RigHaven teaser: 15-second video](docs/media/righaven-teaser-poster.png)](docs/media/righaven-teaser.mp4)
+
+*15-second teaser ([MP4](docs/media/righaven-teaser.mp4)), produced by RigHaven
+itself: an EffectCraft motion-graphics role and a SoundCraft sound role working
+from the brief “a teaser explaining RigHaven's architecture”. It is promotional
+material; the guarantees RigHaven actually enforces are described below.*
 
 A project can use **several environments, including in parallel**. Each assignment
 gets an isolated working area; other roles consume deliberately published
@@ -25,21 +35,60 @@ the objective. See [optional environments](docs/OPTIONAL-ENVIRONMENTS.md).
    OpenAI-compatible endpoints are supported. Choose models for the coordinator,
    the executing team or both. Ordinary users use the configured shared service.
 3. Select **New task**. Describe the result, audience, delivery format, references
-   and constraints. Answer the coordinator's material clarification questions.
-   You do not have to create a team or preload an environment first: authorized
-   capabilities can be prepared on demand.
+   and constraints. Answer the coordinator's material clarification questions and
+   choose among the tool alternatives it proposes. You do not have to create a
+   team or preload an environment first: authorized capabilities can be prepared
+   on demand.
 4. Follow **Tasks & results** for decisions, assignments, progress, revisions and
-   files. Independent assignments can run in different environments within the
-   configured CPU/RAM and concurrency limits; dependent work waits for its inputs.
+   files. After every phase the coordinator presents results, open issues and next
+   steps and waits for your reply. Independent assignments can run in different
+   environments within the configured CPU/RAM and concurrency limits; dependent
+   work waits for its inputs.
 5. Open the delivered files and editable sources, review the instructions and
    remaining checks, then accept the result or request a focused revision.
    A technically valid file is not automatically an approved final product.
 
-Every new project is governed by the organization **Policy Book**. After the
-brief, the coordinator records an Execution Plan and a Policy Plan; assignments
-receive the applicable policy rules, and delivery is refused until the finished
-product passes the final validation of every selected Policy Sheet, including the
-mandatory standard quality review. See [Policy Book](docs/POLICY-BOOK.md).
+## How a project runs
+
+```mermaid
+flowchart LR
+    Brief[Brief with the user] --> Choice{Tool alternatives?}
+    Choice -- pros, cons, recommendation --> User[User chooses]
+    Choice -- none --> Plans
+    User --> Plans[Execution Plan + Policy Plan]
+    Plans --> Phase[Assignment in its environment<br/>policy rules + declared checks]
+    Phase --> Pause[Phase discussed with the user]
+    Pause -- adjust the plan --> Plans
+    Pause -- next phase --> Phase
+    Pause -- product delivered --> Validate[Final validation<br/>one review per policy sheet]
+    Validate -- violations --> Phase
+    Validate -- every sheet passed --> Delivery[Delivery]
+```
+
+Every new project is governed by the organization **Policy Book**, and the
+runtime enforces each step:
+
+- **Brief.** Production waits until the intended result and delivery form are
+  settled. When several catalog tools could produce it, the coordinator presents
+  two to four alternatives with pros, cons and a motivated recommendation; only
+  your reply records the choice, and roles cannot use the rejected programs.
+- **Execution Plan and Policy Plan.** The coordinator pins the applicable policy
+  sheets (mandatory ones are always added) beside the activities; production is
+  refused until both exist.
+- **Policy-aware assignments.** Each assignment receives the rules of its sheets
+  and must declare the required checks in its handoff; a missing or failed
+  blocking check sends the activity back to revision.
+- **A pause after every phase.** When an assignment delivers a result, further
+  production waits for your reply. The owner can turn pauses off per project.
+- **Final validation.** `harness_validate` checks delivery integrity, then runs an
+  independent review per sheet, in parallel when sheets are independent, and
+  aggregates every violation. Delivery is refused until all sheets pass.
+
+Each conversation shows a **Policy** line with the phase, the sheets applied, the
+verdict of each on the current product with its evidence, and the phase awaiting
+your reply. Administrators define sheets under **Configuration → Policy Book**
+through a guided setup that explains every option. See
+[Policy Book](docs/POLICY-BOOK.md).
 
 The coordinator records a capability rationale for each new role: why its tools
 can create the requested content or editable model, not just export the final
@@ -68,21 +117,20 @@ environments. Restarts and compatible releases reuse preserved software; cache
 identity depends on the software platform and relevant installation inputs,
 independently of skill text, worker code and unrelated catalog updates.
 
+**Keep ready** profiles are the base of assignment environments. For each role
+the runtime selects the prepared profile containing most of the role's skills,
+then covering most of its programs, adopts that profile's versions and reuses its
+image as is or extends it with only the missing programs. Each assignment card
+states the profile used and why; the Environments page explains the criterion and
+shows how many assignments each profile served. Prepared profiles stay allocated.
+
+**Configuration → Machine usage** shows who used which machine, how and how much:
+assignments, work and CPU hours and peak memory per machine, per user and per
+role, with the latest assignments linked to their conversation. Administrators
+see every user; everyone else sees their own.
+
 The terminal is a disposable inspection session: shell edits do not automatically
 update the prepared image or its reproducible recipe.
-
-An illustrative project:
-
-```mermaid
-flowchart LR
-    Goal[User objective] --> Coordinator
-    Coordinator --> A[Dynamic role A · environment A]
-    Coordinator --> B[Dynamic role B · environment B]
-    A --> Inputs[Published contributions]
-    B --> Inputs
-    Inputs --> C[Next role · suitable environment]
-    C --> Delivery[Outputs · editable sources · review]
-```
 
 ## Run the Community edition
 
@@ -224,6 +272,23 @@ Codex/Antigravity login flow.
 English is the default; Italian is available. Some operational and advanced
 surfaces still need localization. See [workspace guide](docs/WORKSPACE.md),
 [product status](docs/PRODUCT-STATUS.md) and [core boundary](docs/CORE-BOUNDARY.md).
+
+## Architecture and documentation
+
+| Document | Content |
+|---|---|
+| [C4 model](docs/c4/righaven.dsl) | Structurizr DSL: system context, containers and Gateway components |
+| [Container sketches](docs/c4/righaven_containers.d2) | D2 versions of the context and container views |
+| [Harness lifecycle (BPMN)](docs/bpmn/righaven_harness_lifecycle.svg) | Brief, planning, FIFO dispatch, assignments with decision pauses, handoff and policy validation ([BPMN 2.0 source](docs/bpmn/righaven_harness_lifecycle.bpmn)) |
+| [Policy Book](docs/POLICY-BOOK.md) | Policy sheets, lifecycle, enforced phases, user checkpoints and API |
+| [Environments](docs/OPTIONAL-ENVIRONMENTS.md) | Catalog, preparation, profile reuse and machine usage |
+| [Technical report](docs/technical-report.typ) | Typst source of the architecture report |
+
+The C4 model and the BPMN process were produced by a RigHaven project about its
+own repository, then checked against the code (the BPMN diagram keeps the Italian
+labels of that run). Running workers have bridge networking, all capabilities
+dropped and resource limits; they read the project read-only and write only to
+their own staging folder.
 
 ## Development and verification
 
