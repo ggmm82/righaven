@@ -6,7 +6,9 @@ from righaven_core.runtime.user_context import resolve_runtime_user_id
 from .docker_runtime import delegate
 from .projects import archive_plan, create_plan, execute_step, read_project, revise_step, set_policy_plan, sync_acceptance, sync_project_context
 from .project_brief import briefing_issue
+import functools
 import json
+import threading
 
 
 def workspace_for(runtime):
@@ -17,6 +19,51 @@ def workspace_for(runtime):
     paths = get_paths()
     paths.ensure_thread_dirs(thread, user_id=user)
     return paths.sandbox_user_data_dir(thread, user_id=user)
+
+
+# A model may call harness_plan and harness_delegate in one response; the tools then
+# run concurrently and the assignment could start before the plan it needs exists.
+_PLAN_CALLS = {}
+_PLAN_CALLS_LOCK = threading.Lock()
+PLAN_WAIT_SECONDS = 120
+
+
+def _plan_event(call_id):
+    with _PLAN_CALLS_LOCK:
+        if len(_PLAN_CALLS) > 2000:
+            for key in [k for k, e in _PLAN_CALLS.items() if e.is_set()][:1000]:
+                _PLAN_CALLS.pop(key, None)
+        return _PLAN_CALLS.setdefault(call_id, threading.Event())
+
+
+def signals_plan(function):
+    """Mark this harness_plan call as finished, whatever its outcome."""
+    @functools.wraps(function)
+    def wrapper(*args, **kwargs):
+        try:
+            return function(*args, **kwargs)
+        finally:
+            call_id = getattr(kwargs.get('runtime'), 'tool_call_id', None)
+            if call_id:
+                _plan_event(call_id).set()
+    return wrapper
+
+
+def sibling_plan_calls(runtime):
+    """IDs of harness_plan calls issued in the same model response as this tool call."""
+    call_id = getattr(runtime, 'tool_call_id', None)
+    messages = (getattr(runtime, 'state', None) or {}).get('messages', []) if call_id else []
+    for message in reversed(messages):
+        calls = getattr(message, 'tool_calls', None) or (message.get('tool_calls') if isinstance(message, dict) else None) or []
+        if any(c.get('id') == call_id for c in calls):
+            return [c['id'] for c in calls if c.get('name') == 'harness_plan' and c.get('id')]
+    return []
+
+
+def wait_for_sibling_plans(runtime):
+    """Start an assignment only after the plan updates of the same response are recorded."""
+    for call_id in sibling_plan_calls(runtime):
+        _plan_event(call_id).wait(PLAN_WAIT_SECONDS)
 
 
 def experience_root(runtime):
@@ -210,6 +257,7 @@ def harness_lessons(runtime: Runtime, source_ids_json: str = '', lesson_json: st
 
 
 @tool('harness_plan', parse_docstring=True)
+@signals_plan
 def harness_plan(runtime: Runtime, brief: str = '', steps_json: str = '',
                 project_type: str = '', omissions_json: str = '{}', revise_step_id: str = '',
                 archive: bool = False, summary: str = '', next_action: str = '', status: str = '',
@@ -333,6 +381,7 @@ def harness_delegate(agent: str, task: str, runtime: Runtime, step_id: str = '',
 
 def delegate_step(agent, task, runtime, *, step_id='', purpose='work', role_id='', policy_sheet=None):
     """One assignment; policy_sheet turns a review into that sheet's final validation."""
+    wait_for_sibling_plans(runtime)
     workspace = workspace_for(runtime)
     requests = user_requests(runtime)
     if not read_project(workspace):

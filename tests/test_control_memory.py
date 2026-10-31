@@ -68,6 +68,16 @@ class ControlMemoryTests(unittest.TestCase):
             self.assertLessEqual(len(text), LIMIT)
             full = json.loads(read_document(Path(temp), {'path': value['details_path'], 'sha256': value['details_sha256']}))
             self.assertEqual(full['project']['acceptance']['user_requests'], project['acceptance']['user_requests'])
+            # Over the limit, an ordinary plan update need not be re-read; a reported problem must be.
+            from unittest.mock import patch
+            from righaven import control_memory
+            with patch.object(control_memory, 'LIMIT', 900):
+                ordinary = json.loads(reply(Path(temp), {'project': project}, 'plan'))
+                project['attention'] = {'code': 'provider_quota', 'message': 'Quota esaurita'}
+                problem = json.loads(reply(Path(temp), {'project': project}, 'plan'))
+            self.assertIs(ordinary['details_required'], False)
+            self.assertIs(problem['details_required'], True)
+            self.assertIn('details_path', ordinary)
 
     def test_phase_projection_preserves_history_and_live_retired_role(self):
         steps = [{'id': 'old', 'role_id': 'retired', 'status': 'pending', 'goal': 'Old plan', 'attempts': []},

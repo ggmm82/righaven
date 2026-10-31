@@ -3,6 +3,7 @@ from __future__ import annotations
 import fnmatch
 import hashlib
 import os
+import re
 import tempfile
 from codecs import BOM_UTF16_BE, BOM_UTF16_LE, getincrementaldecoder
 from pathlib import Path
@@ -45,6 +46,18 @@ EXCLUDED_DIR_NAMES = {
     "dist",
     "node_modules",
 }
+
+# RigHaven assignment workers write their process records (commands, operations,
+# notes) to <output>/rh-job-<id>/work and page previews to .../previews. They are
+# shown in the assignment card, not workspace deliverables: listing them buried the
+# real products under hundreds of status.json files and could hit the scan limit.
+RIGHAVEN_JOB_DIR = re.compile(r"rh-job-[0-9a-f]{12}")
+RIGHAVEN_JOB_INTERNAL_DIRS = {"work", "previews"}
+
+
+def _is_internal_job_dir(dirpath: str, dirname: str) -> bool:
+    return dirname in RIGHAVEN_JOB_INTERNAL_DIRS and RIGHAVEN_JOB_DIR.fullmatch(Path(dirpath).name) is not None
+
 
 BINARY_EXTENSIONS = {
     ".7z",
@@ -137,7 +150,11 @@ def scan_workspace_roots(
             continue
 
         for dirpath, dirnames, filenames in os.walk(root.host_path, followlinks=False):
-            dirnames[:] = [dirname for dirname in dirnames if dirname not in excluded_dir_names and not (Path(dirpath) / dirname).is_symlink()]
+            dirnames[:] = [
+                dirname
+                for dirname in dirnames
+                if dirname not in excluded_dir_names and not _is_internal_job_dir(dirpath, dirname) and not (Path(dirpath) / dirname).is_symlink()
+            ]
             for filename in sorted(filenames):
                 if scanned >= resolved_limits.max_scanned_files:
                     truncated = True

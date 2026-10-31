@@ -57,6 +57,15 @@ class ExperienceTests(unittest.TestCase):
             'verification': ['Controllare che tutte le risorse siano risolte senza percorsi esterni'],
             'limits': 'Una verifica strutturale non prova la qualità estetica', 'tools': ['vectorcraft']})
 
+    def test_a_technical_lesson_names_the_tool_without_a_version(self):
+        experience.collect(self.workspace, self.library, 'thread-a')
+        sources = [r['id'] for r in experience.entries(self.library)]
+        lesson = {'title': 'Riaprire il pacchetto completo', 'applies_when': 'Quando una consegna dipende da risorse collegate',
+                  'procedure': ['Includere le dipendenze'], 'verification': ['Riaprire il progetto estratto'],
+                  'limits': 'Non prova la qualità estetica', 'tools': ['vectorcraft', 'typst']}
+        with self.assertRaisesRegex(ValueError, 'typst non ha una versione registrata.*Nessuna fonte conservata registra typst'):
+            lessons.learn(self.library, sources, lesson)
+
     def test_capture_preserves_observed_failures_and_successes_but_not_missing_checks(self):
         self.assertEqual(experience.collect(self.workspace, self.library, 'thread-a'), 2)
         self.assertEqual(experience.collect(self.workspace, self.library, 'thread-a'), 0)

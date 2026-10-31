@@ -97,7 +97,13 @@ def learn(root, source_ids, value, impact=None):
         for tool in lesson['tools']:
             versions = {sources[s].get('tools', {}).get(tool) for s in source_ids} - {None}
             if len(versions) != 1:
-                raise ValueError('Una lezione tecnica richiede la versione dello strumento nelle sue fonti')
+                carrying = [r for r, o in sources.items() if (o.get('tools') or {}).get(tool) and r not in excluded][:3]
+                raise ValueError(
+                    'Una lezione tecnica richiede la versione dello strumento nelle sue fonti: ' + tool + (
+                        ' ha versioni diverse nelle fonti indicate (' + ', '.join(sorted(versions)) + '); usa fonti della stessa versione'
+                        if versions else ' non ha una versione registrata nelle fonti indicate')
+                    + ('. Fonti con ' + tool + ': ' + ', '.join(carrying) if carrying else '. Nessuna fonte conservata registra ' + tool
+                       + ': togli lo strumento da tools o registra la lezione come metodo') + '.')
             tools[tool] = versions.pop()
         basis = {'lesson': lesson, 'impact': impact, 'source_ids': sorted(set(source_ids)), 'tool_versions': tools,
                  'source_statuses': sorted({sources[s].get('status', 'unknown') for s in source_ids})}

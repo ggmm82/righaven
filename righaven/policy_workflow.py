@@ -98,6 +98,16 @@ def pass_checkpoint(value, turn):
     return value['checkpoint']
 
 
+def close_at_delivery(value):
+    """The final delivery presents the last phase to the user: an open discussion ends there."""
+    pending = value.get('checkpoint') or {}
+    if pending.get('status') != 'awaiting_user':
+        return None
+    from .progress import utcnow
+    value['checkpoint'] = {**pending, 'status': 'presented_at_delivery', 'closed_at': utcnow()}
+    return value['checkpoint']
+
+
 def checkpoint_instruction(pending):
     return {'status': 'awaiting_user', 'steps': pending['steps'],
             'instruction': 'Fase conclusa (' + ', '.join(pending['steps']) + '): prima di altri incarichi di produzione presenta '
