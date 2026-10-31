@@ -144,6 +144,8 @@ createRoot(document.getElementById('root')!).render(kind==='project'?<Panel/>:ki
                 form.get_by_label('What must be true').first.fill('Product contains no credentials')
                 form.get_by_label('How it is verified').select_option('technical')
                 expect(form).to_contain_text('Automated tools: scans, counts, validators.')
+                form.get_by_label('Automatic check (optional)').select_option('no_secrets')
+                expect(form).to_contain_text('Any file: no recognisable key, token or password.')
                 form.get_by_role('button',name='Next').click()
                 expect(form.get_by_label('Final delivery')).to_be_checked()
                 form.get_by_label('Samples and trials').uncheck()
@@ -151,14 +153,14 @@ createRoot(document.getElementById('root')!).render(kind==='project'?<Panel/>:ki
                 summary=form.get_by_test_id('policy-summary')
                 expect(summary).to_contain_text('Applies when the coordinator finds it relevant and explains why.')
                 expect(summary).to_contain_text('No credentials in delivered files · blocking: if missing, the activity goes back to revision')
-                expect(summary).to_contain_text('Product contains no credentials · Technical measurement · blocking')
+                expect(summary).to_contain_text('Product contains no credentials · Technical measurement · No secrets (gitleaks) · blocking')
                 expect(summary).not_to_contain_text('Samples and trials')
                 form.get_by_role('button',name='Save as draft').click()
                 expect(page.get_by_role('status')).to_have_text('Draft saved')
                 saved=[b for m,pth,b in calls if m=='PUT'][-1]
                 assert saved['rules']==['No credentials in files','Rotate exposed tokens'],saved
                 assert saved['handoff_checks']==[{'id':'no_credentials_in_delivered_files','requirement':'No credentials in delivered files','critical':True}],saved
-                assert saved['final_checks']==[{'id':'product_contains_no_credentials','requirement':'Product contains no credentials','method':'technical','critical':True}],saved
+                assert saved['final_checks']==[{'id':'product_contains_no_credentials','requirement':'Product contains no credentials','method':'technical','critical':True,'probe':'no_secrets'}],saved
                 assert saved['applies_to']==['work','integration','delivery'],saved
                 expect(sheets.get_by_role('button',name='Security')).to_contain_text('Draft')
                 expect(page.get_by_text('No published version: projects do not use it yet.')).to_be_visible()

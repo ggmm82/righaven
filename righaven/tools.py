@@ -490,7 +490,8 @@ def harness_validate(runtime: Runtime, role_id: str, task: str = '') -> str:
     """Run the final multi-policy validation of the finished product before delivery.
 
     Requires a completed Execution Plan and a product_path. The runtime first checks
-    delivery integrity, then runs one separate review per Policy Plan sheet that has
+    delivery integrity, then runs the executable probes the sheets require (qpdf,
+    pdftotext, veraPDF, ffprobe, gitleaks on the exact file, without network), then runs one separate review per Policy Plan sheet that has
     no valid verdict for this exact product: independent sheets in parallel, dependent
     sheets after their prerequisites. All violations are returned together. Delivery
     (status=ready) is refused until every sheet passes. Correct violations on the
@@ -527,6 +528,10 @@ def harness_validate(runtime: Runtime, role_id: str, task: str = '') -> str:
     report = policy_workflow.validation(workspace, value)
     runs = []
     if report['integrity']['status'] == 'passed':
+        probes = policy_workflow.run_probes(workspace, value)
+        if probes:
+            value = governance_state(workspace)
+            report = policy_workflow.validation(workspace, value)
         sheets = {s['id']: s for s in value['policy_plan']['sheets']}
         to_run = [sheets[s['id']] for s in report['sheets'] if s['status'] == 'pending']
         guidance = task.strip() or 'Valida il prodotto finito ' + value.get('product_path', '') + ' senza modificarlo.'

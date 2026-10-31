@@ -707,6 +707,20 @@ def governance_state(workspace):
         return load(folder, workspace)
 
 
+def save_probe_results(workspace, results):
+    """Record executable probe outcomes, keyed by sheet/check and bound to the product hash."""
+    with locked(workspace) as folder:
+        value = load(folder, workspace)
+        if not value:
+            raise ValueError('Progetto non disponibile')
+        value['policy_probes'] = {**value.get('policy_probes', {}), **results}
+        value['updated_at'] = utcnow()
+        atomic_json(folder / 'project.json', value)
+    for key, result in results.items():
+        record_policy_event(workspace, value, 'Probe ' + key, 'completed' if result['status'] == 'passed' else 'failed',
+                            result.get('evidence', ''))
+
+
 def save_policy_validation(workspace, report):
     """Record the aggregated verdict; the completion gate always recomputes it from files."""
     with locked(workspace) as folder:

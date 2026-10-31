@@ -5,7 +5,7 @@ import {fetch} from "@/core/api/fetcher";
 import {getBackendBaseURL} from "@/core/config";
 
 type HandoffCheck={id:string;requirement:string;critical:boolean};
-type FinalCheck=HandoffCheck&{method:string};
+type FinalCheck=HandoffCheck&{method:string;probe?:string};
 type Content={title:string;summary:string;mandatory:boolean;rules:string[];handoff_checks:HandoffCheck[];final_checks:FinalCheck[]|"acceptance";depends_on:string[];applies_to:string[]};
 type Version={version:number;sheet:Content&{id:string;version:number};revision:string;published_at:string;published_by:string};
 type Event={at:string;actor:string;action:string;version?:number};
@@ -17,6 +17,13 @@ type T=(it:string,en:string)=>string;
 
 const METHODS=["content","structural","functional","technical","reference","visual","listening"];
 const PURPOSES=["work","preview","integration","delivery"];
+/** Closed catalog of executable probes (righaven/policy_probes.py): run on the exact product, without network. */
+const PROBES:Record<string,[string,string,string,string]>={
+ pdf_structure:["Struttura PDF valida (qpdf --check)","Valid PDF structure (qpdf --check)","Solo PDF: il file si apre e la struttura interna è integra.","PDF only: the file opens and its internal structure is sound."],
+ pdf_text:["Testo estraibile (pdftotext)","Extractable text (pdftotext)","Solo PDF: contiene testo ricercabile, non solo immagini.","PDF only: it contains searchable text, not just images."],
+ pdfa_conformance:["Conformità PDF/A (veraPDF)","PDF/A conformance (veraPDF)","Solo PDF: rispetta il profilo PDF/A dichiarato nel file.","PDF only: it meets the PDF/A profile declared in the file."],
+ media_streams:["Audio/video leggibili (ffprobe)","Readable audio/video (ffprobe)","Video e audio: il file contiene flussi decodificabili.","Video and audio: the file contains decodable streams."],
+ no_secrets:["Nessun segreto (gitleaks)","No secrets (gitleaks)","Qualsiasi file: nessuna chiave, token o password riconoscibile.","Any file: no recognisable key, token or password."]};
 const SHEET_ID=/^[a-z][a-z0-9_]{0,39}$/;
 const button="rounded border px-3 py-2 text-sm disabled:opacity-50";
 const field="mt-1 w-full rounded border bg-background p-2";
@@ -75,7 +82,7 @@ export default function PolicyBookPage(){
  function payload():Content{
   const f=form!;const used:string[]=[];
   const withCodes=<C extends HandoffCheck>(items:C[])=>items.filter(c=>c.requirement.trim()).map(c=>{const id=c.id||code(c.requirement,used);used.push(id);return {...c,id};});
-  return {...f,rules:f.rules.filter(r=>r.trim()),handoff_checks:withCodes(f.handoff_checks),final_checks:f.final_checks==="acceptance"?"acceptance" as const:withCodes(f.final_checks)};
+  return {...f,rules:f.rules.filter(r=>r.trim()),handoff_checks:withCodes(f.handoff_checks),final_checks:f.final_checks==="acceptance"?"acceptance" as const:withCodes(f.final_checks).map(({probe,...c})=>probe?{...c,probe}:c)};
  }
  const saveDraft=(publishAfter:boolean)=>act(async()=>{
   const id=creating?newId:selected!;
@@ -199,15 +206,18 @@ function SheetView({sheet,t}:{sheet:Content;t:T}){
   <div><h3 className="font-medium">{t("Regole consegnate agli specialisti","Rules handed to specialists")}</h3>{sheet.rules.length?<ul className="list-disc pl-5">{sheet.rules.map((r,i)=><li key={i}>{r}</li>)}</ul>:<p className="text-muted-foreground">{t("Nessuna regola.","No rules.")}</p>}</div>
   <div><h3 className="font-medium">{t("Controlli che ogni specialista deve dichiarare","Checks every specialist must declare")}</h3>{sheet.handoff_checks.length?<ul className="list-disc pl-5">{sheet.handoff_checks.map(c=><li key={c.id||c.requirement}>{c.requirement} · {c.critical?t("bloccante: se manca, l’attività torna in revisione","blocking: if missing, the activity goes back to revision"):t("registrato, non bloccante","recorded, not blocking")}</li>)}</ul>:<p className="text-muted-foreground">{t("Nessun controllo durante il lavoro.","No checks during work.")}</p>}</div>
   <div><h3 className="font-medium">{t("Verifica finale prima della consegna","Final verification before delivery")}</h3>{sheet.final_checks==="acceptance"?<p>{t("Revisione separata del prodotto sul contratto di accettazione del progetto.","Separate review of the product against the project acceptance contract.")}</p>:
-   <ul className="list-disc pl-5">{sheet.final_checks.map(c=><li key={c.id||c.requirement}>{c.requirement} · {(words.methods[c.method]??[c.method])[0]} · {c.critical?t("bloccante","blocking"):t("non bloccante","not blocking")}</li>)}</ul>}</div>
+   <ul className="list-disc pl-5">{sheet.final_checks.map(c=><li key={c.id||c.requirement}>{c.requirement} · {(words.methods[c.method]??[c.method])[0]}{c.probe&&PROBES[c.probe]?" · "+t(PROBES[c.probe]![0],PROBES[c.probe]![1]):""} · {c.critical?t("bloccante","blocking"):t("non bloccante","not blocking")}</li>)}</ul>}</div>
  </div>;
 }
 
-function CheckRow({check,t,methods,onChange,onRemove}:{check:HandoffCheck&{method?:string};t:T;methods?:Record<string,[string,string]>;onChange:(v:Partial<FinalCheck>)=>void;onRemove:()=>void}){
+function CheckRow({check,t,methods,onChange,onRemove}:{check:HandoffCheck&{method?:string;probe?:string};t:T;methods?:Record<string,[string,string]>;onChange:(v:Partial<FinalCheck>)=>void;onRemove:()=>void}){
  return <div className="space-y-2 rounded border p-2">
   <label className="block text-sm">{t("Cosa deve risultare vero","What must be true")}<input className={field} value={check.requirement} onChange={e=>onChange({requirement:e.target.value})}/></label>
   {methods&&<label className="block text-sm">{t("Come si verifica","How it is verified")}<select className={field} value={check.method} onChange={e=>onChange({method:e.target.value})}>{METHODS.map(m=><option key={m} value={m}>{methods[m]![0]}</option>)}</select>
    <span className="text-xs text-muted-foreground">{methods[check.method??"content"]?.[1]}</span></label>}
+  {methods&&<label className="block text-sm">{t("Controllo automatico (facoltativo)","Automatic check (optional)")}<select className={field} value={check.probe??""} onChange={e=>onChange({probe:e.target.value||undefined})}>
+   <option value="">{t("Nessuno: decide il revisore","None: the reviewer decides")}</option>{Object.entries(PROBES).map(([id,p])=><option key={id} value={id}>{t(p[0],p[1])}</option>)}</select>
+   <span className="text-xs text-muted-foreground">{check.probe&&PROBES[check.probe]?t(PROBES[check.probe]![2],PROBES[check.probe]![3])+" "+t("Il programma gira sul file esatto, senza rete; l’esito sostituisce il giudizio del revisore per questo criterio.","The program runs on the exact file, without network; its result replaces the reviewer’s judgement for this criterion."):t("Il revisore valuta il criterio leggendo o provando il prodotto.","The reviewer assesses the criterion by reading or trying the product.")}</span></label>}
   <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={check.critical} onChange={e=>onChange({critical:e.target.checked})}/>{t("Bloccante: senza questo controllo superato non si prosegue","Blocking: work cannot proceed until this check passes")}</label>
   <button type="button" className={button} onClick={onRemove}>{t("Rimuovi","Remove")}</button>
  </div>;

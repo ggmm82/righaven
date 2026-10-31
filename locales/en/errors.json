@@ -517,6 +517,7 @@
  "Policy sheet: mandatory booleano": "Policy sheet: mandatory must be a boolean",
  "Policy sheet: method del controllo finale tra ": "Policy sheet: method of the final check among ",
  "Policy sheet: ogni controllo richiede id unico, requirement e critical facoltativo": "Policy sheet: every check needs a unique id, requirement and optional critical",
+ "Policy sheet: probe tra ": "Policy sheet: probe must be one of ",
  "Policy sheet: summary entro 600 caratteri": "Policy sheet: summary within 600 characters",
  "Policy sheet: titolo entro 140 caratteri": "Policy sheet: title within 140 characters",
  "Policy sheet: version intera positiva": "Policy sheet: version must be a positive integer",

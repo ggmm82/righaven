@@ -23,13 +23,34 @@ draft, published versions and history.
 | `mandatory` | Always included in every Policy Plan |
 | `rules` | Constraints injected into each applicable assignment |
 | `handoff_checks` | Checks the specialist must declare in `handoff.json` with `policy_check: "<sheet>.<check>"` |
-| `final_checks` | Criteria of the final validation (`id`, `requirement`, `method`, `critical`), or `"acceptance"` |
+| `final_checks` | Criteria of the final validation (`id`, `requirement`, `method`, `critical`, optional `probe`), or `"acceptance"` |
 | `depends_on` | Sheets that must pass before this one is validated |
 | `applies_to` | Assignment purposes that receive the rules (default: work, preview, integration, delivery) |
 
 Each sheet has a content `revision`. A Policy Plan pins a copy of the sheets it
 selected, so later edits to the book do not change a running project; a sheet
 made mandatory later is added to existing plans.
+
+### Executable probes
+
+A final check may name a `probe` from a closed catalog. `harness_validate` runs it
+before any review, on the exact product file, in a container prepared with that
+catalog tool: no network, no capabilities, read-only root, the file mounted
+read-only, 300 s limit. The outcome is stored with the product SHA-256, so a
+corrected version is probed again and an unchanged one is not.
+
+| Probe | Tool | Files | Passes when |
+|---|---|---|---|
+| `pdf_structure` | qpdf | PDF | `qpdf --check` reports no damage |
+| `pdf_text` | poppler | PDF | `pdftotext` extracts at least one word |
+| `pdfa_conformance` | veraPDF | PDF | veraPDF reports `PASS` for the declared PDF/A profile |
+| `media_streams` | ffmpeg | audio/video | `ffprobe` finds a decodable audio or video stream |
+| `no_secrets` | gitleaks | any | `gitleaks dir` finds no secret (values redacted) |
+
+A failed critical probe fails the sheet, with the program's evidence among the
+findings. A failed non-critical probe is recorded as evidence. Probe checks are
+left out of the reviewer's contract; a sheet made only of probes needs no
+reviewer. The wizard offers the probes under "Automatic check".
 
 ## Managing sheets
 

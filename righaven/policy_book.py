@@ -72,7 +72,7 @@ def _checks(items, limit, *, final):
         raise ValueError(f'Policy sheet: al massimo {limit} controlli')
     result, seen = [], set()
     for item in items:
-        keys = {'id', 'requirement', 'critical'} | ({'method'} if final else set())
+        keys = {'id', 'requirement', 'critical'} | ({'method', 'probe'} if final else set())
         if (not isinstance(item, dict) or set(item) - keys or not isinstance(item.get('id'), str)
                 or not CHECK_ID.fullmatch(item['id']) or item['id'] in seen
                 or not isinstance(item.get('requirement'), str) or not item['requirement'].strip()
@@ -80,6 +80,10 @@ def _checks(items, limit, *, final):
             raise ValueError('Policy sheet: ogni controllo richiede id unico, requirement e critical facoltativo')
         if final and item.get('method') not in METHODS:
             raise ValueError('Policy sheet: method del controllo finale tra ' + ', '.join(sorted(METHODS)))
+        if final and 'probe' in item:
+            from .policy_probes import PROBES
+            if item['probe'] not in PROBES:
+                raise ValueError('Policy sheet: probe tra ' + ', '.join(sorted(PROBES)))
         seen.add(item['id'])
         result.append({k: clean_summary(item[k], 600) if k == 'requirement' else item[k] for k in keys if k in item}
                       | {'critical': item.get('critical', True)})
@@ -383,7 +387,7 @@ def contract(sheet, acceptance):
         return acceptance
     value = {'policy_sheet': sheet['id'], 'policy_revision': sheet['revision'],
              'criteria': [{'id': c['id'], 'requirement': c['requirement'], 'method': c['method'],
-                           'critical': c['critical'], 'reference_paths': []} for c in sheet['final_checks']]}
+                           'critical': c['critical'], 'reference_paths': []} for c in sheet['final_checks'] if not c.get('probe')]}
     return {**value, 'hash': fingerprint(value)}
 
 
@@ -395,7 +399,8 @@ def summary(plan):
             'optional_available': plan.get('optional_available', []),
             'sheets': [{k: s[k] for k in ('id', 'title', 'version', 'mandatory', 'reason', 'steps', 'depends_on')}
                        | {'handoff_checks': [c['id'] for c in s['handoff_checks']],
-                          'final_checks': 'acceptance' if s['final_checks'] == 'acceptance' else [c['id'] for c in s['final_checks']]}
+                          'final_checks': 'acceptance' if s['final_checks'] == 'acceptance' else [c['id'] for c in s['final_checks']],
+                          'probes': [c['probe'] for c in s['final_checks'] if c.get('probe')] if s['final_checks'] != 'acceptance' else []}
                        for s in plan['sheets']]}
 
 
