@@ -123,6 +123,8 @@ def run(model, prompt, output_dir, timeout, progress=None, transport=None, provi
         if progress:
             progress.model_signal()
         usage.append(result.get('usage', {}))
+        if progress and hasattr(progress, 'tokens'):
+            progress.tokens(result.get('usage'))
         (output_dir / ('work/deepseek-usage.json' if provider_label == 'DeepSeek' else 'work/openai-usage.json')).write_text(json.dumps(usage))
         choice = result['choices'][0]
         if choice.get('finish_reason') == 'length':

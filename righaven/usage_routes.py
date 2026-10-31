@@ -19,3 +19,24 @@ async def usage(request: Request, response: Response, days: int = 30):
     except ValueError as error:
         raise HTTPException(400, str(error)) from error
     return {**value, 'scope': 'all' if admin else 'own'}
+
+
+@router.get('/prices')
+@require_permission('threads', 'read')
+async def prices(request: Request, response: Response):
+    from . import model_prices
+    response.headers['Cache-Control'] = 'no-store'
+    return {**model_prices.load(), 'can_manage': await is_admin_user(request)}
+
+
+@router.put('/prices')
+@require_permission('threads', 'read')
+async def save_prices(request: Request):
+    from . import model_prices
+    if not await is_admin_user(request):
+        raise HTTPException(403, 'Solo un amministratore può impostare i prezzi dei modelli')
+    try:
+        body = await request.json()
+        return await run_in_threadpool(model_prices.save, body)
+    except ValueError as error:
+        raise HTTPException(400, str(error)) from error

@@ -49,6 +49,21 @@ dedicated environment or common base), per user and per role, with reuses and
 extensions of each profile and the latest assignments linked to their
 conversation. Administrators see every user; everyone else sees their own.
 
+The same report shows model tokens (input, cached input, output) for each
+assignment, as reported by the AI service: Codex `thread/tokenUsage/updated`
+totals, the `usage` of every DeepSeek or OpenAI-compatible call, and the final
+usage of Claude Code and Antigravity. A **By model** table sums them. When an
+administrator sets prices per million tokens under **Model prices** (one
+currency per installation, stored in `$RIGHAVEN_STATE/model-prices.json`), each
+row gets an estimated cost: uncached input, cached input and output at their own
+price. Estimates are computed when the report is read, so a price change also
+updates past rows; they do not replace the provider's invoice.
+
+If an assignment stops because the AI service quota is exhausted
+(`provider_quota`), the page shows an alert for the last 24 hours with the
+service, model, stopped assignments and users affected; the chat keeps the saved
+files and offers to resume once another service is chosen or the quota resets.
+
 ## What “ready” proves
 
 Preparation checks the executable, CLI/MCP schemas and a real native workflow. The extended CI matrix installs all 20 additions in eight small environments, independently of the default core acceptance. Fixtures include known SQL totals, executed notebook outputs, PDF rendering and rejection, OCR from actual pixels, local API/browser tests, numerical simulations and native model exports.

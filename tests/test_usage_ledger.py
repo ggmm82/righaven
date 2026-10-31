@@ -44,6 +44,46 @@ class UsageLedgerTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             usage_ledger.report(days=0)
 
+    def test_tokens_from_every_provider_shape_become_costs_with_admin_prices(self):
+        self.assertEqual(progress.token_counts({'inputTokens': 1000, 'cachedInputTokens': 400, 'outputTokens': 50, 'reasoningOutputTokens': 20, 'totalTokens': 1050}),
+                         {'input': 1000, 'cached_input': 400, 'output': 50, 'reasoning': 20})
+        self.assertEqual(progress.token_counts({'prompt_tokens': 300, 'completion_tokens': 30, 'prompt_cache_hit_tokens': 100}),
+                         {'input': 300, 'cached_input': 100, 'output': 30, 'reasoning': 0})
+        self.assertEqual(progress.token_counts({'input_tokens': 10, 'cache_read_input_tokens': 90, 'cache_creation_input_tokens': 5, 'output_tokens': 7}),
+                         {'input': 105, 'cached_input': 90, 'output': 7, 'reasoning': 0})
+        self.assertIsNone(progress.token_counts({'total_tokens': 0}))
+        from righaven import model_prices
+        model_prices.save({'currency': 'EUR', 'models': {'opus': {'input': 10, 'cached_input': 1, 'output': 50}}})
+        anna = self.workspace('anna', 'chat-1')
+        path = progress.create_job(anna, 'rh-job-aaaaaaaaaaaa', 'workspace', 'claude', 'opus')
+        reporter = progress.Reporter.__new__(progress.Reporter); reporter.path = path
+        reporter.tokens({'prompt_tokens': 600_000, 'completion_tokens': 10_000, 'prompt_tokens_details': {'cached_tokens': 100_000}})
+        reporter.tokens({'prompt_tokens': 400_000, 'completion_tokens': 10_000})  # per-call usage adds up
+        self.assertEqual(progress.public_status(progress.read_status(path))['tokens'], {'input': 1_000_000, 'cached_input': 100_000, 'output': 20_000, 'reasoning': 0})
+        progress.update(path, 'completed')
+        report = usage_ledger.report()
+        # 900k uncached x 10 + 100k cached x 1 + 20k output x 50, per million tokens.
+        self.assertEqual(report['jobs'][0]['cost'], 10.1)
+        self.assertEqual((report['currency'], report['totals']['cost'], report['totals']['input_tokens']), ('EUR', 10.1, 1_000_000))
+        self.assertEqual({m['name']: m['cost'] for m in report['models']}, {'opus': 10.1})
+        with self.assertRaises(ValueError):
+            model_prices.save({'currency': 'EUR', 'models': {'opus': {'input': -1}}})
+
+    def test_quota_exhaustion_raises_an_alert_and_old_ledgers_gain_the_new_columns(self):
+        import sqlite3
+        database = state.STATE / 'usage-ledger.sqlite3'; database.parent.mkdir(parents=True)
+        with sqlite3.connect(database) as conn:
+            conn.execute('CREATE TABLE jobs (job_id TEXT PRIMARY KEY, user_id TEXT, thread_id TEXT, started_at TEXT, finished_at TEXT, '
+                         'duration_seconds REAL, role TEXT, agent TEXT, engine TEXT, model TEXT, profile TEXT, mode TEXT, environment_id TEXT, '
+                         'tools TEXT, cpu_seconds REAL, memory_peak_bytes INTEGER, outcome TEXT)')
+        anna = self.workspace('anna', 'chat-1')
+        path = progress.create_job(anna, 'rh-job-aaaaaaaaaaaa', 'workspace', 'codex', 'gpt-test')
+        progress.update(path, 'failed', 'Quota esaurita', error_code='provider_quota')
+        report = usage_ledger.report()
+        self.assertEqual([(a['engine'], a['jobs'], a['users']) for a in report['quota_alerts']], [('codex', 1, 1)])
+        self.assertIsNone(report['jobs'][0]['cost'])
+        self.assertEqual(usage_ledger.report('bruno')['quota_alerts'], [])
+
     def test_isolated_workers_do_not_write_the_ledger(self):
         anna = self.workspace('anna', 'chat-1')
         with patch.dict('os.environ', {'RIGHAVEN_ISOLATED_OUTPUT': '1'}):
@@ -89,6 +129,12 @@ class UsageRouteTests(UsageLedgerTests):
             own = client.get('/api/harness/usage?days=7', headers={'X-Test-User': 'anna'}).json()
             self.assertEqual((own['scope'], own['totals']['jobs'], own['jobs'][0]['user_id']), ('own', 1, 'anna'))
             self.assertEqual(client.get('/api/harness/usage?days=999', headers={'X-Test-User': 'anna'}).status_code, 400)
+            prices = {'currency': 'USD', 'models': {'opus': {'input': 15, 'output': 75}}}
+            self.assertEqual(client.put('/api/harness/usage/prices', json=prices, headers={'X-Test-User': 'anna'}).status_code, 403)
+            saved = client.put('/api/harness/usage/prices', json=prices, headers={'X-Test-User': 'admin'}).json()
+            self.assertEqual(saved['models']['opus'], {'input': 15.0, 'cached_input': 15.0, 'output': 75.0})
+            read = client.get('/api/harness/usage/prices', headers={'X-Test-User': 'anna'}).json()
+            self.assertEqual((read['currency'], read['can_manage']), ('USD', False))
 
 
 if __name__ == '__main__':

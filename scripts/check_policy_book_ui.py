@@ -84,11 +84,16 @@ createRoot(document.getElementById('root')!).render(kind==='project'?<Panel/>:ki
         subprocess.run(['node','-e','require('+json.dumps(str(modules/'esbuild'))+').build('+json.dumps(build)+').catch(e=>{console.error(e);process.exit(1)})'],check=True,text=True)
         html='<html><body><div id="root"></div><script src="/bundle.js"></script></body></html>'
         book=Book();role={'admin':True};calls=[];usage_days=[]
-        group=lambda name,jobs,reused,extended:{'name':name,'jobs':jobs,'seconds':5400,'cpu_seconds':1800,'memory_peak_bytes':2*1024**3,'last_at':'2026-10-30T14:00:00','users':1,'reused':reused,'extended':extended,'completed':jobs}
-        usage={'days':30,'scope':'all','totals':{'jobs':3,'seconds':9000,'cpu_seconds':3000,'memory_peak_bytes':2*1024**3},
+        group=lambda name,jobs,reused,extended:{'name':name,'jobs':jobs,'seconds':5400,'cpu_seconds':1800,'memory_peak_bytes':2*1024**3,'last_at':'2026-10-30T14:00:00','users':1,'reused':reused,'extended':extended,'completed':jobs,
+                                           'input_tokens':1_200_000,'cached_tokens':200_000,'output_tokens':30_000,'reasoning_tokens':0,'cost':10.5}
+        usage={'days':30,'scope':'all','currency':'USD','priced_models':['opus'],'models':[group('opus',3,1,1)],
+               'quota_alerts':[{'engine':'codex','model':'gpt-test','jobs':2,'users':1,'last_at':'2026-10-31T09:15:00'}],
+               'totals':{'jobs':3,'seconds':9000,'cpu_seconds':3000,'memory_peak_bytes':2*1024**3,'input_tokens':1_200_000,'cached_tokens':200_000,'output_tokens':30_000,'reasoning_tokens':0,'cost':10.5},
                'machines':[group('documenti',2,1,1),group('dedicated',1,0,0)],'users':[group('u-anna',3,1,1)],'roles':[group('Impaginatore',2,1,1)],
                'jobs':[{'job_id':'rh-job-1','user_id':'u-anna','thread_id':'chat-1','finished_at':'2026-10-30T14:00:00','duration_seconds':3600,'role':'Impaginatore','engine':'claude','model':'opus',
-                        'profile':'documenti','mode':'extended','tools':['typst','d2'],'cpu_seconds':1200,'memory_peak_bytes':1024**3,'outcome':'completed'}]}
+                        'profile':'documenti','mode':'extended','tools':['typst','d2'],'cpu_seconds':1200,'memory_peak_bytes':1024**3,'outcome':'completed',
+                        'input_tokens':400_000,'cached_tokens':0,'output_tokens':12_000,'reasoning_tokens':0,'cost':4.25}]}
+        prices={'currency':'USD','models':{'opus':{'input':15.0,'cached_input':1.5,'output':75.0}},'can_manage':True}
         with sync_playwright() as p:
             browser=p.chromium.launch(headless=True);page=browser.new_page(viewport={'width':1200,'height':1100});errors=[]
             page.on('pageerror',lambda e:errors.append(str(e)))
@@ -98,6 +103,9 @@ createRoot(document.getElementById('root')!).render(kind==='project'?<Panel/>:ki
                 if path.startswith('/api/'):
                     body=request.post_data_json if request.method in ('PUT','POST') and request.post_data else None
                     calls.append((request.method,path,body))
+                    if path=='/api/harness/usage/prices':
+                        if request.method=='PUT':prices.update(body)
+                        route.fulfill(json={k:prices[k] for k in ('currency','models')} if request.method=='PUT' else prices);return
                     if path.startswith('/api/harness/usage'):
                         usage_days.append(path)
                         route.fulfill(json=usage);return
@@ -229,6 +237,16 @@ createRoot(document.getElementById('root')!).render(kind==='project'?<Panel/>:ki
                 page.get_by_label('Period').select_option('7')
                 expect(page.get_by_test_id('usage-page')).to_be_visible();page.wait_for_timeout(300)
                 assert usage_days[-1].endswith('days=7'),usage_days
+                expect(page.get_by_test_id('quota-alerts')).to_contain_text('codex gpt-test: 2 assignments stopped in the last 24 hours for 1 users')
+                expect(usage_page).to_contain_text('1.20 M / 30 k')
+                expect(page.get_by_role('region',name='By model')).to_contain_text('$10.50')
+                expect(latest).to_contain_text('$4.25')
+                editor=page.get_by_test_id('model-prices')
+                editor.get_by_label('opus output').fill('60')
+                editor.get_by_label('Currency').select_option('EUR')
+                editor.get_by_role('button',name='Save prices').click()
+                expect(editor.get_by_role('status')).to_have_text('Prices saved: estimates are recalculated.')
+                assert [b for m,pth,b in calls if m=='PUT' and pth=='/api/harness/usage/prices'][-1]=={'currency':'EUR','models':{'opus':{'input':15,'cached_input':1.5,'output':60}}},calls[-3:]
                 assert not errors,errors
             finally:browser.close()
     print('Policy Book UI OK: guided six-step setup with explanations, generated codes and readable summary; publish, retire, reactivate, restore and new version; read-only team view; tool choices; live chat governance with checkpoints; machine usage report.')

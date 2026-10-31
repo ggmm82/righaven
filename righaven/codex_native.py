@@ -233,6 +233,9 @@ def run(model, prompt, output, timeout, progress, *, env=None, executable='codex
                         text = item.get('text')
                         if isinstance(text, str):
                             messages.append(text[:64000])
+                if isinstance(method, str) and 'tokenUsage' in method and hasattr(progress, 'tokens'):
+                    # thread/tokenUsage/updated carries running totals for the thread.
+                    progress.tokens((params.get('tokenUsage') or {}).get('total'), cumulative=True)
                 normalized = event_for_progress(method, params)
                 if normalized:
                     progress.cli_event('codex', normalized)

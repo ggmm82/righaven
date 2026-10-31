@@ -369,6 +369,7 @@ def main():
                               'error': worker_error(engine, result)}))
                 return result.returncode
             parsed = result_envelope(result.stdout)
+            reporter.tokens(parsed.get('usage'), cumulative=True)
             if parsed.get('status') != 'SUCCESS' or parsed.get('error'):
                 try:
                     from .antigravity_cli import result_error
