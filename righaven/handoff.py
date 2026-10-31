@@ -125,6 +125,23 @@ def validate_delivery(value):
         raise ValueError('handoff.json: sorgenti mancanti o riapertura non verificata richiedono warnings')
 
 
+def duplicate_outputs(paths, output_dir):
+    """Groups of delivered files with identical content, as paths relative to the output folder."""
+    import hashlib
+    groups = {}
+    for filename in paths:
+        path = Path(filename)
+        if not path.is_file() or path.is_symlink():
+            continue
+        digest = hashlib.sha256()
+        with path.open('rb') as stream:
+            for chunk in iter(lambda: stream.read(1 << 20), b''):
+                digest.update(chunk)
+        name = str(path.resolve().relative_to(output_dir)) if path.resolve().is_relative_to(output_dir) else str(path)
+        groups.setdefault(digest.hexdigest(), []).append(name)
+    return [sorted(group) for group in groups.values() if len(group) > 1]
+
+
 def validate_handoff(output_dir, workspace, *, require_delivery=False):
     output_dir, workspace = Path(output_dir).resolve(), Path(workspace).resolve()
     manifest = output_dir / 'handoff.json'
@@ -168,6 +185,13 @@ def validate_handoff(output_dir, workspace, *, require_delivery=False):
                 raise ValueError(f'handoff.json: file mancante o vuoto in {field}')
             if field == 'output_files' and path.resolve().is_relative_to(output_dir / 'work'):
                 raise ValueError('handoff.json: i file tecnici in work/ non sono prodotti finali')
+    duplicates = duplicate_outputs(value['output_files'], output_dir)
+    if duplicates and isinstance(value.get('warnings'), list):
+        note = ('File identici consegnati più volte; tieni una sola copia (per esempio in assets/ accanto al sorgente): '
+                + '; '.join(' = '.join(group) for group in duplicates[:5]))
+        if note not in value['warnings']:
+            value['warnings'].append(note)
+        value['duplicate_outputs'] = duplicates
     checks = value.get('checks')
     if not isinstance(checks, list) or not checks:
         raise ValueError('handoff.json: checks obbligatori')

@@ -40,7 +40,7 @@ def build_prompt(job, selected, output_dir):
         'Confronta il risultato reale con richieste e riferimenti. Descrivi il difetto, la causa ipotizzata e la prova '
         'che distingue le cause prima di cambiare metodo. Non espandere un campione che sai essere insufficiente.',
         phase,
-        'Progetto /mnt/user-data in sola lettura: copia gli input da revisionare. Scrivi solo nello staging ' + str(output_dir) +
+        'Progetto /mnt/user-data in sola lettura: copia solo input da modificare, una copia per file. Scrivi solo nello staging ' + str(output_dir) +
         ' (RIGHAVEN_OUTPUT_DIR); non sovrascrivere gli input. Conserva sorgenti e checkpoint presto. '
         'Python: /usr/bin/python3; craft e CLI: /usr/local/bin. Scopri solo comandi pertinenti con craft help/tools/commands. '
         'Non delegare, pubblicare o accedere a credenziali e altre conversazioni. '

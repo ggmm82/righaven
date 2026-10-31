@@ -226,6 +226,18 @@ except ImportError:
     harness_delegate = None
 
 
+class DeliveryClosesCheckpointTests(unittest.TestCase):
+    def test_the_final_delivery_closes_an_open_discussion(self):
+        value = {'status': 'review', 'checkpoint': {'status': 'awaiting_user', 'turn': 't1', 'steps': ['layout'], 'at': 'x'}}
+        projects._apply_status(None, value, 'ready')
+        self.assertEqual(value['checkpoint']['status'], 'presented_at_delivery')
+        self.assertEqual(value['checkpoint']['steps'], ['layout'])
+        self.assertIsNone(policy_workflow.close_at_delivery(value))
+        working = {'status': 'review', 'checkpoint': {'status': 'awaiting_user', 'turn': 't1', 'steps': ['layout'], 'at': 'x'}}
+        projects._apply_status(None, working, 'working')
+        self.assertEqual(working['checkpoint']['status'], 'awaiting_user')
+
+
 @unittest.skipIf(harness_delegate is None, 'Requires the pinned Gateway tool runtime')
 class PolicyLifecycleTests(unittest.TestCase):
     """End to end through the coordinator tools, with simulated workers.
