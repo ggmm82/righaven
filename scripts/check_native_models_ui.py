@@ -21,7 +21,7 @@ def main():
         (root/'navigation.ts').write_text('const router={replace:(url:string)=>{window.location.href=url}}; export function useRouter(){return router;}')
         (root/'link.tsx').write_text('export default function Link(props:any){return <a {...props}/>;}')
         (root/'entry.tsx').write_text('import React from "react";import {createRoot} from "react-dom/client";import Models from '+json.dumps(str(repo/'frontend/harness-page.tsx'))+';createRoot(document.getElementById("root")!).render(<Models/>);')
-        aliases = {'next/link':str(root/'link.tsx'),'next/navigation':str(root/'navigation.ts'),
+        aliases = {'@/core/i18n/ui-text':str(repo/'frontend/ui-text.ts'),'next/link':str(root/'link.tsx'),'next/navigation':str(root/'navigation.ts'),
                    '@/core/api/fetcher':str(root/'fetcher.ts'),'@/core/i18n/hooks':str(root/'hooks.ts')}
         build = {'entryPoints':[str(root/'entry.tsx')],'bundle':True,'jsx':'automatic',
                  'nodePaths':[str(modules)],'outfile':str(root/'bundle.js'),'alias':aliases}

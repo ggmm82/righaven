@@ -4,7 +4,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
-export function TeamOnboarding() {
+import { tr, useUiLanguage } from "@/core/i18n/ui-text";
+
+export function TeamOnboarding() {useUiLanguage();
   const pathname = usePathname();
   const [failed, setFailed] = useState(false);
 
@@ -17,10 +19,10 @@ export function TeamOnboarding() {
     })
       .then(async (response) => {
         if (response.status === 403) return; // The administrator configures the shared team.
-        if (!response.ok) throw new Error("Configurazione non disponibile");
+        if (!response.ok) throw new Error(tr("Configurazione non disponibile", "Configuration unavailable"));
         const data: { team?: { ready?: boolean }; profiles?: { squad?: { ready?: boolean } } } = await response.json();
         if (typeof data.team?.ready !== "boolean") {
-          throw new Error("Configurazione non disponibile");
+          throw new Error(tr("Configurazione non disponibile", "Configuration unavailable"));
         }
         if (!controller.signal.aborted && (!data.team.ready || data.profiles?.squad?.ready === false)) {
           window.location.replace("/workspace/harness");
@@ -38,7 +40,7 @@ export function TeamOnboarding() {
       className="mx-3 rounded-md border p-3 text-sm"
       href="/workspace/harness"
     >
-      Non riesco a verificare la squadra. Apri la configurazione per riprovare.
+      {tr("Non riesco a verificare la squadra. Apri la configurazione per riprovare.", "I cannot verify the team. Open the configuration to retry.")}
     </Link>
   );
 }

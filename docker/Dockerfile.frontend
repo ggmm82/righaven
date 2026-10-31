@@ -41,6 +41,7 @@ COPY frontend/skill-instructions.tsx ./frontend/src/components/workspace/capabil
 COPY frontend/team-onboarding.tsx ./frontend/src/components/workspace/team-onboarding.tsx
 COPY frontend/model-settings-page.tsx ./frontend/src/components/workspace/settings/model-settings-page.tsx
 COPY frontend/run-start-time.ts ./frontend/src/core/messages/run-start-time.ts
+COPY frontend/ui-text.ts ./frontend/src/core/i18n/ui-text.ts
 COPY frontend/delegate-progress.tsx frontend/delegate-progress-state.ts frontend/experience-panel.tsx frontend/conversation-audit.tsx frontend/project-guide.tsx frontend/project-design.tsx frontend/project-governance.tsx ./frontend/src/components/workspace/messages/
 COPY scripts/check_chat_modes.mjs /tmp/check_chat_modes.mjs
 RUN node --experimental-strip-types /tmp/check_chat_modes.mjs

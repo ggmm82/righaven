@@ -43,6 +43,10 @@ def resolve_request_locale(request) -> str:
     query_lang = request.query_params.get('lang') or request.query_params.get('locale')
     if query_lang:
         return normalize_locale(query_lang)
+    # The workspace stores the viewer's chosen language in this cookie.
+    cookie_lang = getattr(request, 'cookies', {}).get('locale')
+    if cookie_lang:
+        return normalize_locale(cookie_lang)
     accept_lang = request.headers.get('accept-language')
     return normalize_locale(accept_lang)
 

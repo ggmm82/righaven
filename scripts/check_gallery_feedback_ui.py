@@ -16,7 +16,8 @@ def main():
         pack=dict(gallery.get_pack('skill-d2'));pack.update(id='review-fixture',author='publisher',version='1.0.0');gallery.publish_pack(pack)
         (root/'fetch.ts').write_text('export const fetch=window.fetch.bind(window);')
         entry=root/'entry.tsx';entry.write_text('import React from "react";import{createRoot}from"react-dom/client";import Page from '+json.dumps(str(repo/'frontend/gallery-feedback.tsx'))+';createRoot(document.getElementById("root")!).render(<Page base="/api/v1/gallery" pack="review-fixture" version={new URLSearchParams(location.search).get("version")??"1.0.0"} locale="en"/>);')
-        build='require('+json.dumps(str(modules/'esbuild'))+').buildSync('+json.dumps({'entryPoints':[str(entry)],'outfile':str(root/'app.js'),'bundle':True,'jsx':'automatic','nodePaths':[str(modules)],'alias':{'@/core/api/fetcher':str(root/'fetch.ts')}})+');';subprocess.run(['node','-e',build],check=True)
+        (root/'hooks.ts').write_text('export function useI18n(){return {locale:"en-US"}}')
+        build='require('+json.dumps(str(modules/'esbuild'))+').buildSync('+json.dumps({'entryPoints':[str(entry)],'outfile':str(root/'app.js'),'bundle':True,'jsx':'automatic','nodePaths':[str(modules)],'alias':{'@/core/i18n/ui-text':str(repo/'frontend/ui-text.ts'),'@/core/i18n/hooks':str(root/'hooks.ts'),'@/core/api/fetcher':str(root/'fetch.ts')}})+');';subprocess.run(['node','-e',build],check=True)
         class Handler(BaseHTTPRequestHandler):
             def log_message(self,*args):pass
             def send(self,value,kind='application/json',code=200):

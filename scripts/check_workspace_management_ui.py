@@ -28,7 +28,7 @@ const profile={name:'docs',skills:['skill-d2'],disabled:[],runtime:{status:'read
 createRoot(document.getElementById('root')!).render(kind==='skill'?<SkillInstructions name="skill-d2"/>:kind==='reset'?<Maintenance/>:kind==='inventory'?<Inventory base="/api/harness/environments" profile={profile} onChanged={async()=>{}}/>:<UserSettingsPage/>);'''
         for key,path in {'SKILL':repo/'frontend/skill-instructions.tsx','MAINTENANCE':repo/'frontend/maintenance-page.tsx','INVENTORY':repo/'frontend/environment-inventory.tsx','USERS':repo/'core/frontend/src/components/workspace/settings/user-settings-page.tsx'}.items():entry=entry.replace(key,json.dumps(str(path)))
         (root/'entry.tsx').write_text(entry)
-        aliases={'@/core/i18n/hooks':str(root/'hooks.ts'),'@/core/auth/AuthProvider':str(root/'hooks.ts'),'@/core/config':str(root/'config.ts'),'@/core/api/fetcher':str(root/'fetch.ts'),'next/link':str(root/'link.tsx')}
+        aliases={'@/core/i18n/ui-text':str(repo/'frontend/ui-text.ts'),'@/core/i18n/hooks':str(root/'hooks.ts'),'@/core/auth/AuthProvider':str(root/'hooks.ts'),'@/core/config':str(root/'config.ts'),'@/core/api/fetcher':str(root/'fetch.ts'),'next/link':str(root/'link.tsx')}
         build={'entryPoints':[str(root/'entry.tsx')],'outfile':str(root/'bundle.js'),'bundle':True,'jsx':'automatic','nodePaths':[str(modules)],'alias':aliases}
         javascript='const esbuild=require('+json.dumps(str(modules/'esbuild'))+');const options='+json.dumps(build)+';options.plugins=[{name:"section",setup(b){b.onResolve({filter:/^\\.\\/settings-section$/},()=>({path:'+json.dumps(str(root/'section.tsx'))+'}));}}];esbuild.build(options).catch(e=>{console.error(e);process.exit(1)});'
         subprocess.run(['node','-e',javascript],check=True,text=True)
