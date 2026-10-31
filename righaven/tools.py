@@ -375,12 +375,27 @@ def delegate_step(agent, task, runtime, *, step_id='', purpose='work', role_id='
             requirements=requirements, purpose=purpose, acceptance=project.get('acceptance'), role=role,
             capability_policy=policy, **policy_review), provider={k: profile[k] for k in ('engine', 'model', 'connection_id') if k in profile},
         purpose=purpose, request_id=request_id, role=role, policy_sheet=policy_sheet))
+    try:
+        return delegation_reply(workspace, runtime, result, project, profile, purpose)
+    except Exception as error:
+        # The assignment is already recorded: never report it as failed or invite a re-run.
+        from .progress import clean_summary
+        from .audit_log import append
+        append(workspace, 'Coordinatore', 'Riepilogo dell’incarico non disponibile', 'failed', detail=clean_summary(error))
+        return json.dumps({k: result[k] for k in ('ok', 'activity', 'output_dir', 'error', 'checkpoint', 'policy_violations') if k in result}
+                          | {'available_files': result.get('available_files', [])[:20], 'summary_unavailable': True,
+                             'instruction': 'L’incarico è registrato con il suo esito: non rilanciarlo. Il riepilogo completo non è disponibile; '
+                                            'leggi i file indicati o lo stato con harness_plan.'}, ensure_ascii=False)
+
+
+def delegation_reply(workspace, runtime, result, project, profile, purpose):
+    """Compact coordinator view of a recorded assignment."""
     experience = preserve_experience(workspace, runtime)
     handoff = result.get('handoff') or {}
     from .handoff import blocking_checks
     from .control_memory import counts
     from .progress import clean_summary
-    compact = {k: result[k] for k in ('ok', 'activity', 'output_dir', 'attention', 'recovery', 'retry_blocked', 'checkpoint_reassessment','goal','instruction',
+    compact = {k: result[k] for k in ('ok', 'duplicate', 'activity', 'output_dir', 'attention', 'recovery', 'retry_blocked', 'checkpoint_reassessment','goal','instruction',
         'product_verified', 'verified_products', 'available_results', 'policy_violations', 'policy_compliance', 'checkpoint') if k in result}
     compact.update(error=clean_summary(result.get('error', '')),
         check_counts=counts(handoff.get('checks', [])),

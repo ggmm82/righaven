@@ -851,6 +851,14 @@ def execute_step(workspace, agent, task, step_id, invoke, *, provider=None, purp
             value['steps'].append(step)
         if step['status'] == 'running':
             raise ValueError('Questa attività è già in esecuzione')
+        latest = step['attempts'][-1] if step['attempts'] else {}
+        if (request_id and step['status'] == 'completed' and latest.get('context', {}).get('request') == request_id
+                and latest.get('context', {}).get('purpose') == purpose and latest.get('task') == clean_summary(task, 1500)):
+            # The same assignment in the same user turn: return what is recorded instead of running it again.
+            return json.dumps({'ok': True, 'duplicate': True, 'activity': {'id': step['id'], 'status': step['status']},
+                               'output_dir': latest.get('output_dir', ''), 'available_files': latest.get('output_files', [])[:40],
+                               'instruction': 'Incarico identico già concluso in questo turno: usa il risultato registrato, non rilanciarlo.'},
+                              ensure_ascii=False)
         step.update(agent=agent, purpose=purpose)
         if role:
             step['role_id'] = role['id']
