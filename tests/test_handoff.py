@@ -30,6 +30,22 @@ class HandoffFixture(unittest.TestCase):
 
 
 class HandoffTests(HandoffFixture):
+    def test_identical_copies_in_one_delivery_are_reported_once(self):
+        (self.output / 'assets').mkdir()
+        for name in ('tavola.svg', 'assets/tavola.svg'):
+            (self.output / name).write_text('<svg/>')
+        (self.output / 'assets/altra.svg').write_text('<svg id="b"/>')
+        self.value['output_files'] += [str(self.output / n) for n in ('tavola.svg', 'assets/tavola.svg', 'assets/altra.svg')]
+        value = self.validate()
+        self.assertEqual(value['duplicate_outputs'], [['assets/tavola.svg', 'tavola.svg']])
+        self.assertEqual(sum('File identici' in w for w in value['warnings']), 1)
+        self.assertIn('assets/tavola.svg = tavola.svg', value['warnings'][-1])
+        (self.output / 'handoff.json').write_text(json.dumps(value))
+        self.assertEqual(sum('File identici' in w for w in validate_handoff(self.output, self.workspace)['warnings']), 1)
+
+    def test_distinct_outputs_raise_no_duplicate_warning(self):
+        self.assertNotIn('duplicate_outputs', self.validate())
+
     def test_valid_report_preserves_quality_failures(self):
         self.value['checks'][0]['status'] = 'failed'
         self.assertEqual(self.validate()['checks'][0]['status'], 'failed')
