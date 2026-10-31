@@ -211,6 +211,7 @@ def reply(workspace, payload, kind):
         value['warnings'] = value.get('warnings', [])[:3]
         value['review_notes'] = value.get('review_notes', [])[:4]
         value['available_files'] = value.get('available_files', [])[:4]
+    required = True
     for limit in (160, 80):
         if len(json.dumps(value, ensure_ascii=False)) <= LIMIT:
             break
@@ -223,18 +224,23 @@ def reply(workspace, payload, kind):
         # that an omitted list is not evidence of success.
         keys = ('ok', 'decision', 'error', 'activity', 'delivery', 'checkpoint_reassessment', 'checkpoint','goal','instruction', 'check_counts', 'blocking_failed_checks', 'review_counts', 'required_review_counts',
                 'attention', 'recovery', 'retry_blocked', 'experience', 'handoff_path', 'quality_review', 'next_action', 'revision_instruction', 'continuation', 'presentation')
+        # A plan update echoes what the coordinator just wrote: its full board is
+        # needed only when the runtime reports something to decide.
         if kind == 'plan':
             p = value.get('project') or {}
             value = {'project': {k: p.get(k) for k in ('id', 'status', 'summary', 'next_action', 'quality_status', 'version_selection', 'attention', 'method_recovery', 'presentation', 'continuation', 'governance')}}
+            required = bool(p.get('attention') or p.get('method_recovery'))
         else:
             value = {k: value[k] for k in keys if k in value}
             if 'quality_review' in value:
                 value['quality_review'].pop('criteria', None)
         value.update(details_path=reference['path'], details_sha256=reference['sha256'],
-                     details_required=True, details_reader='harness_read_context', instruction='Usa harness_read_context con details_path e details_sha256 prima di decidere; le liste omesse non sono controlli superati.')
+                     details_required=required, details_reader='harness_read_context',
+                     instruction='Usa harness_read_context con details_path e details_sha256 prima di decidere; le liste omesse non sono controlli superati.'
+                     if required else 'Piano registrato come richiesto: prosegui; leggi i dettagli solo per riesaminare attività, ruoli o risultati.')
     # A malicious/oversize input must not turn into an unbounded control message.
     if len(json.dumps(value, ensure_ascii=False)) > LIMIT:
         value = {k: value.get(k) for k in ('ok', 'decision', 'check_counts', 'review_counts', 'details_path', 'details_sha256')}
-        value['details_required'] = True
+        value['details_required'] = required
         value['details_reader'] = 'harness_read_context'
     return json.dumps(value, ensure_ascii=False)
