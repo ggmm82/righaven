@@ -64,7 +64,8 @@
     "pipeline_runtime.py": "scripts/pipeline_runtime.py",
     "package-ingest.lock": "config/toolkit/pipeline/ingest.lock",
     "package-transform.lock": "config/toolkit/pipeline/transform.lock",
-    "pipeline_seed.py": "scripts/pipeline_seed.py"
+    "pipeline_seed.py": "scripts/pipeline_seed.py",
+    "pipeline_load.py": "scripts/pipeline_load.py"
   },
   "righaven-worker": {
     "run_agent.py": "righaven/run_agent.py",
