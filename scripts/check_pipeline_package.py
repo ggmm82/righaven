@@ -59,7 +59,8 @@ print(json.dumps(result))
                 if cycle==2:
                     # A replacement must retain the previous successful cycle until
                     # the next scheduled tick. Trigger the second cycle explicitly.
-                    assert record['started_at']==previous,record
+                    retained=json.loads(run('docker','exec',container,'cat','/data/reports/results.json'))
+                    assert {row[1] for row in retained[0]['rows']}=={3},retained
                     run('docker','exec',container,'/opt/ingest/bin/python','/app/ops/orchestrate.py','cycle')
                     record=json.loads(run('docker','exec',container,'cat','/data/last-cycle.json'))
                     assert record['status']=='passed' and record['started_at']!=previous,record
