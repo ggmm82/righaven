@@ -7,7 +7,7 @@ def manifest(profile, user, identifier, version, title_en, description_en, title
         raise ValueError('Remove or enable disabled skills before sharing')
     # Custom method files require a native skill package; references alone would lose them.
     known = {item['id'] for item in state.applications()}
-    allowed = {'skill-harness', 'skill-workspace', 'skill-problem-solving', 'skill-quality-review'} | {'skill-' + item for item in known}
+    allowed = gallery.MANAGED_SKILLS | {'skill-' + item for item in known}
     if set(profile['skills']) - allowed:
         raise ValueError('Custom skill content cannot be shared by reference. Export its native skill package first.')
     instructions = profile.get('instructions') or profile['purpose']

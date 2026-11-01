@@ -5,6 +5,10 @@ from pathlib import Path
 from . import state
 from .i18n import normalize_locale, translate
 
+# Skills shipped with RigHaven besides the per-tool skills; recipes orchestrate several tools.
+RECIPE_SKILLS = frozenset({'skill-data-pipeline'})
+MANAGED_SKILLS = frozenset({'skill-harness', 'skill-workspace', 'skill-problem-solving', 'skill-quality-review'}) | RECIPE_SKILLS
+
 PACK_ID_RE = re.compile(r'^[a-z0-9][a-z0-9-]{1,63}\Z')
 VALID_CATEGORIES = ('environment', 'cli-tool', 'skill')
 REQUIRED_FIELDS = (
@@ -78,7 +82,7 @@ def validate_pack_manifest(manifest: dict) -> dict:
         raise ValueError('Pack permissions must match the isolated runtime contract')
     if 'skills' in manifest:
         from .state import applications
-        allowed = {'skill-harness', 'skill-workspace', 'skill-problem-solving', 'skill-quality-review'} | {'skill-' + app['id'] for app in applications()}
+        allowed = MANAGED_SKILLS | {'skill-' + app['id'] for app in applications()}
         skills = manifest['skills']
         if not isinstance(skills, list) or any(not isinstance(skill, str) or skill not in allowed for skill in skills):
             raise ValueError('Share only portable managed skills; package personal skill content separately')

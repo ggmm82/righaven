@@ -10,7 +10,7 @@ def main():
     store = LocalSkillStorage(host_path=str(root), container_path='/mnt/skills')
     found = {skill.name for skill in store.load_skills(enabled_only=False)}
     expected = {'skill-' + app['id'] for app in json.loads(Path('/app/backend/righaven/versions.lock.json').read_text())['applications']}
-    expected |= {'skill-workspace', 'skill-harness','skill-problem-solving','skill-quality-review'}
+    expected |= {'skill-workspace', 'skill-harness','skill-problem-solving','skill-quality-review','skill-data-pipeline'}
     assert expected <= found, 'Native RigHaven discovery omitted: ' + str(sorted(expected - found))
     for name in expected:
         assert store.custom_skill_exists(name)

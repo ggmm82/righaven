@@ -8,7 +8,7 @@ metadata:
 
 A recipe is a tested sequence of catalog operations with a gate after each phase. It is not a fixed role: compose the team from the request, but keep the phases, the evidence and the order. Each tool skill (skill-sqlglot, skill-duckdb, skill-tbls, skill-faker, skill-dlt, skill-sqlmesh, skill-supercronic) gives exact arguments; discover them with `craft tools TOOL`.
 
-Read [PHASES.md](references/PHASES.md) for every phase and gate, [MODEL.md](references/MODEL.md) for the schema model and the documentation overrides, and [PACKAGE.md](references/PACKAGE.md) for the delivered package and its release. [QUALITY.md](references/QUALITY.md) lists what a reviewer must find before acceptance.
+Read [PHASES.md](references/PHASES.md) for every phase and gate, [MODEL.md](references/MODEL.md) for the schema model and the documentation overrides, and [PACKAGE.md](references/PACKAGE.md) for the delivered package and its release. [QUALITY.md](references/QUALITY.md) lists what a reviewer must find before acceptance. An administrator can publish [policy-sheet.json](references/policy-sheet.json) as an optional Policy Book sheet to make these gates part of the final validation; it is not installed by default.
 
 ## When to use it
 

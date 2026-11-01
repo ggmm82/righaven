@@ -125,6 +125,11 @@ do not publish checksum files: the recorded SHA-256 was computed from the offici
 release downloads. The dlt environment also gains the `oracledb` driver for Oracle
 discovery.
 
+An administrator can publish `skills/custom/skill-data-pipeline/references/policy-sheet.json`
+as an optional Policy Book sheet so the final validation checks the catalog, the reconciled mart,
+the schedule and the absence of secrets (`no_secrets` probe). It is not installed by default,
+because every optional sheet requires a coordinator decision in every project.
+
 Not covered, and listed in every delivery: connectivity, permissions, volumes and
 timings on the real source and warehouse, hashed production lock files and the base
 image digest, business definitions of marts not confirmed by the user, BI reports.
