@@ -66,6 +66,7 @@
   "Instructions changed; reload before editing": "Le istruzioni sono cambiate: ricarica prima di modificare",
   "Invalid activity references": "Riferimenti alle attività non validi",
   "Invalid category: must be environment, cli-tool, or skill": "Categoria non valida: environment, cli-tool o skill",
+  "Invalid connections": "Connessioni non valide",
   "Invalid credentials": "Credenziali non valide",
   "Invalid decision": "Decisione non valida",
   "Invalid environment metadata": "Metadati dell’ambiente non validi",

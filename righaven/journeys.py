@@ -50,9 +50,13 @@ def _answers(body):
     return result
 
 
-def start(workspace, identifier, answers, expected_revision=0, recipe=None):
+def start(workspace, identifier, answers, expected_revision=0, recipe=None, connections=None, owner=None):
+    """Save the owner's choices; connections picked in the intake are assigned to the task when its project starts."""
     recipe = recipe or definition(identifier)
     clean = _answers(answers)
+    if connections is not None and (not isinstance(connections, list) or len(connections) > 10 or not owner
+                                    or not all(isinstance(c, str) for c in connections)):
+        raise ValueError('Invalid connections')
     if not clean['goal']:
         raise ValueError('Describe the desired outcome')
     with locked(workspace) as folder:
@@ -60,7 +64,7 @@ def start(workspace, identifier, answers, expected_revision=0, recipe=None):
         if previous:
             if previous['recipe_id'] != identifier:
                 raise ValueError('This task already has a guided workflow')
-            if previous['answers'] == clean:
+            if previous['answers'] == clean and (connections is None or (previous.get('connections') or {}).get('ids') == connections):
                 return view(workspace, previous)  # Idempotent retry after a lost save response.
             if previous['revision'] != expected_revision:
                 raise ValueError('Guided project changed; reload before saving')
@@ -79,6 +83,8 @@ def start(workspace, identifier, answers, expected_revision=0, recipe=None):
                      'definition': copy.deepcopy(recipe['workflow']), 'answers': clean, 'created_at': utcnow(),
                      'revision': 0, 'stages': [{'id': s['id'], 'status': 'pending', 'evidence': [], 'steps': [], 'note': ''}
                                                for s in recipe['workflow']['stages']]}
+        if connections is not None:
+            value['connections'] = {'owner': str(owner), 'ids': list(dict.fromkeys(connections))}
         _save(folder, value)
     return view(workspace, value)
 
@@ -313,6 +319,7 @@ def compact(value):
     return {'recipe_id': value['recipe_id'], **({'recipe': recipe} if recipe else {}),
             'revision': value['revision'], 'answers': value['answers'], 'current': value['current'],
             'complete': value['complete'], 'awaiting_owner': value.get('awaiting_owner', []),
+            'connections': (value.get('connections') or {}).get('ids', []),
             'stages': [{'id': s['id'], 'title': s['title']['it'], 'outcome': s['outcome']['it'], 'status': s['status'], 'available': s['available'],
                         'gate': s.get('gate', True), 'note': s.get('note', '')[:400], 'evidence': [e['path'] for e in s.get('evidence', [])],
                         **({'proposal': s['proposal']} if s.get('proposal') else {}), **({'decision_note': s['decision_note'][:400]} if s.get('decision_note') else {})}

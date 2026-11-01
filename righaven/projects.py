@@ -365,6 +365,9 @@ def create_plan(workspace, brief, steps, project_type='', omissions=None, *, sum
             value['brief'] = clean_summary(brief, 4000)
         from .journeys import _load as load_journey, pin_policy, outcome_seed
         journey = load_journey(folder)
+        if journey and journey.get('connections') and not value.get('connections'):
+            # Connections chosen in the recipe intake: the owner's consent, given before the task's project existed.
+            value['connections'] = {**journey['connections'], 'updated_at': utcnow()}
         if journey:
             # A guided project already knows the owner's goal: it is the result, not a question to ask again.
             seed = outcome_seed(journey)

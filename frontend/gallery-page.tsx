@@ -134,7 +134,7 @@ function GalleryContent() {useUiLanguage();
           <h1 className="text-2xl font-bold">{t("gallery.title")}</h1>
           <p className="text-sm text-muted-foreground">{t("gallery.subtitle")}</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <Link href="/workspace/harness" className="rounded-lg border px-3 py-1.5 text-sm hover:bg-muted">
             {t("navbar.dashboard")}
           </Link>

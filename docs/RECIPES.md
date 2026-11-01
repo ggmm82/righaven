@@ -8,7 +8,9 @@ RigHaven uses three building blocks with one vocabulary:
 | **Environment** | *with which tools*: programs prepared on first use and reused | Environments |
 | **Recipe** | *which path*: phases and owner approvals that combine skills and an environment for a kind of result | Recipes |
 
-A recipe is a reusable project method, offered through a guided intake. Users describe the desired outcome in ordinary language. Unknown source engines, deployment targets, BI tools and frequencies may be left empty. Attach documents in the resulting native conversation; the coordinator must read them before asking at most three decisive questions.
+A recipe is a reusable project method, offered through a guided intake. The intake asks for the goal and accepts, at once, the schema definition and documents
+(DDL/SQL, PDF, Word, Excel, CSV, JSON, XML, Parquet…), links to external documentation and the
+registered connections to assign to the task; everything else is optional. Users describe the desired outcome in ordinary language. Unknown source engines, deployment targets, BI tools and frequencies may be left empty. Attach documents in the resulting native conversation; the coordinator must read them before asking at most three decisive questions.
 
 ## Persistent workflow
 

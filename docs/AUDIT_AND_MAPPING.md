@@ -57,10 +57,17 @@ This document specifies the canonical **RigHaven** (`righaven`, `rh-`, `harness_
 | `harness_delegate` & `harness_delegate_batch` | Single and concurrent FIFO-queued sandbox delegation |
 | `harness_skills` & `harness_read_context` | Skill discovery and hash-verified context pagination |
 | `harness_lessons` | Conditional lesson extraction and runtime verification |
+| `harness_journey` | Guided project: read the compact path, submit a phase result, propose skipping a phase |
+| `harness_package_check` | Build and run an exported data package in an isolated verification job |
 | `/harness/api/*` | Harness configuration, LLM providers, and runtime budget API |
 | `/api/harness/environments/*` | On-demand and preloaded environment lifecycle API |
 | `/api/harness/tool-versions/*` | Verified CLI tool release management API |
 | `/api/threads/{id}/harness-*` | Thread jobs, audit log, guide, designs, and delivery acceptance |
+| `/api/harness/recipes/*` | Recipe catalog, user recipe editor (create, edit, draft, publish, delete) and editor options |
+| `/api/threads/{id}/harness-journey[/decision]` | Guided project start and owner decisions (approve, revise, skip, reopen, keep) |
+| `/api/harness/connections/*` | User connections, Microsoft sign-in (device code), database list, test |
+| `/api/threads/{id}/harness-connections` | Connections assigned to a task |
+| `/api/harness/policy-book/*` | Organization policies |
 | `GET /api/v1/gallery/packs` | Browse, search, and filter the Community Gallery |
 | `POST /api/v1/gallery/packs/{id}/activate` | On-demand pack activation and `harness_plan` injection |
 | `POST /api/v1/gallery/packs/publish` | Schema-validated community pack publishing |

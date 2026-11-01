@@ -91,6 +91,18 @@ class GuidedProjects(unittest.TestCase):
         self.assertEqual(done['awaiting_owner'],[])
         with self.assertRaises(ValueError):journeys.decide_many(self.work,['design'],'approve',done['revision'])
 
+    def test_connections_chosen_in_the_intake_are_assigned_when_the_project_starts(self):
+        other=self.root/'conn';other.mkdir()
+        from righaven import connections
+        fixture=patch.object(connections,'folder',side_effect=lambda user:(self.root/'users'/user).mkdir(parents=True,exist_ok=True) or self.root/'users'/user)
+        fixture.start();self.addCleanup(fixture.stop)
+        value=journeys.start(other,'data-pipeline',{'goal':'Leggi il warehouse'},0,None,['provawh'],'alice')
+        self.assertEqual(journeys.compact(value)['connections'],['provawh'])
+        with self.assertRaises(ValueError):journeys.start(self.root/'x','data-pipeline',{'goal':'x'},0,None,['a'],None)
+        projects.create_plan(other,'Catalogo',[{'id':'read','agent':'workspace','goal':'Leggi','depends_on':[]}])
+        stored=json.loads((other/'.righaven-project'/'project.json').read_text())['connections']
+        self.assertEqual((stored['ids'],stored['owner']),(['provawh'],'alice'))
+
     def test_goal_from_the_intake_is_the_project_result_without_asking_again(self):
         value=projects.read_project(self.work)
         self.assertEqual(value['outcome']['result'],'Create a documented data laboratory and business reports')

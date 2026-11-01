@@ -138,7 +138,7 @@ export default function ConnectionsPage(){
   {rows?.length===0&&!form&&<p className="text-sm">{t("Nessuna connessione registrata.","No connections registered.")}</p>}
   <ul className="space-y-3">{rows?.map(r=><li key={r.id} className="rounded-lg border p-4 text-sm" data-testid={"connection-"+r.id}>
    <div className="flex flex-wrap items-start justify-between gap-2">
-    <div><p className="font-semibold">{r.name} <span className="text-muted-foreground font-normal">· {LABELS[r.kind]} · {r.id}</span></p>
+    <div className="min-w-0 break-words [overflow-wrap:anywhere]"><p className="font-semibold">{r.name} <span className="text-muted-foreground font-normal">· {LABELS[r.kind]} · {r.id}</span></p>
      <p className="text-muted-foreground">{r.kind==="entra"?(r.mode==="user"?(r.signed_in?t("Account ","Account ")+(r.account??""):t("Accesso Microsoft da completare","Microsoft sign-in to complete"))+" · "+t("tenant ","tenant ")+r.tenant_id:t("Applicazione · tenant ","Application · tenant ")+r.tenant_id+" · "+t("app ","app ")+r.client_id):(r.host??"")+":"+String(r.port??"")+" / "+(r.database??"")+(r.authentication==="entra"?" · Entra ID ("+(r.entra_connection??"")+")":" · "+(r.username??""))+(r.authentication==="microsoft"?" · "+(r.signed_in?t("accesso Microsoft attivo","Microsoft signed in"):t("accesso Microsoft da completare","Microsoft sign-in to complete")):"")}</p>
      {r.kind!=="entra"&&<p className={r.read_only?"":"text-destructive"}>{r.read_only?t("Sola lettura dichiarata","Read-only declared"):t("Non dichiarata in sola lettura: gli strumenti la rifiutano","Not declared read-only: tools refuse it")}</p>}
      {r.tools.length>0&&<p className="text-muted-foreground text-xs">{t("Usabile con: ","Usable with: ")}{r.tools.join(", ")}</p>}

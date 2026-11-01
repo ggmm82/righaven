@@ -349,6 +349,7 @@
   "Intestazione PNG non valida": "Invalid PNG header",
   "Invalid activity references": null,
   "Invalid category: must be environment, cli-tool, or skill": null,
+  "Invalid connections": null,
   "Invalid credentials": null,
   "Invalid decision": null,
   "Invalid environment metadata": null,
