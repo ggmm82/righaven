@@ -1,8 +1,8 @@
 # Connections
 
 **Connections** (sidebar → *Configuration*) holds each user's own database and Microsoft cloud
-accounts. Tasks use them only when the user assigns them, and each assignment receives only the
-connections its role declares.
+accounts. Access is the user's choice: the connections ticked for a task are delivered to every
+assignment of that task and to no other.
 
 | Kind | Fields | Usable with |
 |---|---|---|
@@ -10,6 +10,7 @@ connections its role declares.
 | SQL Server / Azure SQL / Fabric (SQL user) | server, port (1433), database, user, password, encryption | usql, dlt (pymssql), SchemaCrawler |
 | SQL Server / Azure SQL / Fabric (Entra ID) | server, database, a Microsoft Entra ID connection | usql (`azuresql`, `fedauth=ActiveDirectoryServicePrincipal`) |
 | MySQL / MariaDB | server, port (3306), database, user, password, TLS | usql, dlt, SchemaCrawler |
+| Oracle | server, port (1521), service name, user, password | usql (go-ora), dlt (`oracledb` thin mode), SchemaCrawler |
 | Microsoft Entra ID | tenant (ID or domain), application (client) ID, client secret, cloud (global, US Government, China) | the SQL connections above; Fabric and Power BI APIs |
 
 ## How it works
@@ -25,9 +26,9 @@ connections its role declares.
    user has not declared read-only. Use an account with read permissions only.
 4. **Assign** it to a task from the project panel (*Task connections*). The coordinator then sees the
    connection's name, kind, server, database and the tools that support it, never its secret.
-5. **Use.** A role declares `connections: ["ID"]`; when that assignment starts, RigHaven decrypts only
-   those connections into a private folder mounted read-only at `/run/righaven/connections/ID.json`,
-   and deletes it when the worker ends. The adapters take `connection: "ID"` and redact the values
+5. **Use.** When an assignment of the task starts, RigHaven decrypts the task's connections into a
+   private folder mounted read-only at `/run/righaven/connections/ID.json`, and deletes it when the
+   worker ends. The adapters take `connection: "ID"` and redact the values
    from native logs; connection files never enter sources, receipts or lessons.
 
 ## Network
@@ -38,11 +39,11 @@ connections its role declares.
 - With the default worker network, assignments connect directly. With
   `RIGHAVEN_WORKER_EGRESS=allowlist` assignments can only use HTTPS through the proxy: Entra ID,
   Fabric and Power BI domains are granted automatically for assignments with an Entra connection, but
-  database protocols (TDS, PostgreSQL, MySQL) are not proxied and the databases are not reachable.
+  database protocols (TDS, PostgreSQL, MySQL, Oracle Net) are not proxied and the databases are not reachable.
 
 ## Not verified by RigHaven
 
 The Entra ID service principal path for SQL connections relies on the go-mssqldb `azuresql` driver
-built into usql; it has not been exercised against a real Azure SQL or Fabric endpoint by the
+built into usql, and Oracle relies on usql's go-ora driver and python-oracledb thin mode; they have not been exercised against real Azure SQL, Fabric or Oracle servers by the
 repository tests. Grant the application access to the database (for Fabric: workspace or item
 permissions) before use.

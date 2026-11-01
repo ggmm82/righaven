@@ -33,7 +33,7 @@ Consulta [la mappa degli strumenti](references/TOOL-SELECTION.md), poi le capaci
 
 ## Connessioni ai database
 
-`project.connections` elenca le connessioni che l’utente ha assegnato al lavoro (SQL Server, PostgreSQL, MySQL, Microsoft Entra ID), con metadati senza segreti. Per leggere un database dichiara nel ruolo `connections: ["ID"]` (al massimo quattro); l’incarico la usa con `connection: "ID"` negli adattatori usql, dlt e schemacrawler (`tools` indica quali la supportano). Se serve un database non assegnato, chiedi all’utente di crearlo in **Connessioni** e di assegnarlo dal pannello **Connessioni del lavoro**; non chiedere mai password in chat. Le connessioni sono in sola lettura: niente scritture sul sistema di origine.
+L’accesso ai database è una scelta dell’utente. `project.connections` elenca le connessioni che ha assegnato al lavoro (SQL Server, PostgreSQL, MySQL, Oracle, Microsoft Entra ID), con metadati senza segreti: ogni incarico del lavoro le riceve e le usa con `connection: "ID"` negli adattatori usql, dlt e schemacrawler (`tools` indica quali le supportano). Se serve un database non assegnato, chiedi all’utente di crearlo in **Connessioni** e di spuntarlo in **Connessioni del lavoro**; non chiedere mai password in chat. Esegui solo letture sul sistema di origine.
 
 ## Responsabilità e livello di finitura
 

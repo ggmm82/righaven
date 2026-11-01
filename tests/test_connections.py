@@ -10,7 +10,6 @@ from unittest.mock import patch
 from cryptography.fernet import Fernet
 
 from righaven import connections, projects
-from righaven.project_skills import validate_roles
 
 ROOT = Path(__file__).resolve().parents[1]
 PLAN = [{'id': 'schema', 'agent': 'dlt', 'goal': 'Leggi lo schema', 'depends_on': []}]
@@ -45,7 +44,7 @@ class ConnectionTests(unittest.TestCase):
         self.assertEqual(connections._read('alice', 'erp')['password'], 'p@ss:w/rd', 'an empty password keeps the stored one')
 
     def test_validation(self):
-        for body, message in (({'kind': 'oracle', 'name': 'x'}, 'Tipo'), ({'id': 'A', 'kind': 'mysql', 'name': 'x'}, 'id'),
+        for body, message in (({'kind': 'db2', 'name': 'x'}, 'Tipo'), ({'id': 'A', 'kind': 'mysql', 'name': 'x'}, 'id'),
                               ({'id': 'pg', 'kind': 'postgres', 'name': 'x', 'host': 'db', 'database': 'd', 'username': 'u'}, 'Password'),
                               ({'id': 'pg', 'kind': 'postgres', 'name': 'x', 'host': 'db', 'port': 70000, 'database': 'd', 'username': 'u', 'password': 'p'}, 'Porta'),
                               ({'id': 'az', 'kind': 'entra', 'name': 'x', 'tenant_id': 'contoso.onmicrosoft.com', 'client_id': 'non-un-guid', 'client_secret': 's'}, 'client')):
@@ -95,26 +94,25 @@ class ConnectionTests(unittest.TestCase):
         assigned = connections.assign('alice', self.workspace, ['erp', 'scrittura'])
         self.assertEqual([c['id'] for c in assigned], ['erp', 'scrittura'])
         self.assertNotIn('p@ss:w/rd', json.dumps(projects.read_project(self.workspace)['connections']))
-        with self.assertRaisesRegex(ValueError, 'non assegnata'):
-            connections.Delivery(self.workspace, {'connections': ['altro']}, Path(self.temp.name) / 'job-a')
-        with self.assertRaisesRegex(ValueError, 'sola lettura'):
-            connections.Delivery(self.workspace, {'connections': ['scrittura']}, Path(self.temp.name) / 'job-b')
-        delivery = connections.Delivery(self.workspace, {'connections': ['erp']}, Path(self.temp.name) / 'job-c')
-        private = Path(self.temp.name) / 'job-c/erp.json'
-        self.assertEqual(json.loads(private.read_text())['username'], 'lettore')
-        self.assertEqual(delivery.mount_arguments(lambda path, target, ro: f'{path}:{target}:{ro}'), ['--mount', f'{private.parent}:/run/righaven/connections:True'])
-        self.assertEqual(delivery.public[0]['id'], 'erp')
+        delivery = connections.Delivery(self.workspace, Path(self.temp.name) / 'job-c')
+        private = Path(self.temp.name) / 'job-c'
+        self.assertEqual(sorted(p.name for p in private.iterdir()), ['erp.json', 'scrittura.json'], 'every assigned connection, chosen by the user')
+        self.assertEqual(json.loads((private / 'erp.json').read_text())['username'], 'lettore')
+        self.assertFalse(json.loads((private / 'scrittura.json').read_text())['read_only'], 'adapters refuse it, the delivery does not decide')
+        self.assertEqual(delivery.mount_arguments(lambda path, target, ro: f'{path}:{target}:{ro}'), ['--mount', f'{private}:/run/righaven/connections:True'])
+        self.assertEqual([c['id'] for c in delivery.public], ['erp', 'scrittura'])
         self.assertNotIn('p@ss:w/rd', json.dumps(delivery.public))
         delivery.close()
-        self.assertFalse(private.parent.exists(), 'the private folder disappears with the worker')
-        self.assertEqual(connections.Delivery(self.workspace, {}, Path(self.temp.name) / 'job-d').mount_arguments(None), [])
+        self.assertFalse(private.exists(), 'the private folder disappears with the worker')
+        connections.assign('alice', self.workspace, [])
+        self.assertEqual(connections.Delivery(self.workspace, Path(self.temp.name) / 'job-d').mount_arguments(None), [], 'nothing when the user unticks them')
 
-    def test_roles_declare_connections(self):
-        role = {'id': 'lettore', 'title': 'Lettore schema', 'mission': 'Legge lo schema', 'expertise': ['SQL'], 'procedure': ['Leggi'],
-                'checks': ['Tabelle'], 'deliverables': ['Modello'], 'connections': ['erp']}
-        self.assertEqual(validate_roles([role], [])[0]['connections'], ['erp'])
-        with self.assertRaisesRegex(ValueError, 'connections'):
-            validate_roles([{**role, 'connections': ['ERP!']}], [])
+    def test_oracle_connection_file(self):
+        ora = connections._file(connections.validate({'id': 'ora', 'kind': 'oracle', 'name': 'x', 'host': 'ora.example.com', 'database': 'ORCLPDB1',
+                                                      'username': 'hr', 'password': 'p', 'read_only': True}), 'alice')
+        self.assertEqual(ora['url'], 'oracle+oracledb://hr:p@ora.example.com:1521/?service_name=ORCLPDB1')
+        self.assertEqual(ora['usql_url'], 'oracle://hr:p@ora.example.com:1521/ORCLPDB1')
+        self.assertEqual(ora['jdbc_url'], 'jdbc:oracle:thin:@//ora.example.com:1521/ORCLPDB1')
 
     def test_data_adapters_read_the_delivered_file(self):
         sys.path.insert(0, str(ROOT / 'scripts'))

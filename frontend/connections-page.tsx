@@ -5,15 +5,15 @@ import {fetch} from "@/core/api/fetcher";
 import {getBackendBaseURL} from "@/core/config";
 import {useI18n} from "@/core/i18n/hooks";
 
-type Kind="postgres"|"sqlserver"|"mysql"|"entra";
+type Kind="postgres"|"sqlserver"|"mysql"|"oracle"|"entra";
 type Test={ok:boolean;detail:string;at:string};
 type Connection={id:string;kind:Kind;name:string;description?:string;host?:string;port?:number;database?:string;username?:string;tls?:boolean;read_only?:boolean;
  authentication?:"password"|"entra";entra_connection?:string;tenant_id?:string;client_id?:string;cloud?:string;has_secret:boolean;tools:string[];last_test?:Test;updated_at?:string};
 type Form={id:string;kind:Kind;name:string;description:string;host:string;port:string;database:string;username:string;password:string;tls:boolean;read_only:boolean;
  authentication:"password"|"entra";entra_connection:string;tenant_id:string;client_id:string;client_secret:string;cloud:string};
 
-const PORTS:Record<Kind,string>={postgres:"5432",sqlserver:"1433",mysql:"3306",entra:""};
-const LABELS:Record<Kind,string>={postgres:"PostgreSQL",sqlserver:"SQL Server / Azure SQL / Fabric",mysql:"MySQL / MariaDB",entra:"Microsoft Entra ID"};
+const PORTS:Record<Kind,string>={postgres:"5432",sqlserver:"1433",mysql:"3306",oracle:"1521",entra:""};
+const LABELS:Record<Kind,string>={postgres:"PostgreSQL",sqlserver:"SQL Server / Azure SQL / Fabric",mysql:"MySQL / MariaDB",oracle:"Oracle",entra:"Microsoft Entra ID"};
 const blank=(kind:Kind):Form=>({id:"",kind,name:"",description:"",host:"",port:PORTS[kind],database:"",username:"",password:"",tls:true,read_only:false,
  authentication:"password",entra_connection:"",tenant_id:"",client_id:"",client_secret:"",cloud:"public"});
 const slug=(text:string)=>text.normalize("NFD").replace(/\p{M}/gu,"").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"").replace(/^([^a-z])/,"c-$1").slice(0,40);
@@ -52,15 +52,15 @@ export default function ConnectionsPage(){
  return <div className="mx-auto w-full max-w-5xl space-y-6 p-6">
   <header className="space-y-2"><h1 className="text-2xl font-semibold">{t("Connessioni","Connections")}</h1>
    <p className="text-muted-foreground text-sm">{t(
-    "Registra qui i database e gli account Microsoft che i lavori possono usare. Le password e i segreti sono cifrati, non vengono più mostrati e non arrivano mai al coordinatore. In un lavoro le assegni dal pannello del progetto («Connessioni del lavoro»): ogni incarico riceve solo quelle del proprio ruolo e le perde quando finisce.",
-    "Register here the databases and Microsoft accounts that tasks may use. Passwords and secrets are encrypted, never shown again and never reach the coordinator. In a task you assign them from the project panel (“Task connections”): each assignment receives only its role's connections and loses them when it ends.")}</p>
+    "Registra qui i database e gli account Microsoft che i lavori possono usare. Le password e i segreti sono cifrati, non vengono più mostrati e non arrivano mai al coordinatore. Sei tu a decidere l’accesso: in un lavoro scegli le connessioni dal pannello del progetto («Connessioni del lavoro»); solo gli incarichi di quel lavoro le ricevono, e le perdono quando finiscono.",
+    "Register here the databases and Microsoft accounts that tasks may use. Passwords and secrets are encrypted, never shown again and never reach the coordinator. Access is your choice: in a task you pick the connections from the project panel (“Task connections”); only that task's assignments receive them, and lose them when they end.")}</p>
    <p className="text-muted-foreground text-sm">{t(
     "Usa account in sola lettura: gli strumenti RigHaven eseguono solo letture e rifiutano i database non dichiarati in sola lettura. Per Azure SQL e Microsoft Fabric crea prima l’applicazione Microsoft Entra ID, poi una connessione SQL Server che la usa.",
     "Use read-only accounts: RigHaven tools only read and refuse databases not declared read-only. For Azure SQL and Microsoft Fabric create the Microsoft Entra ID application first, then a SQL Server connection that uses it.")}</p>
   </header>
   {error&&<p className="text-destructive text-sm" role="alert">{error}</p>}
   {notice&&<p className="text-sm">{notice}</p>}
-  {!form&&<div className="flex flex-wrap gap-2">{(["postgres","sqlserver","mysql","entra"] as Kind[]).map(k=><button key={k} className="rounded border px-3 py-2 text-sm" onClick={()=>{setEditing(null);setForm(blank(k));}}>{t("Nuova: ","New: ")}{LABELS[k]}</button>)}</div>}
+  {!form&&<div className="flex flex-wrap gap-2">{(["postgres","sqlserver","mysql","oracle","entra"] as Kind[]).map(k=><button key={k} className="rounded border px-3 py-2 text-sm" onClick={()=>{setEditing(null);setForm(blank(k));}}>{t("Nuova: ","New: ")}{LABELS[k]}</button>)}</div>}
   {form&&<section className="space-y-3 rounded-lg border p-4" data-testid="connection-form">
    <h2 className="font-semibold">{editing?t("Modifica ","Edit ")+editing:t("Nuova connessione ","New connection ")}· {LABELS[form.kind]}</h2>
    <div className="grid gap-3 md:grid-cols-2">
@@ -76,7 +76,7 @@ export default function ConnectionsPage(){
     </>:<>
      {input("host",t("Server","Server"),{placeholder:form.kind==="sqlserver"?"server.database.windows.net":"db.example.com"})}
      {input("port",t("Porta","Port"),{inputMode:"numeric"})}
-     {input("database",t("Database","Database"))}
+     {input("database",form.kind==="oracle"?t("Nome del servizio (service name)","Service name"):t("Database","Database"))}
      {form.kind==="sqlserver"&&<label className="block text-sm">{t("Autenticazione","Authentication")}<select className={field} value={form.authentication} onChange={e=>setForm(f=>f&&{...f,authentication:e.target.value as "password"|"entra"})}>
       <option value="password">{t("Utente e password SQL","SQL user and password")}</option><option value="entra">{t("Microsoft Entra ID (service principal)","Microsoft Entra ID (service principal)")}</option></select></label>}
      {form.kind==="sqlserver"&&form.authentication==="entra"?<label className="block text-sm">{t("Applicazione Entra ID","Entra ID application")}<select className={field} value={form.entra_connection} onChange={e=>setForm(f=>f&&{...f,entra_connection:e.target.value})}>

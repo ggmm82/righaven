@@ -1,9 +1,9 @@
 """User database and Microsoft cloud connections, assigned to projects and delivered per assignment.
 
-Secrets are encrypted at rest with the installation credentials key. They are
-decrypted only into a private folder mounted read-only into the worker of an
-assignment whose role declares the connection, and that folder is deleted when
-the worker ends. Coordinators, project context, receipts and logs see public
+Access is the user's choice: the connections the user assigns to a task are
+delivered to every assignment of that task, and to no other. Secrets are
+encrypted at rest with the installation credentials key and decrypted only into
+a private folder mounted read-only into each worker, deleted when it ends. Coordinators, project context, receipts and logs see public
 metadata only: name, kind, host, database and the read-only declaration.
 """
 import ipaddress
@@ -17,13 +17,13 @@ from urllib.parse import quote
 
 from . import state
 
-KINDS = ('postgres', 'sqlserver', 'mysql', 'entra')
+KINDS = ('postgres', 'sqlserver', 'mysql', 'oracle', 'entra')
 CONNECTION_ID = re.compile(r'[a-z][a-z0-9-]{1,39}\Z')
 HOST = re.compile(r'[A-Za-z0-9][A-Za-z0-9.-]{0,252}\Z')
 NAME = re.compile(r'[A-Za-z0-9_.@$#-]{1,128}\Z')
 GUID = re.compile(r'[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\Z')
 TENANT = re.compile(r'([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}|[A-Za-z0-9-]{1,63}(\.[A-Za-z0-9-]{1,63})+)\Z')
-DEFAULT_PORTS = {'postgres': 5432, 'sqlserver': 1433, 'mysql': 3306}
+DEFAULT_PORTS = {'postgres': 5432, 'sqlserver': 1433, 'mysql': 3306, 'oracle': 1521}
 AUTHORITIES = {'public': 'login.microsoftonline.com', 'usgov': 'login.microsoftonline.us', 'china': 'login.chinacloudapi.cn'}
 SECRETS = ('password', 'client_secret')
 MAX_CONNECTIONS = 50
@@ -284,6 +284,11 @@ def _file(record, user_id):
         ssl = 'require' if record['tls'] else 'disable'
         return {**base, 'url': f'postgresql+psycopg://{user}:{password}@{host}:{port}/{quote(database)}?sslmode={ssl}',
                 'jdbc_url': f'jdbc:postgresql://{host}:{port}/{database}?sslmode={ssl}', 'username': record['username'], 'password': record['password']}
+    if kind == 'oracle':
+        service = quote(database, safe='')
+        return {**base, 'url': f'oracle+oracledb://{user}:{password}@{host}:{port}/?service_name={service}',
+                'usql_url': f'oracle://{user}:{password}@{host}:{port}/{service}',
+                'jdbc_url': f'jdbc:oracle:thin:@//{host}:{port}/{database}', 'username': record['username'], 'password': record['password']}
     if kind == 'mysql':
         return {**base, 'url': f'mysql+pymysql://{user}:{password}@{host}:{port}/{quote(database)}',
                 'jdbc_url': f'jdbc:mysql://{host}:{port}/{database}' + ('?sslMode=REQUIRED' if record['tls'] else ''),
@@ -296,28 +301,26 @@ def _file(record, user_id):
 
 
 class Delivery:
-    """Decrypt the role's connections into a private folder for one worker; removed on close."""
-    def __init__(self, workspace, role, destination):
+    """Decrypt the task's connections, chosen by the user, into a private folder for one worker; removed on close."""
+    def __init__(self, workspace, destination):
         self.directory = None
         self.public = []
         self.domains = []
-        wanted = list((role or {}).get('connections') or [])
-        if not wanted:
-            return
         from .project_store import locked, load
         with locked(workspace) as directory:
             value = load(directory, workspace) or {}
         binding = value.get('connections') or {}
-        missing = [c for c in wanted if c not in binding.get('ids', [])]
-        if missing:
-            raise ValueError('Connessione non assegnata a questo lavoro: ' + ', '.join(missing) + '. L’utente la assegna dal pannello del progetto.')
+        wanted = list(binding.get('ids') or [])
+        if not wanted:
+            return
         owner = binding['owner']
         self.directory = Path(destination)
         self.directory.mkdir(parents=True, mode=0o700)
         for identifier in wanted:
-            record = _read(owner, identifier)
-            if record['kind'] != 'entra' and not record.get('read_only'):
-                raise ValueError('La connessione ' + identifier + ' non è dichiarata in sola lettura: gli adattatori RigHaven la rifiutano')
+            try:
+                record = _read(owner, identifier)
+            except (ValueError, OSError, KeyError):
+                continue  # deleted after assignment: nothing to deliver
             path = self.directory / (identifier + '.json')
             path.write_text(json.dumps(_file(record, owner)))
             path.chmod(0o600)

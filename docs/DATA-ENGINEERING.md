@@ -54,9 +54,9 @@ documents per collection and reports this limit. The extracted row cap is
 
 ### User connections
 
-Users register SQL Server, PostgreSQL, MySQL/MariaDB and Microsoft Entra ID connections on the
-**Connections** page and assign them to a task from its project panel. Details: [Connections](CONNECTIONS.md).
-A role declares `connections: ["ID"]` and the adapters receive `connection: "ID"`.
+Users register SQL Server, PostgreSQL, MySQL/MariaDB, Oracle and Microsoft Entra ID connections on the
+**Connections** page and tick them for a task in its project panel; every assignment of that task
+receives them and the adapters take `connection: "ID"`. Details: [Connections](CONNECTIONS.md).
 
 ## Tool choices and upstream references
 

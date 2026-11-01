@@ -502,8 +502,8 @@ def delegate(agent_id, task, workspace, tool_call_id=None, on_started=None, requ
             from .credential_sessions import ApiCredentialSession
             credentials=ApiCredentialSession(engine,jobs/(name+'-credentials'),settings.get('connection_id'))
         from .connections import Delivery as ConnectionDelivery
-        # Only the connections the role declares and the user assigned to this project; deleted with the worker.
-        connections=ConnectionDelivery(workspace,role,jobs/(name+'-connections'))
+        # The connections the user assigned to this task, deleted with the worker.
+        connections=ConnectionDelivery(workspace,jobs/(name+'-connections'))
         from .resource_budget import BUDGET
         from .cancellation import requested
         class CancelBudget:
