@@ -574,6 +574,7 @@ def scaffold(model,output,*,target,source_dialect,name,schedule,stub_source=None
     if target not in DESTINATIONS:raise ValueError('Destinazione tra '+', '.join(DESTINATIONS))
     name=re.sub(r'[^a-z0-9_]','_',(name or model['name']).lower()).strip('_') or 'pipeline'
     root=output/'package';root.mkdir()
+    write(root,'package-spec.json',json.dumps({'name':name,'target':target,'source_dialect':source_dialect},indent=2))
     tables=plan_tables(model)
     write(root,'schema/model.json',json.dumps(model,indent=2,ensure_ascii=False))
     replica,limits=pm.ddl(model,'duckdb');write(root,'schema/replica.duckdb.sql',replica)

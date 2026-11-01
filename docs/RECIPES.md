@@ -18,7 +18,7 @@ Starting a guided data project pins its release policy alongside organization po
 4. Generate deterministic synthetic scenarios; test constraints, updates, deletes and anomalies.
 5. Verify recurring acquisition and transformations, reconciliation, recovery and repeatability.
 6. Deliver actual business reports and editable query/model sources. BI tables or example counts alone do not satisfy reporting.
-7. Build and start the exact exported package in a clean environment; verify a second cycle and restart, and deliver evidence and a runbook.
+7. Use `harness_package_check` to build and start the exact exported package in an isolated runtime without production access; verify a second cycle and restart, and deliver evidence and a runbook.
 
 No live connection is needed for the synthetic path. External source and production target checks remain unverified until authorized access is supplied. In-app workers are disposable builders; the exported project's volume retains pipeline and SQLMesh state and reports between container replacements. This release does not turn temporary worker terminals into persistent database or BI servers.
 
@@ -31,3 +31,9 @@ CI builds the generated Dockerfile, starts the exported scheduler without RigHav
 ## Connections and access
 
 The access page discovers the existing model-provider CLI/API connections and the personal database/identity connections. It does not duplicate OAuth sessions or change coordinator/team model assignment. Database grants are optional. Each compiled role declares the subset of owner-authorized connection IDs it needs; document reviewers receive no database credentials by default. Additional connector families require reviewed adapters, not merely new dropdown entries.
+
+## Per-project package verification
+
+`harness_package_check` accepts a bounded package directory from the current conversation outputs. It requires the managed Dockerfile, runtime and dependency locks of the current release. A dedicated BuildKit container and execution worker acquire the shared resource budget. No model credentials or production connections are mounted; execution has no network. Cancellation tears down the builder and worker before capacity is released, with quarantine when cleanup cannot be confirmed.
+
+The report binds the input file hashes to a host-owned verification job. The package phase refuses a hand-written success report or changed package contents. A locally passed report does not certify native Power BI deployment, external accounts or the business meaning of the agreed measures. Those remain separate policy checks.

@@ -1,5 +1,6 @@
 """Persistent guided projects. Native plans own work; journeys own user decisions and gates."""
 import copy
+from functools import lru_cache
 import json
 from pathlib import Path
 from . import recipes, state
@@ -78,9 +79,53 @@ def _save(folder, value):
     state.atomic_json(folder / 'journey.json', value)
 
 
+@lru_cache(maxsize=512)
+def _cached_digest(filename, metadata):
+    return digest(Path(filename))
+
+
+def _file_digest(path):
+    stat=path.stat()
+    key=(stat.st_dev,stat.st_ino,stat.st_size,stat.st_mtime_ns,stat.st_ctime_ns)
+    value=_cached_digest(str(path),key)
+    after=path.stat()
+    return value if key==(after.st_dev,after.st_ino,after.st_size,after.st_mtime_ns,after.st_ctime_ns) else None
+
+
+def verified_package(workspace, evidence):
+    """Only a host-owned verification job may establish package execution evidence."""
+    from .progress import JOB_ID, job_path, read_status
+    from .project_store import workspace_path
+    for item in evidence:
+        path=artifact_path(workspace,item['path'])
+        if not path or path.name!='package-check.json' or not JOB_ID.fullmatch(path.parent.name):
+            continue
+        expected=Path(workspace).resolve()/'outputs/workspace'/path.parent.name/'package-check.json'
+        if path.resolve()!=expected or path.stat().st_size>200000:
+            continue
+        try:
+            status=read_status(job_path(workspace,path.parent.name))
+            report=json.loads(path.read_text())
+            if status.get('engine')!='verification' or status.get('model')!='exported-package' or status.get('phase')!='completed' or report.get('status')!='passed':
+                continue
+            package=workspace_path(workspace,report['package'])
+            if not package or not package.resolve().is_relative_to(Path(workspace).resolve()/'outputs'):
+                continue
+            files={p.relative_to(package).as_posix():_file_digest(p) for p in package.rglob('*') if p.is_file() and not p.is_symlink()}
+            if files==report.get('files'):
+                return True
+        except (OSError,ValueError,KeyError,TypeError):
+            continue
+    return False
+
+
 def _fresh(workspace, stage):
-    return bool(stage['evidence']) and all(
-        (p := artifact_path(workspace, e['path'])) and digest(p) == e['sha256'] for e in stage['evidence'])
+    try:
+        fresh=bool(stage['evidence']) and all(
+            (p := artifact_path(workspace, e['path'])) and _file_digest(p) == e['sha256'] for e in stage['evidence'])
+        return fresh and (stage['id']!='package' or verified_package(workspace,stage['evidence']))
+    except OSError:
+        return False
 
 
 def view(workspace, value=None):
@@ -132,6 +177,8 @@ def record(workspace, stage_id, evidence, steps, note, expected_revision):
             if not path or path.is_relative_to(folder):
                 raise ValueError('Evidence must be a saved project artifact')
             kept.append({'path': '/mnt/user-data/' + path.relative_to(Path(workspace).resolve()).as_posix(), 'sha256': digest(path)})
+        if stage_id=='package' and kept and not verified_package(workspace,kept):
+            raise ValueError('Run harness_package_check on this exact package and attach its successful verification report')
         target = next(s for s in raw['stages'] if s['id'] == stage_id)
         target.update(status='review' if kept else 'working', evidence=kept, steps=steps, note=note.strip())
         _invalidate(raw, stage_id)

@@ -49,3 +49,5 @@ The exported runtime keeps SQLMesh state, pipeline state and outputs under DATA_
 Default loads are repeatable full snapshots. Incremental cursors are proposals: enable only after confirming update/delete semantics, keys, late arrivals and replay tests. Test duplicate prevention and recovery, not only an initial load. The cycle orders stub generation, ingestion and transformations under one shared-storage lock.
 
 Use role connections only when needed: reference the owner-authorized IDs in the role's connections field. Never give a document reviewer database credentials. Reuse centralized model-provider authentication; do not add a second CLI login inside a data environment.
+
+Before submitting the package phase, invoke harness_package_check on the actual exported package directory. It builds and runs the managed package without production credentials and saves a project-owned verification report. This tool is necessary because ordinary disposable workers do not receive the Docker socket. Inspect failures and preserve not-run checks; never substitute the generic CI fixture for a customer package test.

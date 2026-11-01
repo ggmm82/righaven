@@ -36,6 +36,7 @@ case "$status" in
 esac
 python scripts/ci_http.py
 docker compose exec -T -e RIGHAVEN_CI_SOFTWARE_REUSE=1 -e PYTHONPATH=/app/backend gateway python /app/worker-source/scripts/check_runtime_reuse.py
+docker compose exec -T -e RIGHAVEN_CI_PACKAGE_CHECK=1 -e PYTHONPATH=/app/backend gateway python /app/worker-source/scripts/ci_package_check.py
 python scripts/ci_workspace_management.py
 npm install --prefix /tmp/righaven-browser --no-audit --no-fund playwright@1.59.1
 /tmp/righaven-browser/node_modules/.bin/playwright install --with-deps chromium

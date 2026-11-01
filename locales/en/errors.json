@@ -933,5 +933,20 @@
   "This result is not available for approval": null,
   "This task already has a guided workflow": null,
   "Unknown guided project field": null,
-  "Start the current guided phase with harness_journey and its native activity IDs; wait for owner approval before later phases": null
+  "Start the current guided phase with harness_journey and its native activity IDs; wait for owner approval before later phases": null,
+  "Exported pipeline did not complete its test cycle": null,
+  "Package changed after verification; test the new version": null,
+  "Package verification requires the application-owned internal runtime": null,
+  "Unsupported package target or source dialect": null,
+  "Run harness_package_check on this exact package and attach its successful verification report": null,
+  "Select a package saved in this project outputs directory": null,
+  "Package changed while preparing its verification": null,
+  "Remove private credential files from the exported package": null,
+  "Package verification command timed out": null,
+  "Regenerate the managed package before testing: runtime, Dockerfile or dependency locks differ from this release": null,
+  "Invalid package name": null,
+  "Exported pipeline failed; inspect the saved container log": null,
+  "Package must contain at most 4000 files and 50 MiB, without symlinks": null,
+  "Package command failed; inspect the saved command log": null,
+  "Select the exported package directory": null
 }

@@ -70,6 +70,23 @@ def experience_root(runtime):
     return get_paths().user_dir(resolve_runtime_user_id(runtime)) / 'righaven-experience'
 
 
+@tool('harness_package_check', parse_docstring=True)
+async def harness_package_check(runtime: Runtime, package_path: str) -> str:
+    """Build and execute the actual exported data package in an isolated, resource-limited runtime.
+
+    Uses the managed Dockerfile and hashed locks only. It mounts no model or production
+    credentials, runs synthetic cycles across replacement and saves a verification report.
+    Read the report and correct failures before submitting the package phase.
+
+    Args:
+        runtime: Injected RigHaven runtime.
+        package_path: Existing exported package directory inside this conversation outputs.
+    """
+    from .package_checks import check
+    from .cancellation import call
+    return json.dumps(await call(check, workspace_for(runtime), package_path), ensure_ascii=False)
+
+
 @tool('harness_journey', parse_docstring=True)
 def harness_journey(runtime: Runtime, stage_id: str = '', evidence_json: str = '[]', steps_json: str = '[]', note: str = '', expected_revision: int = 0) -> str:
     """Read the selected guided project or submit one phase for owner approval.
