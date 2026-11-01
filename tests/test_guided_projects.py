@@ -44,6 +44,81 @@ class GuidedProjects(unittest.TestCase):
         with self.assertRaises(ValueError):journeys.record(self.work,'understand',['/etc/passwd'],['catalog'],'No external evidence',working['revision'])
         with self.assertRaises(ValueError):journeys.record(self.work,'understand',[],['missing'],'Invalid native activity',working['revision'])
 
+    def test_owner_skips_unneeded_phases_and_can_reopen_them(self):
+        v=self.submit('understand');v=journeys.decide(self.work,'understand',None,v['revision'],action='approve')
+        proposal=journeys.record(self.work,'design',[],[],'A demo with sample data needs no separate design phase',v['revision'],propose_skip=True)
+        self.assertEqual(proposal['awaiting_owner'],['design'])
+        self.assertEqual(proposal['stages'][1]['status'],'pending','a coordinator proposal never settles the phase')
+        kept=journeys.decide(self.work,'design',None,proposal['revision'],'Serve comunque',action='keep')
+        self.assertEqual((kept['awaiting_owner'],kept['stages'][1]['status']),([],'pending'))
+        with self.assertRaises(ValueError):journeys.decide(self.work,'design',None,kept['revision'],action='keep')
+        proposal=journeys.record(self.work,'design',[],[],'A demo with sample data needs no separate design phase',kept['revision'],propose_skip=True)
+        skipped=journeys.decide(self.work,'design',None,proposal['revision'],'Not needed for the demo',action='skip')
+        self.assertEqual(skipped['stages'][1]['status'],'skipped')
+        self.assertNotIn('proposal',skipped['stages'][1])
+        downstream=[s for s in skipped['stages'] if s['depends_on']==['design']]
+        self.assertTrue(downstream and all(s['available'] for s in downstream),'a skipped phase satisfies its dependants')
+        with self.assertRaises(ValueError):journeys.decide(self.work,'design',None,skipped['revision'],action='skip')
+        again=self.submit('understand')
+        self.assertEqual(again['stages'][1]['status'],'skipped','new upstream evidence keeps the owner skip')
+        reopened=journeys.decide(self.work,'design',None,journeys.decide(self.work,'understand',True,again['revision'])['revision'],action='reopen')
+        self.assertEqual(reopened['current'],'design')
+        with self.assertRaises(ValueError):journeys.decide(self.work,'design',None,reopened['revision'],action='reopen')
+        with self.assertRaises(ValueError):journeys.decide(self.work,'design',None,reopened['revision'],action='delete')
+
+    def test_phase_without_gate_completes_with_evidence_and_compact_view_is_small(self):
+        with projects.locked(self.work) as folder:
+            raw=json.loads((folder/'journey.json').read_text())
+            raw['definition']['stages'][0]['gate']=False
+            state.atomic_json(folder/'journey.json',raw)
+        done=self.submit('understand')
+        self.assertEqual(done['stages'][0]['status'],'approved')
+        self.assertEqual(done['current'],'design')
+        small=journeys.compact(done)
+        self.assertNotIn('definition',small)
+        self.assertLess(len(json.dumps(small)),len(json.dumps(done))/2)
+        self.assertEqual(small['stages'][0]['evidence'],['/mnt/user-data/catalog.md'])
+        self.assertIn('Salta fase',journeys.instructions(self.work))
+
+    def test_team_proposes_every_unneeded_phase_at_once_and_owner_skips_them_together(self):
+        start=journeys.view(self.work)
+        for stage in ('lab','pipeline','package'):
+            start=journeys.record(self.work,stage,[],[],'Una demo con dati di esempio non ne ha bisogno',start['revision'],propose_skip=True)
+        self.assertEqual(start['awaiting_owner'],['lab','pipeline','package'],'future phases can be proposed before they are reached')
+        with self.assertRaises(ValueError):journeys.decide(self.work,'pipeline',True,start['revision'])
+        done=journeys.decide_many(self.work,['lab','pipeline','package'],'skip',start['revision'],'Solo una demo')
+        self.assertEqual([s['status'] for s in done['stages']],['pending','pending','skipped','pending','skipped','pending','skipped'])
+        self.assertEqual(done['awaiting_owner'],[])
+        with self.assertRaises(ValueError):journeys.decide_many(self.work,['design'],'approve',done['revision'])
+
+    def test_goal_from_the_intake_is_the_project_result_without_asking_again(self):
+        value=projects.read_project(self.work)
+        self.assertEqual(value['outcome']['result'],'Create a documented data laboratory and business reports')
+        self.assertEqual(value['outcome']['title'],'Pipeline dati end-to-end')
+        self.assertTrue(value['outcome']['format'])
+        self.assertIsNone(projects.briefing_issue(value['outcome']))
+        # A coordinator that only records open questions keeps the owner's goal as the result.
+        projects.create_plan(self.work,'',[],outcome={'questions':['Foglio di calcolo o pagina web?']})
+        self.assertEqual(projects.read_project(self.work)['outcome']['result'],'Create a documented data laboratory and business reports')
+
+    def test_guided_phase_gates_replace_chat_checkpoints_while_free_projects_keep_them(self):
+        def run(work, step, turn):
+            folder=work/'outputs'/(step+turn);folder.mkdir(parents=True,exist_ok=True);(folder/'out.md').write_text('testo')
+            reply={'ok':True,'error':'','output_dir':str(folder),'handoff':{'source_files':[],'output_files':[str(folder/'out.md')],'previews':[],
+                   'checks':[{'name':'Letto','status':'passed','evidence':'riaperto'}]}}
+            return json.loads(projects.execute_step(work,'workspace','Esegui',step,lambda task,started:json.dumps(reply),purpose='work',request_id=turn))
+        projects.set_policy_plan(self.work,[])
+        working=journeys.record(self.work,'understand',[],['catalog'],'Leggo la documentazione',journeys.view(self.work)['revision'])
+        self.assertEqual(working['stages'][0]['status'],'working')
+        result=run(self.work,'catalog','turn-1')
+        self.assertTrue(result['ok']);self.assertNotIn('checkpoint',result,'no chat confirmation on top of the phase approval')
+        free=self.root/'free';free.mkdir()
+        projects.create_plan(free,'Documento',[{'id':'draft','agent':'workspace','goal':'Bozza','depends_on':[]}],outcome={'result':'Documento','format':'Markdown'})
+        projects.set_policy_plan(free,[])
+        self.assertIsNone(journeys.view(free))
+        self.assertEqual(run(free,'draft','turn-1')['checkpoint']['steps'],['draft'],'free projects keep their checkpoints')
+        self.assertNotIn('journey',{k for k,v in projects.read_project(free).items() if v})
+
     def test_changed_evidence_invalidates_downstream_and_cannot_be_approved(self):
         v=self.submit('understand');journeys.decide(self.work,'understand',True,v['revision'])
         v=self.submit('design','design.md');journeys.decide(self.work,'design',True,v['revision'])

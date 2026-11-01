@@ -18,10 +18,10 @@ class Connection(BaseModel):
     kind: Optional[str] = Field(default=None, max_length=20)
     name: str = Field(max_length=80)
     description: str = Field(default='', max_length=400)
-    host: Optional[str] = Field(default=None, max_length=253)
+    host: Optional[str] = Field(default=None, max_length=1000)
     port: Optional[int] = None
     database: Optional[str] = Field(default=None, max_length=128)
-    username: Optional[str] = Field(default=None, max_length=128)
+    username: Optional[str] = Field(default=None, max_length=254)
     password: Optional[str] = Field(default=None, max_length=512)
     tls: bool = True
     read_only: bool = False
@@ -31,6 +31,7 @@ class Connection(BaseModel):
     client_id: Optional[str] = Field(default=None, max_length=36)
     client_secret: Optional[str] = Field(default=None, max_length=512)
     cloud: str = Field(default='public', max_length=20)
+    mode: Optional[str] = Field(default=None, max_length=20)
 
 
 class Assignment(BaseModel):
@@ -77,6 +78,36 @@ async def remove(identifier: str, request: Request):
 async def test(identifier: str, request: Request):
     same_origin(request)
     return await run(connections.test, get_effective_user_id(), identifier)
+
+
+@router.post('/api/harness/connections/{identifier}/sign-in')
+@require_permission('agents', 'read')
+async def sign_in(identifier: str, request: Request):
+    """Personal Microsoft account: device code flow, with MFA completed on Microsoft's page."""
+    same_origin(request)
+    return await run(connections.sign_in, get_effective_user_id(), identifier)
+
+
+@router.post('/api/harness/connections/{identifier}/sign-in/poll')
+@require_permission('agents', 'read')
+async def sign_in_poll(identifier: str, request: Request):
+    same_origin(request)
+    return await run(connections.complete_sign_in, get_effective_user_id(), identifier)
+
+
+@router.post('/api/harness/connections/{identifier}/databases')
+@require_permission('agents', 'read')
+async def databases(identifier: str, request: Request):
+    """Databases the signed-in Microsoft account can see on this server, to choose one without typing it."""
+    same_origin(request)
+    return await run(connections.databases, get_effective_user_id(), identifier)
+
+
+@router.delete('/api/harness/connections/{identifier}/sign-in')
+@require_permission('agents', 'read')
+async def sign_out(identifier: str, request: Request):
+    same_origin(request)
+    return await run(connections.sign_out, get_effective_user_id(), identifier)
 
 
 @router.get('/api/threads/{thread_id}/harness-connections')

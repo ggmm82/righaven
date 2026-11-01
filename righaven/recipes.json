@@ -85,12 +85,12 @@
           {
             "title": "Laboratorio",
             "detail": "Database vuoto, servizi e compatibilità con il motore sorgente dichiarata",
-            "checkpoint": true
+            "checkpoint": false
           },
           {
             "title": "Dati di prova",
             "detail": "Lotti ripetibili, modifiche, cancellazioni, vincoli e anomalie",
-            "checkpoint": true
+            "checkpoint": false
           },
           {
             "title": "Pipeline verificata",
@@ -158,12 +158,12 @@
           {
             "title": "Laboratory",
             "detail": "Empty database, services and explicit source-engine compatibility",
-            "checkpoint": true
+            "checkpoint": false
           },
           {
             "title": "Test scenarios",
             "detail": "Deterministic batches, updates, deletes, constraints and anomalies",
-            "checkpoint": true
+            "checkpoint": false
           },
           {
             "title": "Verified pipeline",
@@ -228,7 +228,8 @@
             },
             "depends_on": [
               "design"
-            ]
+            ],
+            "gate": false
           },
           {
             "id": "data",
@@ -242,7 +243,8 @@
             },
             "depends_on": [
               "lab"
-            ]
+            ],
+            "gate": false
           },
           {
             "id": "pipeline",
@@ -368,7 +370,8 @@
           "applies_to": [
             "delivery"
           ]
-        }
+        },
+        "guidance": "A DuckDB simulation is not a faithful source-engine replica. Deliver actual BI reports, not just BI tables. The package must run outside RigHaven and pass its own clean-start, second-run and restart tests. Never declare production tested without an authorized target verification."
       }
     }
   ]

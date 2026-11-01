@@ -363,6 +363,17 @@ def create_plan(workspace, brief, steps, project_type='', omissions=None, *, sum
                 'governance': dict(policy_workflow.GOVERNANCE)}
         if brief:
             value['brief'] = clean_summary(brief, 4000)
+        from .journeys import _load as load_journey, pin_policy, outcome_seed
+        journey = load_journey(folder)
+        if journey:
+            # A guided project already knows the owner's goal: it is the result, not a question to ask again.
+            seed = outcome_seed(journey)
+            if outcome is not None and not outcome.get('result'):
+                outcome = {**outcome, 'result': seed['result'], 'format': outcome.get('format') or seed['format']}
+            elif outcome is None and not value.get('outcome'):
+                value['outcome'] = validate_outcome(seed)
+                if value.get('status') == 'clarifying':
+                    value['status'] = 'working'
         if outcome is not None:
             _apply_outcome(value, outcome, source_turn)
         if project_type:
@@ -382,8 +393,6 @@ def create_plan(workspace, brief, steps, project_type='', omissions=None, *, sum
             value.pop('method_recovery', None)
             if value.get('status') == 'blocked' and value['strategy']['state'] != 'needs_user':
                 value['status'] = 'review'
-        from .journeys import _load as load_journey, pin_policy
-        journey = load_journey(folder)
         if journey and value.get('policy_plan'):
             # A recipe namespace may collide with a later administrator policy: let core resolve organization sheets first.
             value['policy_plan']['sheets']=[s for s in value['policy_plan']['sheets'] if s.get('source_recipe')!=journey['recipe_id']]
@@ -755,7 +764,9 @@ def execute_step(workspace, agent, task, step_id, invoke, *, provider=None, purp
         if compliance:
             attempt['policy_compliance'] = compliance
             failed_checks += policy_workflow.violations(compliance)
-        checkpoint = policy_workflow.open_checkpoint(value, sid, purpose, request_id) if result.get('ok') else None
+        from .journeys import _load as load_journey
+        # In a guided project the phase approval in the card is the only owner checkpoint: no second chat confirmation.
+        checkpoint = policy_workflow.open_checkpoint(value, sid, purpose, request_id) if result.get('ok') and not load_journey(folder) else None
         step['status'] = ('needs_revision' if failed_checks else 'completed') if result.get('ok') else 'paused'
         attempt.update(status=step['status'], finished_at=utcnow(), validated=bool(result.get('ok')),
             runtime_image=clean_summary(result.get('runtime_image', ''), 512),

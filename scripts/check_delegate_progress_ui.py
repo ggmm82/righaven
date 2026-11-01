@@ -94,7 +94,7 @@ window.showThread();
             '--outfile=' + str(folder / 'app.js'), '--alias:react=' + str(modules / 'react'),
             '--alias:react-dom=' + str(modules / 'react-dom'), '--alias:@/core/api/fetcher=' + str(folder / 'fetch.ts'),
             '--alias:@/core/config=' + str(folder / 'config.ts'), '--alias:@/core/i18n/hooks=' + str(folder / 'hooks.ts'),
-            '--alias:@/core/i18n/ui-text=' + str(repo / 'frontend/ui-text.ts')], check=True, capture_output=True)
+            '--alias:@/core/i18n/ui-text=' + str(repo / 'frontend/ui-text.ts'), '--alias:@/components/workspace/concept-map=' + str(repo / 'frontend/concept-map.tsx')], check=True, capture_output=True)
         paragraphs = ''.join('<p class="mb-10">Messaggio storico %d: dettagli di una conversazione lunga.</p>' % i for i in range(100))
         (folder / 'index.html').write_text('''<!doctype html><html><meta name="viewport" content="width=device-width, initial-scale=1"><meta charset="utf-8"><link rel="stylesheet" href="/app.css">
 <body><main class="mx-auto flex h-dvh max-w-[960px] flex-col"><header class="shrink-0 border-b p-3">Chat RigHaven</header><div id="messages" class="min-h-0 flex-1 overflow-y-auto p-3">'''+paragraphs+'''</div><footer class="shrink-0 p-3"><div id="root"></div><textarea class="h-14 w-full rounded border p-2" aria-label="Scrivi un messaggio"></textarea></footer></main><script src="/app.js"></script></body></html>''')
@@ -119,6 +119,13 @@ window.showThread();
 
             def do_POST(self):
                 data = json.loads(self.rfile.read(int(self.headers.get('Content-Length','0'))) or b'{}')
+                if self.path.endswith('/harness-journey/decision'):
+                    journey=state['journey'];stage=next(s for s in journey['stages'] if s['id']==data['stage_id'])
+                    stage['status']={'approve':'approved','skip':'skipped','revise':'blocked'}[data['action']];journey['revision']+=1
+                    journey['awaiting_owner']=[];journey['current']='design'
+                    state['journey_decision']=data
+                    self.send_response(200);self.send_header('Content-Type','application/json');self.end_headers()
+                    self.wfile.write(json.dumps({'journey':journey}).encode());return
                 if self.path.endswith('/stop'):
                     self.send_response(200);self.send_header('Content-Type','application/json');self.end_headers()
                     self.wfile.write(b'{"requested":true}');return
@@ -222,6 +229,9 @@ window.showThread();
                     for record in library['observations']:record['observation']['source_thread']='fixture'
                     if state.get('curation_requested'):library['curation']={'status':'completed','message':'Una lezione salvata senza modificare il progetto.'}
                     self.wfile.write(json.dumps(library).encode()); return
+                if self.path.endswith('/harness-journey'):
+                    self.send_response(200);self.send_header('Content-Type','application/json');self.end_headers()
+                    self.wfile.write(json.dumps({'journey':state.get('journey') if '/fixture/' in self.path else None}).encode());return
                 if self.path.endswith('/harness-jobs'):
                     self.send_response(503 if state['unavailable'] else 200)
                     self.send_header('Content-Type', 'application/json'); self.end_headers()
@@ -253,9 +263,11 @@ window.showThread();
                 expect(page.get_by_test_id('harness-health')).to_contain_text('Nessun nuovo avanzamento')
                 expect(page.get_by_test_id('delegate-job')).to_have_count(0)  # no wall of technical detail
                 def section(name):
+                    # Deliveries are listed as versions; the team section includes its activities.
+                    name = {'Consegne': 'Versioni', 'Attività': 'Squadra'}.get(name, name)
                     if not page.get_by_test_id('harness-drawer').count():
                         page.get_by_role('button', name='Dettagli progetto', exact=True).click()
-                    page.get_by_role('button', name=name, exact=True).click()
+                    page.get_by_test_id('harness-drawer').get_by_role('navigation').get_by_role('button', name=name, exact=True).click()
                 section('Registro')
                 expect(page.get_by_test_id('conversation-audit')).to_be_visible()
                 expect(page.get_by_test_id('conversation-audit').get_by_text('Coordinatore',exact=True)).to_be_visible()
@@ -820,9 +832,43 @@ window.showThread();
                 self_check=state['project']['user_control']
                 assert self_check['deliver_now'] is True
                 expect(page.get_by_role('button',name='Consegna richiesta…',exact=True)).to_be_disabled()
+                # A guided project lives inside the same card: path strip, inline owner decision and the Path tab.
+                text=lambda it,en:{'it':it,'en':en}
+                state['journey']={'recipe_id':'data-pipeline','recipe':{'title':'Pipeline dati end-to-end','skills':['skill-data-pipeline'],'environment':'pipeline-dati'},
+                    'revision':4,'answers':{'goal':'Dashboard semplice con dati di esempio'},'complete':False,'current':'understand','awaiting_owner':['understand'],
+                    'stages':[{'id':'understand','title':text('Comprensione e catalogo','Understanding'),'outcome':text('Schema documentato','Documented schema'),'status':'review','available':True,'gate':True,
+                               'note':'Catalogo pronto','evidence':[{'path':'/mnt/user-data/outputs/catalogo.md','sha256':'a'*64}]},
+                              {'id':'design','title':text('Progettazione','Design'),'outcome':text('Indicatori concordati','Agreed measures'),'status':'pending','available':False,'gate':True,'note':'','evidence':[]},
+                              {'id':'lab','title':text('Laboratorio','Laboratory'),'outcome':text('Replica vuota','Empty replica'),'status':'pending','available':False,'gate':False,'note':'','evidence':[]}]}
+                page.reload()
+                strip=dock.get_by_test_id('project-journey')
+                identity=dock.get_by_test_id('project-identity')
+                expect(identity.get_by_test_id('project-journey')).to_have_count(1)  # one card: the path lives inside the project header
+                expect(strip.get_by_test_id('journey-goal')).to_have_text('Obiettivo: Dashboard semplice con dati di esempio')
+                expect(identity.get_by_test_id('journey-progress')).to_have_text('0/3 fasi concluse')
+                expect(identity).not_to_contain_text('incarichi conclusi')  # a single progress measure
+                expect(strip.get_by_role('button',name='Prosegui con la squadra')).to_have_count(0)  # one action row
+                expect(dock.get_by_role('button',name='Riprendi lavoro')).to_have_count(0)  # the owner decides first
+                decision=strip.get_by_test_id('journey-decision')
+                expect(decision.get_by_role('link',name='catalogo.md')).to_be_visible()
+                decision.get_by_role('button',name='Approva fase',exact=True).click()
+                expect(identity.get_by_test_id('journey-progress')).to_have_text('1/3 fasi concluse')
+                assert state['journey_decision']=={'stage_id':'understand','action':'approve','expected_revision':4,'note':''},state['journey_decision']
+                dock.get_by_role('button',name='Fasi e dettagli',exact=True).click()
+                phases=page.get_by_test_id('journey-phases')
+                expect(phases.get_by_test_id('journey-phase')).to_have_count(3)
+                expect(phases.get_by_test_id('journey-phase').nth(2)).to_contain_text('senza approvazione')
+                nav=page.get_by_test_id('harness-drawer').get_by_role('navigation')
+                expect(nav.get_by_role('button',name='Percorso',exact=True)).to_have_attribute('aria-current','page')
+                expect(nav.get_by_role('button',name='Tavole',exact=True)).to_have_count(0)
+                expect(nav.get_by_role('button',name='Attività',exact=True)).to_have_count(0)
+                section('Stato')
+                expect(page.get_by_test_id('project-position')).to_contain_text('Fase del percorso: Progettazione')
+                page.get_by_role('button', name='Chiudi dettagli del progetto').click()
+                state.pop('journey')
                 assert not errors, errors
                 browser.close()
-            print('Browser OK: real Tailwind dock visible beside composer on desktop/mobile during chat scrolling; playable preview; adaptive team; 18-minute clock; quota pause; continue action; network recovery; reload and conversation isolation.')
+            print('Browser OK: guided path inside the project card; real Tailwind dock visible beside composer on desktop/mobile during chat scrolling; playable preview; adaptive team; 18-minute clock; quota pause; continue action; network recovery; reload and conversation isolation.')
         finally:
             server.shutdown(); server.server_close()
 

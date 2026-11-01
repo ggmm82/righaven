@@ -79,7 +79,7 @@ function Panel(){const [g,setG]=React.useState(GOVERNANCE as any);return <><Tool
 createRoot(document.getElementById('root')!).render(kind==='project'?<Panel/>:kind==='usage'?<Usage/>:<PolicyBook/>);'''
         entry=entry.replace('PAGE',json.dumps(str(repo/'frontend/policy-book-page.tsx'))).replace('PANEL',json.dumps(str(repo/'frontend/project-governance.tsx'))).replace('USAGE',json.dumps(str(repo/'frontend/usage-page.tsx'))).replace('GOVERNANCE',json.dumps(governance)).replace('CHOICES',json.dumps(choices))
         (root/'entry.tsx').write_text(entry)
-        aliases={'@/core/i18n/ui-text':str(repo/'frontend/ui-text.ts'),'@/core/i18n/hooks':str(root/'hooks.ts'),'@/core/config':str(root/'config.ts'),'@/core/api/fetcher':str(root/'fetch.ts')}
+        aliases={'@/core/i18n/ui-text':str(repo/'frontend/ui-text.ts'),'@/components/workspace/concept-map':str(repo/'frontend/concept-map.tsx'),'@/core/i18n/hooks':str(root/'hooks.ts'),'@/core/config':str(root/'config.ts'),'@/core/api/fetcher':str(root/'fetch.ts')}
         build={'entryPoints':[str(root/'entry.tsx')],'outfile':str(root/'bundle.js'),'bundle':True,'jsx':'automatic','nodePaths':[str(modules)],'alias':aliases}
         subprocess.run(['node','-e','require('+json.dumps(str(modules/'esbuild'))+').build('+json.dumps(build)+').catch(e=>{console.error(e);process.exit(1)})'],check=True,text=True)
         html='<html><body><div id="root"></div><script src="/bundle.js"></script></body></html>'
