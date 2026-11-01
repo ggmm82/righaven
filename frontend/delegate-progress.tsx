@@ -8,9 +8,9 @@ import { duration, jobHealth, secondsSince, terminalJob, type JobProgress } from
 
 import { ConversationAudit, OperationDetails } from "./conversation-audit";
 import { ExperiencePanel } from "./experience-panel";
+import { ProjectConnections } from "./project-connections";
 import { ProjectDesign, type Design } from "./project-design";
 import { ProjectGuide } from "./project-guide";
-import { ProjectConnections } from "./project-connections";
 import { GovernanceStrip, ProfileUseLine, ToolChoices, type LiveGovernance, type ToolDecision } from "./project-governance";
 
 const providers: Record<string, string> = trMap({ codex:["Codex", "Codex"], gemini:["Antigravity", "Antigravity"], deepseek:["DeepSeek", "DeepSeek"], openai:["OpenAI compatibile", "OpenAI compatible"] });
