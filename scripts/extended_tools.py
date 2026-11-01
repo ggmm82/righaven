@@ -15,8 +15,15 @@ def domain():
     return domain_tools
 
 
+def pipeline():
+    try:from . import pipeline_tools
+    except ImportError:import pipeline_tools
+    return pipeline_tools
+
+
 def binary(app,cli):
     if app in domain().APPS:return domain().binary(app,cli)
+    if app in pipeline().APPS:return pipeline().binary(app,cli)
     if app in ('dlt','sqlmesh'):return str(cli.INSTALL/'apps'/app/'venv/bin'/app)
     if app=='schemacrawler':
         matches=list((cli.INSTALL/'apps/schemacrawler').rglob('schemacrawler.sh'))
@@ -42,6 +49,7 @@ def version(app,cli):
         flags=['-e','require('+json.dumps(str(library))+'); console.log(require('+json.dumps(str(library/'package.json'))+').version)']
     else:flags=None
     if app in domain().APPS:flags=domain().version_flags(app)
+    if app in pipeline().APPS:flags=pipeline().version_flags(app)
     flags=flags or {'prusaslicer':['--help'],'poppler':['-v'],'tesseract':['--version'],'zap':['-cmd','-version'],'ngspice':['--version']}.get(app,['--version'])
     result=subprocess.run([native,*flags],capture_output=True,text=True,errors='replace',timeout=120,
         env={**os.environ,'QT_QPA_PLATFORM':'offscreen','QGIS_NO_OVERRIDE_IMPORT':'1'})
@@ -69,6 +77,7 @@ def retain(source,output,resource,cli):
 
 def invoke(app,action,args,cli):
     if app in domain().APPS:return domain().invoke(app,action,args,cli)
+    if pipeline().handles(app,action):return pipeline().invoke(app,action,args,cli)
     if app in ('usql','schemacrawler','dlt','sqlmesh','sqlglot'):
         try:from .data_tools import invoke as data_invoke
         except ImportError:from data_tools import invoke as data_invoke

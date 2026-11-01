@@ -38,13 +38,44 @@ def discover(cfg):
         finally:client.close()
     from sqlalchemy import inspect
     engine=sqlalchemy_engine(cfg)
+    system={'information_schema','pg_catalog','pg_toast','sys','guest','db_owner','db_accessadmin','db_securityadmin','db_ddladmin','db_backupoperator',
+            'db_datareader','db_datawriter','db_denydatareader','db_denydatawriter','mysql','performance_schema','sys','temp'}
+    def optional(call,default):
+        try:return call()
+        except NotImplementedError:return default
+        except Exception as error:
+            if 'not implemented' in str(error).lower():return default
+            raise
     try:
-        inspector=inspect(engine);tables=[]
-        names=inspector.get_table_names()
-        for name in names[:200]:
-            columns=[{'name':c['name'],'type':str(c['type']),'nullable':c.get('nullable')} for c in inspector.get_columns(name)]
-            tables.append({'name':name,'columns':columns,'primary_key':inspector.get_pk_constraint(name),'foreign_keys':inspector.get_foreign_keys(name),'unique_constraints':inspector.get_unique_constraints(name)})
-        return {'kind':'sql','tables':tables,'truncated':len(names)>200,'limits':['Declared metadata is observed; business meaning and undeclared relationships require validation.']}
+        inspector=inspect(engine);tables=[];limit=1000
+        default=inspector.default_schema_name
+        schemas=[s for s in optional(inspector.get_schema_names,[default]) if s and s.lower() not in system and not s.lower().startswith(('pg_temp','pg_toast'))]
+        if default and default not in schemas:schemas.insert(0,default)
+        names=[]
+        for schema in schemas:
+            names+=[(schema,n,'table') for n in inspector.get_table_names(schema=schema)]
+            names+=[(schema,n,'view') for n in optional(lambda:inspector.get_view_names(schema=schema),[])]
+        single=len(schemas)==1
+        for schema,name,kind in names[:limit]:
+            columns=[{'name':c['name'],'type':str(c['type']),'nullable':c.get('nullable'),'default':str(c['default']) if c.get('default') is not None else None,
+                      'comment':c.get('comment') or ''} for c in inspector.get_columns(name,schema=schema)]
+            entry={'schema':'' if single and schema==default else schema,'name':name,'kind':kind,'columns':columns,
+                   'comment':(optional(lambda:inspector.get_table_comment(name,schema=schema),{}) or {}).get('text') or ''}
+            if kind=='table':
+                entry.update(primary_key=inspector.get_pk_constraint(name,schema=schema),foreign_keys=inspector.get_foreign_keys(name,schema=schema),
+                             unique_constraints=optional(lambda:inspector.get_unique_constraints(name,schema=schema),[]),
+                             check_constraints=optional(lambda:inspector.get_check_constraints(name,schema=schema),[]))
+                declared={tuple(u.get('column_names') or []) for u in entry['unique_constraints']}
+                for index in optional(lambda:inspector.get_indexes(name,schema=schema),[]):
+                    columns_=tuple(c for c in index.get('column_names') or [] if c)
+                    if index.get('unique') and columns_ and columns_ not in declared and list(columns_)!=list(entry['primary_key'].get('constrained_columns') or []):
+                        entry['unique_constraints'].append({'name':index.get('name'),'column_names':list(columns_)});declared.add(columns_)
+                for fk in entry['foreign_keys']:
+                    if single and fk.get('referred_schema') in (None,default):fk['referred_schema']=''
+            tables.append(entry)
+        return {'kind':'sql','dialect':engine.dialect.name,'database':(engine.url.database or '').rsplit('/',1)[-1] or 'database','schemas':schemas,
+                'tables':tables,'truncated':len(names)>limit,
+                'limits':['Declared metadata is observed; business meaning and undeclared relationships require validation.']}
     finally:engine.dispose()
 
 

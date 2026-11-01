@@ -25,5 +25,5 @@ Explain the actual graph and reconcile known totals. Apply only when apply_local
 4. Apri un input pertinente, salva presto il sorgente e verifica una prova a finitura prevista. Riduci il perimetro prima della qualità.
 5. Verifica le proprietà salvate e un export effettivo; non trasformare il codice di uscita zero in una valutazione professionale.
 
-Catalogo esaminato: 1 ID unici (le integrazioni con adattatore descrivono le operazioni esposte, non l’intera API upstream). SHA256 della rilevazione: `28f9bf84c2a3a9df63da3b70d76eb8ef3a9a42e39a1e8ed4a2d44d9b355c5174`.
+Catalogo esaminato: 1 ID unici (le integrazioni con adattatore descrivono le operazioni esposte, non l’intera API upstream). SHA256 della rilevazione: `53ff165e60a70889c985d38ecff3fb7710e55272431a1dfd2b957c4ca5672221`.
 Fonte: https://github.com/TobikoData/sqlmesh. Il catalogo locale della versione fissata prevale sulla documentazione di versioni successive.

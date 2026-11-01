@@ -11,6 +11,9 @@ on:
       - 'scripts/acceptance_extended.py'
       - 'scripts/domain_*'
       - 'scripts/acceptance_domain.py'
+      - 'scripts/pipeline_*'
+      - 'scripts/stubgen.py'
+      - 'scripts/acceptance_pipeline.py'
       - 'scripts/install_extended.py'
       - 'config/toolkit/**'
       - '.github/workflows/verify-extended-tools.yml'
@@ -71,6 +74,8 @@ jobs:
             tools: jq yq ajv
           - environment: publishing
             tools: mjml abcm2ps abcmidi hunspell vale
+          - environment: data-pipeline
+            tools: sqlglot duckdb tbls faker dlt sqlmesh supercronic
     steps:
       - uses: actions/checkout@v4
       - uses: docker/setup-buildx-action@v3

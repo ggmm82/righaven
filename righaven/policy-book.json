@@ -15,6 +15,76 @@
       "handoff_checks": [],
       "final_checks": "acceptance",
       "depends_on": []
+    },
+    {
+      "id": "data_pipeline_delivery",
+      "title": "Pipeline dati: consegna verificata",
+      "version": 1,
+      "summary": "Per le consegne della ricetta pipeline dati: catalogo descritto, replica vuota verificata, dati di prova coerenti, catena locale provata e pacchetto di produzione senza segreti.",
+      "mandatory": false,
+      "rules": [
+        "Distingui struttura osservata nel database, struttura documentata e ipotesi: le relazioni non dichiarate restano documentate, non vincoli.",
+        "Non collegarti a sistemi di produzione senza un account in sola lettura autorizzato dall’utente; nessuna credenziale in modelli, pacchetti, log o lezioni.",
+        "Le colonne con dati personali sono marcate pii e nei dati di prova sono sempre sintetiche.",
+        "Dichiara ciò che il motore di destinazione non applica (per esempio le chiavi su Fabric) e coprilo con audit SQLMesh.",
+        "Consegna i passi di rilascio non eseguiti: lock con hash, digest dell’immagine, credenziali, primo deploy, collegamento dello strumento BI."
+      ],
+      "handoff_checks": [
+        {
+          "id": "model_reviewed",
+          "requirement": "Il modello copre tutte le tabelle documentate e le segnalazioni di issues.md sono risolte o accettate.",
+          "critical": true
+        },
+        {
+          "id": "replica_verified",
+          "requirement": "La replica vuota corrisponde al modello: tabelle, colonne e chiavi primarie senza discrepanze.",
+          "critical": true
+        },
+        {
+          "id": "local_chain_tested",
+          "requirement": "Dati di prova in almeno due lotti senza righe orfane, acquisizione locale e piano SQLMesh applicato con audit.",
+          "critical": true
+        }
+      ],
+      "final_checks": [
+        {
+          "id": "catalog_described",
+          "requirement": "Il catalogo descrive ogni tabella e le colonne rilevanti, con dati personali marcati e diagramma ER.",
+          "critical": true,
+          "method": "content"
+        },
+        {
+          "id": "mart_reconciled",
+          "requirement": "Almeno un totale di un mart è riconciliato con la sorgente di prova, con il valore riportato.",
+          "critical": true,
+          "method": "functional"
+        },
+        {
+          "id": "schedule_valid",
+          "requirement": "Il crontab è valido e i job non si sovrappongono; Dockerfile, script e CI superano i linter o le eccezioni sono motivate.",
+          "critical": true,
+          "method": "technical"
+        },
+        {
+          "id": "package_without_secrets",
+          "requirement": "Il pacchetto di produzione non contiene segreti.",
+          "critical": true,
+          "method": "technical",
+          "probe": "no_secrets"
+        },
+        {
+          "id": "limits_declared",
+          "requirement": "Il runbook elenca i controlli non eseguiti: sistemi reali, volumi, tempi, report BI.",
+          "critical": true,
+          "method": "content"
+        }
+      ],
+      "depends_on": [
+        "quality_standard"
+      ],
+      "applies_to": [
+        "delivery"
+      ]
     }
   ]
 }

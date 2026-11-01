@@ -202,3 +202,8 @@ CASES.update(DATA_CASES)
 try:from .acceptance_domain import CASES as DOMAIN_CASES
 except ImportError:from acceptance_domain import CASES as DOMAIN_CASES
 CASES.update(DOMAIN_CASES)
+try:from .acceptance_pipeline import CASES as PIPELINE_CASES, EXTENSIONS as PIPELINE_EXTENSIONS
+except ImportError:from acceptance_pipeline import CASES as PIPELINE_CASES, EXTENSIONS as PIPELINE_EXTENSIONS
+CASES.update(PIPELINE_CASES)
+for _app,_extra in PIPELINE_EXTENSIONS.items():
+    CASES[_app]=lambda c,_base=CASES[_app],_extra=_extra:(_base(c),_extra(c))

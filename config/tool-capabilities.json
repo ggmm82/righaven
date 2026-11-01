@@ -8732,12 +8732,14 @@
     {
       "id": "duckdb",
       "version": "v2.0.0",
-      "catalog_count": 1,
+      "catalog_count": 3,
       "catalog_ids": [
-        "duckdb.query"
+        "duckdb.infer",
+        "duckdb.query",
+        "duckdb.replicate"
       ],
-      "ids_sha256": "d5bfc8a89e563fbeceb2d03ffe4603c582aac43bc5dd5f62c344c1b15ccfd02c",
-      "catalog_sha256": "5155f6a149293490c7404eea69748ad6ab259e56776c134390bd54e13f4f09a2",
+      "ids_sha256": "8475616bbac55aa5bfce384262fba5af2e3e41f7ca79f3e58da365deeb763dc5",
+      "catalog_sha256": "449a5bfed16cb19816052de142e9b9c724e949da7e3d0edf8531c8b207ca5cd2",
       "choose_for": "Query CSV, JSON and Parquet with SQL and a local analytical database",
       "sources": "SQL, input datasets/schema, DuckDB database and result CSV",
       "limits": "Keep NULL handling, types, units and join cardinalities explicit. Disable unneeded extensions; a query result does not prove the underlying data is correct.",
@@ -8747,6 +8749,20 @@
           "goal": "Execute a saved SQL recipe on a private database copy; retain SQL and data, return CSV results.",
           "commands": [
             "duckdb.query"
+          ],
+          "evidence": "registered"
+        },
+        {
+          "goal": "Create an empty local DuckDB replica from DuckDB DDL and verify tables, columns and keys against the schema model.",
+          "commands": [
+            "duckdb.replicate"
+          ],
+          "evidence": "registered"
+        },
+        {
+          "goal": "Infer a schema model from JSON, JSON Lines, Parquet, CSV or XML files (a file or a folder of files); XML records become JSON Lines first.",
+          "commands": [
+            "duckdb.infer"
           ],
           "evidence": "registered"
         }
@@ -9254,13 +9270,14 @@
     {
       "id": "dlt",
       "version": "1.31.0",
-      "catalog_count": 2,
+      "catalog_count": 3,
       "catalog_ids": [
         "dlt.discover",
-        "dlt.extract"
+        "dlt.extract",
+        "dlt.run"
       ],
-      "ids_sha256": "5a17fbf2d5babdb462962d5630062592e0f2a99b3ec18e341fc53e45aa717f35",
-      "catalog_sha256": "2d0f7aebfdf4dc85c530e515fcdba4c8fc46399bad6b3ffa851a6469b1e0b337",
+      "ids_sha256": "fc777e651b0c089b729a8d6494ea57ff5410eb47b000e0913205a31e9dd69ee0",
+      "catalog_sha256": "e198d123c8fd30465719efd04bd576a062b3e54c189996201ea4edb3cbfe65b5",
       "choose_for": "Discover SQL/document source metadata and extract bounded data into a reproducible local pipeline.",
       "sources": "Python pipeline, schema YAML/JSON, query/inputs, portable JSONL, DuckDB snapshot and row reconciliation.",
       "limits": "Separate SQL metadata, sampled document fields and business hypotheses. Keep pipeline state private per job, preserve type/null semantics and reconcile counts. External reads require authorized read-only credentials; no source-system writes are performed.",
@@ -9279,18 +9296,28 @@
             "dlt.extract"
           ],
           "evidence": "registered"
+        },
+        {
+          "goal": "Run a project dlt pipeline locally against a stub source database and a local DuckDB destination; production credentials are never used.",
+          "commands": [
+            "dlt.run"
+          ],
+          "evidence": "registered"
         }
       ]
     },
     {
       "id": "sqlglot",
       "version": "30.25.0",
-      "catalog_count": 1,
+      "catalog_count": 4,
       "catalog_ids": [
-        "sqlglot.analyze"
+        "sqlglot.analyze",
+        "sqlglot.ddl",
+        "sqlglot.model",
+        "sqlglot.scaffold"
       ],
-      "ids_sha256": "4e37bb9a0f15be6d17f57063a0ce0bb1f5eefc2134a8e7c89fae5f430be861c1",
-      "catalog_sha256": "6987964ecdf470692b65ea532d79697dd538c0887b64ab6dd3217007cc798c73",
+      "ids_sha256": "3752e8151b23eb71d97d0b16880fdae8b1099439ab3641a145b5fb17472abf94",
+      "catalog_sha256": "a5cc271bbc0bb7cb6c44474fcb641bd9683a6bd725871d53a9524f2ceea7b23d",
       "choose_for": "Parse SQL dialects and derive table/column lineage using real expressions and actual supplied schemas.",
       "sources": "Original SQL, actual schema dictionary, normalized SQL, lineage JSON and limits.",
       "limits": "Parsing does not execute SQL or prove database semantics. Unknown columns, wildcard expansion, dynamic SQL and missing schema remain explicit limits; never invent lineage. Use SchemaCrawler/dlt for live metadata and SQLMesh for executable model plans.",
@@ -9300,6 +9327,27 @@
           "goal": "Parse and normalize SQL and derive actual table/column lineage where schema is available; do not invent business meaning or execute SQL.",
           "commands": [
             "sqlglot.analyze"
+          ],
+          "evidence": "registered"
+        },
+        {
+          "goal": "Build the engine-neutral schema model (tables, portable types, keys, descriptions, PII, stub hints) from dlt discover metadata, DDL in any dialect or a documented model, then apply documentation overrides. Observed structure is never silently changed.",
+          "commands": [
+            "sqlglot.model"
+          ],
+          "evidence": "registered"
+        },
+        {
+          "goal": "Generate ordered, re-parsed DDL for a target engine from the schema model; constraints the engine cannot enforce are reported, not hidden.",
+          "commands": [
+            "sqlglot.ddl"
+          ],
+          "evidence": "registered"
+        },
+        {
+          "goal": "Generate the production package from the schema model: dlt ingestion with incremental cursors, SQLMesh staging views with key audits and an example mart, local and production gateways (PostgreSQL, SQL Server, Fabric or DuckDB), periodic stub job, supercronic crontab, locked job runner, Dockerfile, compose, CI and runbook. No secret values are written.",
+          "commands": [
+            "sqlglot.scaffold"
           ],
           "evidence": "registered"
         }
@@ -9313,7 +9361,7 @@
         "sqlmesh.plan"
       ],
       "ids_sha256": "e6db1d268b86fad9946f658b7ff5d7d5c32350cb7456addabbeacd1e8c90de5c",
-      "catalog_sha256": "28f9bf84c2a3a9df63da3b70d76eb8ef3a9a42e39a1e8ed4a2d44d9b355c5174",
+      "catalog_sha256": "53ff165e60a70889c985d38ecff3fb7710e55272431a1dfd2b957c4ca5672221",
       "choose_for": "Plan, test and explain SQL/Python analytical transformations using an isolated local DuckDB project.",
       "sources": "SQL/Python models, tests, configuration, copied project, DuckDB results and plan/audit evidence.",
       "limits": "Explain the actual graph and reconcile known totals. Apply only when apply_local=true, in the isolated copied project. This adapter does not deploy to remote production. Exchange JSONL/CSV/Parquet rather than assuming all DuckDB file versions interoperate.",
@@ -10177,6 +10225,83 @@
           "goal": "Check prose against style rules (Vale built-in rules or a supplied .vale.ini with local styles); save JSON alerts.",
           "commands": [
             "vale.lint"
+          ],
+          "evidence": "registered"
+        }
+      ]
+    },
+    {
+      "id": "tbls",
+      "version": "v1.96.0",
+      "catalog_count": 2,
+      "catalog_ids": [
+        "tbls.document",
+        "tbls.lint"
+      ],
+      "ids_sha256": "a94f46ec8545875343384ce3040e26a581033473aa31746ab971bc8e4e0bb9d1",
+      "catalog_sha256": "9decfdc4662808f2243c12192c6d05e5c43c8d234ada03c89543c1f351a9d90a",
+      "choose_for": "Generate the data catalog from the schema model: Markdown pages per table, ER diagram, relations, labels and description coverage",
+      "sources": "Schema model JSON, generated tbls schema, configuration, Markdown pages and ER diagram",
+      "limits": "The catalog documents the model it is given; descriptions, owners and business meaning must be confirmed by people who know the data.",
+      "reference": "https://github.com/k1LoW/tbls",
+      "groups": [
+        {
+          "goal": "Generate the data catalog from the schema model: Markdown pages per table, ER diagram, relations, labels and description coverage.",
+          "commands": [
+            "tbls.document"
+          ],
+          "evidence": "registered"
+        },
+        {
+          "goal": "Check the schema model against catalog rules (table and column descriptions, primary keys, unrelated tables, column count) and save the findings.",
+          "commands": [
+            "tbls.lint"
+          ],
+          "evidence": "registered"
+        }
+      ]
+    },
+    {
+      "id": "supercronic",
+      "version": "v0.2.50",
+      "catalog_count": 1,
+      "catalog_ids": [
+        "supercronic.validate"
+      ],
+      "ids_sha256": "adcf974cabbdf038e3ca18ee458108c42ddc58ffaebfa945929c3115b107afe6",
+      "catalog_sha256": "da96b34d988b21bbce05b4018c6c7adcdc3ab2ab3f7641bfa63275d6b771476a",
+      "choose_for": "Validate a crontab with supercronic and list each job with its schedule; nothing is executed",
+      "sources": "Crontab and native validation output",
+      "limits": "Validation checks crontab syntax only; job duration, overlaps and time zone must be tested in the target environment.",
+      "reference": "https://github.com/aptible/supercronic",
+      "groups": [
+        {
+          "goal": "Validate a crontab with supercronic and list each job with its schedule; nothing is executed.",
+          "commands": [
+            "supercronic.validate"
+          ],
+          "evidence": "registered"
+        }
+      ]
+    },
+    {
+      "id": "faker",
+      "version": "40.43.0",
+      "catalog_count": 1,
+      "catalog_ids": [
+        "faker.generate"
+      ],
+      "ids_sha256": "f0ca19bdafc6fd4e0db25466b6d87910225ce1dd2c72f648dc9bdb5300f7b701",
+      "catalog_sha256": "0240c72357318da083b4ec61dc2c5ee959fb27e9deb6fad8e6f1bcf9d707807f",
+      "choose_for": "Generate deterministic, foreign-key consistent stub data from the schema model for a batch (periodic runs use increasing batch numbers) into a DuckDB copy and Parquet/CSV/JSON Lines/XML files",
+      "sources": "Schema model, generator script, per-batch CSV/Parquet/JSON Lines/XML files, stub DuckDB database and manifest",
+      "limits": "Stub data is synthetic: value distributions and correlations do not reproduce production data; updates and deletions are not simulated.",
+      "reference": "https://github.com/joke2k/faker",
+      "groups": [
+        {
+          "goal": "Generate deterministic, foreign-key consistent stub data from the schema model for a batch (periodic runs use increasing batch numbers) into a DuckDB copy and Parquet/CSV/JSON Lines/XML files. Data is synthetic; PII columns are always fake.",
+          "commands": [
+            "faker.generate"
           ],
           "evidence": "registered"
         }

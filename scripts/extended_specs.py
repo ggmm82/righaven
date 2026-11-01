@@ -40,3 +40,7 @@ TOOLS.update(DATA_TOOLS)
 try:from .domain_specs import TOOLS as DOMAIN_TOOLS
 except ImportError:from domain_specs import TOOLS as DOMAIN_TOOLS
 TOOLS.update(DOMAIN_TOOLS)
+try:from .pipeline_specs import TOOLS as PIPELINE_TOOLS, EXTRA as PIPELINE_EXTRA
+except ImportError:from pipeline_specs import TOOLS as PIPELINE_TOOLS, EXTRA as PIPELINE_EXTRA
+TOOLS.update(PIPELINE_TOOLS)
+for _app,_ops in PIPELINE_EXTRA.items():TOOLS[_app]=[*TOOLS[_app],*_ops]

@@ -126,18 +126,36 @@ def invoke(app,action,args,cli):
             gateways=config.get('gateways')
             if not isinstance(gateways,dict) or not gateways:raise ValueError('Declare an explicit local DuckDB gateway')
             if (sources/'config.py').exists():raise ValueError('Use YAML configuration for the isolated local SQLMesh adapter')
-            for gateway in gateways.values():
-                if not isinstance(gateway,dict):raise ValueError('Each SQLMesh gateway must be a local connection mapping')
+            selected=args.get('gateway') or config.get('default_gateway') or next(iter(gateways))
+            if selected not in gateways:raise ValueError('Gateway '+str(selected)+' non dichiarato nella configurazione')
+            for name,gateway in gateways.items():
+                if not isinstance(gateway,dict):raise ValueError('Each SQLMesh gateway must be a connection mapping')
+                if name!=selected:
+                    # Production gateways stay in the package but are never contacted here; secrets must come from env_var().
+                    for item in (gateway.get('connection') or {},gateway.get('state_connection') or {}):
+                        for key,value in item.items():
+                            if re.search(r'(?i)password|secret|token|key',key) and value and 'env_var' not in str(value):
+                                raise ValueError('Gateway '+name+': '+key+' deve arrivare da {{ env_var(...) }}, non scritto nella configurazione')
+                    continue
                 for key in ('state_connection','test_connection'):
                     if gateway.get(key):raise ValueError('Use the local gateway for state and test connections')
                 connection=gateway.get('connection') or {}
-                if connection.get('type')!='duckdb' or set(connection)&{'password','token','host','user','url'}:raise ValueError('This adapter plans/applies isolated local DuckDB projects only')
+                if connection.get('type')!='duckdb' or set(connection)&{'password','token','host','user','url'}:raise ValueError('The executed gateway must be an isolated local DuckDB connection')
                 database=Path(connection.get('database','data.duckdb'))
                 if database.is_absolute() or '..' in database.parts:raise ValueError('Keep SQLMesh state and data inside the copied project')
             project=output/'project';shutil.copytree(sources,project)
-            argv=[str(cli.INSTALL/'apps/sqlmesh/venv/bin/sqlmesh'),'-p',str(project),'plan','dev','--no-prompts','--auto-apply'] if args.get('apply_local') else [str(cli.INSTALL/'apps/sqlmesh/venv/bin/sqlmesh'),'-p',str(project),'plan','dev','--no-prompts','--explain']
+            if args.get('warehouse'):
+                # The DuckDB warehouse filled by a local dlt run becomes the executed gateway's database (a copy).
+                warehouse=cli.scoped(args['warehouse'])
+                if warehouse.suffix!='.duckdb':raise ValueError('warehouse deve essere un file .duckdb')
+                local_db=project/Path(gateways[selected]['connection'].get('database','data.duckdb'))
+                if '{{' in str(local_db):raise ValueError('Il gateway locale deve indicare un percorso fisso per usare warehouse')
+                local_db.parent.mkdir(parents=True,exist_ok=True);shutil.copy2(warehouse,local_db)
+            native=str(cli.INSTALL/'apps/sqlmesh/venv/bin/sqlmesh')
+            argv=[native,'-p',str(project),'--gateway',selected,'plan','dev','--no-prompts','--auto-apply'] if args.get('apply_local') else [native,'-p',str(project),'--gateway',selected,'plan','dev','--no-prompts','--explain']
             run(argv,output,project,env,[])
-            (output/'result.json').write_text(json.dumps({'mode':'applied_local' if args.get('apply_local') else 'plan_only','project':'project','limits':['No remote deployment is performed.']}))
+            (output/'result.json').write_text(json.dumps({'mode':'applied_local' if args.get('apply_local') else 'plan_only','project':'project','gateway':selected,
+                'production_gateways':[n for n in gateways if n!=selected],'limits':['No remote deployment is performed; production gateways are not contacted.']}))
     if source and cli.digest(source)!=original:raise RuntimeError('Original source was modified')
     result={'status':'passed','output':str(output),'sources':str(sources),'original_preserved':True}
     if (output/'result.json').is_file():result['analysis']=json.loads((output/'result.json').read_text())

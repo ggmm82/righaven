@@ -35,7 +35,9 @@ def main():
     assert any(a['name']=='structurizr-dsl-'+versions['structurizr']+'.jar' for a in java['libraries'])
     ids={a['id'] for a in lock['applications']}
     assert len(ids)==len(lock['applications']) and ids==set(cfg['subagents']['custom_agents'])
-    expected_skills={'skill-'+identifier for identifier in ids}|{'skill-workspace','skill-harness','skill-problem-solving','skill-quality-review'}
+    # Recipes are skills that orchestrate several catalog tools end to end.
+    recipes={'skill-data-pipeline'}
+    expected_skills={'skill-'+identifier for identifier in ids}|{'skill-workspace','skill-harness','skill-problem-solving','skill-quality-review'}|recipes
     assert {p.parent.name for p in (ROOT/'skills/custom').glob('*/SKILL.md')}==expected_skills
     assert ids == set(runpy.run_path(str(ROOT/'scripts/acceptance.py'))['CASES'])
     assert (ROOT/'righaven/righaven.yaml').read_bytes()==(ROOT/'config/righaven.yaml').read_bytes()

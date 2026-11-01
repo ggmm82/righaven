@@ -4308,6 +4308,137 @@
         "kind": "extended-native",
         "native_binary": "vale"
       }
+    },
+    {
+      "id": "tbls",
+      "name": "tbls",
+      "role": "Data catalog and schema documentation",
+      "description": "Generate the data catalog from the schema model: Markdown pages per table, ER diagram, relations, labels and description coverage.",
+      "repository": "https://github.com/k1LoW/tbls",
+      "executable": "tbls-cli",
+      "registry_args": [
+        "commands"
+      ],
+      "mcp_args": [
+        "mcp"
+      ],
+      "adapter": "toolkit",
+      "license": "MIT",
+      "checks": [
+        "Preserve and reopen native sources.",
+        "The catalog documents the model it is given; descriptions, owners and business meaning must be confirmed by people who know the data."
+      ],
+      "examples": [
+        "tbls-cli commands",
+        "tbls-cli call document '{...}'"
+      ],
+      "version": "v1.96.0",
+      "assets": {
+        "amd64": {
+          "name": "tbls_v1.96.0_linux_amd64.tar.gz",
+          "url": "https://github.com/k1LoW/tbls/releases/download/v1.96.0/tbls_v1.96.0_linux_amd64.tar.gz",
+          "sha256": "246a070db940d0749ba9b46274d973d583feb0587b1b74afbd7772721e372371",
+          "size_bytes": 30582708
+        },
+        "arm64": {
+          "name": "tbls_v1.96.0_linux_arm64.tar.gz",
+          "url": "https://github.com/k1LoW/tbls/releases/download/v1.96.0/tbls_v1.96.0_linux_arm64.tar.gz",
+          "sha256": "600c332299a4265d11ef1c22d60638219985cbc2fadd6ba6aeaf2b808433e2ae",
+          "size_bytes": 27910436
+        }
+      },
+      "install": {
+        "kind": "extended-native",
+        "native_binary": "tbls"
+      }
+    },
+    {
+      "id": "supercronic",
+      "name": "supercronic",
+      "role": "Container cron scheduler",
+      "description": "Validate a crontab with supercronic and list each job with its schedule; nothing is executed.",
+      "repository": "https://github.com/aptible/supercronic",
+      "executable": "supercronic-cli",
+      "registry_args": [
+        "commands"
+      ],
+      "mcp_args": [
+        "mcp"
+      ],
+      "adapter": "toolkit",
+      "license": "MIT",
+      "checks": [
+        "Preserve and reopen native sources.",
+        "Validation checks crontab syntax only; job duration, overlaps and time zone must be tested in the target environment."
+      ],
+      "examples": [
+        "supercronic-cli commands",
+        "supercronic-cli call validate '{...}'"
+      ],
+      "version": "v0.2.50",
+      "assets": {
+        "amd64": {
+          "name": "supercronic-linux-amd64",
+          "url": "https://github.com/aptible/supercronic/releases/download/v0.2.50/supercronic-linux-amd64",
+          "sha256": "d2d7c97fbfefc763d5bbcbbb3f8d61f9dd3410ce5d05a737c414994b80b8cdd0",
+          "size_bytes": 15506271
+        },
+        "arm64": {
+          "name": "supercronic-linux-arm64",
+          "url": "https://github.com/aptible/supercronic/releases/download/v0.2.50/supercronic-linux-arm64",
+          "sha256": "a1c0af9872e8de89a1ce5c1b596e26c42917d5a2cf914d98faee2e28156899e2",
+          "size_bytes": 14463641
+        }
+      },
+      "install": {
+        "kind": "extended-native",
+        "native_binary": "supercronic",
+        "raw_binary": true
+      }
+    },
+    {
+      "id": "faker",
+      "name": "Faker",
+      "role": "Synthetic test data",
+      "description": "Generate deterministic, foreign-key consistent stub data from the schema model for a batch (periodic runs use increasing batch numbers) into a DuckDB copy and Parquet/CSV/JSON Lines/XML files.",
+      "repository": "https://github.com/joke2k/faker",
+      "executable": "faker-cli",
+      "registry_args": [
+        "commands"
+      ],
+      "mcp_args": [
+        "mcp"
+      ],
+      "adapter": "toolkit",
+      "license": "MIT",
+      "checks": [
+        "Preserve and reopen native sources.",
+        "Stub data is synthetic: value distributions and correlations do not reproduce production data; updates and deletions are not simulated."
+      ],
+      "examples": [
+        "faker-cli commands",
+        "faker-cli call generate '{...}'"
+      ],
+      "version": "40.43.0",
+      "assets": {
+        "amd64": {
+          "name": "faker-40.43.0-py3-none-any.whl",
+          "url": "https://files.pythonhosted.org/packages/81/ed/0d6d0d6467ae3d009fb82fb411867c7fcfeadbdd25602cab0d7a7963f400/faker-40.43.0-py3-none-any.whl",
+          "sha256": "9dd7c0ddfaf30c842b05502d3cf641c135e0120a3a19047008ba8525b72953ed",
+          "size_bytes": 2069082
+        },
+        "arm64": {
+          "name": "faker-40.43.0-py3-none-any.whl",
+          "url": "https://files.pythonhosted.org/packages/81/ed/0d6d0d6467ae3d009fb82fb411867c7fcfeadbdd25602cab0d7a7963f400/faker-40.43.0-py3-none-any.whl",
+          "sha256": "9dd7c0ddfaf30c842b05502d3cf641c135e0120a3a19047008ba8525b72953ed",
+          "size_bytes": 2069082
+        }
+      },
+      "download_base": "https://files.pythonhosted.org/",
+      "install": {
+        "kind": "pip-native",
+        "native_commands": []
+      }
     }
   ],
   "cli_runtimes": {

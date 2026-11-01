@@ -1,6 +1,6 @@
 # Optional open-source environments
 
-RigHaven's managed catalog contains 96 tools. Tool availability is not an instruction to use every tool: roles are compiled from the project's outcome, enabled skills and available environments. The core still installs no optional application. Existing environments and user-selected skills are not silently expanded when the catalog grows.
+RigHaven's managed catalog contains 99 tools. Tool availability is not an instruction to use every tool: roles are compiled from the project's outcome, enabled skills and available environments. The core still installs no optional application. Existing environments and user-selected skills are not silently expanded when the catalog grows.
 
 ## New capabilities
 
@@ -29,6 +29,7 @@ RigHaven's managed catalog contains 96 tools. Tool availability is not an instru
 | Email and newsletters | MJML | MJML → responsive HTML with strict validation |
 | ABC music notation | abcm2ps, abcMIDI | ABC → SVG score pages and MIDI |
 | Text proofreading | Hunspell (it_IT, en_US), Vale | Text/Markdown → unknown-word list and style alerts |
+| End-to-end data pipeline (recipe) | SQLGlot, DuckDB, tbls, Faker, dlt, SQLMesh, supercronic, linters | Schema documentation/DDL/files → catalog, empty replica, periodic stub data, tested ingestion and transformations, production package ([details](DATA-ENGINEERING.md#recipe-end-to-end-data-pipeline)) |
 
 All tools of the second group are small command-line programs: 25 come from signed Debian 12 packages pinned by version and SHA-256, four are official single binaries (Vale, Hadolint, actionlint, TFLint) and three are npm packages with a committed lockfile (Spectral, Ajv, MJML). None runs a server; their acceptance fixtures run without network. TFLint uses only its bundled core rules; Vale uses its built-in rules unless a `.vale.ini` with local styles is supplied.
 
