@@ -225,7 +225,7 @@ FROM python:3.11-slim-bookworm
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 ARG TARGETARCH
-ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 APP_DIR=/app DATA_DIR=/data
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 APP_DIR=/app DATA_DIR=/data DLT_PIPELINES_DIR=/data/dlt
 
 RUN apt-get update \\
  && apt-get install -y --no-install-recommends ca-certificates=* curl=7.* gnupg=2.* util-linux=2.* libodbc2=2.* \\
@@ -376,7 +376,7 @@ gateways:
   local:
     connection:
       type: duckdb
-      database: "{{ env_var('RIGHAVEN_WAREHOUSE_DUCKDB', '/data/warehouse.duckdb') }}"
+      database: "{{{{ env_var('RIGHAVEN_WAREHOUSE_DUCKDB', '/data/warehouse.duckdb') }}}}"
   prod:
 {prod}default_gateway: local
 model_defaults:
@@ -563,8 +563,8 @@ def requirements(target,source_dialect):
     driver=SOURCE_DRIVERS.get(source_dialect,(None,None))[1]
     extra={'postgres':'postgres','tsql':'mssql','fabric':'fabric','duckdb':'duckdb'}[target]
     ingest=[f'dlt[{extra},sql-database]=={DLT}',f'Faker=={FAKER}']+([driver] if driver else [])
-    engine={'postgres':'[postgres]','tsql':'[mssql-odbc]','fabric':'[fabric]','duckdb':''}[target]
-    transform=[f'sqlmesh{engine}=={SQLMESH}',f'duckdb=={DUCKDB_TRANSFORM}']
+    engine={'postgres':'','tsql':'[mssql-odbc]','fabric':'[fabric]','duckdb':''}[target]
+    transform=[f'sqlmesh{engine}=={SQLMESH}',f'duckdb=={DUCKDB_TRANSFORM}','psycopg2-binary==2.9.11']
     header='# Exact top-level pins; generate the hashed lock with:  uv pip compile --generate-hashes {} -o {}\n'
     return (header.format('ingestion/requirements.in','ingestion/requirements.lock')+'\n'.join(ingest)+'\n',
             header.format('transform/requirements.in','transform/requirements.lock')+'\n'.join(transform)+'\n')

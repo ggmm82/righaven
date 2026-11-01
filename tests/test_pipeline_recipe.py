@@ -104,6 +104,7 @@ class PackageTemplates(unittest.TestCase):
         for target in ('postgres', 'tsql', 'fabric'):
             config = pipeline_scaffold.sqlmesh_config(target, 'vendite', '@hourly')
             self.assertIn('default_gateway: local', config)
+            self.assertIn("{{ env_var('RIGHAVEN_WAREHOUSE_DUCKDB'",config, 'generated f-string must retain actual Jinja braces')
             for line in config.splitlines():
                 if 'password' in line:
                     self.assertIn('env_var(', line, target)

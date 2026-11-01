@@ -62,6 +62,9 @@ print(json.dumps(result))
                 reports=json.loads(run('docker','exec',container,'cat','/data/reports/results.json'))
                 counts={row[0]:row[1] for row in reports[0]['rows']}
                 assert set(counts.values())=={cycle*3},counts
+                reconciled=run('docker','exec',container,'/opt/transform/bin/python','-c',
+                    "import duckdb; c=duckdb.connect('/data/warehouse.duckdb',read_only=True); print(c.execute('SELECT sum(ordine_count) FROM marts.ordine_by_cliente').fetchone()[0])").strip()
+                assert reconciled==str(cycle*3),reconciled
                 html=run('docker','exec',container,'cat','/data/reports/index.html')
                 assert '<table' not in html and 'Business report' in html and 'textContent' in html # tables are rendered from actual saved data
                 run('docker','exec',container,'/opt/ingest/bin/python','/app/ops/orchestrate.py','health')

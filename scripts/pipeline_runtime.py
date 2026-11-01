@@ -166,10 +166,14 @@ def main():
             config_hash = hashlib.sha256(b''.join(p.read_bytes() for p in sorted((root / 'transform').rglob('*')) if p.is_file())).hexdigest()
             applied = data / 'applied-models'
             gateway = os.environ.get('SQLMESH_GATEWAY', 'local')
-            if not applied.exists() or applied.read_text() != config_hash:
+            already_applied=applied.exists() and applied.read_text()==config_hash
+            if not already_applied:
                 state['operations'].append(command([sqlmesh, '--gateway', gateway, 'plan', '--auto-apply', '--no-prompts'], project))
                 applied.write_text(config_hash)
             if due('transform'):
+                if args.action=='cycle' and os.environ.get('PIPELINE_ENV','test')!='prod' and already_applied:
+                    # An explicit synthetic smoke cycle must evaluate changed input even inside the same cron interval.
+                    state['operations'].append(command([sqlmesh,'--gateway',gateway,'plan','--restate-model','*','--auto-apply','--no-prompts'],project))
                 state['operations'].append(command([sqlmesh, '--gateway', gateway, 'run'], project))
                 if os.environ.get('REPORT_MODE','html')=='html':
                     state['report'] = render(root, data)
