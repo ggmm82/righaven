@@ -8,7 +8,7 @@ import {tr,useUiLanguage} from "@/core/i18n/ui-text";
 type Text={it:string;en:string};
 type Stage={id:string;title:Text;outcome:Text;status:string;available:boolean;gate?:boolean;note:string;decision_note?:string;
  evidence:{path:string;sha256:string}[];proposal?:{action:"skip";reason:string}};
-export type Journey={recipe_id:string;recipe?:{title:string;skills:string[];environment:string|null};revision:number;answers:Record<string,string>;
+export type Journey={recipe_id:string;recipe?:{title:string;skills:string[];environment:string|null;outputs?:{it:string[];en:string[]}};revision:number;answers:Record<string,string>;
  complete:boolean;current:string|null;awaiting_owner?:string[];stages:Stage[]};
 export type JourneyAction="approve"|"revise"|"skip"|"reopen"|"keep";
 
@@ -23,8 +23,9 @@ export function useJourney(threadId:string){
   const load=async()=>{try{const r=await fetch(base,{signal:controller.signal,cache:"no-store"});if(!r.ok)throw Error(String(r.status));const v=await r.json() as {journey:Journey|null};if(live){setValue(old=>old?.thread===threadId&&(old.journey?.revision??0)>(v.journey?.revision??0)?old:{thread:threadId,journey:v.journey});setError("");}}catch(e){if(live&&!controller.signal.aborted)setError(e instanceof Error?e.message:String(e));}};
   void load();const timer=setInterval(()=>void load(),5000);return()=>{live=false;controller.abort();clearInterval(timer);};},[base,threadId]);
  const journey=value?.thread===threadId?value.journey:null;
- const decide=useCallback(async(stage:string,action:JourneyAction,note="")=>{if(!journey)return false;setBusy(true);setError("");try{
-  const r=await fetch(base+"/decision",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({stage_id:stage,action,expected_revision:journey.revision,note})});
+ const decide=useCallback(async(stage:string|string[],action:JourneyAction,note="")=>{if(!journey)return false;setBusy(true);setError("");try{
+  const target=Array.isArray(stage)?{stage_ids:stage}:{stage_id:stage};
+  const r=await fetch(base+"/decision",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({...target,action,expected_revision:journey.revision,note})});
   const v=await r.json() as {journey:Journey;detail?:unknown};if(!r.ok)throw Error(typeof v.detail==="string"?v.detail:String(r.status));setValue({thread:threadId,journey:v.journey});return true;
  }catch(e){setError(e instanceof Error?e.message:String(e));return false;}finally{setBusy(false);}},[base,journey,threadId]);
  return {journey,error,busy,decide};
@@ -58,9 +59,22 @@ function Decision({stage,state,threadId}:{stage:Stage;state:JourneyState;threadI
  </div>;
 }
 
+/** Several skip proposals answered at once: the team compared the goal with the recipe's phases. */
+function Proposals({stages,state}:{stages:Stage[];state:JourneyState}){
+ return <div className="space-y-2 rounded-lg border border-amber-500/40 bg-amber-500/5 p-3" data-testid="journey-proposals">
+  <p className="font-medium">{tr(`Tocca a te: per il tuo obiettivo la squadra propone di saltare ${stages.length} fasi.`,`Your turn: for your goal the team proposes skipping ${stages.length} phases.`)}</p>
+  <ul className="list-inside list-disc">{stages.map(s=><li key={s.id}><strong>{title(s)}</strong>: {s.proposal?.reason}</li>)}</ul>
+  <div className="flex flex-wrap gap-2">
+   <button type="button" disabled={state.busy} className="bg-foreground text-background rounded-lg px-3 py-2" onClick={()=>void state.decide(stages.map(s=>s.id),"skip")}>{tr(`Salta queste ${stages.length} fasi`,`Skip these ${stages.length} phases`)}</button>
+   <button type="button" disabled={state.busy} className="rounded-lg border px-3 py-2" onClick={()=>void state.decide(stages.map(s=>s.id),"keep")}>{tr("Mantienile tutte","Keep them all")}</button>
+  </div>
+  <p className="text-muted-foreground text-xs">{tr("Per sceglierle una per una apri «Tutte le fasi».","To choose one by one open “All phases”.")}</p>
+ </div>;
+}
+
 /** Compact path strip shown in the project card: where we are, what waits for the owner, how to go on. */
 export function JourneyStrip({threadId,state,onOpen,onContinue,busyTeam}:{threadId:string;state:JourneyState;onOpen?:()=>void;onContinue?:(message:string)=>unknown;busyTeam?:boolean}){
- useUiLanguage();
+ const language=useUiLanguage();
  const journey=state.journey;
  if(!journey)return null;
  const settled=journey.stages.filter(s=>DONE.includes(s.status)).length;
@@ -73,9 +87,14 @@ export function JourneyStrip({threadId,state,onOpen,onContinue,busyTeam}:{thread
   </div>
   <ol className="flex gap-1" aria-label={tr("Fasi del percorso","Guided phases")}>{journey.stages.map(s=><li key={s.id} className="min-w-0 flex-1" title={`${title(s)} · ${statusLabel(s.status)}`}>
    <span className={`block h-1.5 rounded-full ${tone(s.status)} ${s.id===journey.current?"ring-2 ring-offset-1 ring-blue-500/60":""}`}/><span className="sr-only">{title(s)}: {statusLabel(s.status)}</span></li>)}</ol>
+  <p data-testid="journey-goal"><strong>{tr("Obiettivo:","Goal:")}</strong> {journey.answers.goal}</p>
+  {!!journey.recipe?.outputs&&<details className="text-xs"><summary className="cursor-pointer">{tr("Cosa ottieni alla fine","What you get at the end")}</summary>
+   <ul className="mt-1 list-inside list-disc">{journey.recipe.outputs[language].map(o=><li key={o}>{o}</li>)}</ul>
+   {journey.stages.some(s=>s.status==="skipped")&&<p className="text-muted-foreground mt-1">{tr("Le fasi saltate non producono i loro risultati.","Skipped phases do not produce their results.")}</p>}</details>}
   {journey.complete?<p>{tr("Tutte le fasi sono concluse: la squadra può completare la consegna.","All phases are settled: the team can complete the delivery.")}</p>
    :current&&<p data-testid="journey-current"><strong>{tr("Fase attuale:","Current phase:")}</strong> {title(current)} · {statusLabel(current.status)}{current.gate===false?tr(" · senza approvazione"," · no approval needed"):""}</p>}
-  {waiting.map(s=><Decision key={s.id+":"+journey.revision} stage={s} state={state} threadId={threadId}/>)}
+  {waiting.filter(s=>s.status==="review"||waiting.filter(w=>w.status!=="review").length===1).map(s=><Decision key={s.id+":"+journey.revision} stage={s} state={state} threadId={threadId}/>)}
+  {waiting.filter(s=>s.status!=="review").length>1&&<Proposals stages={waiting.filter(s=>s.status!=="review")} state={state}/>}
   {state.error&&<p className="text-xs" role="alert">{state.error}</p>}
   <div className="flex flex-wrap gap-2">
    {onOpen&&<button type="button" className="rounded-lg border px-3 py-1.5" onClick={onOpen}>{tr("Tutte le fasi","All phases")}</button>}

@@ -30,9 +30,15 @@ can be resumed there.
 - **Skip.** A phase that adds nothing to the goal (for example replica and package for a demo with
   sample data) can be skipped by the owner. A skipped phase satisfies its dependants and stays
   skipped when earlier results change, until the owner resumes it.
-- **Proposals.** The coordinator may propose skipping a phase with a reason
-  (`harness_journey(propose_skip=true)`); the card shows the proposal with **Skip phase** and
-  **Keep the phase**. Only the owner decides.
+- **Proposals.** At the first turn the coordinator compares the goal with every phase and proposes
+  skipping, with a reason, all the phases the goal does not need, including later ones
+  (`harness_journey(propose_skip=true)`). The card shows them together with **Skip these phases** and
+  **Keep them all**; *All phases* lets the owner choose one by one. Only the owner decides.
+- **One goal, one decision channel.** The goal written at the start is the project's result: the
+  team does not ask for it again, and the card shows it with what you get at the end. In a guided
+  project the phase approvals replace the chat confirmation that free projects ask after each
+  production step, so nothing is approved twice. Free projects, started without a recipe, keep
+  their brief questions and chat checkpoints unchanged.
 - **Phases without approval.** A recipe author can mark technical phases as not needing approval:
   they complete when their results are saved. In the built-in data recipe, *Laboratory* and *Test
   scenarios* work this way; the owner still sees their results.

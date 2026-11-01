@@ -843,6 +843,7 @@ window.showThread();
                 page.reload()
                 strip=dock.get_by_test_id('project-journey')
                 expect(strip).to_contain_text('Pipeline dati end-to-end')
+                expect(strip.get_by_test_id('journey-goal')).to_have_text('Obiettivo: Dashboard semplice con dati di esempio')
                 expect(strip.get_by_test_id('journey-progress')).to_have_text('0/3 fasi concluse')
                 decision=strip.get_by_test_id('journey-decision')
                 expect(decision.get_by_role('link',name='catalogo.md')).to_be_visible()

@@ -76,7 +76,8 @@ createRoot(document.getElementById('root')!).render(location.pathname.includes('
                 if self.path.endswith('/sign-in'):return self.send(json.dumps(connections.sign_in('owner',self.path.split('/')[4])))
                 if self.path.endswith('/sign-in/poll'):return self.send(json.dumps(connections.complete_sign_in('owner',self.path.split('/')[4])))
                 if self.path.endswith('/decision'):
-                    value=journeys.decide(workspace,body['stage_id'],None,body['expected_revision'],body['note'],body['action']);return self.send(json.dumps({'journey':value}))
+                    value=(journeys.decide_many(workspace,body['stage_ids'],body['action'],body['expected_revision'],body['note']) if body.get('stage_ids')
+                           else journeys.decide(workspace,body['stage_id'],None,body['expected_revision'],body['note'],body['action']));return self.send(json.dumps({'journey':value}))
                 if self.path=='/api/harness/recipes':
                     return self.send(json.dumps({'recipe':recipes.card(recipes.create('owner',{k:v for k,v in body.items() if k!='expected_revision'},SKILLS),'it','owner')}))
                 return self.send('{}',code=404)
@@ -126,6 +127,16 @@ createRoot(document.getElementById('root')!).render(location.pathname.includes('
                     expect(phases.nth(2)).to_contain_text('senza approvazione')
                     phases.nth(1).get_by_role('button',name='Riprendi questa fase',exact=True).click()
                     expect(progress).to_contain_text('1/7')
+                    expect(panel.get_by_test_id('journey-goal')).to_contain_text('Dai documenti al catalogo')
+                    # The team compares the goal with every phase and proposes the skips in one turn; one answer settles them.
+                    current=journeys.view(workspace)
+                    for stage in ('pipeline','package'):
+                        current=journeys.record(workspace,stage,[],[],'Per una demo con dati di esempio non serve',current['revision'],propose_skip=True)
+                    page.reload()
+                    proposals=page.get_by_test_id('journey-proposals')
+                    expect(proposals).to_contain_text('propone di saltare 2 fasi')
+                    proposals.get_by_role('button',name='Salta queste 2 fasi',exact=True).click()
+                    expect(progress).to_contain_text('3/7');expect(proposals).to_have_count(0)
                     assert not errors,errors
                     page.close()
                 # Personal Microsoft account: device code with MFA on Microsoft's page, then usable by SQL Server connections.

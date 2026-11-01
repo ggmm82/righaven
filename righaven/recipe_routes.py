@@ -139,7 +139,8 @@ class GuidedStart(BaseModel):
 
 
 class GuidedDecision(BaseModel):
-    stage_id: str = Field(max_length=40)
+    stage_id: str = Field(default='', max_length=40)
+    stage_ids: list[str] = Field(default_factory=list, max_length=12)
     approve: bool | None = None
     action: str | None = Field(default=None, pattern='^(approve|revise|skip|reopen|keep)$')
     expected_revision: int = Field(ge=1)
@@ -184,10 +185,13 @@ async def guided_decide(thread_id: ThreadId, body: GuidedDecision, request: Requ
     same_origin(request)
     workspace = get_paths().sandbox_user_data_dir(thread_id, user_id=get_effective_user_id())
     try:
-        result = await run_in_threadpool(journeys.decide, workspace, body.stage_id, body.approve, body.expected_revision, body.note, body.action)
+        if body.stage_ids:
+            result = await run_in_threadpool(journeys.decide_many, workspace, body.stage_ids, body.action, body.expected_revision, body.note)
+        else:
+            result = await run_in_threadpool(journeys.decide, workspace, body.stage_id, body.approve, body.expected_revision, body.note, body.action)
     except ValueError as error:
         raise HTTPException(409, str(error)) from error
     from .audit_log import append
     action = body.action or ('approve' if body.approve else 'revise')
-    append(workspace, 'User', 'Guided phase decision', {'approve': 'approved', 'revise': 'revision', 'skip': 'skipped', 'reopen': 'reopened', 'keep': 'kept'}[action], body.stage_id)
+    append(workspace, 'User', 'Guided phase decision', {'approve': 'approved', 'revise': 'revision', 'skip': 'skipped', 'reopen': 'reopened', 'keep': 'kept'}[action], body.stage_id or ', '.join(body.stage_ids))
     return {'journey': result}

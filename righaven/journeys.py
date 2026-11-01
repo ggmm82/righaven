@@ -74,7 +74,8 @@ def start(workspace, identifier, answers, expected_revision=0, recipe=None):
                 raise ValueError('Guided project changed; reload before saving')
             value = {'recipe_id': identifier, 'recipe_version': recipe['workflow']['version'],
                      'recipe': {'title': recipe['it']['title'], 'skills': recipes.skills_of(recipe), 'environment': recipe.get('environment'),
-                                'tools': list(recipe['tools']), 'custom': bool(recipe.get('owner'))},
+                                'tools': list(recipe['tools']), 'custom': bool(recipe.get('owner')),
+                                'outputs': {'it': list(recipe['it']['outputs']), 'en': list(recipe['en']['outputs'])}},
                      'definition': copy.deepcopy(recipe['workflow']), 'answers': clean, 'created_at': utcnow(),
                      'revision': 0, 'stages': [{'id': s['id'], 'status': 'pending', 'evidence': [], 'steps': [], 'note': ''}
                                                for s in recipe['workflow']['stages']]}
@@ -157,7 +158,7 @@ def view(workspace, value=None):
         stage['available'] = all(by_id[d]['status'] in DONE for d in spec['depends_on'])
     result['complete'] = all(s['status'] in DONE for s in result['stages'])
     result['current'] = next((s['id'] for s in result['stages'] if s['status'] not in DONE and s['available']), None)
-    result['awaiting_owner'] = [s['id'] for s in result['stages'] if s['available'] and (s['status'] == 'review' or s.get('proposal'))]
+    result['awaiting_owner'] = [s['id'] for s in result['stages'] if (s['available'] and s['status'] == 'review') or (s.get('proposal') and s['status'] not in DONE)]
     result['connections_optional'] = True
     return result
 
@@ -176,7 +177,7 @@ def record(workspace, stage_id, evidence, steps, note, expected_revision, propos
             raise ValueError('Guided project changed; read it again')
         value = view(workspace, raw)
         stage = next((s for s in value['stages'] if s['id'] == stage_id), None)
-        if not stage or not stage['available']:
+        if not stage or (not stage['available'] and not propose_skip):
             raise ValueError('Approve prerequisite results before this phase')
         if propose_skip:
             if stage['status'] in DONE:
@@ -230,7 +231,8 @@ def decide(workspace, stage_id, approve=None, expected_revision=0, note='', acti
             raise ValueError('Guided project changed; reload before deciding')
         current = view(workspace, raw)
         stage = next((s for s in current['stages'] if s['id'] == stage_id), None)
-        if not stage or not stage['available']:
+        # The owner may skip a later phase in advance; approvals need the results of earlier phases.
+        if not stage or (not stage['available'] and action not in ('skip', 'keep')):
             raise ValueError('This result is not available for approval')
         if action in ('approve', 'revise') and stage['status'] not in ('review', 'approved'):
             raise ValueError('This result is not available for approval')
@@ -251,6 +253,29 @@ def decide(workspace, stage_id, approve=None, expected_revision=0, note='', acti
         _invalidate(raw, stage_id)
         _save(folder, raw)
     return view(workspace, raw)
+
+
+def decide_many(workspace, stage_ids, action, expected_revision, note=''):
+    """One owner answer to several skip proposals, e.g. every phase a demo does not need."""
+    if action not in ('skip', 'keep') or not isinstance(stage_ids, list) or not 1 <= len(stage_ids) <= 12:
+        raise ValueError('Invalid decision')
+    value = None
+    revision = expected_revision
+    for stage_id in stage_ids:
+        value = decide(workspace, stage_id, None, revision, note, action)
+        revision = value['revision']
+    return value
+
+
+def outcome_seed(journey, locale='it'):
+    """The owner's own goal is the project's result; the recipe outputs describe the delivery."""
+    answers = journey['answers']
+    recipe = journey.get('recipe') or {}
+    outputs = (recipe.get('outputs') or {}).get(locale) or []
+    labels = {'source': 'Sorgenti', 'destination': 'Destinazione', 'bi': 'Report e BI', 'frequency': 'Frequenze', 'notes': 'Indicazioni'}
+    return {'title': (recipe.get('title') or '')[:120], 'result': answers['goal'][:2000],
+            'format': ('; '.join(outputs) or 'Risultati delle fasi del percorso guidato')[:500],
+            'constraints': [(labels[k] + ': ' + answers[k])[:600] for k in labels if answers.get(k)][:8]}
 
 
 def attach_policy(workspace, plan):
@@ -284,7 +309,8 @@ def compact(value):
     """What the coordinator needs each turn: choices, phase states and evidence paths, without the full definition and policy."""
     if not value:
         return None
-    return {'recipe_id': value['recipe_id'], **({'recipe': value['recipe']} if value.get('recipe') else {}),
+    recipe = {k: v for k, v in (value.get('recipe') or {}).items() if k != 'outputs'}
+    return {'recipe_id': value['recipe_id'], **({'recipe': recipe} if recipe else {}),
             'revision': value['revision'], 'answers': value['answers'], 'current': value['current'],
             'complete': value['complete'], 'awaiting_owner': value.get('awaiting_owner', []),
             'stages': [{'id': s['id'], 'title': s['title']['it'], 'outcome': s['outcome']['it'], 'status': s['status'], 'available': s['available'],
@@ -305,7 +331,10 @@ def instructions(workspace):
             'phases with gate=false complete when their evidence is recorded. '
             + (value['definition'].get('guidance') or '') + (' ' if value['definition'].get('guidance') else '') +
             'Do not ask the user to write SQL, JSON, YAML or CLI commands. '
+            'The owner\'s goal (answers.goal) is the final result: keep every phase in service of it and say in one sentence how the current phase moves toward it. '
             'Only the owner approves, asks for corrections or skips a phase, with the buttons in the project card above the chat '
-            '(«Approva fase», «Chiedi correzioni», «Salta fase»); never ask for that approval as a chat question and never claim a chat reply approved it. '
-            'When a phase is not useful for the stated goal (for example a demo with sample data needs no replica or package), '
-            'propose skipping it with harness_journey(propose_skip=true) and a reason; the owner decides.')
+            '(«Approva fase», «Chiedi correzioni», «Salta fase»). Never use ask_clarification or a chat question to approve, confirm or continue a phase, '
+            'and never claim a chat reply approved it: after submitting a phase result, end the turn with a short summary and point to «Tocca a te» in the project card. '
+            'Use ask_clarification only for a decisive choice about the result that no phase answers. '
+            'At the first turn compare the goal with all phases and, in that same turn, propose skipping every phase the goal does not need '
+            '(for example a demo with sample data needs no replica, recurring pipeline or package) with harness_journey(propose_skip=true) and a reason; the owner decides all of them at once.')

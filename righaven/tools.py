@@ -113,7 +113,11 @@ def harness_journey(runtime: Runtime, stage_id: str = '', evidence_json: str = '
         _plan_event(call_id).wait(PLAN_WAIT_SECONDS)
     workspace = workspace_for(runtime)
     result = record(workspace, stage_id, json.loads(evidence_json), json.loads(steps_json), note, expected_revision, propose_skip) if stage_id else view(workspace)
-    return json.dumps({'journey': compact(result)}, ensure_ascii=False)
+    value = compact(result)
+    if stage_id and value and value['awaiting_owner']:
+        value['instruction'] = ('The owner decides in the project card («Tocca a te»). End this turn with a short summary of the result and how it serves the goal; '
+                                'do not ask for approval or confirmation in the chat.')
+    return json.dumps({'journey': value}, ensure_ascii=False)
 
 
 @tool('harness_skills',parse_docstring=True)
