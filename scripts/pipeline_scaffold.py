@@ -106,7 +106,7 @@ def production_resources():
 
 
 def destination():
-    if ENV in ('local','test'):
+    if ENV in ('local','test','lab'):
         import duckdb
         path=os.environ.get('RIGHAVEN_WAREHOUSE_DUCKDB','warehouse.duckdb')
         if not Path(path).exists():
@@ -116,8 +116,8 @@ def destination():
 
 
 def main():
-    if ENV in ('local','test'):resources=local_resources(os.environ['RIGHAVEN_SOURCE_DUCKDB'])
-    elif ENV=='prod':resources=production_resources()
+    if ENV in ('local','test','lab'):resources=local_resources(os.environ['RIGHAVEN_SOURCE_DUCKDB'])
+    elif ENV in ('prod','lab'):resources=production_resources()
     else:raise SystemExit('PIPELINE_ENV must be local, test or prod')
     pipeline=dlt.pipeline(pipeline_name=(os.environ.get('PIPELINE_NAME') or '{name}_ingestion'),destination=destination(),dataset_name=DATASET,
                           pipelines_dir=os.environ.get('DLT_PIPELINES_DIR'))
@@ -228,7 +228,7 @@ ARG TARGETARCH
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 APP_DIR=/app DATA_DIR=/data
 
 RUN apt-get update \\
- && apt-get install -y --no-install-recommends ca-certificates=* curl=7.* gnupg=2.* util-linux=2.* \\
+ && apt-get install -y --no-install-recommends ca-certificates=* curl=7.* gnupg=2.* util-linux=2.* libodbc2=2.* \\
  && rm -rf /var/lib/apt/lists/*
 {odbc}
 # supercronic {SUPERCRONIC['version']}: cron for containers, verified by SHA-256.
@@ -260,6 +260,39 @@ ENTRYPOINT ["/app/ops/entrypoint.sh"]
 CMD ["schedule"]
 '''
 
+
+POSTGRES_LAB='''# Isolated synthetic PostgreSQL source. Trust auth is scoped to this private, portless test network.
+services:
+  source-db:
+    image: postgres:16-bookworm
+    environment:
+      POSTGRES_DB: source_lab
+      POSTGRES_USER: righaven_lab
+      POSTGRES_HOST_AUTH_METHOD: trust
+    volumes:
+      - source-lab:/var/lib/postgresql/data
+      - ./schema/source.postgres.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    networks: [synthetic-lab]
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U righaven_lab -d source_lab"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+  pipeline:
+    environment:
+      PIPELINE_ENV: lab
+      SQLMESH_GATEWAY: local
+      SOURCES__SQL_DATABASE__CREDENTIALS: postgresql+psycopg://righaven_lab@source-db:5432/source_lab
+    depends_on:
+      source-db:
+        condition: service_healthy
+    networks: [synthetic-lab]
+networks:
+  synthetic-lab:
+    internal: true
+volumes:
+  source-lab:
+'''
 
 def compose(name):
     return f'''# docker compose up -d  (see README for the environment variables)
@@ -468,7 +501,7 @@ Hashed dependencies are included. Acceptance is determined by the delivered veri
 
 1. **Source** (read-only account) → **dlt** (`ingestion/pipeline.py`, tables and cursors in `ingestion/tables.json`) → dataset `raw` in the warehouse.
 2. **SQLMesh** (`transform/`): `staging.stg_*` views with key audits, then `marts.*` business tables{' (example: `marts.'+mart+'`)' if mart else ''}.
-3. **BI**: your existing tool (Power BI, Metabase, Superset, ...) reads the `marts` schema of the production warehouse.
+3. **BI**: the local HTML report uses `reporting/metrics.json` and saves interactive results in `/data/reports`. Replace example counts with agreed KPIs. Your existing tool (Power BI, Metabase, Superset, ...) reads the `marts` schema of the production warehouse.
 4. **Test environment**: `ops/init-test.sh` creates the empty replica (`schema/replica.duckdb.sql`) and the `stubs` job adds a synthetic batch on every run (`stubs/stubgen.py`, deterministic, foreign-key consistent).
 
 ## Tables
@@ -497,7 +530,7 @@ docker compose up -d
 ```
 
 For production set `PIPELINE_ENV=prod`, `SQLMESH_GATEWAY=prod`, the source and destination credentials, run `deploy` once and start the service.
-Pin the base image by digest and keep the lock files committed.
+Pin base images by digest for a production release and keep the included lock files committed. For a PostgreSQL source, `docker compose -f compose.yaml -f compose.lab.yaml up -d` creates the actual empty source engine on a private network and periodically refreshes it with synthetic data. Other engines retain an explicitly labelled DuckDB simulation until their native replica is provisioned and verified. `docker compose --profile reports up -d` exposes local HTML reports at http://127.0.0.1:8080.
 
 ## Required checks before delivery
 
@@ -569,6 +602,11 @@ def scaffold(model,output,*,target,source_dialect,name,schedule,stub_source=None
     write(root,'ops/run.sh',RUN_SH,0o755);write(root,'ops/init-test.sh',INIT_SH,0o755)
     write(root,'ops/entrypoint.sh',ENTRYPOINT_SH,0o755)
     shutil.copyfile(Path(__file__).with_name('pipeline_runtime.py'),root/'ops/orchestrate.py')
+    shutil.copyfile(Path(__file__).with_name('pipeline_seed.py'),root/'ops/seed-source.py')
+    if source_dialect=='postgres':
+        source_ddl,_=pm.ddl(model,'postgres')
+        write(root,'schema/source.postgres.sql',source_ddl)
+        write(root,'compose.lab.yaml',POSTGRES_LAB)
     write(root,'reporting/metrics.json',json.dumps([{'title':'Example: source row counts — replace with agreed business KPIs','sql':' UNION ALL '.join("SELECT '"+t['target']+"' AS source, count(*) AS rows FROM raw."+t['target'] for t in tables)}],indent=2))
     write(root,'reporting/README.md','Define agreed business measures in metrics.json. Example counts are not an accepted business report. The runtime saves an offline interactive HTML report and its query results. Production BI uses the configured warehouse; remote report adapters must be configured and tested separately.\n')
     write(root,'Dockerfile',dockerfile(target,source_dialect));write(root,'compose.yaml',compose(name));write(root,'.env.example',env_example(target,source_dialect))

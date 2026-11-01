@@ -21,7 +21,7 @@ def run(*argv, **kwargs):
 
 def main():
     repo=Path(__file__).resolve().parents[1]
-    tag='rh-pipeline-check:'+uuid.uuid4().hex[:10];container='rh-pipeline-'+uuid.uuid4().hex[:10];volume=container+'-data'
+    tag='verified-pipeline:local';container='rh-pipeline-'+uuid.uuid4().hex[:10];volume=container+'-data'
     with tempfile.TemporaryDirectory() as directory:
         root=Path(directory);root.chmod(0o755);out=root/'output';out.mkdir();out.chmod(0o777)
         with patch.object(state,'STATE',root/'state'),patch.object(docker_runtime,'host_path',lambda p:str(p)),patch.object(environment_runtime,'pinned',return_value=set()):
@@ -34,6 +34,7 @@ from acceptance_pipeline import MODEL
 result=pipeline_scaffold.scaffold(MODEL,Path('/out'),target='postgres',source_dialect='postgres',name='verified',schedule={'ingest':'@hourly','stubs':'@hourly','transform':'@daily','transform_model_cron':'@hourly'})
 print(json.dumps(result))
 """
+        compose_args=None
         try:
             run('docker','run','--rm','--network=none','--mount','type=bind,src='+str(repo)+',dst=/review,readonly','--mount','type=bind,src='+str(out)+',dst=/out',image['image_id'],
                 '/opt/righaven/apps/sqlglot/venv/bin/python','-c',generator)
@@ -69,11 +70,31 @@ print(json.dumps(result))
             run('docker','run','--rm','--network=none','--mount','type=volume,src='+volume+',dst=/data',
                 '-e','PIPELINE_ENV=test','-e','RIGHAVEN_SOURCE_DUCKDB=/data/source-stub.duckdb','-e','RIGHAVEN_WAREHOUSE_DUCKDB=/data/warehouse.duckdb',tag,
                 '/opt/ingest/bin/python','/app/ingestion/pipeline.py')
-            print('Exported package OK: clean build, read-only startup, ordered cycles, replacement/restart, durable state, repeatable snapshots and real BI report')
+            # Actual source-engine laboratory, using the delivered Compose overlay.
+            package=out/'package'
+            (package/'.env').write_text((package/'.env.example').read_text().replace('STUB_ROWS=200','STUB_ROWS=3'))
+            compose_args=['docker','compose','-p',container+'-lab','-f',str(package/'compose.yaml'),'-f',str(package/'compose.lab.yaml')]
+            run(*compose_args,'up','-d','--no-build',timeout=300)
+            deadline=time.monotonic()+240
+            while time.monotonic()<deadline:
+                result=subprocess.run([*compose_args,'exec','-T','pipeline','cat','/data/last-cycle.json'],capture_output=True,text=True)
+                if result.returncode==0:
+                    record=json.loads(result.stdout)
+                    if record['status']=='failed':raise AssertionError(record)
+                    if record['status']=='passed':break
+                time.sleep(2)
+            else:raise AssertionError('Native PostgreSQL source lab did not complete')
+            count=run(*compose_args,'exec','-T','source-db','psql','-U','righaven_lab','-d','source_lab','-tAc','SELECT count(*) FROM vendite."Cliente"').strip()
+            assert count=='3',count
+            print('Exported package OK: clean build, read-only startup, ordered cycles, replacement/restart, durable state, repeatable snapshots, real BI report and actual PostgreSQL source lab')
         except Exception:
+            if compose_args:
+                diagnostic=subprocess.run([*compose_args,'logs','--tail','70'],capture_output=True,text=True)
+                print(diagnostic.stdout[-10000:]+diagnostic.stderr[-2000:],file=sys.stderr)
             logs=subprocess.run(['docker','logs',container],capture_output=True,text=True)
             print(logs.stdout[-8000:]+logs.stderr[-4000:],file=sys.stderr);raise
         finally:
+            if compose_args:subprocess.run([*compose_args,'down','-v','--remove-orphans'],capture_output=True)
             subprocess.run(['docker','rm','-f',container],capture_output=True)
             subprocess.run(['docker','volume','rm','-f',volume],capture_output=True)
             subprocess.run(['docker','image','rm','-f',tag],capture_output=True)

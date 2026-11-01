@@ -137,6 +137,8 @@ def main():
                     '--output', data / 'stubs', '--database', os.environ['RIGHAVEN_SOURCE_DUCKDB'], '--rows', os.environ.get('STUB_ROWS', '200')]))
                 finished('stubs')
             if due('ingest'):
+                if os.environ.get('PIPELINE_ENV')=='lab':
+                    state['operations'].append(command([ingest, root/'ops/seed-source.py']))
                 state['operations'].append(command([ingest, root / 'ingestion/pipeline.py']))
                 finished('ingest')
             # Plan on first boot or changed application source; run intervals on every cycle.

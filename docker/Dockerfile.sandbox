@@ -39,7 +39,7 @@ COPY scripts/data_specs.py scripts/data_tools.py scripts/data_job.py scripts/acc
 COPY scripts/domain_specs.py scripts/domain_tools.py scripts/acceptance_domain.py /opt/righaven/
 COPY config/toolkit/pipeline/ingest.lock /opt/righaven/package-ingest.lock
 COPY config/toolkit/pipeline/transform.lock /opt/righaven/package-transform.lock
-COPY scripts/pipeline_runtime.py /opt/righaven/
+COPY scripts/pipeline_runtime.py scripts/pipeline_seed.py /opt/righaven/
 COPY scripts/pipeline_specs.py scripts/pipeline_tools.py scripts/pipeline_job.py scripts/pipeline_model.py scripts/pipeline_scaffold.py scripts/stubgen.py scripts/acceptance_pipeline.py /opt/righaven/
 COPY scripts/extended_specs.py scripts/extended_tools.py scripts/extended_runner.py scripts/extended_axe.cjs scripts/acceptance_extended.py scripts/install_extended.py /opt/righaven/
 COPY scripts/runtime_policy.py scripts/security_specs.py scripts/security_tools.py /opt/righaven/
