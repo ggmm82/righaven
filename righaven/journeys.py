@@ -224,9 +224,17 @@ def pin_policy(plan, journey):
     policy = journey['definition']['policy']
     from .policy_book import validate_sheet, revision
     sheet = validate_sheet(policy)
-    sheet.update(revision=revision(sheet), reason='Selected guided workflow', steps=[])
+    from .policy_book import book
+    # Never replace an organization policy, including a previously imported recipe template.
+    reserved={s['id'] for s in book()}
+    base=sheet['id']
+    suffix=0
+    while sheet['id'] in reserved:
+        suffix+=1
+        sheet['id']=base[:34]+'_'+str(suffix)
+    sheet.update(revision=revision(sheet), reason='Selected guided workflow', steps=[], source_recipe=journey['recipe_id'])
     plan = copy.deepcopy(plan)
-    plan['sheets'] = [s for s in plan['sheets'] if s['id'] != sheet['id']] + [sheet]
+    plan['sheets'] = [s for s in plan['sheets'] if s.get('source_recipe') != journey['recipe_id']] + [sheet]
     plan['hash'] = fingerprint({'sheets': plan['sheets']})
     return plan
 

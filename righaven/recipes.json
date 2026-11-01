@@ -288,7 +288,7 @@
           }
         ],
         "policy": {
-          "id": "data_pipeline_delivery",
+          "id": "recipe_data_pipeline",
           "title": "Pipeline dati: consegna verificata",
           "version": 1,
           "summary": "Per le consegne della ricetta pipeline dati: catalogo descritto, replica vuota verificata, dati di prova coerenti, catena locale provata e pacchetto di produzione senza segreti.",

@@ -8,7 +8,7 @@ The selected recipe version, answers, phases, activity bindings and evidence has
 
 The existing project plan owns dynamic roles and assignments. A journey does not introduce a second scheduler or a user-facing programming language. `harness_journey` reads the selected method, links phases to native activities and submits saved artifacts for review. It cannot approve its own output. The owner approves individual phases or requests corrections from the project panel. Changed evidence invalidates dependent results without deleting files.
 
-Starting a guided data project pins its release policy alongside organization policies, without adding data-specific obligations to other projects. Final delivery requires the guided phases and the existing quality review to pass. A policy is not a substitute for executing its checks.
+Starting a guided data project pins its release policy alongside organization policies, without adding data-specific obligations to other projects or replacing administrator policies, including imported recipe templates. Final delivery requires the guided phases and the existing quality review to pass. A policy is not a substitute for executing its checks.
 
 ## Data engineering path
 

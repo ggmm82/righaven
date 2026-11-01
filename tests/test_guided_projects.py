@@ -58,13 +58,13 @@ class GuidedProjects(unittest.TestCase):
         self.assertIsNotNone(value['journey'])
         with projects.locked(self.work) as folder:
             raw=projects.load(folder,self.work)
-        sheet=next(s for s in raw['policy_plan']['sheets'] if s['id']=='data_pipeline_delivery')
+        sheet=next(s for s in raw['policy_plan']['sheets'] if s['id']=='recipe_data_pipeline')
         self.assertTrue(any(c['id']=='bi_delivered' for c in sheet['final_checks']))
-        self.assertNotIn('data_pipeline_delivery',[s['id'] for s in policy_book.book()])
+        self.assertNotIn('recipe_data_pipeline',[s['id'] for s in policy_book.book()])
         projects.set_policy_plan(self.work,[])
         with projects.locked(self.work) as folder:
             raw=projects.load(folder,self.work)
-        self.assertIn('data_pipeline_delivery',[s['id'] for s in raw['policy_plan']['sheets']])
+        self.assertIn('recipe_data_pipeline',[s['id'] for s in raw['policy_plan']['sheets']])
         with self.assertRaisesRegex(ValueError,'guided phases'):
             projects.create_plan(self.work,'',[],status='ready')
 
@@ -75,6 +75,21 @@ class GuidedProjects(unittest.TestCase):
         self.assertEqual(changed['stages'][0]['status'],'stale')
         self.assertTrue((self.work/'catalog.md').exists())
         with self.assertRaises(ValueError):journeys.start(self.work,'data-pipeline',{'goal':'Another edit'},current['revision'])
+
+    def test_recipe_never_replaces_a_mandatory_organization_policy(self):
+        from copy import deepcopy
+        organization=deepcopy(journeys.definition('data-pipeline')['workflow']['policy'])
+        organization.update(mandatory=True,title='Organization requirement')
+        organization['revision']=policy_book.revision(organization)
+        quality=policy_book.book()
+        with patch.object(policy_book,'book',return_value=[*quality,organization]):
+            projects.create_plan(self.work,'',[])
+            projects.set_policy_plan(self.work,[{'id':'recipe_data_pipeline_1','reason':'Already pinned automatically'}])
+            with projects.locked(self.work) as folder:raw=projects.load(folder,self.work)
+        sheets={s['id']:s for s in raw['policy_plan']['sheets']}
+        self.assertTrue(sheets['recipe_data_pipeline']['mandatory'])
+        self.assertEqual(sheets['recipe_data_pipeline']['title'],'Organization requirement')
+        self.assertEqual(sheets['recipe_data_pipeline_1']['source_recipe'],'data-pipeline')
 
     def test_assignments_cannot_bypass_phase_gates(self):
         with self.assertRaisesRegex(ValueError,'current guided phase'):

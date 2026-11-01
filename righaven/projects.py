@@ -382,18 +382,21 @@ def create_plan(workspace, brief, steps, project_type='', omissions=None, *, sum
             value.pop('method_recovery', None)
             if value.get('status') == 'blocked' and value['strategy']['state'] != 'needs_user':
                 value['status'] = 'review'
+        from .journeys import _load as load_journey, pin_policy
+        journey = load_journey(folder)
+        if journey and value.get('policy_plan'):
+            # A recipe namespace may collide with a later administrator policy: let core resolve organization sheets first.
+            value['policy_plan']['sheets']=[s for s in value['policy_plan']['sheets'] if s.get('source_recipe')!=journey['recipe_id']]
+        changed = policy_workflow.ensure_plan(value) if policy_workflow.governed(value) else None
+        if journey:
+            value['policy_plan'] = pin_policy(value['policy_plan'], journey)
+            value.setdefault('checkpoints', {'enabled': False, 'source': 'guided_phase_gates'})
         if status == 'ready':
             _check_ready(workspace, value, require_settled)
         if status:
             _apply_status(workspace, value, status)
         if value.get('outcome') and briefing_issue(value['outcome']):
             value['status'] = 'clarifying'
-        changed = policy_workflow.ensure_plan(value) if policy_workflow.governed(value) else None
-        from .journeys import _load as load_journey, pin_policy
-        journey = load_journey(folder)
-        if journey:
-            value['policy_plan'] = pin_policy(value['policy_plan'], journey)
-            value.setdefault('checkpoints', {'enabled': False, 'source': 'guided_phase_gates'})
         value.update(schema_version=2, updated_at=utcnow())
         atomic_json(folder / 'project.json', value)
     if changed:
@@ -416,9 +419,12 @@ def set_policy_plan(workspace, selections):
             raise ValueError('Definisci prima il brief e l’Execution Plan')
         if not policy_workflow.governed(value):
             raise ValueError('Questo progetto è precedente al Policy Book: prosegui con le verifiche esistenti')
-        plan = policy_workflow.policy_book.build_plan(selections, [s for s in value['steps'] if s.get('kind') != 'validation'])
         from .journeys import _load as load_journey, pin_policy
         journey = load_journey(folder)
+        if journey and isinstance(selections,list):
+            automatic={s['id'] for s in (value.get('policy_plan') or {}).get('sheets',[]) if s.get('source_recipe')==journey['recipe_id']}
+            selections=[s for s in selections if not isinstance(s,dict) or s.get('id') not in automatic]
+        plan = policy_workflow.policy_book.build_plan(selections, [s for s in value['steps'] if s.get('kind') != 'validation'])
         if journey:
             plan = pin_policy(plan, journey)
         if plan['hash'] == (value.get('policy_plan') or {}).get('hash') and value['policy_plan']['selected_by'] == 'coordinator':
