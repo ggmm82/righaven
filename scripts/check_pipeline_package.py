@@ -24,6 +24,8 @@ def main():
     tag='verified-pipeline:local';container='rh-pipeline-'+uuid.uuid4().hex[:10];volume=container+'-data'
     with tempfile.TemporaryDirectory() as directory:
         root=Path(directory);root.chmod(0o755);out=root/'output';out.mkdir();out.chmod(0o777)
+        (root/'state').mkdir()
+        (root/'state/installation-id').write_text(uuid.uuid4().hex)
         with patch.object(state,'STATE',root/'state'),patch.object(docker_runtime,'host_path',lambda p:str(p)),patch.object(environment_runtime,'pinned',return_value=set()):
             image=environment_runtime.ensure(['sqlglot'])
         generator="""import sys,json
