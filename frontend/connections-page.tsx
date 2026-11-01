@@ -53,7 +53,7 @@ export default function ConnectionsPage(){
   setSignIn({id,user_code:v.user_code,verification_uri:v.verification_uri,interval:v.interval??5,status:"pending"});}catch(e){setError(e instanceof Error?e.message:String(e));}finally{setBusy("");}}
  async function signOut(id:string){const r=await fetch(`${base}/${id}/sign-in`,{method:"DELETE"});const v=await r.json();if(!r.ok){setError(typeof v.detail==="string"?v.detail:String(r.status));return;}setReload(n=>n+1);}
  // Microsoft asks clients to poll at the given interval until the user completes the sign-in in their browser.
- useEffect(()=>{if(!signIn||signIn.status!=="pending")return;let live=true;const timer=setTimeout(()=>{void fetch(`${base}/${signIn.id}/sign-in/poll`,{method:"POST"}).then(async r=>{const v=await r.json() as {status:string;interval?:number;detail?:string;account?:string};if(!live)return;
+ useEffect(()=>{if(signIn?.status!=="pending")return;let live=true;const timer=setTimeout(()=>{void fetch(`${base}/${signIn.id}/sign-in/poll`,{method:"POST"}).then(async r=>{const v=await r.json() as {status:string;interval?:number;detail?:string;account?:string};if(!live)return;
    if(!r.ok){setSignIn(s=>s&&{...s,status:"failed",detail:typeof v.detail==="string"?v.detail:String(r.status)});return;}
    setSignIn(s=>s&&{...s,status:v.status,interval:v.interval??s.interval,detail:v.detail??v.account});if(v.status==="signed_in")setReload(n=>n+1);}).catch(()=>undefined);},signIn.interval*1000);
   return()=>{live=false;clearTimeout(timer);};},[signIn,base]);
