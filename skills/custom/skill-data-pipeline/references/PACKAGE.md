@@ -38,6 +38,8 @@ The synthetic package needs no real database account. Its volume retains SQLMesh
 
 `PIPELINE_ENV=prod` disables synthetic generation. Incremental loading must be explicitly confirmed after key, update/delete and replay tests. Native Fabric and source-engine-specific behavior need target verification; generating configuration is not deployment evidence.
 
+When enabling a confirmed cursor, configure keyed merge acquisition together with it. The runtime rejects incremental replacement because it would discard historical rows. A timestamp cursor does not capture hard deletes: agree tombstones, CDC or periodic full reconciliation before enabling it. The specialist prepares this configuration; the user approves the behavior, not the JSON syntax.
+
 ## DuckDB compatibility
 
 The ingestion and transformation environments may use different DuckDB releases. Every shared database uses storage version v1.4.0; retain this when editing the package. Worker software environments are reusable tools; project data and service lifetime remain separate.

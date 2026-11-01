@@ -76,11 +76,19 @@ DATASET=os.environ.get('DESTINATION_DATASET','raw')
 STORAGE='v1.4.0'  # readable by the DuckDB versions of dlt and SQLMesh
 
 
+def confirmed_incremental(table):
+    if not table.get('cursor_confirmed'):
+        return None
+    if not table.get('cursor') or not table.get('primary_key') or table['write_disposition'] != 'merge':
+        raise ValueError('Confirmed incremental acquisition requires a cursor, primary key and merge disposition; replace would discard history')
+    return dlt.sources.incremental(table['cursor'])
+
+
 def local_resources(path):
     import duckdb
     def reader(table):
         name=('"'+table['schema']+'".' if table['schema'] else '')+'"'+table['name']+'"'
-        cursor=dlt.sources.incremental(table['cursor']) if table.get('cursor') and table.get('cursor_confirmed') else None
+        cursor=confirmed_incremental(table)
         @dlt.resource(name=table['target'],primary_key=table['primary_key'] or None,write_disposition=table['write_disposition'])
         def rows(updated=cursor):
             con=duckdb.connect(path,read_only=True)
@@ -99,7 +107,7 @@ def production_resources():
     resources=[]
     for t in TABLES:
         resource=sql_table(table=t['name'],schema=t['schema'] or None,
-                           incremental=dlt.sources.incremental(t['cursor']) if t.get('cursor') and t.get('cursor_confirmed') else None,
+                           incremental=confirmed_incremental(t),
                            primary_key=t['primary_key'] or None,write_disposition=t['write_disposition'])
         resources.append(resource.with_name(t['target']))
     return resources

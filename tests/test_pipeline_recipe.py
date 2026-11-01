@@ -88,6 +88,26 @@ class CatalogAndInputs(unittest.TestCase):
 
 
 class PackageTemplates(unittest.TestCase):
+    def test_confirming_a_cursor_cannot_silently_replace_the_entire_warehouse(self):
+        import runpy
+        from types import SimpleNamespace
+        from unittest.mock import Mock, patch
+        incremental=Mock(return_value='validated-cursor')
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory)
+            (root/'tables.json').write_text(json.dumps(pipeline_scaffold.plan_tables(MODEL)))
+            (root/'pipeline.py').write_text(pipeline_scaffold.PIPELINE.replace('{name}','test'))
+            with patch.dict(sys.modules,{'dlt':SimpleNamespace(sources=SimpleNamespace(incremental=incremental))}):
+                package=runpy.run_path(str(root/'pipeline.py'))
+                table=package['TABLES'][1]
+                self.assertIsNone(package['confirmed_incremental'](table))
+                table['cursor_confirmed']=True
+                with self.assertRaisesRegex(ValueError,'discard history'):
+                    package['confirmed_incremental'](table)
+                incremental.assert_not_called()
+                table['write_disposition']='merge'
+                self.assertEqual(package['confirmed_incremental'](table),'validated-cursor')
+
     def test_runner_and_dockerfile_contracts(self):
         self.assertIn('flock -n 9', pipeline_scaffold.RUN_SH)
         self.assertIn('disabled in production', pipeline_scaffold.RUN_SH)
