@@ -9270,17 +9270,18 @@
     {
       "id": "dlt",
       "version": "1.31.0",
-      "catalog_count": 3,
+      "catalog_count": 4,
       "catalog_ids": [
         "dlt.discover",
         "dlt.extract",
+        "dlt.load",
         "dlt.run"
       ],
-      "ids_sha256": "fc777e651b0c089b729a8d6494ea57ff5410eb47b000e0913205a31e9dd69ee0",
-      "catalog_sha256": "d9090e8460ce5410f9d00de561480ee60ac92ec0910d0506d737f6728c47bc78",
+      "ids_sha256": "62a94ac04ea109ad7cbdd99e38bcb4a9a84ee866cee39500cc7af096511a6876",
+      "catalog_sha256": "5ce8bc6c510accaafb5ea702d3a213c6562f0499e6d4087d5232d573f9f62b52",
       "choose_for": "Discover SQL/document source metadata and extract bounded data into a reproducible local pipeline.",
       "sources": "Python pipeline, schema YAML/JSON, query/inputs, portable JSONL, DuckDB snapshot and row reconciliation.",
-      "limits": "Separate SQL metadata, sampled document fields and business hypotheses. Keep pipeline state private per job, preserve type/null semantics and reconcile counts. External reads require authorized read-only credentials; no source-system writes are performed.",
+      "limits": "Separate SQL metadata, sampled document fields and business hypotheses. Keep pipeline state private per job, preserve type/null semantics and reconcile counts. External reads require authorized read-only credentials; sources are never written; writing goes only through dlt.load into an owner-enabled destination schema.",
       "reference": "https://github.com/dlt-hub/dlt",
       "groups": [
         {
@@ -9301,6 +9302,13 @@
           "goal": "Run a project dlt pipeline locally against a stub source database and a local DuckDB destination; production credentials are never used.",
           "commands": [
             "dlt.run"
+          ],
+          "evidence": "registered"
+        },
+        {
+          "goal": "Write verified local tables into the schema the owner enabled for writing on a user connection, only when writing is allowed for the task; replace or append, never arbitrary SQL.",
+          "commands": [
+            "dlt.load"
           ],
           "evidence": "registered"
         }
