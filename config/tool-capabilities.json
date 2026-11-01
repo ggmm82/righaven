@@ -9229,7 +9229,7 @@
         "usql.query"
       ],
       "ids_sha256": "e09188454477b97769fca15937d2937cdd422ef042bb32e8139e4326595e3c40",
-      "catalog_sha256": "f28c1e723d261cc91d251fdf99145767f7e541a059e19cd90bd119b062b5ff9d",
+      "catalog_sha256": "5f9b2b9272938e9f863785d8d6b412a3da878ddb5867a081886a102a3ea30e1c",
       "choose_for": "Use one SQL client across supported relational database drivers for explicit read-only queries.",
       "sources": "SQL, bounded result JSON and local database snapshot or external-source requirements.",
       "limits": "Validate one SELECT, confirm the real driver and use read-only database credentials. Client driver availability does not prove a remote connection was tested.",
@@ -9252,7 +9252,7 @@
         "schemacrawler.inspect"
       ],
       "ids_sha256": "c29f582135a0cb8982336e91cd2d5e4b71f616936bebc4dc1964dae51f95d25a",
-      "catalog_sha256": "6c5f20b9dee57b611bb980a66bdeb214211d67fb3604936b0fb2b4928bdd6d61",
+      "catalog_sha256": "ca69d25575b37db2c3a46b1ec4e200a7bc7cb46f69785b61ca316f81d84ec4b2",
       "choose_for": "Reverse engineer real keys, constraints, table relationships and schema metadata through JDBC.",
       "sources": "Schema JSON/HTML/DOT, database snapshot or connection requirements, diagrams and interpretation notes.",
       "limits": "Separate declared constraints from inferred associations and sampled data. Validate business meaning with the owner; do not invent tables or relationships from names. The bundled distribution uses GPL v3 and retains JDBC notices.",
@@ -9277,7 +9277,7 @@
         "dlt.run"
       ],
       "ids_sha256": "fc777e651b0c089b729a8d6494ea57ff5410eb47b000e0913205a31e9dd69ee0",
-      "catalog_sha256": "e198d123c8fd30465719efd04bd576a062b3e54c189996201ea4edb3cbfe65b5",
+      "catalog_sha256": "d9090e8460ce5410f9d00de561480ee60ac92ec0910d0506d737f6728c47bc78",
       "choose_for": "Discover SQL/document source metadata and extract bounded data into a reproducible local pipeline.",
       "sources": "Python pipeline, schema YAML/JSON, query/inputs, portable JSONL, DuckDB snapshot and row reconciliation.",
       "limits": "Separate SQL metadata, sampled document fields and business hypotheses. Keep pipeline state private per job, preserve type/null semantics and reconcile counts. External reads require authorized read-only credentials; no source-system writes are performed.",

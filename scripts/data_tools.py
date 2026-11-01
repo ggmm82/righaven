@@ -12,8 +12,24 @@ def secret_config(args,cli,output):
         if source.stat().st_size>256*1024**2:raise ValueError('Supply a bounded database snapshot of at most 256 MiB')
         target=output/'Sources'/source.name;shutil.copy2(source,target)
         return {'url':'sqlite:///'+str(target),'jdbc_url':'jdbc:sqlite:'+str(target)},[]
-    if args.get('authorized') is not True:raise ValueError('Authorize the read-only data source explicitly and use a read-only database account')
     cfg={}
+    if args.get('connection'):
+        # A user connection assigned to the project, delivered privately to this assignment only.
+        name=args['connection']
+        if not re.fullmatch(r'[a-z][a-z0-9-]{1,39}',name):raise ValueError('Use the ID of a connection assigned to the project')
+        path=Path('/run/righaven/connections')/(name+'.json')
+        if not path.is_file():raise ValueError('Connection '+name+' is not available to this assignment: the role must declare it and the user must assign it to the project')
+        cfg=json.loads(path.read_text())
+        if cfg.get('kind')=='entra':raise ValueError('A Microsoft Entra ID application is not a database: use a SQL Server connection that authenticates with it')
+        if cfg.get('read_only') is not True:raise ValueError('The connection is not declared read-only')
+        cfg={k:v for k,v in cfg.items() if k in ('url','jdbc_url','usql_url','username','password')}
+        values=[v for v in cfg.values() if isinstance(v,str) and v]
+        for key in ('url','usql_url'):
+            if cfg.get(key):
+                parsed=urlsplit(cfg[key])
+                if parsed.password:values.append(unquote(parsed.password))
+        return cfg,values
+    if args.get('authorized') is not True:raise ValueError('Authorize the read-only data source explicitly and use a read-only database account')
     if args.get('connection_env'):
         name=args['connection_env']
         if not re.fullmatch(r'RIGHAVEN_DB_[A-Z0-9_]{1,64}',name):raise ValueError('Use a RIGHAVEN_DB_* environment variable')
@@ -78,10 +94,12 @@ def invoke(app,action,args,cli):
     if schema:shutil.copy2(schema,sources/'schema.json')
     shutil.copy2(Path(__file__).with_name('data_job.py'),sources/'data_job.py')
     cfg,values=(None,[])
-    if app in ('usql','schemacrawler') or app=='dlt' and (action=='discover' or any(args.get(k) for k in ('database','connection_file','connection_env'))):
+    if app in ('usql','schemacrawler') or app=='dlt' and (action=='discover' or any(args.get(k) for k in ('database','connection_file','connection_env','connection'))):
         cfg,values=secret_config(args,cli,output)
         if cfg is None:raise ValueError('Select a local database or a supplied private connection')
-    if app in ('dlt','usql') and cfg is not None and not cfg.get('url'):raise ValueError('This tool requires a SQLAlchemy/MongoDB URL, not a JDBC-only connection')
+    if app=='dlt' and cfg is not None and not cfg.get('url'):raise ValueError('This tool requires a SQLAlchemy/MongoDB URL; Microsoft Entra ID SQL connections are available to usql')
+    if app=='usql' and cfg is not None and not (cfg.get('url') or cfg.get('usql_url')):raise ValueError('usql requires a database URL')
+    if app=='schemacrawler' and cfg is not None and not (cfg.get('jdbc_url') or cfg.get('url')):raise ValueError('SchemaCrawler requires a JDBC connection; Microsoft Entra ID SQL connections are available to usql')
     if app=='dlt' and action=='extract' and source is None and not (cfg and cfg['url'].startswith(('mongodb://','mongodb+srv://'))):raise ValueError('Provide an input JSON/CSV file or a saved SELECT query')
     env={'DLT_TELEMETRY':'false','RUNTIME__DLTHUB_TELEMETRY':'false','OMP_NUM_THREADS':'2'}
     with tempfile.TemporaryDirectory(prefix='righaven-data-') as private:
@@ -98,7 +116,7 @@ def invoke(app,action,args,cli):
             if not actual or actual.suffix.lower()!='.sql':raise ValueError('Use a saved .sql SELECT query')
             check={**spec,'action':'validate_sql'};request.write_text(json.dumps(check))
             run([str(cli.INSTALL/'apps/sqlglot/venv/bin/python'),str(Path(__file__).with_name('data_job.py')),str(request)],output,output,env,values)
-            config=folder/'usql.yaml';config.write_text(json.dumps({'connections':{'righaven':usql_url(cfg['url'])}}));config.chmod(0o600)
+            config=folder/'usql.yaml';config.write_text(json.dumps({'connections':{'righaven':cfg.get('usql_url') or usql_url(cfg['url'])}}));config.chmod(0o600)
             run(['usql','--config',str(config),'--no-rc','--no-password','--json','--file',str(actual),'righaven'],output,output,env,values)
             shutil.copy2(output/'native-stdout.log',output/'query-result.json')
         elif app=='schemacrawler':

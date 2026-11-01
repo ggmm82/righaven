@@ -99,6 +99,11 @@ def validate_roles(roles, apps):
         from .egress_policy import validate_network
         network=validate_network(role.get('network'))
         if network:value['network']=network
+        connections=role.get('connections',[])
+        if (not isinstance(connections,list) or len(connections)>4 or len(set(connections))!=len(connections)
+                or any(not isinstance(c,str) or not re.fullmatch(r'[a-z][a-z0-9-]{1,39}',c) for c in connections)):
+            raise ValueError('connections: al massimo quattro ID di connessioni assegnate al lavoro')
+        if connections:value['connections']=connections
         value.update(skills=skills,composition_version=1)
         if len(json.dumps(value).encode()) > 16000:
             raise ValueError('Procedura troppo grande per il contesto del ruolo: sposta i dettagli nei file di input')
@@ -126,6 +131,11 @@ def compile_role(root, spec, acceptance, memory, apps, experience=None):
                        ('procedure', 'Metodo operativo'), ('checks', 'Verifiche con evidenze'),
                        ('deliverables', 'Risultati e sorgenti modificabili'), ('risks', 'Incertezze e limiti')):
         parts.extend(['## ' + title, *['- ' + s for s in spec[key]]])
+    if spec.get('connections'):
+        parts.extend(['## Connessioni assegnate',
+                      'Connessioni del lavoro disponibili a questo incarico: ' + ', '.join(spec['connections']) + '.',
+                      'Usale con gli adattatori dati passando `connection: "ID"` (usql query, dlt discover/extract, schemacrawler inspect); il file privato è in /run/righaven/connections/ID.json.',
+                      'Le credenziali non vanno mai copiate in sorgenti, log, risultati o lezioni. Le connessioni sono dichiarate in sola lettura: esegui solo letture.'])
     parts.extend(['## Skill native selezionate',json.dumps(spec.get('skill_bindings',[]),ensure_ascii=False),
                   'Leggi soltanto questi metodi e le skill CLI pertinenti. Il titolo del ruolo non sostituisce una procedura verificata.',
                   '## Strumenti effettivi', json.dumps(tools, ensure_ascii=False),

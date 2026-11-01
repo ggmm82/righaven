@@ -501,6 +501,9 @@ def delegate(agent_id, task, workspace, tool_call_id=None, on_started=None, requ
         elif os.getenv('RIGHAVEN_EDITION', 'community') == 'cloud':
             from .credential_sessions import ApiCredentialSession
             credentials=ApiCredentialSession(engine,jobs/(name+'-credentials'),settings.get('connection_id'))
+        from .connections import Delivery as ConnectionDelivery
+        # Only the connections the role declares and the user assigned to this project; deleted with the worker.
+        connections=ConnectionDelivery(workspace,role,jobs/(name+'-connections'))
         from .resource_budget import BUDGET
         from .cancellation import requested
         class CancelBudget:
@@ -526,6 +529,7 @@ def delegate(agent_id, task, workspace, tool_call_id=None, on_started=None, requ
             payload['policy_review'] = policy_review
         from .projects import read_project
         payload['user_direction'] = (read_project(workspace) or {}).get('user_direction')
+        if connections.public:payload['connections'] = connections.public
         payload['capability_policy'] = dict(policy)
         if runtime_environment is not None:
             installed = sorted(set(runtime_environment['tools']) & set(policy['allowed']))
@@ -573,14 +577,14 @@ def delegate(agent_id, task, workspace, tool_call_id=None, on_started=None, requ
             *staging.mounts(mount, progress),
             '--mount', (mount(credentials.directory/'api.json' if credentials is not None else custom_connection_path(settings.get('connection_id')), '/credentials/api.json', True)
                         if engine == 'openai' else mount(credentials.directory if credentials is not None else credential_dir(engine), '/credentials', read_only=engine == 'deepseek')),
-            '--mount', mount(job, '/job.json', True),
+            '--mount', mount(job, '/job.json', True), *connections.mount_arguments(mount),
             runtime_image, 'python3', '/opt/righaven-worker/run_agent.py', '/job.json']
         from .egress_policy import mode as egress_mode
         if egress_mode() == 'allowlist':
             from .egress_policy import allowed_domains
             from .worker_egress import Grant, ensure as ensure_egress
             ensure_egress()
-            egress = Grant(name, allowed_domains(engine, (role or {}).get('network'), settings.get('base_url', '')))
+            egress = Grant(name, list(dict.fromkeys(allowed_domains(engine, (role or {}).get('network'), settings.get('base_url', '')) + connections.domains)))
             args = egress.arguments(args)
             update(progress, egress={'mode': 'allowlist', 'domains': egress.domains, 'refused': []})
         from .task_staging import forward_worker_events
@@ -671,6 +675,8 @@ def delegate(agent_id, task, workspace, tool_call_id=None, on_started=None, requ
             release_claim(name)
             if 'credentials' in locals() and credentials is not None:
                 credentials.close()
+            if 'connections' in locals():
+                connections.close()
             if 'egress' in locals():
                 from .worker_egress import summary
                 try:

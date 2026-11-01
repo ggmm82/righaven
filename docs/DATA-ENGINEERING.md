@@ -52,6 +52,12 @@ than running project transformation scripts. MongoDB discovery samples only five
 documents per collection and reports this limit. The extracted row cap is
 100,000; this is not a complete backup or a consistent cross-system snapshot.
 
+### User connections
+
+Users register SQL Server, PostgreSQL, MySQL/MariaDB and Microsoft Entra ID connections on the
+**Connections** page and assign them to a task from its project panel. Details: [Connections](CONNECTIONS.md).
+A role declares `connections: ["ID"]` and the adapters receive `connection: "ID"`.
+
 ## Tool choices and upstream references
 
 - [usql](https://github.com/xo/usql), MIT: one native SQL shell across database

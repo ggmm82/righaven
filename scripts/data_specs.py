@@ -2,7 +2,7 @@
 try:from .schema_types import tool,STRING
 except ImportError:from schema_types import tool,STRING
 BOOL={'type':'boolean'}
-CONNECTION={'database':STRING,'connection_file':STRING,'connection_env':STRING,'authorized':BOOL}
+CONNECTION={'database':STRING,'connection':STRING,'connection_file':STRING,'connection_env':STRING,'authorized':BOOL}
 
 def operation(app,name,description,fields,required):
     return tool(app,name,description,{'output':STRING,**fields},['output',*required])

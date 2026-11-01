@@ -25,5 +25,5 @@ Validate one SELECT, confirm the real driver and use read-only database credenti
 4. Apri un input pertinente, salva presto il sorgente e verifica una prova a finitura prevista. Riduci il perimetro prima della qualità.
 5. Verifica le proprietà salvate e un export effettivo; non trasformare il codice di uscita zero in una valutazione professionale.
 
-Catalogo esaminato: 1 ID unici (le integrazioni con adattatore descrivono le operazioni esposte, non l’intera API upstream). SHA256 della rilevazione: `f28c1e723d261cc91d251fdf99145767f7e541a059e19cd90bd119b062b5ff9d`.
+Catalogo esaminato: 1 ID unici (le integrazioni con adattatore descrivono le operazioni esposte, non l’intera API upstream). SHA256 della rilevazione: `5f9b2b9272938e9f863785d8d6b412a3da878ddb5867a081886a102a3ea30e1c`.
 Fonte: https://github.com/xo/usql. Il catalogo locale della versione fissata prevale sulla documentazione di versioni successive.

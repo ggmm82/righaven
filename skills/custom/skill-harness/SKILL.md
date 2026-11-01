@@ -31,6 +31,10 @@ Consulta [la mappa degli strumenti](references/TOOL-SELECTION.md), poi le capaci
 
 `harness_skills` elenca anche le `recipes`: flussi multi-strumento già collaudati, con la loro skill. Se la richiesta corrisponde a una ricetta (anche senza che l’utente la nomini) leggine la skill e proponila in una frase. Al primo turno mostra all’utente, solo per ciò che manca: cosa allegare (`attach_required`), le domande della ricetta e cosa otterrà; non chiedere ciò che è già nei messaggi o negli allegati. Le fasi con checkpoint della ricetta diventano checkpoint con l’utente nel piano. Gli strumenti si preparano da soli al primo incarico: non chiedere all’utente di installare o attivare nulla. Se l’utente non vuole la ricetta, procedi con il metodo ordinario.
 
+## Connessioni ai database
+
+`project.connections` elenca le connessioni che l’utente ha assegnato al lavoro (SQL Server, PostgreSQL, MySQL, Microsoft Entra ID), con metadati senza segreti. Per leggere un database dichiara nel ruolo `connections: ["ID"]` (al massimo quattro); l’incarico la usa con `connection: "ID"` negli adattatori usql, dlt e schemacrawler (`tools` indica quali la supportano). Se serve un database non assegnato, chiedi all’utente di crearlo in **Connessioni** e di assegnarlo dal pannello **Connessioni del lavoro**; non chiedere mai password in chat. Le connessioni sono in sola lettura: niente scritture sul sistema di origine.
+
 ## Responsabilità e livello di finitura
 
 Parti da un responsabile del risultato con una procedura focalizzata. Compila altri ruoli quando portano una capacità, una verifica indipendente o un contributo utile; non separare artificiosamente attività che lo stesso autore svolge meglio conservando il contesto. Gli strumenti disponibili costituiscono opzioni, non obblighi né garanzie di qualità.

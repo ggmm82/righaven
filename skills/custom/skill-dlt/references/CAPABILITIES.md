@@ -27,5 +27,5 @@ Separate SQL metadata, sampled document fields and business hypotheses. Keep pip
 4. Apri un input pertinente, salva presto il sorgente e verifica una prova a finitura prevista. Riduci il perimetro prima della qualità.
 5. Verifica le proprietà salvate e un export effettivo; non trasformare il codice di uscita zero in una valutazione professionale.
 
-Catalogo esaminato: 3 ID unici (le integrazioni con adattatore descrivono le operazioni esposte, non l’intera API upstream). SHA256 della rilevazione: `e198d123c8fd30465719efd04bd576a062b3e54c189996201ea4edb3cbfe65b5`.
+Catalogo esaminato: 3 ID unici (le integrazioni con adattatore descrivono le operazioni esposte, non l’intera API upstream). SHA256 della rilevazione: `d9090e8460ce5410f9d00de561480ee60ac92ec0910d0506d737f6728c47bc78`.
 Fonte: https://github.com/dlt-hub/dlt. Il catalogo locale della versione fissata prevale sulla documentazione di versioni successive.
