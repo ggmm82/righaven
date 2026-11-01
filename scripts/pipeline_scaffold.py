@@ -626,7 +626,8 @@ def scaffold(model,output,*,target,source_dialect,name,schedule,stub_source=None
     write(root,'README.md',readme(model,target,source_dialect,tables,{'stubs':schedule['stubs'],'ingest':schedule['ingest'],'transform':schedule['transform']},mart))
     files=sorted(str(p.relative_to(root)) for p in root.rglob('*') if p.is_file())
     return {'package':'package','name':name,'target':target,'tables':len(tables),'staging_models':len(tables),'example_mart':mart,
-            'incremental_tables':[t['target'] for t in tables if t['cursor']],'files':files,'limits':limits+[
+            'incremental_tables':[t['target'] for t in tables if t.get('cursor_confirmed')],
+            'proposed_cursors':{t['target']:t['candidate_cursor'] for t in tables if t['candidate_cursor']},'files':files,'limits':limits+[
             'Local replica is a DuckDB simulation. Source-engine parity must be tested separately.',
             'Example report counts must be replaced with approved business KPIs.',
             'Il pacchetto non è stato eseguito contro la sorgente e il warehouse reali.']}
