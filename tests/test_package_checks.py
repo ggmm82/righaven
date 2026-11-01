@@ -34,6 +34,32 @@ class PackageChecks(unittest.TestCase):
         private.unlink();(self.package/'external').symlink_to('/etc/passwd')
         with self.assertRaisesRegex(ValueError,'symlink'):package_checks.validate(self.package)
 
+    def test_each_replacement_reacquires_capacity_and_cancellation_cleans_the_builder(self):
+        from types import SimpleNamespace
+        from unittest.mock import patch
+        from righaven import docker_runtime,state
+        for cancel_build in (False,True):
+            leases={};kinds=[];stopped=[False];commands=[]
+            class Budget:
+                def acquire(self,owner,kind,**kwargs):
+                    leases[owner]=kind;kinds.append(kind)
+                    return {'cpus':1,'memory_mib':1024,'tmp_mib':128,'threads':1}
+                def release(self,owner):leases.pop(owner,None)
+                def observe_progress(self,*args):pass
+                def quarantine(self,reason):raise AssertionError(reason)
+            def process(argv,**kwargs):
+                commands.append(argv)
+                if argv[1]=='run':self.assertIn(argv[argv.index('--name')+1],leases)
+                if cancel_build and argv[1:3]==['buildx','build']:stopped[0]=True
+                return SimpleNamespace(poll=lambda:0,returncode=0)
+            def docker(*args,**kwargs):
+                return json.dumps({'status':'passed'}) if args[0]=='exec' else ''
+            with patch.object(state,'STATE',self.workspace/'state'),patch.object(package_checks,'BUDGET',Budget()),patch.object(package_checks,'requested',side_effect=lambda:stopped[0]),patch.object(docker_runtime,'internal_daemon',return_value=True),patch.object(docker_runtime,'base_arguments',side_effect=lambda name,limits:['run','--name',name,'--network=bridge']),patch.object(docker_runtime,'remove',side_effect=lambda name:leases.pop(name,None)),patch.object(docker_runtime,'docker',side_effect=docker),patch.object(package_checks.subprocess,'Popen',side_effect=process),patch.object(package_checks.subprocess,'run',return_value=SimpleNamespace(returncode=0)):
+                result=package_checks.check(self.workspace,str(self.package))
+            self.assertEqual(result['status'],'failed' if cancel_build else 'passed')
+            self.assertEqual(kinds,['build'] if cancel_build else ['build','worker','worker'])
+            self.assertEqual(leases,{})
+
     def test_claimed_report_is_not_execution_evidence_and_changed_sources_invalidate_it(self):
         path=self.workspace/'outputs/workspace/rh-job-123456abcdef/package-check.json';path.parent.mkdir(parents=True)
         report={'status':'passed','package':str(self.package),'files':package_checks.validate(self.package)}

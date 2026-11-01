@@ -112,10 +112,10 @@ def check(workspace, package_path):
             command('buildx','build','--builder',builder,'--load','--tag',image,str(context))
             command('buildx','rm','--force',builder,timeout=60);created_builder=False
             BUDGET.release(lease);lease=None
-            limits=BUDGET.acquire(worker,'worker',cancel=cancel,timeout=600);lease=worker
-            BUDGET.observe_progress(worker,progress)
             command('volume','create',volume,timeout=30)
             for cycle in (1,2):
+                limits=BUDGET.acquire(worker,'worker',cancel=cancel,timeout=600);lease=worker
+                BUDGET.observe_progress(worker,progress)
                 update(progress,'checking','Testing exported package: cycle '+str(cycle)+' and saved state',limits=limits)
                 args=base_arguments(worker,limits);args[args.index('--network=bridge')]='--network=none'
                 command(*args,'-d','--read-only','--mount','type=volume,src='+volume+',dst=/data',
@@ -137,7 +137,7 @@ def check(workspace, package_path):
                 (output/'reports').mkdir(exist_ok=True)
                 command('cp',worker+':/data/reports/.',str(output/'reports'),timeout=30)
                 report['checks'].append({'name':'cycle_'+str(cycle),'status':'passed','evidence':cycle_state})
-                remove(worker)
+                remove(worker);lease=None
             if validate(package)!=hashes:raise ValueError('Package changed after verification; test the new version')
             report['status']='passed'
     except (OSError,ValueError,RuntimeError,TimeoutError,subprocess.SubprocessError) as error:
