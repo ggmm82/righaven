@@ -53,12 +53,17 @@ print(json.dumps(result))
                     if status.returncode==0:
                         record=json.loads(status.stdout)
                         if record.get('status')=='failed':raise AssertionError(record)
-                        if record.get('status')=='passed' and record.get('started_at')!=previous:break
+                        if record.get('status')=='passed':break
                     time.sleep(2)
                 else:raise AssertionError('Exported package did not complete its cycle')
-                previous=record['started_at']
                 if cycle==2:
+                    # A replacement must retain the previous successful cycle until
+                    # the next scheduled tick. Trigger the second cycle explicitly.
+                    assert record['started_at']==previous,record
                     run('docker','exec',container,'/opt/ingest/bin/python','/app/ops/orchestrate.py','cycle')
+                    record=json.loads(run('docker','exec',container,'cat','/data/last-cycle.json'))
+                    assert record['status']=='passed' and record['started_at']!=previous,record
+                previous=record['started_at']
                 reports=json.loads(run('docker','exec',container,'cat','/data/reports/results.json'))
                 counts={row[0]:row[1] for row in reports[0]['rows']}
                 assert set(counts.values())=={cycle*3},counts
