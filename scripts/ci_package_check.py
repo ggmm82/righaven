@@ -25,7 +25,7 @@ from acceptance_pipeline import MODEL
 import pipeline_scaffold
 pipeline_scaffold.scaffold(MODEL,Path('/out'),target='postgres',source_dialect='postgres',name='verified',schedule={'ingest':'@hourly','stubs':'@hourly','transform':'@hourly','transform_model_cron':'@hourly'})
 """
-            subprocess.run(['docker','run','--rm','--network=none','--mount',docker_runtime.mount(outputs,'/out',False),
+            subprocess.run(['docker','run','--rm','--network=none','--user',str(os.getuid())+':'+str(os.getgid()),'--mount',docker_runtime.mount(outputs,'/out',False),
                             *docker_runtime.runtime_arguments(),ready['image_id'],'/opt/righaven/apps/sqlglot/venv/bin/python','-c',code],check=True)
             result=package_checks.check(root,str(outputs/'package'))
             if result['status']!='passed':

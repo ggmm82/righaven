@@ -38,7 +38,7 @@ print(json.dumps(result))
 """
         compose_args=None
         try:
-            run('docker','run','--rm','--network=none','--mount','type=bind,src='+str(repo)+',dst=/review,readonly','--mount','type=bind,src='+str(out)+',dst=/out',image['image_id'],
+            run('docker','run','--rm','--network=none','--user',str(os.getuid())+':'+str(os.getgid()),'--mount','type=bind,src='+str(repo)+',dst=/review,readonly','--mount','type=bind,src='+str(out)+',dst=/out',image['image_id'],
                 '/opt/righaven/apps/sqlglot/venv/bin/python','-c',generator)
             run('docker','build','-t',tag,str(out/'package'),timeout=1200)
             run('docker','volume','create',volume)
