@@ -55,12 +55,12 @@ CREATE TABLE "vendite"."ordine" ("id" BIGINT NOT NULL, "cliente_id" INTEGER NOT 
 '''
 
 
-def operation(c,name,app=None,allowed=(0,2),**args):
+def operation(c,_operation,app=None,allowed=(0,2),**args):
     """Call any recipe tool; status failed (exit 2) is a result, not an error."""
     app=app or c.app
-    p=subprocess.run([app+'-cli','call',name,json.dumps(args)],capture_output=True,text=True,timeout=1500)
-    c.commands.append({'argv':[app+'-cli','call',name,args],'returncode':p.returncode,'stdout':p.stdout[-4000:],'stderr':p.stderr[-3000:]})
-    if p.returncode not in allowed:raise RuntimeError(app+'.'+name+': '+(p.stderr or p.stdout)[-3000:])
+    p=subprocess.run([app+'-cli','call',_operation,json.dumps(args)],capture_output=True,text=True,timeout=1500)
+    c.commands.append({'argv':[app+'-cli','call',_operation,args],'returncode':p.returncode,'stdout':p.stdout[-4000:],'stderr':p.stderr[-3000:]})
+    if p.returncode not in allowed:raise RuntimeError(app+'.'+_operation+': '+(p.stderr or p.stdout)[-3000:])
     return json.loads(p.stdout) if p.returncode in (0,2) else None
 
 
