@@ -12,7 +12,7 @@ import { ProjectConnections } from "./project-connections";
 import { ProjectDesign, type Design } from "./project-design";
 import { ProjectGuide } from "./project-guide";
 import { GovernanceStrip, ProfileUseLine, ToolChoices, type LiveGovernance, type ToolDecision } from "./project-governance";
-import { ProjectJourney } from "./project-journey";
+import { JourneyPhases, JourneyStrip, ProjectJourney, useJourney } from "./project-journey";
 
 const providers: Record<string, string> = trMap({ codex:["Codex", "Codex"], gemini:["Antigravity", "Antigravity"], deepseek:["DeepSeek", "DeepSeek"], openai:["OpenAI compatibile", "OpenAI compatible"] });
 type Delivery = { version_state?: string; recovery?: { status: string; message: string; session_error: string }; unchanged_content?: boolean; change_kind?: string; content_version?: number | null; reused_archive_checks?: number; finalization_pending?: string[]; source_coverage?: { status: string; components: { name: string; tool: string; status: string; sources: {path: string; member?: string}[] }[] }; timing?: {status:string; cues:{name:string;status:string;delta_seconds:number}[]}; category?: string; version?: number | null; execution_status?: string; file_count?: number; role_title?: string; review?: { target_delivery_id: string | null; target_version?: number | null; target_label: string; status: string; validated: boolean; matches_current_brief: boolean; report_path: string; correction_count: number }; id: string; title: string; agent: string; at: string; current: boolean; contribution?: boolean; technical_status: string; issues: string[]; purpose: string };
@@ -179,7 +179,10 @@ export function DelegateProgress({ threadId, active, pending, coordinatorError =
   const jobs = snapshot?.threadId === threadId ? snapshot.jobs : [];
   const project = snapshot?.threadId === threadId ? snapshot.project : null;
   const governance = snapshot?.threadId === threadId ? snapshot.governance : null;
-  const tab = panel?.threadId === threadId ? panel.tab : null;
+  // The team and its activities are one section; old links to activities keep working.
+  const tab = panel?.threadId === threadId ? (panel.tab === "activity" ? "team" : panel.tab) : null;
+  const guided = useJourney(threadId);
+  const guidedStage = guided.journey?.stages.find(stage => stage.id === guided.journey?.current);
   const activeJobs=jobs.filter(job=>!terminalJob(job));
   const current = activeJobs[0];
   const deliveryRequested=project?.user_control?.deliver_now===true;
@@ -379,14 +382,13 @@ export function DelegateProgress({ threadId, active, pending, coordinatorError =
     const timer = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(timer);
   }, [working, pending]);
-  if (!jobs.length && !project && !pending && !coordinatorError) return <><ProjectJourney threadId={threadId} onContinue={onContinue}/><details className="mb-2 rounded-xl border text-sm" data-testid="chat-audit-only" onToggle={event => setPanel(event.currentTarget.open ? { threadId, tab: "audit" } : null)}>
+  if (!jobs.length && !project && !pending && !coordinatorError) return <><ProjectJourney threadId={threadId} state={guided} onContinue={onContinue}/><details className="mb-2 rounded-xl border text-sm" data-testid="chat-audit-only" onToggle={event => setPanel(event.currentTarget.open ? { threadId, tab: "audit" } : null)}>
     <summary className="cursor-pointer p-3">{tr("Registro della conversazione", "Conversation log")}</summary>
     {tab === "audit" && <div className="p-3"><ConversationAudit key={threadId} threadId={threadId} /></div>}
   </details></>;
   const health = current ? jobHealth(current, now) : null;
   const recent = [...jobs.filter((job) => !terminalJob(job)), ...jobs.filter(terminalJob).slice(0, 4)];
   return <section ref={dock} className="bg-background relative mb-2 rounded-2xl border shadow-sm" aria-label={tr("Il tuo progetto", "Your project")} data-testid="delegate-progress">
-    <ProjectJourney threadId={threadId} onContinue={onContinue}/>
     {tab && <dialog ref={dialog} onCancel={() => setPanel(null)} onClose={() => setPanel(null)} aria-labelledby="harness-panel-title" className={`bg-background text-foreground fixed inset-0 m-auto ${readingLesson && tab === "experience" ? "h-[calc(100dvh-2rem)]" : "h-[85dvh]"} max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-3xl overflow-hidden rounded-2xl border p-0 shadow-xl backdrop:bg-black/40`} data-testid="harness-drawer">
       <div className="flex h-full min-h-0 flex-col">
       <header className="flex shrink-0 items-center justify-between gap-2 border-b px-4 py-3">
@@ -394,15 +396,17 @@ export function DelegateProgress({ threadId, active, pending, coordinatorError =
         <button type="button" className="rounded-lg border px-3 py-2 text-sm" onClick={() => setPanel(null)} aria-label={tr("Chiudi dettagli del progetto", "Close project details")}>{tr("Chiudi", "Close")}</button>
       </header>
       {!(readingLesson && tab === "experience") && <nav className="grid shrink-0 grid-cols-3 gap-1 border-b p-2 text-sm sm:flex sm:flex-wrap" aria-label={tr("Sezioni del progetto", "Project sections")}>
-        {([["project", tr("Stato", "Status")], ["preview", tr("Risultato", "Result")], ["team", tr("Squadra", "Team")], ["design", tr("Tavole", "Boards")], ["files", tr("Consegne", "Deliveries")], ["activity", tr("Attività", "Activities")], ["experience", tr("Lezioni", "Lessons")], ["audit", tr("Registro", "Log")]] as const).map(([id, label]) => <button key={id} type="button" className={`${tabStyle} shrink-0`} aria-current={tab === id ? "page" : undefined} aria-expanded={tab === id} onClick={() => setPanel({ threadId, tab: id })}>{label}</button>)}
+        {([["project", tr("Stato", "Status")], ...(guided.journey ? [["journey", tr("Percorso", "Path")]] : []), ["preview", tr("Risultato", "Result")], ["files", tr("Versioni", "Versions")], ["team", tr("Squadra", "Team")], ...(project?.designs?.length ? [["design", tr("Tavole", "Boards")]] : []), ["experience", tr("Lezioni", "Lessons")], ["audit", tr("Registro", "Log")]] as [string, string][]).map(([id, label]) => <button key={id} type="button" className={`${tabStyle} shrink-0`} aria-current={tab === id ? "page" : undefined} aria-expanded={tab === id} onClick={() => setPanel({ threadId, tab: id })}>{label}</button>)}
       </nav>}
       <div key={tab} className="min-h-0 flex-1 overflow-y-auto p-4" data-testid="rh-drawer-content">
+      {tab === "journey" && <JourneyPhases threadId={threadId} state={guided}/>}
       {tab === "intervene" && <ProjectDirection key={threadId} saved={project?.user_direction} onApply={applyDirection} busy={controlBusy} />}
       {tab === "project" && project && <div className="space-y-4 text-sm" data-testid="project-overview">
         <section className="space-y-2 rounded-xl border border-blue-500/25 bg-blue-500/5 p-4" data-testid="project-position">
           <h4 className="font-semibold">{tr("Dove siamo", "Where we are")}</h4>
           <p>{planned.length ? tr(`${completed} di ${planned.length} incarichi conclusi nella squadra attuale`, `${completed} of ${planned.length} assignments completed in the current team`) : tr("La squadra e le attività sono ancora da definire.", "The team and activities are still to be defined.")}</p>
           {currentActivity && <p><strong>{tr("Responsabilità attuale:", "Current responsibility:")}</strong> {currentActivity.role_title || person(currentActivity.agent)}</p>}
+          {guidedStage && <p><strong>{tr("Fase del percorso:", "Path phase:")}</strong> {tr(guidedStage.title.it, guidedStage.title.en)}</p>}
           {summary && <p><strong>{tr("Adesso:", "Now:")}</strong> {summary}</p>}
           {!working && !clarifying && project.next_action && <p><strong>{tr("Prossima azione:", "Next action:")}</strong> {project.next_action}</p>}
           <p className="text-muted-foreground text-xs">{tr("Gli incarichi possono cambiare. Il conteggio non è una percentuale di completamento o una stima dei tempi.", "Assignments may change. The count is not a completion percentage or a time estimate.")}</p>
@@ -592,7 +596,7 @@ export function DelegateProgress({ threadId, active, pending, coordinatorError =
       </div>}
       {tab === "experience" && <ExperiencePanel key={threadId} threadId={threadId} deliveries={deliveries} productionBusy={active || working || pending} onReadingChange={setReadingLesson} />}
       {tab === "audit" && <ConversationAudit key={threadId} threadId={threadId} />}
-      {tab === "activity" && <div className="space-y-3">{recent.map((job) => <JobCard key={job.job_id} job={job} now={now} threadId={threadId} role={job.role_version ? project?.roles?.find(role=>role.id===job.role_id && role.version===job.role_version) : undefined} />)}</div>}
+      {tab === "team" && recent.length > 0 && <div className="mt-6 space-y-3 border-t pt-4" data-testid="team-activity"><h4 className="font-semibold">{tr("Attività in corso e recenti", "Current and recent activities")}</h4>{recent.map((job) => <JobCard key={job.job_id} job={job} now={now} threadId={threadId} role={job.role_version ? project?.roles?.find(role=>role.id===job.role_id && role.version===job.role_version) : undefined} />)}</div>}
       </div>
       {tab !== "experience" && <footer className="shrink-0 space-y-2 border-t bg-background p-3">
         {controlNotice && <p className="text-sm" role="status">{controlNotice}</p>}
@@ -604,6 +608,7 @@ export function DelegateProgress({ threadId, active, pending, coordinatorError =
       </footer>}
       </div>
     </dialog>}
+    {guided.journey && <JourneyStrip threadId={threadId} state={guided} busyTeam={active || working} onContinue={onContinue} onOpen={() => toggle("journey")}/>}
     <div className="space-y-1 p-3" role="status" aria-live="polite" aria-atomic="true">
       {project && <div className="mb-2 space-y-1 border-b pb-2" data-testid="project-identity">
         <p className="line-clamp-1 text-sm font-semibold tracking-tight">{project.outcome?.title || project.outcome?.result || tr("Il tuo progetto", "Your project")}</p>

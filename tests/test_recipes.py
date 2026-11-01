@@ -64,5 +64,75 @@ class RecipeCatalog(unittest.TestCase):
         self.assertIn('/workspace/recipes', (ROOT / 'core/frontend/src/components/workspace/workspace-nav-chat-list.tsx').read_text())
 
 
+class UserRecipes(unittest.TestCase):
+    """Users create, edit and duplicate recipes; administrators share them; journeys run them like built-in ones."""
+    SKILLS = ['skill-harness', 'skill-workspace', 'skill-data-pipeline', 'skill-duckdb']
+
+    def setUp(self):
+        import tempfile
+        from unittest.mock import patch
+        self.temp = tempfile.TemporaryDirectory(); self.addCleanup(self.temp.cleanup)
+        patcher = patch.object(state, 'STATE', Path(self.temp.name) / 'state'); patcher.start(); self.addCleanup(patcher.stop)
+
+    def draft(self, **changes):
+        value = {'title': 'Dashboard demo', 'summary': 'Una dashboard semplice con dati di esempio.', 'when': 'Serve mostrare un\'idea in fretta.',
+                 'attach_required': ['Un elenco degli indicatori'], 'outputs': ['Dashboard HTML con i sorgenti'],
+                 'phases': [{'title': 'Indicatori', 'detail': 'Concordare misure e dimensioni', 'checkpoint': True},
+                            {'title': 'Dati di esempio', 'detail': 'Generare dati coerenti', 'checkpoint': False},
+                            {'title': 'Dashboard', 'detail': 'Report consultabile', 'checkpoint': True}],
+                 'skills': ['skill-duckdb'], 'environment': 'dati', 'guidance': 'Usa solo dati sintetici.'}
+        value.update(changes)
+        return value
+
+    def test_create_edit_visibility_and_sharing(self):
+        mine = recipes.create('alice', self.draft(), self.SKILLS)
+        self.assertNotIn(mine['id'], [r['id'] for r in recipes.catalog('it', 'bob')], 'private until an administrator shares it')
+        card = recipes.detail(mine['id'], 'it', 'alice')
+        self.assertTrue(card['custom'] and card['mine'] and not card['shared'])
+        self.assertEqual(card['tools'], ['duckdb', 'jupyter', 'quarto', 'gridcraft'], 'environment tools when none are chosen')
+        self.assertEqual(card['intake'], ['notes'])
+        self.assertEqual([s['gate'] for s in mine['workflow']['stages']], [True, False, True])
+        self.assertEqual(mine['workflow']['stages'][2]['depends_on'], ['phase-2'])
+        with self.assertRaises(ValueError):
+            recipes.update('bob', mine['id'], self.draft(title='Altro'), self.SKILLS, mine['revision'])
+        with self.assertRaises(ValueError):
+            recipes.update('alice', mine['id'], self.draft(title='Altro'), self.SKILLS, mine['revision'] - 1)
+        edited = recipes.update('alice', mine['id'], self.draft(title='Dashboard vendite'), self.SKILLS, mine['revision'])
+        self.assertEqual((edited['id'], edited['it']['title']), (mine['id'], 'Dashboard vendite'))
+        with self.assertRaises(ValueError):
+            recipes.share('alice', mine['id'], True, administrator=False)
+        recipes.share('admin', mine['id'], True, administrator=True)
+        self.assertIn(mine['id'], [r['id'] for r in recipes.coordinator_index(set(self.SKILLS), 'bob')])
+        self.assertNotIn(mine['id'], [r['id'] for r in recipes.coordinator_index({'skill-harness'}, 'bob')], 'needs every recipe skill')
+        with self.assertRaises(ValueError):
+            recipes.delete('bob', mine['id'])
+        recipes.delete('alice', mine['id'])
+        self.assertEqual([r['id'] for r in recipes.catalog('it', 'alice')], ['data-pipeline'])
+
+    def test_rejects_unauthorized_skills_credentials_and_unknown_tools(self):
+        for changes in ({'skills': ['skill-non-abilitata']}, {'skills': []}, {'environment': 'inesistente'},
+                        {'tools': ['programma-inesistente'], 'environment': None}, {'phases': []},
+                        {'guidance': 'password=Segreta.2026'}, {'outputs': []}):
+            with self.subTest(changes=changes), self.assertRaises(ValueError):
+                recipes.create('alice', self.draft(**changes), self.SKILLS)
+
+    def test_duplicate_built_in_and_run_it_as_a_guided_project(self):
+        from righaven import journeys
+        copy_draft = recipes.draft('data-pipeline', 'it')
+        self.assertEqual(copy_draft['based_on'], 'data-pipeline')
+        self.assertEqual(len(copy_draft['phases']), 7)
+        copy_draft['phases'] = [p for p in copy_draft['phases'] if p['title'] in ('Comprensione e catalogo', 'Reportistica')]
+        mine = recipes.create('alice', copy_draft, self.SKILLS)
+        self.assertEqual(mine['skills'], ['skill-data-pipeline'])
+        work = Path(self.temp.name) / 'work'; work.mkdir()
+        with self.assertRaises(ValueError):
+            journeys.definition(mine['id'], 'bob')
+        value = journeys.start(work, mine['id'], {'goal': 'Dashboard semplice'}, 0, journeys.definition(mine['id'], 'alice'))
+        self.assertEqual([s['id'] for s in value['stages']], ['phase-1', 'phase-2'])
+        self.assertEqual(value['recipe']['skills'], ['skill-data-pipeline'])
+        self.assertIn('DuckDB simulation', journeys.instructions(work), 'duplicated guidance travels with the copy')
+        self.assertEqual(journeys.pin_policy({'sheets': [], 'hash': ''}, value), {'sheets': [], 'hash': ''})
+
+
 if __name__ == '__main__':
     unittest.main()

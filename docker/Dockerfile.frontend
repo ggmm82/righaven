@@ -29,6 +29,7 @@ COPY frontend/maintenance-page.tsx ./frontend/src/app/workspace/maintenance/page
 COPY frontend/policy-book-page.tsx ./frontend/src/app/workspace/policies/page.tsx
 COPY frontend/usage-page.tsx ./frontend/src/app/workspace/usage/page.tsx
 COPY frontend/recipes-page.tsx ./frontend/src/app/workspace/recipes/page.tsx
+COPY frontend/recipe-editor.tsx ./frontend/src/app/workspace/recipes/recipe-editor.tsx
 COPY frontend/connections-page.tsx ./frontend/src/app/workspace/connections/page.tsx
 COPY frontend/use-chat-mode.ts ./frontend/src/components/workspace/chats/use-chat-mode.ts
 COPY frontend/harness-page.tsx ./frontend/src/app/workspace/harness/page.tsx

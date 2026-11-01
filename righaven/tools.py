@@ -91,12 +91,13 @@ async def harness_package_check(runtime: Runtime, package_path: str) -> str:
 
 @tool('harness_journey', parse_docstring=True)
 @signals_plan
-def harness_journey(runtime: Runtime, stage_id: str = '', evidence_json: str = '[]', steps_json: str = '[]', note: str = '', expected_revision: int = 0) -> str:
-    """Read the selected guided project or submit one phase for owner approval.
+def harness_journey(runtime: Runtime, stage_id: str = '', evidence_json: str = '[]', steps_json: str = '[]', note: str = '', expected_revision: int = 0, propose_skip: bool = False) -> str:
+    """Read the selected guided project, submit one phase for owner approval or propose skipping it.
 
     Read first. Compile dynamic roles and native activities for the current phase.
     Read the attachments before asking questions; connections are optional.
-    This tool cannot approve a phase or change the user's answers.
+    This tool cannot approve or skip a phase or change the user's answers: the owner
+    decides with the buttons in the project card, never through a chat reply.
 
     Args:
         runtime: Injected RigHaven runtime.
@@ -105,13 +106,14 @@ def harness_journey(runtime: Runtime, stage_id: str = '', evidence_json: str = '
         steps_json: JSON list of native activity IDs producing this phase.
         note: Explain the useful result and remaining limits without credentials.
         expected_revision: Revision read from the guided project, required on submission.
+        propose_skip: True asks the owner to skip this phase because it adds nothing to the stated goal; note gives the reason.
     """
-    from .journeys import view, record
+    from .journeys import view, record, compact
     for call_id in sibling_plan_calls(runtime, names=('harness_plan',)):
         _plan_event(call_id).wait(PLAN_WAIT_SECONDS)
     workspace = workspace_for(runtime)
-    result = record(workspace, stage_id, json.loads(evidence_json), json.loads(steps_json), note, expected_revision) if stage_id else view(workspace)
-    return json.dumps({'journey': result}, ensure_ascii=False)
+    result = record(workspace, stage_id, json.loads(evidence_json), json.loads(steps_json), note, expected_revision, propose_skip) if stage_id else view(workspace)
+    return json.dumps({'journey': compact(result)}, ensure_ascii=False)
 
 
 @tool('harness_skills',parse_docstring=True)
@@ -137,10 +139,10 @@ def harness_skills(runtime:Runtime,query:str='',name:str='',reference:str='SKILL
     policy=runtime_policy(runtime)
     if not name:
         from .recipes import coordinator_index
-        from .journeys import view as guided_view
+        from .journeys import view as guided_view, compact
         return json.dumps({**inventory(policy,query),'environments':environment_inventory(policy),
-                           'guided_project': guided_view(workspace_for(runtime)),
-                           'recipes':coordinator_index(set(policy.get('skill_names',[])))},ensure_ascii=False)
+                           'guided_project': compact(guided_view(workspace_for(runtime))),
+                           'recipes':coordinator_index(set(policy.get('skill_names',[])),policy.get('user_id'))},ensure_ascii=False)
     source=policy.get('skill_sources',{}).get(name)
     if not source or name not in policy.get('skill_names',[]):raise ValueError('Skill non autorizzata nel profilo')
     root=Path(source).resolve();path=root/reference
@@ -381,7 +383,8 @@ def harness_plan(runtime: Runtime, brief: str = '', steps_json: str = '',
     else:
         value = read_project(workspace)
     if not value and guided:
-        return json.dumps({'journey': guided, 'instruction': 'Read attached documentation and compile the first dynamic roles and native activities. Connections are optional.'}, ensure_ascii=False)
+        from .journeys import compact
+        return json.dumps({'journey': compact(guided), 'instruction': 'Read attached documentation and compile the first dynamic roles and native activities. Connections are optional.'}, ensure_ascii=False)
     if value and not value.get('archived'):
         sync_acceptance(workspace, requests, json.loads(criteria_json) if criteria_json else None)
         if strategy_json:
