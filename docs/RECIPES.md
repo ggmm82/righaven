@@ -1,4 +1,12 @@
-# Guided projects
+# Recipes and guided projects
+
+RigHaven uses three building blocks with one vocabulary:
+
+| Block | Answers | Where |
+|---|---|---|
+| **Skill** | *how* to work: method, quality checks, expertise on a tool | Tools & skills |
+| **Environment** | *with which tools*: programs prepared on first use and reused | Environments |
+| **Recipe** | *which path*: phases and owner approvals that combine skills and an environment for a kind of result | Recipes |
 
 A recipe is a reusable project method, offered through a guided intake. Users describe the desired outcome in ordinary language. Unknown source engines, deployment targets, BI tools and frequencies may be left empty. Attach documents in the resulting native conversation; the coordinator must read them before asking at most three decisive questions.
 
@@ -6,9 +14,52 @@ A recipe is a reusable project method, offered through a guided intake. Users de
 
 The selected recipe version, answers, phases, activity bindings and evidence hashes are stored in the thread workspace. Opening or refreshing the conversation restores the same state. Start and read requests use the native thread owner checks. Updates and decisions require the observed revision, preventing lost updates from multiple tabs.
 
-The existing project plan owns dynamic roles and assignments. A journey does not introduce a second scheduler or a user-facing programming language. `harness_journey` reads the selected method, links phases to native activities and submits saved artifacts for review. It cannot approve its own output. The owner approves individual phases or requests corrections from the project panel. Changed evidence invalidates dependent results without deleting files.
+The existing project plan owns dynamic roles and assignments. A journey does not introduce a second scheduler or a user-facing programming language. `harness_journey` reads the selected method, links phases to native activities and submits saved artifacts for review. It cannot approve its own output. The owner approves, revises or skips individual phases from the project card. Changed evidence invalidates dependent results without deleting files.
 
 Starting a guided data project pins its release policy alongside organization policies, without adding data-specific obligations to other projects or replacing administrator policies, including imported recipe templates. Final delivery requires the guided phases and the existing quality review to pass. A policy is not a substitute for executing its checks.
+
+## Owner decisions in the project card
+
+The project card above the chat shows the path: recipe, settled phases and the current phase. When
+a phase waits for the owner, a **Your turn** box appears directly in the card with the saved
+results and three buttons: **Approve phase**, **Request changes** (with a note) and **Skip phase**.
+The coordinator never asks for approval as a chat question, and a chat reply never approves a
+phase. *All phases* opens the **Path** tab with every phase, its result and notes; a skipped phase
+can be resumed there.
+
+- **Skip.** A phase that adds nothing to the goal (for example replica and package for a demo with
+  sample data) can be skipped by the owner. A skipped phase satisfies its dependants and stays
+  skipped when earlier results change, until the owner resumes it.
+- **Proposals.** The coordinator may propose skipping a phase with a reason
+  (`harness_journey(propose_skip=true)`); the card shows the proposal with **Skip phase** and
+  **Keep the phase**. Only the owner decides.
+- **Phases without approval.** A recipe author can mark technical phases as not needing approval:
+  they complete when their results are saved. In the built-in data recipe, *Laboratory* and *Test
+  scenarios* work this way; the owner still sees their results.
+
+The coordinator receives a compact view of the path (choices, phase states and result paths), not the
+full recipe definition and policy, to keep every turn small.
+
+## Your own recipes
+
+On the Recipes page **New recipe** opens the editor; **Duplicate** copies any visible recipe,
+including built-in ones, as a starting point. A recipe has:
+
+1. **Method · skills**: one to eight skills enabled in your account (methods and tool skills).
+2. **Tools · environment**: an environment preset; its tools, plus those of the chosen tool skills,
+   become the recipe's tools. Nothing is typed by hand.
+3. **Path · phases**: one to twelve phases, each with an expected result and *asks for approval* on or
+   off. Phases run in order.
+4. **What is needed and what you get**: attachments, questions, outputs and prerequisites shown on
+   the recipe card, plus optional directions for the team and keywords the coordinator uses to
+   propose the recipe.
+
+Recipes are private to their author. An administrator can **share** a recipe with everyone; shared
+recipes appear for all users whose accounts have its skills enabled, both on the page and in the
+coordinator's recipe index. Only the author edits or deletes a recipe (an administrator may also
+edit shared ones). Projects already started keep the phases pinned at start. Texts are checked for
+credentials; use Connections for access. User recipes carry phases and approvals, not organization
+policy sheets.
 
 ## Data engineering path
 

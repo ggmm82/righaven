@@ -1,6 +1,6 @@
 # Phases and gates
 
-This is a technical operation map for specialists, not a user form or a fixed team. Use the seven persisted journey phases and owner approval gates; compile the roles required by each outcome. Every call writes a fresh `output` folder with `receipt.json` and the sources it used. A gate passes only on the evidence listed; otherwise stop, report the gap and ask.
+This is a technical operation map for specialists, not a user form or a fixed team. Use the seven persisted journey phases; compile the roles required by each outcome. Laboratory and test scenarios complete when their evidence is recorded; the other phases wait for owner approval in the project card. When a phase adds nothing to the stated goal (for example replica, pipeline or package for a demo with sample data), propose skipping it with a reason; only the owner skips. Every call writes a fresh `output` folder with `receipt.json` and the sources it used. A gate passes only on the evidence listed; otherwise stop, report the gap and ask.
 
 | # | Operation(s) | Gate evidence |
 |---|---|---|

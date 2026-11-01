@@ -39,7 +39,10 @@ tested ingestion and transformations and a production package (Docker and
 supercronic, for PostgreSQL, SQL Server or Microsoft Fabric); see
 [Data Engineering](docs/DATA-ENGINEERING.md#recipe-end-to-end-data-pipeline).
 Recipes are offered on demand from the **Recipes** page or proposed by the
-coordinator when a request matches; see [Recipes](docs/RECIPES.md).
+coordinator when a request matches. Skills say *how* to work, environments *with
+which tools*, and a recipe is the phased path that combines them: you can create
+your own recipes or duplicate a built-in one from the Recipes page; see
+[Recipes](docs/RECIPES.md).
 
 ## Getting started
 
@@ -339,4 +342,4 @@ RigHaven is [MIT licensed](LICENSE). Incorporated source notices are preserved i
 
 ### Guided data projects
 
-Choose **Recipes → Use this recipe**, describe the result, optionally add known constraints, then attach your documentation in the created chat. There is no bracketed prompt to complete and no mandatory database connection. The saved path shows catalog, design, laboratory, synthetic data, pipeline, business reporting and deployable package, with owner approvals and evidence. See [guided projects](docs/RECIPES.md) for actual scope and verification boundaries.
+Choose **Recipes → Use this recipe**, describe the result, optionally add known constraints, then attach your documentation in the created chat. There is no bracketed prompt to complete and no mandatory database connection. The saved path shows catalog, design, laboratory, synthetic data, pipeline, business reporting and deployable package, with evidence. The project card above the chat shows where you are and, when a phase waits for you, the buttons to approve it, request changes or skip it when it is not useful for your goal. For Azure SQL and Fabric, sign in with your own Microsoft account (multi-factor authentication included) from [Connections](docs/CONNECTIONS.md#your-microsoft-account-oauth2-with-multi-factor-authentication). See [guided projects](docs/RECIPES.md) for actual scope and verification boundaries.

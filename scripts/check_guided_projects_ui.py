@@ -15,7 +15,7 @@ import tempfile
 import threading
 from unittest.mock import patch
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
-from righaven import journeys,projects,recipes,state
+from righaven import connections,journeys,projects,recipes,state
 from playwright.sync_api import sync_playwright,expect
 
 
@@ -25,17 +25,32 @@ SKILLS=['skill-harness','skill-duckdb','skill-data-pipeline']
 def main():
     parser=argparse.ArgumentParser();parser.add_argument('--node-modules',required=True);args=parser.parse_args()
     repo=Path(__file__).resolve().parents[1];modules=Path(args.node_modules).resolve()
-    with tempfile.TemporaryDirectory() as directory,patch.object(state,'STATE',Path(directory)/'state'):
+    import base64,os
+    from cryptography.fernet import Fernet
+    claims=base64.urlsafe_b64encode(json.dumps({'preferred_username':'marco@contoso.com'}).encode()).decode().rstrip('=')
+    polls=[]
+    def microsoft(url,data,timeout):
+        class Reply:
+            headers={'content-type':'application/json'}
+            def __init__(self,code,body):self.status_code,self.body=code,body
+            def json(self):return self.body
+        if url.endswith('/devicecode'):return Reply(200,{'device_code':'D','user_code':'ABCD-EFGH','verification_uri':'https://microsoft.com/devicelogin','expires_in':900,'interval':1})
+        polls.append(1)
+        return Reply(400,{'error':'authorization_pending'}) if len(polls)<2 else Reply(200,{'refresh_token':'RT-secret','id_token':'h.'+claims+'.s'})
+    with tempfile.TemporaryDirectory() as directory,patch.object(state,'STATE',Path(directory)/'state'),\
+         patch.object(connections,'folder',side_effect=lambda user:(Path(directory)/'users'/user).mkdir(parents=True,exist_ok=True) or Path(directory)/'users'/user),\
+         patch.dict(os.environ,{'RIGHAVEN_CREDENTIALS_KEY':Fernet.generate_key().decode()}),patch('httpx.post',side_effect=microsoft):
         root=Path(directory);workspace=root/'work';workspace.mkdir()
         (root/'fetch.ts').write_text('export const fetch=window.fetch.bind(window);')
         (root/'config.ts').write_text('export function getBackendBaseURL(){return ""}')
         (root/'hooks.ts').write_text('export function useI18n(){return {locale:"it-IT"}}')
         (root/'router.ts').write_text('export function useRouter(){return {push:(url:string)=>{window.location.href=url}}}')
         (root/'threads.ts').write_text('export async function createThread(id:string){return window.fetch("/api/threads",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({thread_id:id})}).then(r=>r.json())}')
-        entry='''import React from 'react';import{createRoot}from'react-dom/client';import Recipes from PAGE;import{ProjectJourney,useJourney}from PANEL;
+        entry='''import React from 'react';import{createRoot}from'react-dom/client';import Recipes from PAGE;import Connections from CONNECTIONS;import{ProjectJourney,useJourney}from PANEL;
 function Journey(){const id=location.pathname.split('/').pop()!;const state=useJourney(id);return <ProjectJourney threadId={id} state={state}/>;}
-createRoot(document.getElementById('root')!).render(location.pathname.includes('/chats/')?<Journey/>:<Recipes/>);'''
-        (root/'entry.tsx').write_text(entry.replace('PAGE',json.dumps(str(repo/'frontend/recipes-page.tsx'))).replace('PANEL',json.dumps(str(repo/'frontend/project-journey.tsx'))))
+createRoot(document.getElementById('root')!).render(location.pathname.includes('/chats/')?<Journey/>:location.pathname==='/connections'?<Connections/>:<Recipes/>);'''
+        (root/'entry.tsx').write_text(entry.replace('PAGE',json.dumps(str(repo/'frontend/recipes-page.tsx'))).replace('PANEL',json.dumps(str(repo/'frontend/project-journey.tsx')))
+                                      .replace('CONNECTIONS',json.dumps(str(repo/'frontend/connections-page.tsx'))))
         aliases={'@/core/api/fetcher':str(root/'fetch.ts'),'@/core/config':str(root/'config.ts'),'@/core/i18n/hooks':str(root/'hooks.ts'),'@/core/i18n/ui-text':str(repo/'frontend/ui-text.ts'),'@/core/threads/api':str(root/'threads.ts'),'next/navigation':str(root/'router.ts')}
         build={'entryPoints':[str(root/'entry.tsx')],'outfile':str(root/'app.js'),'bundle':True,'jsx':'automatic','nodePaths':[str(modules)],'alias':aliases}
         subprocess.run(['node','-e','require('+json.dumps(str(modules/'esbuild'))+').buildSync('+json.dumps(build)+')'],check=True)
@@ -44,6 +59,8 @@ createRoot(document.getElementById('root')!).render(location.pathname.includes('
             def send(self,body,kind='application/json',code=200):
                 self.send_response(code);self.send_header('Content-Type',kind);self.end_headers();self.wfile.write(body if isinstance(body,bytes) else body.encode())
             def do_GET(self):
+                if self.path=='/api/harness/connections':return self.send(json.dumps({'connections':connections.listing('owner'),'kinds':list(connections.KINDS)}))
+                if self.path=='/api/harness/access-catalog':return self.send(json.dumps({'providers':[]}))
                 if self.path.startswith('/api/harness/recipes/editor/options'):
                     return self.send(json.dumps({'skills':[{'name':s,'description':'Metodo '+s,'kind':'method'} for s in SKILLS],
                                                  'environments':[{'id':'dati','name':'Dati e analisi','purpose':'Analisi','tools':['duckdb','jupyter','quarto','gridcraft'],'skills':[]}]}))
@@ -55,6 +72,9 @@ createRoot(document.getElementById('root')!).render(location.pathname.includes('
             def do_POST(self):
                 body=json.loads(self.rfile.read(int(self.headers.get('Content-Length','0'))) or '{}')
                 if self.path=='/api/threads':return self.send(json.dumps({'thread_id':body['thread_id']}))
+                if self.path=='/api/harness/connections':return self.send(json.dumps(connections.save('owner',body)))
+                if self.path.endswith('/sign-in'):return self.send(json.dumps(connections.sign_in('owner',self.path.split('/')[4])))
+                if self.path.endswith('/sign-in/poll'):return self.send(json.dumps(connections.complete_sign_in('owner',self.path.split('/')[4])))
                 if self.path.endswith('/decision'):
                     value=journeys.decide(workspace,body['stage_id'],None,body['expected_revision'],body['note'],body['action']);return self.send(json.dumps({'journey':value}))
                 if self.path=='/api/harness/recipes':
@@ -108,6 +128,26 @@ createRoot(document.getElementById('root')!).render(location.pathname.includes('
                     expect(progress).to_contain_text('1/7')
                     assert not errors,errors
                     page.close()
+                # Personal Microsoft account: device code with MFA on Microsoft's page, then usable by SQL Server connections.
+                page=browser.new_page(viewport={'width':390,'height':900});errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
+                page.goto(f'http://127.0.0.1:{server.server_port}/connections')
+                page.get_by_role('button',name='Nuova: Microsoft Entra ID',exact=True).click()
+                form=page.get_by_test_id('connection-form')
+                expect(form.get_by_label('Tipo di accesso',exact=True)).to_have_value('user')
+                expect(form.get_by_label('Segreto client',exact=False)).to_have_count(0)
+                form.get_by_label('Nome',exact=True).fill('Il mio account')
+                form.get_by_role('button',name='Salva',exact=True).click()
+                row=page.get_by_test_id('connection-il-mio-account')
+                expect(row).to_contain_text('Accesso Microsoft da completare')
+                row.get_by_role('button',name='Accedi con Microsoft',exact=True).click()
+                signing=row.get_by_test_id('microsoft-sign-in')
+                expect(signing).to_contain_text('ABCD-EFGH')
+                expect(signing.get_by_role('link',name='https://microsoft.com/devicelogin')).to_be_visible()
+                expect(signing).to_contain_text('Accesso completato: marco@contoso.com',timeout=10000)
+                expect(row).to_contain_text('Account marco@contoso.com')
+                assert 'RT-secret' not in json.dumps(connections.listing('owner'))
+                assert not errors,errors
+                page.close()
                 # Recipe editor: the user composes skills, environment and phases into a new recipe, then starts it.
                 page=browser.new_page(viewport={'width':1200,'height':900});errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
                 page.goto(f'http://127.0.0.1:{server.server_port}/recipes')
@@ -139,7 +179,7 @@ createRoot(document.getElementById('root')!).render(location.pathname.includes('
                 assert not errors,errors
                 page.close()
                 browser.close()
-            print('Guided UI OK: desktop/mobile, saved native thread, inline owner approval, skip/resume, recipe editor and duplicate')
+            print('Guided UI OK: desktop/mobile, saved native thread, inline owner approval, skip/resume, personal Microsoft sign-in, recipe editor and duplicate')
         finally:server.shutdown();server.server_close()
 
 
