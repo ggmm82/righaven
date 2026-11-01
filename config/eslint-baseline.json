@@ -87,6 +87,7 @@
   "src/app/workspace/recipes/page.tsx": {},
   "src/components/workspace/chats/use-chat-mode.ts": {},
   "src/app/workspace/connections/page.tsx": {},
-  "src/components/workspace/messages/project-connections.tsx": {}
+  "src/components/workspace/messages/project-connections.tsx": {},
+  "src/components/workspace/messages/project-journey.tsx": {}
  }
 }

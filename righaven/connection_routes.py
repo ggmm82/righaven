@@ -95,3 +95,27 @@ async def assign(thread_id: ThreadId, body: Assignment, request: Request):
     result = await run(connections.assign, get_effective_user_id(), workspace, body.ids)
     append(workspace, 'Connessioni', 'Connessioni assegnate al lavoro', 'completed', ', '.join(body.ids) or 'nessuna')
     return {'assigned': result}
+
+
+@router.get('/api/harness/access-catalog')
+@require_permission('agents', 'read')
+async def access_catalog(request: Request):
+    """One discovery surface; existing provider login stores remain authoritative."""
+    from .state import connection_status
+    import os
+    cloud = os.getenv('RIGHAVEN_EDITION', 'community') == 'cloud'
+    providers = []
+    for engine, label in [('codex', 'OpenAI Codex CLI'), ('gemini', 'Antigravity CLI'), ('claude', 'Anthropic Claude Code CLI'),
+                          ('deepseek', 'DeepSeek API'), ('openai', 'OpenAI-compatible API')]:
+        # Hosted private keys must not be confused with shared installation credentials.
+        providers.append({'id': engine, 'name': label, 'category': 'model', 'scope': 'personal' if cloud else 'installation',
+                          'status': 'configure_in_models' if cloud else ('configured' if await run_in_threadpool(connection_status, engine) else 'not_configured'),
+                          'manage_url': '/workspace/cloud' if cloud else '/workspace/harness'})
+    return {'providers': providers, 'categories': [
+        {'id': 'model', 'name': 'AI models and official CLIs', 'available': True},
+        {'id': 'database', 'name': 'Databases', 'available': True},
+        {'id': 'identity', 'name': 'Microsoft Entra ID', 'available': True},
+        {'id': 'api', 'name': 'External APIs', 'available': False},
+        {'id': 'storage', 'name': 'Object storage', 'available': False},
+        {'id': 'git', 'name': 'Git and deployment targets', 'available': False}],
+        'connections_optional': True}

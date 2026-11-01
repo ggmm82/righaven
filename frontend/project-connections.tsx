@@ -10,7 +10,7 @@ type Connection = { id: string; name: string; kind: string; host?: string; datab
 
 const kinds: Record<string, string> = { postgres: "PostgreSQL", sqlserver: "SQL Server", mysql: "MySQL", oracle: "Oracle", entra: "Microsoft Entra ID" };
 
-/** The connections the user chose for this task; every assignment of the task receives them. */
+/** The connections the user chose for this task; only roles declaring the authorized IDs receive them. */
 export function ProjectConnections({ threadId }: { threadId: string }) {
   useUiLanguage();
   const [all, setAll] = useState<Connection[] | null>(null);
@@ -46,9 +46,9 @@ export function ProjectConnections({ threadId }: { threadId: string }) {
   return <details className="rounded-xl border p-3 text-sm" data-testid="project-connections">
     <summary className="cursor-pointer font-medium">{tr("Connessioni del lavoro", "Task connections")} ({assigned.length})</summary>
     <p className="text-muted-foreground my-2 text-xs">{tr(
-      "Scegli i database e gli account Microsoft che questo lavoro può usare: gli incarichi di questo lavoro, e nessun altro, ricevono le connessioni spuntate e le perdono quando finiscono. Le password non sono mai mostrate al coordinatore.",
-      "Choose the databases and Microsoft accounts this task may use: this task's assignments, and no others, receive the ticked connections and lose them when they end. Passwords are never shown to the coordinator.")}</p>
-    {all.length === 0 && <p className="text-xs">{tr("Nessuna connessione: creane una in ", "No connections: create one in ")}<a className="underline" href="/workspace/connections">{tr("Connessioni", "Connections")}</a>.</p>}
+      "Scegli i database e gli account Microsoft che questo lavoro può usare: solo i ruoli del lavoro che ne hanno bisogno ricevono le connessioni autorizzate, e le perdono quando finiscono. Le password non sono mai mostrate al coordinatore.",
+      "Choose the databases and Microsoft accounts this task may use: only roles declaring these authorized connection IDs receive them, and lose them when they end. Passwords are never shown to the coordinator.")}</p>
+    {all.length === 0 && <p className="text-xs">{tr("Nessuna connessione necessaria per documenti e dati sintetici. Se serve un accesso esterno, puoi aggiungerlo in ", "No connection is needed for documents and synthetic data. For external access, add one in ")}<a className="underline" href="/workspace/connections">{tr("Connessioni", "Connections")}</a>.</p>}
     <ul className="space-y-1">{all.map((c) => <li key={c.id}><label className="flex items-start gap-2">
       <input type="checkbox" disabled={busy} checked={assigned.includes(c.id)} onChange={(event) => void save(event.target.checked ? [...assigned, c.id] : assigned.filter((id) => id !== c.id))}/>
       <span><strong>{c.name}</strong> · {kinds[c.kind] ?? c.kind}{c.database ? " · " + c.database : ""}{c.kind !== "entra" && !c.read_only && <span className="text-destructive"> · {tr("non dichiarata in sola lettura: gli strumenti la rifiuteranno", "not declared read-only: tools will refuse it")}</span>}</span>

@@ -83,6 +83,7 @@ def project_view(project):
         return project
     value = {k: project.get(k) for k in ('id', 'status', 'summary', 'next_action', 'product_path',
              'quality_status', 'version_selection', 'attention', 'outcome', 'user_direction', 'user_control', 'memory', 'requirements', 'project_type', 'governance')}
+    if project.get('journey'):value['journey'] = project['journey']
     if project.get('designs'):value['designs'] = [{k:d.get(k) for k in ('id','title','tool','revision','source_path','sha256','state','bindings')} for d in project['designs']][:6]
     value['brief'] = clean_summary(project.get('brief'), 500)
     value['correction_focus'] = project.get('correction_focus', [])

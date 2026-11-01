@@ -302,7 +302,7 @@ def _file(record, user_id):
 
 class Delivery:
     """Decrypt the task's connections, chosen by the user, into a private folder for one worker; removed on close."""
-    def __init__(self, workspace, destination):
+    def __init__(self, workspace, destination, role=None):
         self.directory = None
         self.public = []
         self.domains = []
@@ -310,7 +310,12 @@ class Delivery:
         with locked(workspace) as directory:
             value = load(directory, workspace) or {}
         binding = value.get('connections') or {}
-        wanted = list(binding.get('ids') or [])
+        granted = list(binding.get('ids') or [])
+        # Compiled roles receive only the subset they actually need. No access by default.
+        requested = role.get('connections', []) if role else []
+        if set(requested)-set(granted):
+            raise ValueError('Role requests connections not authorized by the project owner')
+        wanted = [c for c in granted if c in requested]
         if not wanted:
             return
         owner = binding['owner']

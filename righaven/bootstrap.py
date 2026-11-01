@@ -121,7 +121,7 @@ def initialize():
                 changed = True
         template = yaml.safe_load((ROOT / 'righaven.yaml').read_text())
         for tool in template.get('tools', []):
-            if tool.get('name') in ('harness_plan', 'harness_lessons', 'harness_read_context','harness_skills','harness_delegate_batch','harness_validate') and not any(
+            if tool.get('name') in ('harness_journey', 'harness_plan', 'harness_lessons', 'harness_read_context','harness_skills','harness_delegate_batch','harness_validate') and not any(
                     t.get('name') == tool.get('name') for t in content.get('tools', [])):
                 content.setdefault('tools', []).append(tool)
                 changed = True

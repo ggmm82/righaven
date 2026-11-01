@@ -28,7 +28,8 @@ class NamingAndCursors(unittest.TestCase):
         nullable = json.loads(json.dumps(MODEL))
         nullable['tables'][1]['columns'][4]['nullable'] = True
         self.assertIsNone({t['target']: t for t in pipeline_scaffold.plan_tables(nullable)}['ordine']['cursor'])
-        self.assertEqual(tables['ordine']['write_disposition'], 'merge')
+        self.assertEqual(tables['ordine']['write_disposition'], 'replace')
+        self.assertFalse(tables['ordine']['cursor_confirmed'])
 
     def test_multi_schema_targets_are_prefixed(self):
         model = json.loads(json.dumps(MODEL))
@@ -96,7 +97,7 @@ class PackageTemplates(unittest.TestCase):
         self.assertIn('USER pipeline', docker)
         self.assertNotIn('msodbcsql18', pipeline_scaffold.dockerfile('postgres'))
         env = pipeline_scaffold.env_example('fabric', 'oracle')
-        self.assertTrue(all(line.endswith('=') or '=' not in line or line.split('=', 1)[1] in ('test', 'raw', 'local', '200', 'fabric', '/data/source-stub.duckdb', '/data/warehouse.duckdb')
+        self.assertTrue(all(line.endswith('=') or '=' not in line or line.split('=', 1)[1] in ('test', 'raw', 'local', '200', 'fabric', 'project_ingestion', '/data/source-stub.duckdb', '/data/warehouse.duckdb')
                             for line in env.splitlines() if not line.startswith('#')), 'no secret values in .env.example')
 
     def test_production_gateway_uses_env_var_secrets(self):

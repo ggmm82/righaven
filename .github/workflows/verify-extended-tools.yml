@@ -12,6 +12,7 @@ on:
       - 'scripts/domain_*'
       - 'scripts/acceptance_domain.py'
       - 'scripts/pipeline_*'
+      - 'scripts/check_pipeline_package.py'
       - 'scripts/stubgen.py'
       - 'scripts/acceptance_pipeline.py'
       - 'scripts/install_extended.py'
@@ -98,6 +99,9 @@ jobs:
           else
             python scripts/check_environment_runtime.py --tools $SELECTED_TOOLS --verification-dependencies
           fi
+      - name: Build and run the exported pipeline independently of RigHaven
+        if: matrix.environment == 'data-pipeline'
+        run: python scripts/check_pipeline_package.py
       - name: Preserve failure diagnostics
         if: failure()
         run: docker ps -a && docker images

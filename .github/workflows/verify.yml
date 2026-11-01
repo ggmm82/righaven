@@ -83,6 +83,7 @@ jobs:
           python scripts/check_native_models_ui.py --node-modules /tmp/rh-ui-tests/node_modules
           python scripts/check_workspace_management_ui.py --node-modules /tmp/rh-ui-tests/node_modules
           python scripts/check_policy_book_ui.py --node-modules /tmp/rh-ui-tests/node_modules
+          python scripts/check_guided_projects_ui.py --node-modules /tmp/rh-ui-tests/node_modules
           python scripts/check_delegate_progress_ui.py --node-modules /tmp/rh-ui-tests/node_modules
           python scripts/check_runtime_ui.py
           mkdir -p /tmp/design-excalidraw
@@ -189,6 +190,9 @@ jobs:
       - name: Check the Policy Book lifecycle from brief to validated delivery
         if: matrix.component == 'gateway'
         run: docker run --rm --entrypoint python -e RIGHAVEN_REQUIRE_GATEWAY_TESTS=1 --mount "type=bind,src=$PWD/tests,dst=/review,readonly" righaven-gateway:0.1.0 -m unittest discover -s /review -p test_policy_book.py -v
+      - name: Check guided project ownership and persistent approvals
+        if: matrix.component == 'gateway'
+        run: docker run --rm --entrypoint python -e RIGHAVEN_REQUIRE_GATEWAY_TESTS=1 --mount "type=bind,src=$PWD/tests,dst=/review,readonly" righaven-gateway:0.1.0 -m unittest discover -s /review -p test_journey_routes.py -v
       - name: Check tool alternatives chosen by the user and machine usage
         if: matrix.component == 'gateway'
         run: |

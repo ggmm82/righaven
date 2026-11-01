@@ -5,6 +5,7 @@ import {fetch} from "@/core/api/fetcher";
 import {getBackendBaseURL} from "@/core/config";
 import {useI18n} from "@/core/i18n/hooks";
 
+type ProviderAccess={id:string;name:string;scope:string;status:string;manage_url:string};
 type Kind="postgres"|"sqlserver"|"mysql"|"oracle"|"entra";
 type Test={ok:boolean;detail:string;at:string};
 type Connection={id:string;kind:Kind;name:string;description?:string;host?:string;port?:number;database?:string;username?:string;tls?:boolean;read_only?:boolean;
@@ -28,6 +29,8 @@ export default function ConnectionsPage(){
   void fetch(base).then(async r=>{const v=await r.json();if(!r.ok)throw Error(typeof v.detail==="string"?v.detail:String(r.status));return v.connections as Connection[];})
    .then(v=>{if(live)setRows(v);}).catch(e=>{if(live)setError(e instanceof Error?e.message:String(e));});
   return()=>{live=false;};},[base,reload]);
+ const [providers,setProviders]=useState<ProviderAccess[]>([]);
+ useEffect(()=>{let live=true;void fetch(`${getBackendBaseURL()}/api/harness/access-catalog`).then(async r=>{if(!r.ok)throw Error(String(r.status));return r.json() as Promise<{providers:ProviderAccess[]}>;}).then(v=>{if(live)setProviders(v.providers);}).catch(()=>undefined);return()=>{live=false;};},[]);
  const entras=(rows??[]).filter(r=>r.kind==="entra");
  function edit(row:Connection){setEditing(row.id);setNotice("");setError("");
   setForm({...blank(row.kind),...Object.fromEntries(Object.entries(row).filter(([,v])=>typeof v==="string"||typeof v==="boolean")),port:String(row.port??PORTS[row.kind]),password:"",client_secret:""} as Form);}
@@ -50,16 +53,18 @@ export default function ConnectionsPage(){
  const input=(key:keyof Form,label:string,props:Record<string,unknown>={})=><label className="block text-sm">{label}
   <input className={field} value={String(form?.[key]??"")} onChange={e=>setForm(f=>f&&{...f,[key]:e.target.value})} {...props}/></label>;
  return <div className="mx-auto w-full max-w-5xl space-y-6 p-6">
-  <header className="space-y-2"><h1 className="text-2xl font-semibold">{t("Connessioni","Connections")}</h1>
+  <header className="space-y-2"><h1 className="text-2xl font-semibold">{t("Connessioni e accessi","Connections & access")}</h1>
    <p className="text-muted-foreground text-sm">{t(
-    "Registra qui i database e gli account Microsoft che i lavori possono usare. Le password e i segreti sono cifrati, non vengono più mostrati e non arrivano mai al coordinatore. Sei tu a decidere l’accesso: in un lavoro scegli le connessioni dal pannello del progetto («Connessioni del lavoro»); solo gli incarichi di quel lavoro le ricevono, e le perdono quando finiscono.",
-    "Register here the databases and Microsoft accounts that tasks may use. Passwords and secrets are encrypted, never shown again and never reach the coordinator. Access is your choice: in a task you pick the connections from the project panel (“Task connections”); only that task's assignments receive them, and lose them when they end.")}</p>
+    "Registra qui i database e gli account Microsoft che i lavori possono usare. Le password e i segreti sono cifrati, non vengono più mostrati e non arrivano mai al coordinatore. Sei tu a decidere l’accesso: in un lavoro scegli le connessioni dal pannello del progetto («Connessioni del lavoro»); solo i ruoli che dichiarano gli ID autorizzati le ricevono e le perdono quando finiscono.",
+    "Register here the databases and Microsoft accounts that tasks may use. Passwords and secrets are encrypted, never shown again and never reach the coordinator. Access is your choice: in a task you pick the connections from the project panel (“Task connections”); only roles declaring the authorized IDs receive them, and lose them when they end.")}</p>
    <p className="text-muted-foreground text-sm">{t(
     "Usa account in sola lettura: gli strumenti RigHaven eseguono solo letture e rifiutano i database non dichiarati in sola lettura. Per Azure SQL e Microsoft Fabric crea prima l’applicazione Microsoft Entra ID, poi una connessione SQL Server che la usa.",
     "Use read-only accounts: RigHaven tools only read and refuse databases not declared read-only. For Azure SQL and Microsoft Fabric create the Microsoft Entra ID application first, then a SQL Server connection that uses it.")}</p>
   </header>
   {error&&<p className="text-destructive text-sm" role="alert">{error}</p>}
   {notice&&<p className="text-sm">{notice}</p>}
+  <section className="space-y-3 rounded-xl border p-4" data-testid="model-accesses"><h2 className="font-semibold">{t("Modelli e CLI ufficiali","Models and official CLIs")}</h2><p className="text-sm">{t("Gli stessi collegamenti di Modelli e risorse: nessun secondo login. Il modello rimane assegnabile al coordinatore, alla squadra o a entrambi. Gli accessi condivisi sono gestiti dall’amministratore.","The same connections as Models & resources: no duplicate login. Models remain assignable to coordinator, team or both. Shared connections are managed by the administrator.")}</p><ul className="space-y-2">{providers.map(p=><li key={p.id} className="flex flex-wrap justify-between gap-2"><span>{p.name} · {p.status==="configured"?t("Configurato","Configured"):t("Verifica in Modelli","Check Models")}</span><a className="underline" href={p.manage_url}>{t("Apri configurazione","Open configuration")}</a></li>)}</ul></section>
+  <p className="text-sm">{t("Database e identità esterne sono facoltativi. Per analizzare documenti e creare il laboratorio sintetico non devi configurarli.","External databases and identities are optional. You do not need to configure them to analyze documents and build the synthetic laboratory.")}</p>
   {!form&&<div className="flex flex-wrap gap-2">{(["postgres","sqlserver","mysql","oracle","entra"] as Kind[]).map(k=><button key={k} className="rounded border px-3 py-2 text-sm" onClick={()=>{setEditing(null);setForm(blank(k));}}>{t("Nuova: ","New: ")}{LABELS[k]}</button>)}</div>}
   {form&&<section className="space-y-3 rounded-lg border p-4" data-testid="connection-form">
    <h2 className="font-semibold">{editing?t("Modifica ","Edit ")+editing:t("Nuova connessione ","New connection ")}· {LABELS[form.kind]}</h2>

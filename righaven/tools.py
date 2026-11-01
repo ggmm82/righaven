@@ -70,6 +70,28 @@ def experience_root(runtime):
     return get_paths().user_dir(resolve_runtime_user_id(runtime)) / 'righaven-experience'
 
 
+@tool('harness_journey', parse_docstring=True)
+def harness_journey(runtime: Runtime, stage_id: str = '', evidence_json: str = '[]', steps_json: str = '[]', note: str = '', expected_revision: int = 0) -> str:
+    """Read the selected guided project or submit one phase for owner approval.
+
+    Read first. Compile dynamic roles and native activities for the current phase.
+    Read the attachments before asking questions; connections are optional.
+    This tool cannot approve a phase or change the user's answers.
+
+    Args:
+        runtime: Injected RigHaven runtime.
+        stage_id: Empty reads; otherwise the current guided phase ID.
+        evidence_json: JSON list of actual saved artifact paths, including verification reports; empty starts a phase linked to native activities.
+        steps_json: JSON list of native activity IDs producing this phase.
+        note: Explain the useful result and remaining limits without credentials.
+        expected_revision: Revision read from the guided project, required on submission.
+    """
+    from .journeys import view, record
+    workspace = workspace_for(runtime)
+    result = record(workspace, stage_id, json.loads(evidence_json), json.loads(steps_json), note, expected_revision) if stage_id else view(workspace)
+    return json.dumps({'journey': result}, ensure_ascii=False)
+
+
 @tool('harness_skills',parse_docstring=True)
 def harness_skills(runtime:Runtime,query:str='',name:str='',reference:str='SKILL.md',offset:int=0)->str:
     """Discover authorized native skills or read one method/reference in pages.
@@ -93,7 +115,9 @@ def harness_skills(runtime:Runtime,query:str='',name:str='',reference:str='SKILL
     policy=runtime_policy(runtime)
     if not name:
         from .recipes import coordinator_index
+        from .journeys import view as guided_view
         return json.dumps({**inventory(policy,query),'environments':environment_inventory(policy),
+                           'guided_project': guided_view(workspace_for(runtime)),
                            'recipes':coordinator_index(set(policy.get('skill_names',[])))},ensure_ascii=False)
     source=policy.get('skill_sources',{}).get(name)
     if not source or name not in policy.get('skill_names',[]):raise ValueError('Skill non autorizzata nel profilo')
@@ -291,7 +315,7 @@ def harness_plan(runtime: Runtime, brief: str = '', steps_json: str = '',
         status: clarifying, working, review, ready, blocked or idle.
         product_path: Existing verified final product to show prominently; ready requires it.
         requirements_json: Media acceptance requirements such as {"audio":true,"video":true}; follow the user's brief.
-        roles_json: JSON roles compiled for this project: id, title, mission, expertise, procedure, checks, deliverables, skills (exact authorized native names discovered with harness_skills), tools (available catalog IDs, optional), inputs and risks; optional network: up to eight {domain, reason} the role must reach beyond the model provider (for example fonts or a public dataset), granted only when the installation restricts worker egress. Selected skill requirements add their tools automatically. Roles are dynamic, not tool identities; scope and package versions are recorded. Each role requires capability_rationale: explain why the selected capabilities can construct its actual content/model, not merely export the delivery format; consider relevant owner environments and justify simpler alternatives. Do not assign every available tool or impose a fixed team.
+        roles_json: JSON roles compiled for this project: id, title, mission, expertise, procedure, checks, deliverables, skills (exact authorized native names discovered with harness_skills), tools (available catalog IDs, optional), inputs and risks; optional connections: project-authorized connection IDs needed by this role only (empty by default); optional network: up to eight {domain, reason} the role must reach beyond the model provider (for example fonts or a public dataset), granted only when the installation restricts worker egress. Selected skill requirements add their tools automatically. Roles are dynamic, not tool identities; scope and package versions are recorded. Each role requires capability_rationale: explain why the selected capabilities can construct its actual content/model, not merely export the delivery format; consider relevant owner environments and justify simpler alternatives. Do not assign every available tool or impose a fixed team.
         memory_json: JSON object with project-specific decisions, facts, questions and asset references; merge top-level keys, keep evidence and uncertainty explicit.
         outcome_json: JSON intended result with title, result, format (delivery form, not necessarily a file extension), use, quality, constraints, assumptions, questions. Questions are at most three decisive missing user choices; ask them with ask_clarification, then replace the object with the real answers and questions empty before delegating. Do not ask again for choices already explicit in the brief. tool_options lists up to four tool decisions when several catalog tools could produce the result: id, decision, 2–4 options (id, label, tools, pros, cons), recommended option and recommendation_reason, chosen empty. Present them with ask_clarification and set chosen only after the user's reply; production waits for every choice and roles cannot use tools of rejected options.
         strategy_json: Optional method selection, especially after a failed sample: method, reason, state (exploring/selected/needs_user), up to three alternatives with method, reason, tools, status (candidate/tested/unavailable) and evidence_paths (existing workspace files required for tested). To pause for user help include stop_reason (missing_input/capability_limit/user_choice/budget) and concrete user_action. A quality failure alone cannot establish an external blocker. Revisit team assumptions before requesting assets; changing method does not authorize lowering user requirements.
@@ -316,6 +340,8 @@ def harness_plan(runtime: Runtime, brief: str = '', steps_json: str = '',
             if not isinstance(spec.get('capability_rationale'),str) or not spec['capability_rationale'].strip():
                 raise ValueError('Consulta harness_skills e indica capability_rationale per ogni ruolo: quali capacità costruiscono il contenuto/modello, quali lo impaginano o esportano e quali lo verificano; confronta gli ambienti pertinenti. Il formato finale non giustifica da solo la scelta dello strumento. Anche il solo runtime base richiede una motivazione.')
     learning = {}
+    from .journeys import view as guided_view
+    guided = guided_view(workspace)
     requests = user_requests(runtime)
     if read_project(workspace):
         sync_acceptance(workspace, requests, json.loads(criteria_json) if criteria_json else None)
@@ -332,6 +358,8 @@ def harness_plan(runtime: Runtime, brief: str = '', steps_json: str = '',
             outcome=json.loads(outcome_json) if outcome_json else None, source_turn=source_turn(runtime))
     else:
         value = read_project(workspace)
+    if not value and guided:
+        return json.dumps({'journey': guided, 'instruction': 'Read attached documentation and compile the first dynamic roles and native activities. Connections are optional.'}, ensure_ascii=False)
     if value and not value.get('archived'):
         sync_acceptance(workspace, requests, json.loads(criteria_json) if criteria_json else None)
         if strategy_json:

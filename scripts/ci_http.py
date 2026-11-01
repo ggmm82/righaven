@@ -75,6 +75,15 @@ assert environments['can_configure_resources']
 monitor=environments['parallelism']['monitor']
 assert set(monitor['active'])=={'worker','build','terminal','control'}
 assert 'allocated_memory_mib' in monitor and 'observed_at' in monitor
+# A recipe is a persisted owner-scoped project, not a prompt template.
+request('/api/threads', {'thread_id':'ci-guided-project'})
+guided='/api/threads/ci-guided-project/harness-journey'
+journey=json.loads(request(guided, {'recipe_id':'data-pipeline','answers':{'goal':'Document the supplied schema and build a synthetic laboratory'},'expected_revision':0},method='PUT'))['journey']
+assert journey['connections_optional'] and journey['current']=='understand'
+assert json.loads(request(guided))['journey']['revision']==journey['revision']
+assert any(p['id']=='claude' for p in json.loads(request('/api/harness/access-catalog'))['providers'])
+request('/api/threads/ci-guided-project', method='DELETE')
+
 # A single persisted policy backs both entry points; no restart or divergent settings.
 resource_url='/api/harness/environments/resources/settings'
 previous=json.loads(request(resource_url))['settings']

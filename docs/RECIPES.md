@@ -1,42 +1,33 @@
-# Recipes
+# Guided projects
 
-A recipe is a tested path for one kind of work: which documents to attach, which
-questions will be asked, which phases run, where you are asked to confirm and what
-you receive at the end. Recipes are offered on demand: nothing has to be installed
-or activated beforehand. Their tools are prepared automatically at the first
-assignment that needs them (a few minutes the first time; later runs reuse the
-prepared image).
+A recipe is a reusable project method, offered through a guided intake. Users describe the desired outcome in ordinary language. Unknown source engines, deployment targets, BI tools and frequencies may be left empty. Attach documents in the resulting native conversation; the coordinator must read them before asking at most three decisive questions.
 
-## Two ways to start
+## Persistent workflow
 
-1. **Recipes page** (sidebar → *Work* → *Recipes*). Each card shows *What you attach*,
-   *What you will be asked*, *What you get*, *How it runs* and *Before you start*.
-   **Use this recipe** opens a new task with the starter message already written in
-   your language: fill in the bracketed parts, attach the files and send.
-2. **Just describe the work.** The coordinator receives the recipe catalog with the
-   skills it is allowed to use; when a request matches a recipe it proposes it, asks
-   only for what is missing and follows the recipe's phases. You can decline and the
-   ordinary method is used.
+The selected recipe version, answers, phases, activity bindings and evidence hashes are stored in the thread workspace. Opening or refreshing the conversation restores the same state. Start and read requests use the native thread owner checks. Updates and decisions require the observed revision, preventing lost updates from multiple tabs.
 
-During the run, phases marked as checkpoints stop and ask you to confirm (for the data
-pipeline: intake, catalog review, BI tables). The final delivery separates the
-products, their editable sources and the verification report, which states what was
-tested and what remains to be tested outside RigHaven.
+The existing project plan owns dynamic roles and assignments. A journey does not introduce a second scheduler or a user-facing programming language. `harness_journey` reads the selected method, links phases to native activities and submits saved artifacts for review. It cannot approve its own output. The owner approves individual phases or requests corrections from the project panel. Changed evidence invalidates dependent results without deleting files.
 
-## Recipe: end-to-end data pipeline
+Starting a guided data project pins its release policy alongside organization policies, without adding data-specific obligations to other projects. Final delivery requires the guided phases and the existing quality review to pass. A policy is not a substitute for executing its checks.
 
-| | |
-|---|---|
-| **You attach** | at least one description of the schema: DDL scripts (schema only), an analysis document (PDF, Word, Excel) or sample JSON/XML/Parquet/CSV files. Useful: data dictionary, priority tables, examples of the expected reports, schedule constraints. Never: production passwords. |
-| **You are asked** | source database, production destination (PostgreSQL, SQL Server, Microsoft Fabric), BI tool, frequencies, test batch size, unless already stated. |
-| **You get** | data catalog (a page per table, relationship diagram, personal data marked), schema model and creation scripts per database, empty local replica with synthetic test batches, production package (ingestion, transformations, BI tables, schedule, container, CI, release guide), verification report. |
-| **You prepare** | nothing to start. To go to production afterwards: a Docker host or a Fabric workspace and a read-only account on the source. |
+## Data engineering path
 
-Technical details: [Data Engineering](DATA-ENGINEERING.md#recipe-end-to-end-data-pipeline).
+1. Read documents; build a catalog with provenance, uncertain relations and business definitions.
+2. Agree architecture, extraction semantics, schedules, measures and deployment expectations.
+3. Build the local laboratory. Clearly distinguish DuckDB simulation from a faithful replica on the original engine.
+4. Generate deterministic synthetic scenarios; test constraints, updates, deletes and anomalies.
+5. Verify recurring acquisition and transformations, reconciliation, recovery and repeatability.
+6. Deliver actual business reports and editable query/model sources. BI tables or example counts alone do not satisfy reporting.
+7. Build and start the exact exported package in a clean environment; verify a second cycle and restart, and deliver evidence and a runbook.
 
-## Adding a recipe
+No live connection is needed for the synthetic path. External source and production target checks remain unverified until authorized access is supplied. In-app workers are disposable builders; the exported project's volume retains pipeline and SQLMesh state and reports between container replacements. This release does not turn temporary worker terminals into persistent database or BI servers.
 
-A recipe is an entry in `righaven/recipes.json` (texts in Italian and English, the
-skill that holds its method, the catalog tools, an environment preset) plus that
-skill under `skills/custom/`. `scripts/validate.py` and `tests/test_recipes.py` check
-that skill, tools and preset exist and that both languages describe the same phases.
+## Exported package
+
+The package includes hashed dependency locks, executable entrypoint, one ordered cycle protected by a shared-storage lock, writable SQLMesh state under DATA_DIR and a consistent warehouse path. Full snapshot loads are the safe default; incremental cursors must be explicitly confirmed and tested. The HTML report renderer runs offline, retaining SQL definitions and actual query results. Replace the example counts with agreed KPIs. Native Power BI/Metabase/Superset deployment requires its own adapter and actual target verification.
+
+CI builds the generated Dockerfile, starts the exported scheduler without RigHaven, checks two cycles across container replacement and checks real report output. Technical fixtures do not certify arbitrary customer schema semantics or production credentials.
+
+## Connections and access
+
+The access page discovers the existing model-provider CLI/API connections and the personal database/identity connections. It does not duplicate OAuth sessions or change coordinator/team model assignment. Database grants are optional. Each compiled role declares the subset of owner-authorized connection IDs it needs; document reviewers receive no database credentials by default. Additional connector families require reviewed adapters, not merely new dropdown entries.

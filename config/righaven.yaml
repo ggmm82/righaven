@@ -37,6 +37,9 @@ tools:
 - name: harness_read_context
   group: harness
   use: righaven.tools:harness_read_context
+- name: harness_journey
+  group: harness
+  use: righaven.tools:harness_journey
 - name: harness_plan
   group: harness
   use: righaven.tools:harness_plan

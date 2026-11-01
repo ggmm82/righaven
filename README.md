@@ -336,3 +336,7 @@ RigHaven is [MIT licensed](LICENSE). Incorporated source notices are preserved i
 - 📍 Rome, Italy
 - 💼 LinkedIn: [linkedin.com/in/marco-gramuglia-2686bb30](https://www.linkedin.com/in/marco-gramuglia-2686bb30)
 - 🐙 GitHub: [@ggmm82](https://github.com/ggmm82)
+
+### Guided data projects
+
+Choose **Recipes → Use this recipe**, describe the result, optionally add known constraints, then attach your documentation in the created chat. There is no bracketed prompt to complete and no mandatory database connection. The saved path shows catalog, design, laboratory, synthetic data, pipeline, business reporting and deployable package, with owner approvals and evidence. See [guided projects](docs/RECIPES.md) for actual scope and verification boundaries.

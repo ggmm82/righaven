@@ -41,6 +41,8 @@ def read_project(workspace):
     if value.get('designs'):result['designs'] = value['designs']
     result['memory'] = value.get('memory')
     result['outcome'] = value.get('outcome')
+    from .journeys import view
+    result['journey'] = view(workspace)
     result['user_direction'] = value.get('user_direction')
     result['user_control'] = value.get('user_control')
     if value.get('connections'):
@@ -296,6 +298,10 @@ def _set_product(workspace, value, product_path, status):
 
 def _check_ready(workspace, value, require_settled):
     """Completion gate: brief answered, delivery integrity, separate review and Policy Plan validation."""
+    from .journeys import _load as load_journey, view as journey_view
+    journey = load_journey(Path(workspace).resolve() / '.righaven-project')
+    if journey and not journey_view(workspace, journey)['complete']:
+        raise ValueError('Complete the guided phases and obtain owner approval before final delivery')
     if require_settled and (not (value.get('acceptance') or {}).get('user_requests') or any(
             step['status'] in ('pending','running','paused','needs_revision') for step in value['steps'])):
         raise ValueError('Completamento automatico sospeso: richiesta o attività ancora da verificare')
@@ -383,6 +389,11 @@ def create_plan(workspace, brief, steps, project_type='', omissions=None, *, sum
         if value.get('outcome') and briefing_issue(value['outcome']):
             value['status'] = 'clarifying'
         changed = policy_workflow.ensure_plan(value) if policy_workflow.governed(value) else None
+        from .journeys import _load as load_journey, pin_policy
+        journey = load_journey(folder)
+        if journey:
+            value['policy_plan'] = pin_policy(value['policy_plan'], journey)
+            value.setdefault('checkpoints', {'enabled': False, 'source': 'guided_phase_gates'})
         value.update(schema_version=2, updated_at=utcnow())
         atomic_json(folder / 'project.json', value)
     if changed:
@@ -406,6 +417,10 @@ def set_policy_plan(workspace, selections):
         if not policy_workflow.governed(value):
             raise ValueError('Questo progetto è precedente al Policy Book: prosegui con le verifiche esistenti')
         plan = policy_workflow.policy_book.build_plan(selections, [s for s in value['steps'] if s.get('kind') != 'validation'])
+        from .journeys import _load as load_journey, pin_policy
+        journey = load_journey(folder)
+        if journey:
+            plan = pin_policy(plan, journey)
         if plan['hash'] == (value.get('policy_plan') or {}).get('hash') and value['policy_plan']['selected_by'] == 'coordinator':
             return
         value['policy_plan'] = plan
@@ -576,6 +591,13 @@ def execute_step(workspace, agent, task, step_id, invoke, *, provider=None, purp
         if value.get('outcome') and briefing_issue(value['outcome']):
             raise ValueError('Prima della produzione completa le scelte sul risultato: ' + briefing_issue(value['outcome']))
         if purpose != 'review':
+            from .journeys import _load as load_journey, view as journey_view
+            saved_journey = load_journey(folder)
+            if saved_journey:
+                guided = journey_view(workspace, saved_journey)
+                current = next((s for s in guided['stages'] if s['id'] == guided['current']), None)
+                if not current or current['status'] != 'working' or step_id not in current['steps']:
+                    raise ValueError('Start the current guided phase with harness_journey and its native activity IDs; wait for owner approval before later phases')
             policy_workflow.require_production(value)
             discussed = policy_workflow.pass_checkpoint(value, request_id)
         if policy_sheet is not None and (purpose != 'review' or not policy_workflow.governed(value) or policy_sheet['id'] not in

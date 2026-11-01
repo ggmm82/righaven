@@ -1,0 +1,2 @@
+sqlmesh[postgres,mssql-odbc,fabric]==0.236.4
+duckdb==1.5.6

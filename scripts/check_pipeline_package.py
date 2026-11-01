@@ -1,0 +1,82 @@
+#!/usr/bin/env python3
+"""Build the exact exported package, run two cycles across container replacement, inspect its BI output."""
+import json
+import os
+from pathlib import Path
+import subprocess
+import sys
+import tempfile
+import time
+import uuid
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from righaven import docker_runtime, environment_runtime, state
+from unittest.mock import patch
+
+
+def run(*argv, **kwargs):
+    result=subprocess.run(list(argv),capture_output=True,text=True,timeout=kwargs.pop('timeout',900),**kwargs)
+    if result.returncode:raise RuntimeError(' '.join(argv[:4])+': '+result.stderr[-6000:]+'\n'+result.stdout[-6000:])
+    return result.stdout
+
+
+def main():
+    repo=Path(__file__).resolve().parents[1]
+    tag='rh-pipeline-check:'+uuid.uuid4().hex[:10];container='rh-pipeline-'+uuid.uuid4().hex[:10];volume=container+'-data'
+    with tempfile.TemporaryDirectory() as directory:
+        root=Path(directory);root.chmod(0o755);out=root/'output';out.mkdir();out.chmod(0o777)
+        with patch.object(state,'STATE',root/'state'),patch.object(docker_runtime,'host_path',lambda p:str(p)),patch.object(environment_runtime,'pinned',return_value=set()):
+            image=environment_runtime.ensure(['sqlglot'])
+        generator="""import sys,json
+from pathlib import Path
+sys.path[:0]=['/opt/righaven','/review/scripts']
+import pipeline_scaffold
+from acceptance_pipeline import MODEL
+result=pipeline_scaffold.scaffold(MODEL,Path('/out'),target='postgres',source_dialect='postgres',name='verified',schedule={'ingest':'@hourly','stubs':'@hourly','transform':'@daily','transform_model_cron':'@hourly'})
+print(json.dumps(result))
+"""
+        try:
+            run('docker','run','--rm','--network=none','--mount','type=bind,src='+str(repo)+',dst=/review,readonly','--mount','type=bind,src='+str(out)+',dst=/out',image['image_id'],
+                '/opt/righaven/apps/sqlglot/venv/bin/python','-c',generator)
+            run('docker','build','-t',tag,str(out/'package'),timeout=1200)
+            run('docker','volume','create',volume)
+            def launch():
+                run('docker','run','-d','--name',container,'--network=none','--read-only','--cap-drop=ALL','--security-opt=no-new-privileges','--tmpfs','/tmp:rw,size=512m',
+                    '--memory=2048m','--cpus=2','--mount','type=volume,src='+volume+',dst=/data',
+                    '-e','PIPELINE_ENV=test','-e','SQLMESH_GATEWAY=local','-e','STUB_ROWS=3','-e','RIGHAVEN_SOURCE_DUCKDB=/data/source-stub.duckdb',
+                    '-e','RIGHAVEN_WAREHOUSE_DUCKDB=/data/warehouse.duckdb',tag)
+            previous=None
+            for cycle in (1,2):
+                launch();deadline=time.monotonic()+180
+                while time.monotonic()<deadline:
+                    status=subprocess.run(['docker','exec',container,'cat','/data/last-cycle.json'],capture_output=True,text=True)
+                    if status.returncode==0:
+                        record=json.loads(status.stdout)
+                        if record.get('status')=='failed':raise AssertionError(record)
+                        if record.get('status')=='passed' and record.get('started_at')!=previous:break
+                    time.sleep(2)
+                else:raise AssertionError('Exported package did not complete its cycle')
+                previous=record['started_at']
+                if cycle==2:
+                    run('docker','exec',container,'/opt/ingest/bin/python','/app/ops/orchestrate.py','cycle')
+                reports=json.loads(run('docker','exec',container,'cat','/data/reports/results.json'))
+                counts={row[0]:row[1] for row in reports[0]['rows']}
+                assert set(counts.values())=={cycle*3},counts
+                html=run('docker','exec',container,'cat','/data/reports/index.html')
+                assert '<table' not in html and 'Business report' in html and 'textContent' in html # tables are rendered from actual saved data
+                run('docker','exec',container,'/opt/ingest/bin/python','/app/ops/orchestrate.py','health')
+                run('docker','rm','-f',container)
+            # Run an identical snapshot again without generating another batch: no duplicate rows.
+            run('docker','run','--rm','--network=none','--mount','type=volume,src='+volume+',dst=/data',
+                '-e','PIPELINE_ENV=test','-e','RIGHAVEN_SOURCE_DUCKDB=/data/source-stub.duckdb','-e','RIGHAVEN_WAREHOUSE_DUCKDB=/data/warehouse.duckdb',tag,
+                '/opt/ingest/bin/python','/app/ingestion/pipeline.py')
+            print('Exported package OK: clean build, read-only startup, ordered cycles, replacement/restart, durable state, repeatable snapshots and real BI report')
+        except Exception:
+            logs=subprocess.run(['docker','logs',container],capture_output=True,text=True)
+            print(logs.stdout[-8000:]+logs.stderr[-4000:],file=sys.stderr);raise
+        finally:
+            subprocess.run(['docker','rm','-f',container],capture_output=True)
+            subprocess.run(['docker','volume','rm','-f',volume],capture_output=True)
+            subprocess.run(['docker','image','rm','-f',tag],capture_output=True)
+
+
+if __name__=='__main__':main()
