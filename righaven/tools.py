@@ -616,6 +616,15 @@ def harness_validate(runtime: Runtime, role_id: str, task: str = '') -> str:
     from . import policy_workflow
     from .projects import governance_state, save_policy_validation
     workspace = workspace_for(runtime)
+    from .journeys import view as guided_view
+    guided = guided_view(workspace)
+    if guided and not guided['complete']:
+        # Not an error to investigate: final validation belongs to the finished product, after the last guided phase.
+        current = next((s for s in guided['stages'] if s['id'] == guided['current']), None)
+        return json.dumps({'ok': False, 'deferred': True, 'current_phase': guided['current'],
+                           'instruction': 'Final policy validation runs once, on the finished product, after every guided phase is settled. '
+                                          'Nothing is blocked: continue with the current phase' + (' «' + current['title']['it'] + '»' if current else '') +
+                                          ' using harness_journey and native activities. Do not ask the owner about this and do not investigate it.'}, ensure_ascii=False)
     value = governance_state(workspace)
     if not policy_workflow.governed(value):
         raise ValueError('Questo progetto è precedente al Policy Book: usa purpose=review per la revisione di qualità')

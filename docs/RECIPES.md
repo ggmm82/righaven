@@ -41,6 +41,10 @@ can be resumed there.
   project the phase approvals replace the chat confirmation that free projects ask after each
   production step, so nothing is approved twice. Free projects, started without a recipe, keep
   their brief questions and chat checkpoints unchanged.
+- **Reviewed before you decide.** A phase reaches *Your turn* only after its independent
+  quality review has finished, so you never approve a result that is still being checked.
+  The final policy validation (`harness_validate`) runs once on the finished product, after
+  the last phase; called earlier it answers that nothing is blocked and the team continues.
 - **Phases without approval.** A recipe author can mark technical phases as not needing approval:
   they complete when their results are saved. In the built-in data recipe, *Laboratory* and *Test
   scenarios* work this way; the owner still sees their results.

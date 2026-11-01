@@ -269,6 +269,13 @@ class PolicyLifecycleTests(unittest.TestCase):
         # The three first-wave reviews only pass this barrier if they really run together.
         self.barrier = threading.Barrier(3, timeout=20)
 
+    def test_final_validation_waits_for_the_last_guided_phase_without_an_error(self):
+        from righaven import journeys
+        journeys.start(self.root, 'data-pipeline', {'goal': 'Dashboard semplice con dati di esempio'})
+        reply = json.loads(harness_validate.func(runtime=self.runtime, role_id='reviewer'))
+        self.assertEqual((reply['ok'], reply['deferred'], reply['current_phase']), (False, True, 'understand'))
+        self.assertIn('Nothing is blocked', reply['instruction'])
+
     def reply(self, text):
         from types import SimpleNamespace
         messages = self.runtime.state['messages']

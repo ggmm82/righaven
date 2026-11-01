@@ -89,7 +89,8 @@ other active sheets depend on cannot be retired; built-in sheets are read-only.
   result, further production waits until the user replies: the coordinator
   presents results, open issues and next steps and proposes plan changes. Reviews
   and final validation do not pause. The owner can turn pauses off per project
-  from the Policy line.
+  from the Policy line. In a recipe task (guided project) the phase approvals in the task
+  card replace these pauses, and each phase is reviewed before it reaches the owner.
 
 Every conversation shows a **Policy** line under the project title. It is
 recomputed from the recorded reviews at each refresh and expands to the governance

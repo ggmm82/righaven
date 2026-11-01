@@ -356,6 +356,8 @@ def instructions(workspace):
             'Only the owner approves, asks for corrections or skips a phase, with the buttons in the project card above the chat '
             '(«Approva fase», «Chiedi correzioni», «Salta fase»). Never use ask_clarification or a chat question to approve, confirm or continue a phase, '
             'and never claim a chat reply approved it: after submitting a phase result, end the turn with a short summary and point to «Tocca a te» in the project card. '
-            'Use ask_clarification only for a decisive choice about the result that no phase answers. '
+            'Use ask_clarification only for a decisive choice about the result that no phase answers; never to ask how to continue between phases. '
+            'Each phase is checked by its independent review (purpose=review); harness_validate is the final policy validation of the finished product '
+            'and runs only after the last phase is settled. '
             'At the first turn compare the goal with all phases and, in that same turn, propose skipping every phase the goal does not need '
             '(for example a demo with sample data needs no replica, recurring pipeline or package) with harness_journey(propose_skip=true) and a reason; the owner decides all of them at once.')

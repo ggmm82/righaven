@@ -54,16 +54,19 @@ connections, policies and deliveries fit together: [Concepts](docs/CONCEPTS.md).
    **Models & resources**. OpenAI Codex, Antigravity CLI, Claude Code CLI, DeepSeek and custom
    OpenAI-compatible endpoints are supported. Choose models for the coordinator,
    the executing team or both. Ordinary users use the configured shared service.
-3. Select **New task**. Describe the result, audience, delivery format, references
-   and constraints. Answer the coordinator's material clarification questions and
-   choose among the tool alternatives it proposes. You do not have to create a
-   team or preload an environment first: authorized capabilities can be prepared
-   on demand.
-4. Follow **Tasks & results** for decisions, assignments, progress, revisions and
-   files. After every phase the coordinator presents results, open issues and next
-   steps and waits for your reply. Independent assignments can run in different
-   environments within the configured CPU/RAM and concurrency limits; dependent
-   work waits for its inputs.
+3. Select **New task** and describe the result, audience, delivery format, references
+   and constraints, or start from a **Recipe**: write your goal, attach the schema or
+   documents and tick the connections the task may use. Answer the coordinator's
+   material clarification questions and choose among the tool alternatives it
+   proposes. You do not have to create a team or preload an environment first:
+   authorized capabilities can be prepared on demand.
+4. Follow the task card above the chat: one header with the goal, progress, the
+   decision waiting for you and the actions. In a free task the coordinator presents
+   each phase's results and waits for your reply in the chat; in a recipe task each
+   phase result is independently reviewed and then waits for **Approve phase**,
+   **Request changes** or **Skip phase** in the card. Independent assignments can run
+   in different environments within the configured CPU/RAM and concurrency limits;
+   dependent work waits for its inputs.
 5. Open the delivered files and editable sources, review the instructions and
    remaining checks, then accept the result or request a focused revision.
    A technically valid file is not automatically an approved final product.
@@ -99,7 +102,8 @@ runtime enforces each step:
   and must declare the required checks in its handoff; a missing or failed
   blocking check sends the activity back to revision.
 - **A pause after every phase.** When an assignment delivers a result, further
-  production waits for your reply. The owner can turn pauses off per project.
+  production waits for your reply. The owner can turn pauses off per project. In a
+  recipe task the phase approvals in the task card replace these chat pauses.
 - **Final validation.** `harness_validate` checks delivery integrity, then runs an
   independent review per sheet, in parallel when sheets are independent, and
   aggregates every violation. Delivery is refused until all sheets pass.
@@ -151,6 +155,24 @@ see every user; everyone else sees their own.
 
 The terminal is a disposable inspection session: shell edits do not automatically
 update the prepared image or its reproducible recipe.
+
+## Guided data projects
+
+Choose **Recipes → Use this recipe** and describe the result in your own words. In
+the same intake you can attach the schema definition (DDL/SQL) and documents, add
+links to external documentation and tick the registered connections the task may
+use; nothing else is mandatory and no database connection is required for the
+synthetic laboratory. The saved path shows catalog, design, laboratory, synthetic
+data, pipeline, business reporting and deployable package. The task card above the
+chat shows where you are; when a phase has been independently reviewed it waits for
+you to approve it, request changes or skip it when it is not useful for your goal,
+and the team proposes at the start the phases your goal does not need. The final
+policy validation runs once, on the finished product. For Azure SQL and Fabric,
+sign in with your own Microsoft account (multi-factor authentication included) from
+[Connections](docs/CONNECTIONS.md#sql-server-with-your-microsoft-account); a
+destination schema can receive the verified tables only when you allow writing for
+the task. See [guided projects](docs/RECIPES.md) for actual scope and verification
+boundaries.
 
 ## Run the Community edition
 
@@ -231,6 +253,7 @@ Engineering Rig** from the Gallery. Prepare only the tools needed for the task:
 
 | Need | Capability |
 | --- | --- |
+| Connections | **Connections** page: PostgreSQL, SQL Server/Azure SQL/Fabric (SQL user or your Microsoft account with MFA), MySQL, Oracle; assigned per task |
 | Multi-database queries | usql; private, authorized read-only connections |
 | Reverse engineering | SchemaCrawler JDBC metadata; declared keys and constraints |
 | Extraction and discovery | dlt with SQLAlchemy/MongoDB; bounded snapshots and reconciliation |
@@ -238,8 +261,10 @@ Engineering Rig** from the Gallery. Prepare only the tools needed for the task:
 | Tested transformations | SQLMesh in an isolated local DuckDB project |
 | Python exploration | Jupyter notebooks and DuckDB |
 | Interactive or paginated reports | Quarto HTML and Typst PDF, retaining editable sources |
+| Writing to a destination | `dlt.load` of verified tables into one schema, only when you allow writing for the task |
 
-See [data engineering guide](docs/DATA-ENGINEERING.md) for connection setup,
+For a guided end-to-end path use the **Pipeline dati end-to-end** recipe (below).
+See [data engineering guide](docs/DATA-ENGINEERING.md) and [connections](docs/CONNECTIONS.md) for connection setup,
 workflow, source delivery and verification limits. Driver availability does not
 certify an untested remote connection; inferred relationships are hypotheses.
 
@@ -300,6 +325,11 @@ surfaces still need localization. See [workspace guide](docs/WORKSPACE.md),
 | [C4 model](docs/c4/righaven.dsl) | Structurizr DSL: system context, containers and Gateway components |
 | [Container sketches](docs/c4/righaven_containers.d2) | D2 versions of the context and container views |
 | [Harness lifecycle (BPMN)](docs/bpmn/righaven_harness_lifecycle.svg) | Brief, planning, FIFO dispatch, assignments with decision pauses, handoff and policy validation ([BPMN 2.0 source](docs/bpmn/righaven_harness_lifecycle.bpmn)) |
+| [Concepts](docs/CONCEPTS.md) | How task, recipe, team, skills, environments, connections, policies and deliveries fit together |
+| [Workspace guide](docs/WORKSPACE.md) | Using RigHaven step by step (English and Italian) |
+| [Recipes](docs/RECIPES.md) | Guided projects, owner decisions in the task card, your own recipes |
+| [Connections](docs/CONNECTIONS.md) | Databases, Microsoft account sign-in with MFA, writing into a destination |
+| [Data engineering](docs/DATA-ENGINEERING.md) | Data tools, connections and the end-to-end pipeline recipe |
 | [Policy Book](docs/POLICY-BOOK.md) | Policy sheets, lifecycle, enforced phases, user checkpoints and API |
 | [Environments](docs/OPTIONAL-ENVIRONMENTS.md) | Catalog, preparation, profile reuse and machine usage |
 | [Technical report](docs/technical-report.typ) | Typst source of the architecture report |
@@ -340,7 +370,3 @@ RigHaven is [MIT licensed](LICENSE). Incorporated source notices are preserved i
 - 📍 Rome, Italy
 - 💼 LinkedIn: [linkedin.com/in/marco-gramuglia-2686bb30](https://www.linkedin.com/in/marco-gramuglia-2686bb30)
 - 🐙 GitHub: [@ggmm82](https://github.com/ggmm82)
-
-### Guided data projects
-
-Choose **Recipes → Use this recipe**, describe the result, optionally add known constraints, then attach your documentation in the created chat. There is no bracketed prompt to complete and no mandatory database connection. The saved path shows catalog, design, laboratory, synthetic data, pipeline, business reporting and deployable package, with evidence. The project card above the chat shows where you are and, when a phase waits for you, the buttons to approve it, request changes or skip it when it is not useful for your goal. For Azure SQL and Fabric, sign in with your own Microsoft account (multi-factor authentication included) from [Connections](docs/CONNECTIONS.md#your-microsoft-account-oauth2-with-multi-factor-authentication). See [guided projects](docs/RECIPES.md) for actual scope and verification boundaries.
