@@ -56,7 +56,9 @@ documents per collection and reports this limit. The extracted row cap is
 
 Users register SQL Server, PostgreSQL, MySQL/MariaDB, Oracle and Microsoft Entra ID connections on the
 **Connections** page and tick them for a task in its project panel; every assignment of that task
-receives them and the adapters take `connection: "ID"`. Details: [Connections](CONNECTIONS.md).
+receives them and the adapters take `connection: "ID"`. Details: [Connections](CONNECTIONS.md). Sources are read-only; a destination
+connection may allow writing into one schema, per task, through `dlt.load` only
+([Writing into a destination](CONNECTIONS.md#writing-into-a-destination)).
 
 ## Tool choices and upstream references
 

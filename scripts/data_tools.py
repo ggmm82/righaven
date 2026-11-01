@@ -21,7 +21,8 @@ def secret_config(args,cli,output):
         if not path.is_file():raise ValueError('Connection '+name+' is not available to this assignment: the role must declare it and the user must assign it to the project')
         cfg=json.loads(path.read_text())
         if cfg.get('kind')=='entra':raise ValueError('A Microsoft Entra ID application is not a database: use a SQL Server connection that authenticates with it')
-        if cfg.get('read_only') is not True:raise ValueError('The connection is not declared read-only')
+        # Reads go through the SELECT validator; a write-enabled destination may be read too.
+        if cfg.get('read_only') is not True and cfg.get('write_enabled') is not True:raise ValueError('The connection is not declared read-only')
         cfg={k:v for k,v in cfg.items() if k in ('url','jdbc_url','usql_url','username','password')}
         values=[v for v in cfg.values() if isinstance(v,str) and v]
         for key in ('url','usql_url'):

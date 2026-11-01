@@ -27,7 +27,10 @@ EXTRA={
      {'input':STRING,'name':STRING,'record':STRING},['input'])],
  'dlt':[
   op('dlt','run','Run a project dlt pipeline locally against a stub source database and a local DuckDB destination; production credentials are never used.',
-     {'input':STRING,'resource_dir':STRING,'source_database':STRING,'pipeline_env':{'type':'string','enum':['local','test']}},['input','resource_dir','source_database'])],
+     {'input':STRING,'resource_dir':STRING,'source_database':STRING,'pipeline_env':{'type':'string','enum':['local','test']}},['input','resource_dir','source_database']),
+  op('dlt','load','Write verified tables of a local DuckDB database (for example the reconciled marts) into the schema the owner enabled for writing on a user connection. Only allowed when the owner ticked write access for this task; replace or append the listed tables, never arbitrary SQL.',
+     {'connection':STRING,'database':STRING,'tables':{'type':'array','items':STRING,'minItems':1,'maxItems':50,'uniqueItems':True,'description':'table or schema.table in the local DuckDB file'},
+      'mode':{'type':'string','enum':['replace','append']}},['connection','database','tables','mode'])],
 }
 
 TOOLS={

@@ -40,6 +40,14 @@ The synthetic package needs no real database account. Its volume retains SQLMesh
 
 When enabling a confirmed cursor, configure keyed merge acquisition together with it. The runtime rejects incremental replacement because it would discard historical rows. A timestamp cursor does not capture hard deletes: agree tombstones, CDC or periodic full reconciliation before enabling it. The specialist prepares this configuration; the user approves the behavior, not the JSON syntax.
 
+## Writing to the owner's destination
+
+When the task's connections include one with `write: true`, the owner allowed writing into its
+`write_schema` for this task. After the business reports and reconciliations are approved, `dlt.load`
+can copy the verified tables (`schema.table` from the local DuckDB files) into that schema, with
+`mode` `replace` or `append`. Never write to a connection without `write: true`, never to another
+schema, and never present a load as production deployment: it is a data copy with a receipt.
+
 ## DuckDB compatibility
 
 The ingestion and transformation environments may use different DuckDB releases. Every shared database uses storage version v1.4.0; retain this when editing the package. Worker software environments are reusable tools; project data and service lifetime remain separate.

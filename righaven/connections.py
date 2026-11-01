@@ -21,6 +21,7 @@ KINDS = ('postgres', 'sqlserver', 'mysql', 'oracle', 'entra')
 CONNECTION_ID = re.compile(r'[a-z][a-z0-9-]{1,39}\Z')
 HOST = re.compile(r'[A-Za-z0-9][A-Za-z0-9.-]{0,252}\Z')
 NAME = re.compile(r'[A-Za-z0-9_.@$#-]{1,128}\Z')
+SCHEMA = re.compile(r'[A-Za-z_][A-Za-z0-9_]{0,127}\Z')
 EMAIL = re.compile(r'[^@\s]{1,64}@[A-Za-z0-9-]{1,63}(\.[A-Za-z0-9-]{1,63})+\Z')
 GUID = re.compile(r'[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\Z')
 TENANT = re.compile(r'([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}|[A-Za-z0-9-]{1,63}(\.[A-Za-z0-9-]{1,63})+|organizations|common)\Z')
@@ -149,10 +150,16 @@ def validate(body, previous=None):
     authentication = body.get('authentication', 'password') if kind == 'sqlserver' else 'password'
     if authentication not in ('password', 'entra', 'microsoft'):
         raise ValueError('Autenticazione SQL Server: password, microsoft o entra')
+    access = body.get('access') or 'read'
+    if access not in ('read', 'write'):
+        raise ValueError('Access: read or write')
     record.update(host=_text(body.get('host'), 'host', HOST, 253), port=port,
                   # With a Microsoft account the database can be chosen from the list after signing in.
                   database=_text(body.get('database'), 'database', NAME, 128, required=authentication != 'microsoft'),
-                  read_only=body.get('read_only') is True, tls=body.get('tls', True) is not False)
+                  read_only=access == 'read' and body.get('read_only') is True, tls=body.get('tls', True) is not False,
+                  # Writing is confined to one schema the owner names; each task must also enable it.
+                  write_enabled=access == 'write',
+                  write_schema=_text(body.get('write_schema'), 'schema per la scrittura', SCHEMA, 128) if access == 'write' else '')
     record['authentication'] = authentication
     if authentication == 'entra':
         record['entra_connection'] = _text(body.get('entra_connection'), 'connessione Entra', CONNECTION_ID, 40)
@@ -527,17 +534,23 @@ def _databases(user_id, identifier):
 
 # --- Projects -------------------------------------------------------------------------
 
-def assign(user_id, workspace, identifiers):
+def assign(user_id, workspace, identifiers, write=None):
+    """The owner's choice for a task: which connections, and on which of them writing is allowed in this task."""
     if not isinstance(identifiers, list) or len(identifiers) > 10 or len(set(identifiers)) != len(identifiers):
         raise ValueError('Assegna al massimo 10 connessioni diverse')
+    write = list(dict.fromkeys(write or []))
+    if set(write) - set(identifiers):
+        raise ValueError('Writing can be allowed only on connections assigned to the task')
     for identifier in identifiers:
-        _read(user_id, identifier)
+        record = _read(user_id, identifier)
+        if identifier in write and not record.get('write_enabled'):
+            raise ValueError('Writing is not enabled on this connection in Connections: ' + identifier)
     from .project_store import locked, load
     with locked(workspace) as directory:
         value = load(directory, workspace)
         if not value:
             raise ValueError('Avvia prima il lavoro: le connessioni si assegnano a un lavoro esistente')
-        value['connections'] = {'owner': str(user_id), 'ids': list(identifiers), 'updated_at': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())}
+        value['connections'] = {'owner': str(user_id), 'ids': list(identifiers), 'write': write, 'updated_at': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())}
         state.atomic_json(directory / 'project.json', value)
     return assigned(workspace)
 
@@ -557,8 +570,11 @@ def assigned(workspace, value=None):
             rows.append({'id': identifier, 'missing': True})
             continue
         view = public_view(record)
-        rows.append({k: view.get(k) for k in ('id', 'name', 'kind', 'host', 'port', 'database', 'read_only', 'authentication', 'cloud', 'tools', 'description')
-                     if view.get(k) not in (None, '')})
+        row = {k: view.get(k) for k in ('id', 'name', 'kind', 'host', 'port', 'database', 'read_only', 'authentication', 'cloud', 'tools', 'description')
+               if view.get(k) not in (None, '')}
+        if record.get('write_enabled') and identifier in binding.get('write', []):
+            row.update(write=True, write_schema=record['write_schema'])  # the coordinator may plan dlt.load into this schema
+        rows.append(row)
     return rows
 
 
@@ -650,7 +666,14 @@ class Delivery:
             except (ValueError, OSError, KeyError):
                 continue  # deleted after assignment: nothing to deliver
             path = self.directory / (identifier + '.json')
-            path.write_text(json.dumps(_file(record, owner)))
+            content = _file(record, owner)
+            writable = bool(record.get('write_enabled')) and identifier in binding.get('write', [])
+            content.update(write_enabled=writable, write_schema=record.get('write_schema', '') if writable else '')
+            path.write_text(json.dumps(content))
+            if writable:
+                from .audit_log import append
+                append(workspace, 'Connessioni', 'Accesso in scrittura consegnato a un incarico', 'completed',
+                       identifier + ' · schema ' + record['write_schema'] + (' · ' + role.get('id', '') if role else ''))
             path.chmod(0o600)
             self.public.append({k: v for k, v in public_view(record).items() if k in ('id', 'name', 'kind', 'host', 'port', 'database', 'read_only', 'authentication', 'tools')})
             entra_cloud = record.get('cloud') if record['kind'] == 'entra' or record.get('authentication') == 'microsoft' else (_read(owner, record['entra_connection']).get('cloud') if record.get('authentication') == 'entra' else None)

@@ -261,6 +261,33 @@ class ConnectionTests(unittest.TestCase):
         connections.assign('alice', self.workspace, [])
         self.assertEqual(connections.Delivery(self.workspace, Path(self.temp.name) / 'job-d').mount_arguments(None), [], 'nothing when the user unticks them')
 
+    def test_writing_needs_a_dedicated_schema_and_the_owner_consent_for_each_task(self):
+        with self.assertRaisesRegex(ValueError, 'schema'):
+            connections.save('alice', {'id': 'dw', 'kind': 'postgres', 'name': 'DW', 'host': 'dw.example.com', 'database': 'dw',
+                                       'username': 'u', 'password': 'p', 'access': 'write'})
+        view = connections.save('alice', {'id': 'dw', 'kind': 'postgres', 'name': 'DW', 'host': 'dw.example.com', 'database': 'dw',
+                                          'username': 'u', 'password': 'p', 'access': 'write', 'write_schema': 'righaven', 'read_only': True})
+        self.assertEqual((view['write_enabled'], view['write_schema'], view['read_only']), (True, 'righaven', False))
+        self.sqlserver()
+        projects.create_plan(self.workspace, 'Carico i mart', PLAN)
+        with self.assertRaisesRegex(ValueError, 'Writing is not enabled'):
+            connections.assign('alice', self.workspace, ['erp', 'dw'], ['erp'])
+        with self.assertRaisesRegex(ValueError, 'assigned to the task'):
+            connections.assign('alice', self.workspace, ['erp'], ['dw'])
+        read_only = connections.assign('alice', self.workspace, ['erp', 'dw'])
+        self.assertNotIn('write', read_only[1], 'assigned without consent: read access only')
+        delivery = connections.Delivery(self.workspace, Path(self.temp.name) / 'job-r', role={'id': 'loader', 'connections': ['dw']})
+        self.assertFalse(json.loads((Path(self.temp.name) / 'job-r' / 'dw.json').read_text())['write_enabled'])
+        delivery.close()
+        allowed = connections.assign('alice', self.workspace, ['erp', 'dw'], ['dw'])
+        self.assertEqual((allowed[1]['write'], allowed[1]['write_schema']), (True, 'righaven'))
+        delivery = connections.Delivery(self.workspace, Path(self.temp.name) / 'job-w', role={'id': 'loader', 'connections': ['dw']})
+        delivered = json.loads((Path(self.temp.name) / 'job-w' / 'dw.json').read_text())
+        self.assertEqual((delivered['write_enabled'], delivered['write_schema']), (True, 'righaven'))
+        delivery.close()
+        from righaven.audit_log import page
+        self.assertIn('Accesso in scrittura consegnato a un incarico', [e['operation'] for e in page(self.workspace)['events']])
+
     def test_oracle_connection_file(self):
         ora = connections._file(connections.validate({'id': 'ora', 'kind': 'oracle', 'name': 'x', 'host': 'ora.example.com', 'database': 'ORCLPDB1',
                                                       'username': 'hr', 'password': 'p', 'read_only': True}), 'alice')

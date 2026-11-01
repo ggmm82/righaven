@@ -10,7 +10,7 @@ from pathlib import Path
 import xml.etree.ElementTree as ET
 
 APPS={'tbls','faker','supercronic'}
-EXTRA={('sqlglot','model'),('sqlglot','ddl'),('sqlglot','scaffold'),('duckdb','replicate'),('duckdb','infer'),('dlt','run')}
+EXTRA={('sqlglot','model'),('sqlglot','ddl'),('sqlglot','scaffold'),('duckdb','replicate'),('duckdb','infer'),('dlt','run'),('dlt','load')}
 STORAGE='v1.4.0'
 FILE_SUFFIXES={'.json':'json','.jsonl':'jsonl','.ndjson':'jsonl','.parquet':'parquet','.csv':'csv','.xml':'xml'}
 MAX_FILES=200
@@ -374,6 +374,41 @@ def pipeline_run(args,cli,output):
     return receipt(output,'dlt','run',inputs,result,['Esecuzione locale sui dati di prova: connessione, permessi e volumi del sistema reale vanno provati nell’ambiente di test.'])
 
 
+# --- dlt: write verified tables into an owner-enabled destination --------------------------
+
+CONNECTIONS=Path('/run/righaven/connections')
+
+
+def destination(name):
+    if not re.fullmatch(r'[a-z][a-z0-9-]{1,39}',str(name or '')):raise ValueError('Usa l’ID di una connessione assegnata all’incarico')
+    path=CONNECTIONS/(name+'.json')
+    if not path.is_file():raise ValueError('La connessione '+name+' non è disponibile per questo incarico: il ruolo deve dichiararla e il proprietario assegnarla')
+    cfg=json.loads(path.read_text())
+    if cfg.get('kind')=='entra':raise ValueError('Un account Microsoft Entra ID non è un database: usa la connessione SQL che lo usa')
+    if cfg.get('write_enabled') is not True or not cfg.get('write_schema'):
+        raise ValueError('Scrittura non consentita: il proprietario deve abilitare la scrittura sulla connessione e spuntare «Consenti scrittura» per questo incarico')
+    if not (cfg.get('url') or cfg.get('usql_url')):raise ValueError('La connessione non ha un indirizzo utilizzabile per la scrittura')
+    return path,cfg
+
+
+def load(args,cli,output):
+    path,cfg=destination(args.get('connection'))
+    database=cli.scoped(args['database'])
+    if database.suffix!='.duckdb':raise ValueError('database deve essere il file DuckDB con le tabelle verificate da scrivere')
+    inputs={database.name:cli.digest(database)}
+    python=venv(cli,'dlt')
+    with tempfile.TemporaryDirectory(prefix='righaven-load-') as private:
+        folder=Path(private);script=folder/'load.sql';request=folder/'request.json'
+        request.write_text(json.dumps({'connection_file':str(path),'database':str(database),'tables':args['tables'],'mode':args['mode'],'script':str(script)}));request.chmod(0o600)
+        loaded=run([python,str(Path(__file__).with_name('pipeline_load.py')),str(request)],output,label='load',timeout=3600,user_errors=True)
+        result=json.loads(loaded.stdout.strip().splitlines()[-1])
+        if result['writer']=='usql':
+            config=folder/'usql.yaml';config.write_text(json.dumps({'connections':{'righaven':cfg['usql_url']}}));config.chmod(0o600)
+            run(['usql','--config',str(config),'--no-rc','--no-password','--file',str(script),'righaven'],output,label='usql',timeout=3600)
+    result.update(status='passed',output=str(output),connection=args['connection'],host=cfg.get('host',''),database=cfg.get('database',''))
+    return receipt(output,'dlt','load',inputs,result,['Le tabelle elencate sono state scritte nello schema abilitato dal proprietario. Permessi, prestazioni e conflitti con altri processi del sistema reale restano da verificare.'])
+
+
 def invoke(app,action,args,cli):
     output=cli.scoped(args['output'],exists=False,directory=True,fresh=True)
     output.mkdir(parents=True);(output/'Sources').mkdir()
@@ -384,4 +419,5 @@ def invoke(app,action,args,cli):
     if app=='faker':return stubs(args,cli,output)
     if app=='supercronic':return schedule(args,cli,output)
     if (app,action)==('dlt','run'):return pipeline_run(args,cli,output)
+    if (app,action)==('dlt','load'):return load(args,cli,output)
     raise ValueError('Operazione non supportata: '+app+'.'+action)
