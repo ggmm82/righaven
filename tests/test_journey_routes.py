@@ -40,7 +40,9 @@ class JourneyRoutes(unittest.TestCase):
                 response=client.put(url,json=body,headers=headers);self.assertEqual(response.status_code,200,response.text)
                 saved=response.json()['journey'];self.assertTrue(saved['connections_optional'])
                 self.assertEqual(client.get(url,headers=headers).json()['journey']['revision'],saved['revision'])
-                self.assertEqual(client.put(url,json=body,headers=headers).status_code,409)
+                self.assertEqual(client.put(url,json=body,headers=headers).status_code,200)
+                conflict={**body,'answers':{'goal':'A competing edit'}}
+                self.assertEqual(client.put(url,json=conflict,headers=headers).status_code,409)
                 work=root/'alice/guided';projects.create_plan(work,'Read documentation',[{'id':'read','agent':'workspace','goal':'Catalog','depends_on':[]}])
                 artifact=work/'catalog.md';artifact.write_text('Documented model')
                 pending=journeys.record(work,'understand',[str(artifact)],['read'],'Actual catalog for owner review',saved['revision'])

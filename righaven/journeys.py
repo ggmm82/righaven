@@ -53,10 +53,10 @@ def start(workspace, identifier, answers, expected_revision=0):
         if previous:
             if previous['recipe_id'] != identifier:
                 raise ValueError('This task already has a guided workflow')
+            if previous['answers'] == clean:
+                return view(workspace, previous)  # Idempotent retry after a lost save response.
             if previous['revision'] != expected_revision:
                 raise ValueError('Guided project changed; reload before saving')
-            if previous['answers'] == clean:
-                return view(workspace, previous)
             value = copy.deepcopy(previous)
             value['answers'] = clean
             for stage in value['stages']:

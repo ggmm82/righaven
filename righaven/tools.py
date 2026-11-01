@@ -49,14 +49,14 @@ def signals_plan(function):
     return wrapper
 
 
-def sibling_plan_calls(runtime):
+def sibling_plan_calls(runtime, names=('harness_plan','harness_journey')):
     """IDs of harness_plan calls issued in the same model response as this tool call."""
     call_id = getattr(runtime, 'tool_call_id', None)
     messages = (getattr(runtime, 'state', None) or {}).get('messages', []) if call_id else []
     for message in reversed(messages):
         calls = getattr(message, 'tool_calls', None) or (message.get('tool_calls') if isinstance(message, dict) else None) or []
         if any(c.get('id') == call_id for c in calls):
-            return [c['id'] for c in calls if c.get('name') == 'harness_plan' and c.get('id')]
+            return [c['id'] for c in calls if c.get('name') in names and c.get('id')]
     return []
 
 
@@ -88,6 +88,7 @@ async def harness_package_check(runtime: Runtime, package_path: str) -> str:
 
 
 @tool('harness_journey', parse_docstring=True)
+@signals_plan
 def harness_journey(runtime: Runtime, stage_id: str = '', evidence_json: str = '[]', steps_json: str = '[]', note: str = '', expected_revision: int = 0) -> str:
     """Read the selected guided project or submit one phase for owner approval.
 
@@ -104,6 +105,8 @@ def harness_journey(runtime: Runtime, stage_id: str = '', evidence_json: str = '
         expected_revision: Revision read from the guided project, required on submission.
     """
     from .journeys import view, record
+    for call_id in sibling_plan_calls(runtime, names=('harness_plan',)):
+        _plan_event(call_id).wait(PLAN_WAIT_SECONDS)
     workspace = workspace_for(runtime)
     result = record(workspace, stage_id, json.loads(evidence_json), json.loads(steps_json), note, expected_revision) if stage_id else view(workspace)
     return json.dumps({'journey': result}, ensure_ascii=False)
