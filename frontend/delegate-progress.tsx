@@ -8,11 +8,11 @@ import { duration, jobHealth, secondsSince, terminalJob, type JobProgress } from
 
 import { ConversationAudit, OperationDetails } from "./conversation-audit";
 import { ExperiencePanel } from "./experience-panel";
-import { ProjectJourney } from "./project-journey";
 import { ProjectConnections } from "./project-connections";
 import { ProjectDesign, type Design } from "./project-design";
 import { ProjectGuide } from "./project-guide";
 import { GovernanceStrip, ProfileUseLine, ToolChoices, type LiveGovernance, type ToolDecision } from "./project-governance";
+import { ProjectJourney } from "./project-journey";
 
 const providers: Record<string, string> = trMap({ codex:["Codex", "Codex"], gemini:["Antigravity", "Antigravity"], deepseek:["DeepSeek", "DeepSeek"], openai:["OpenAI compatibile", "OpenAI compatible"] });
 type Delivery = { version_state?: string; recovery?: { status: string; message: string; session_error: string }; unchanged_content?: boolean; change_kind?: string; content_version?: number | null; reused_archive_checks?: number; finalization_pending?: string[]; source_coverage?: { status: string; components: { name: string; tool: string; status: string; sources: {path: string; member?: string}[] }[] }; timing?: {status:string; cues:{name:string;status:string;delta_seconds:number}[]}; category?: string; version?: number | null; execution_status?: string; file_count?: number; role_title?: string; review?: { target_delivery_id: string | null; target_version?: number | null; target_label: string; status: string; validated: boolean; matches_current_brief: boolean; report_path: string; correction_count: number }; id: string; title: string; agent: string; at: string; current: boolean; contribution?: boolean; technical_status: string; issues: string[]; purpose: string };
