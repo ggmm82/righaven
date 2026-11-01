@@ -50,7 +50,7 @@ def _answers(body):
     return result
 
 
-def start(workspace, identifier, answers, expected_revision=0, recipe=None, connections=None, owner=None):
+def start(workspace, identifier, answers, expected_revision=0, recipe=None, connections=None, owner=None, uses=None, write=None):
     """Save the owner's choices; connections picked in the intake are assigned to the task when its project starts."""
     recipe = recipe or definition(identifier)
     clean = _answers(answers)
@@ -84,7 +84,10 @@ def start(workspace, identifier, answers, expected_revision=0, recipe=None, conn
                      'revision': 0, 'stages': [{'id': s['id'], 'status': 'pending', 'evidence': [], 'steps': [], 'note': ''}
                                                for s in recipe['workflow']['stages']]}
         if connections is not None:
-            value['connections'] = {'owner': str(owner), 'ids': list(dict.fromkeys(connections))}
+            ids = list(dict.fromkeys(connections))
+            uses = {k: v for k, v in (uses or {}).items() if k in ids and v in ('source', 'destination')}
+            # The owner says what each connection is for; a destination they allow writing to carries that consent.
+            value['connections'] = {'owner': str(owner), 'ids': ids, 'uses': uses, 'write': [c for c in (write or []) if uses.get(c) == 'destination']}
         _save(folder, value)
     return view(workspace, value)
 
@@ -198,6 +201,12 @@ def record(workspace, stage_id, evidence, steps, note, expected_revision, propos
             raise ValueError('Link this phase to actual native project activities')
         if evidence and stage.get('gate', True):
             _require_review(project, steps)
+        if evidence and not stage['depends_on']:
+            # The first phase reads the source: connections the owner chose as sources must actually be used.
+            sources = [c for c, use in ((raw.get('connections') or {}).get('uses') or {}).items() if use == 'source']
+            declared = {c for role in project.get('roles', []) for c in role.get('connections', [])}
+            if set(sources) - declared:
+                raise ValueError('Read the source connections the owner chose in this phase: declare them in roles_json connections: ' + ', '.join(sorted(set(sources) - declared)))
         kept = []
         for filename in evidence:
             path = artifact_path(workspace, filename)
@@ -343,7 +352,8 @@ def compact(value):
     return {'recipe_id': value['recipe_id'], **({'recipe': recipe} if recipe else {}),
             'revision': value['revision'], 'answers': value['answers'], 'current': value['current'],
             'complete': value['complete'], 'awaiting_owner': value.get('awaiting_owner', []),
-            'connections': (value.get('connections') or {}).get('ids', []),
+            'connections': [{'id': c, 'use': ((value.get('connections') or {}).get('uses') or {}).get(c, 'unspecified'),
+                             'write': c in ((value.get('connections') or {}).get('write') or [])} for c in (value.get('connections') or {}).get('ids', [])],
             'stages': [{'id': s['id'], 'title': s['title']['it'], 'outcome': s['outcome']['it'], 'status': s['status'], 'available': s['available'],
                         'gate': s.get('gate', True), 'note': s.get('note', '')[:400], 'evidence': [e['path'] for e in s.get('evidence', [])],
                         **({'proposal': s['proposal']} if s.get('proposal') else {}), **({'decision_note': s['decision_note'][:400]} if s.get('decision_note') else {})}

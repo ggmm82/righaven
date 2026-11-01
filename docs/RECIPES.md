@@ -10,7 +10,9 @@ RigHaven uses three building blocks with one vocabulary:
 
 A recipe is a reusable project method, offered through a guided intake. The intake asks for the goal and accepts, at once, the schema definition and documents
 (DDL/SQL, PDF, Word, Excel, CSV, JSON, XML, Parquet…), links to external documentation and the
-registered connections to assign to the task; everything else is optional. Users describe the desired outcome in ordinary language. Unknown source engines, deployment targets, BI tools and frequencies may be left empty. Attach documents in the resulting native conversation; the coordinator must read them before asking at most three decisive questions.
+registered connections to assign to the task, each marked as a **source** the team reads (the
+first phase must actually read it) or a **destination** it writes to (writing is allowed only into
+the schema enabled on a write-enabled connection); everything else is optional. Users describe the desired outcome in ordinary language. Unknown source engines, deployment targets, BI tools and frequencies may be left empty. Attach documents in the resulting native conversation; the coordinator must read them before asking at most three decisive questions.
 
 ## Persistent workflow
 

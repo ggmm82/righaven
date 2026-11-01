@@ -136,6 +136,7 @@ class GuidedStart(BaseModel):
     recipe_id: str = Field(max_length=40)
     answers: dict[str, str]
     connections: Optional[list[str]] = Field(default=None, max_length=10)
+    connection_uses: dict[str, str] = Field(default_factory=dict)
     expected_revision: int = Field(default=0, ge=0)
 
 
@@ -171,16 +172,19 @@ async def guided_start(thread_id: ThreadId, body: GuidedStart, request: Request)
     if not set(recipes.skills_of(selected_recipe)) <= set(policy['skill_names']):
         raise HTTPException(403, 'Enable the workflow skill before starting this guided project')
     workspace = get_paths().sandbox_user_data_dir(thread_id, user_id=get_effective_user_id())
+    writable = []
     if body.connections:
         from . import connections
         try:
             for identifier in body.connections:
-                await run_in_threadpool(connections._read, get_effective_user_id(), identifier)  # the owner's own connections only
+                record = await run_in_threadpool(connections._read, get_effective_user_id(), identifier)  # the owner's own connections only
+                if record.get('write_enabled'):
+                    writable.append(identifier)
         except ValueError as error:
             raise HTTPException(404, str(error)) from error
     try:
         result = await run_in_threadpool(journeys.start, workspace, body.recipe_id, body.answers, body.expected_revision, selected_recipe,
-                                         body.connections, get_effective_user_id())
+                                         body.connections, get_effective_user_id(), body.connection_uses, writable)
     except ValueError as error:
         raise HTTPException(409, str(error)) from error
     from .audit_log import append

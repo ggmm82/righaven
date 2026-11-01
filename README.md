@@ -67,7 +67,10 @@ connections, policies and deliveries fit together: [Concepts](docs/CONCEPTS.md).
    **Request changes** or **Skip phase** in the card. Independent assignments can run
    in different environments within the configured CPU/RAM and concurrency limits;
    dependent work waits for its inputs.
-5. Open the delivered files and editable sources, review the instructions and
+5. Change the interface language in **Account & preferences → Appearance → Language**. The
+   Overview footer shows which version is running (commit, origin and build time), so
+   you can check a deployment at a glance.
+6. Open the delivered files and editable sources, review the instructions and
    remaining checks, then accept the result or request a focused revision.
    A technically valid file is not automatically an approved final product.
 

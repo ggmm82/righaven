@@ -145,6 +145,7 @@
   "RIGHAVEN_EDITION must be community or cloud": "RIGHAVEN_EDITION deve essere community o cloud",
   "RIGHAVEN_WORKER_EGRESS must be open or allowlist": "RIGHAVEN_WORKER_EGRESS deve valere open o allowlist",
   "Rating must be between 1 and 5": "La valutazione deve essere tra 1 e 5",
+  "Read the source connections the owner chose in this phase: declare them in roles_json connections: ": "Leggi in questa fase le connessioni sorgente scelte dal proprietario: dichiarale nelle connections di roles_json: ",
   "Recipe changed; reload before saving": "La ricetta è cambiata: ricarica prima di salvare",
   "Regenerate the managed package before testing: runtime, Dockerfile or dependency locks differ from this release": "Rigenera il pacchetto gestito prima della prova: runtime, Dockerfile o dipendenze differiscono dal rilascio corrente",
   "Registry URL must use HTTPS without embedded credentials": "L’URL del registro deve usare HTTPS senza credenziali incorporate",

@@ -120,12 +120,25 @@ class GuidedProjects(unittest.TestCase):
         from righaven import connections
         fixture=patch.object(connections,'folder',side_effect=lambda user:(self.root/'users'/user).mkdir(parents=True,exist_ok=True) or self.root/'users'/user)
         fixture.start();self.addCleanup(fixture.stop)
-        value=journeys.start(other,'data-pipeline',{'goal':'Leggi il warehouse'},0,None,['provawh'],'alice')
-        self.assertEqual(journeys.compact(value)['connections'],['provawh'])
+        value=journeys.start(other,'data-pipeline',{'goal':'Leggi il warehouse'},0,None,['provawh'],'alice',{'provawh':'source'},['provawh'])
+        self.assertEqual(journeys.compact(value)['connections'],[{'id':'provawh','use':'source','write':False}],'writing is consent for destinations only')
         with self.assertRaises(ValueError):journeys.start(self.root/'x','data-pipeline',{'goal':'x'},0,None,['a'],None)
         projects.create_plan(other,'Catalogo',[{'id':'read','agent':'workspace','goal':'Leggi','depends_on':[]}])
         stored=json.loads((other/'.righaven-project'/'project.json').read_text())['connections']
         self.assertEqual((stored['ids'],stored['owner']),(['provawh'],'alice'))
+        # The first phase must read the source connection the owner chose.
+        plan=other/'.righaven-project'/'project.json';project=json.loads(plan.read_text())
+        project['steps'].append({'id':'review','agent':'workspace','goal':'Review','status':'completed','purpose':'review','depends_on':[],
+                                 'attempts':[{'status':'completed','finished_at':'2999-01-01T00:00:00+00:00'}]})
+        state.atomic_json(plan,project)
+        artifact=other/'catalogo.md';artifact.write_text('Catalogo')
+        with self.assertRaisesRegex(ValueError,'source connections the owner chose'):
+            journeys.record(other,'understand',[str(artifact)],['read'],'Catalogo pronto',journeys.view(other)['revision'])
+        project=json.loads(plan.read_text());project['roles']=[{'id':'lettore','connections':['provawh']}];state.atomic_json(plan,project)
+        self.assertEqual(journeys.record(other,'understand',[str(artifact)],['read'],'Catalogo pronto',journeys.view(other)['revision'])['stages'][0]['status'],'review')
+        destination=self.root/'dest';destination.mkdir()
+        both=journeys.start(destination,'data-pipeline',{'goal':'Scrivi i mart'},0,None,['dw'],'alice',{'dw':'destination'},['dw'])
+        self.assertEqual(journeys.compact(both)['connections'],[{'id':'dw','use':'destination','write':True}])
 
     def test_goal_from_the_intake_is_the_project_result_without_asking_again(self):
         value=projects.read_project(self.work)

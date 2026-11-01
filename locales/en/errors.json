@@ -637,6 +637,7 @@
   "RIGHAVEN_WORKER_EGRESS must be open or allowlist": null,
   "Raggiunte ": "Reached ",
   "Rating must be between 1 and 5": null,
+  "Read the source connections the owner chose in this phase: declare them in roles_json connections: ": null,
   "Recipe changed; reload before saving": null,
   "Record della policy sheet non valido": "Invalid policy sheet record",
   "Recupero esperienza non completato": "Experience recovery not completed",
