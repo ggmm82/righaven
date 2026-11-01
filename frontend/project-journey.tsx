@@ -13,7 +13,7 @@ export function ProjectJourney({threadId,onContinue}:{threadId:string;onContinue
  const [selected,setSelected]=useState<string|null>(null),[revisionNote,setRevisionNote]=useState("");
  const base=`${getBackendBaseURL()}/api/threads/${encodeURIComponent(threadId)}/harness-journey`;
  useEffect(()=>{let live=true;const controller=new AbortController();
-  const load=async()=>{try{const r=await fetch(base,{signal:controller.signal,cache:"no-store"});if(!r.ok)throw Error(String(r.status));const v=await r.json() as {journey:Journey|null};if(live){setValue({thread:threadId,journey:v.journey});setError("");}}catch(e){if(live)setError(e instanceof Error?e.message:String(e));}};
+  const load=async()=>{try{const r=await fetch(base,{signal:controller.signal,cache:"no-store"});if(!r.ok)throw Error(String(r.status));const v=await r.json() as {journey:Journey|null};if(live){setValue(old=>old?.thread===threadId&&(old.journey?.revision??0)>(v.journey?.revision??0)?old:{thread:threadId,journey:v.journey});setError("");}}catch(e){if(live)setError(e instanceof Error?e.message:String(e));}};
   void load();const timer=setInterval(()=>void load(),5000);return()=>{live=false;controller.abort();clearInterval(timer);};},[base,threadId]);
  const journey=value?.thread===threadId?value.journey:null;
  if(!journey)return null;

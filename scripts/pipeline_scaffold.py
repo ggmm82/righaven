@@ -329,7 +329,7 @@ volumes:
 def env_example(target,source_dialect):
     dest=DESTINATIONS[target].upper()
     lines=['# Copy to .env and fill in; never commit .env.','# Environment: test runs stub generation and a local DuckDB warehouse; prod uses the systems below.',
-           'PIPELINE_ENV=test','PIPELINE_NAME=project_ingestion','DESTINATION_DATASET=raw','SQLMESH_GATEWAY=local','STUB_ROWS=200',
+           'PIPELINE_ENV=test','PIPELINE_NAME=project_ingestion','DESTINATION_DATASET=raw','SQLMESH_GATEWAY=local','STUB_ROWS=200','REPORT_MODE=html','# REPORTING__CREDENTIALS=',
            'RIGHAVEN_SOURCE_DUCKDB=/data/source-stub.duckdb','RIGHAVEN_WAREHOUSE_DUCKDB=/data/warehouse.duckdb','',
            '# Production source (read-only account), SQLAlchemy URL for dlt sql_database:',
            'SOURCES__SQL_DATABASE__CREDENTIALS=','',
@@ -529,7 +529,7 @@ docker compose run --rm pipeline health
 docker compose up -d
 ```
 
-For production set `PIPELINE_ENV=prod`, `SQLMESH_GATEWAY=prod`, the source and destination credentials, run `deploy` once and start the service.
+For production set `PIPELINE_ENV=prod`, `SQLMESH_GATEWAY=prod`, source/destination credentials and a read-only SQLAlchemy URL in `REPORTING__CREDENTIALS` for HTML reporting. For an external native BI deployment set `REPORT_MODE=external` explicitly and deliver its verified native project. The runtime applies changed SQLMesh models before running due intervals.
 Pin base images by digest for a production release and keep the included lock files committed. For a PostgreSQL source, `docker compose -f compose.yaml -f compose.lab.yaml up -d` creates the actual empty source engine on a private network and periodically refreshes it with synthetic data. Other engines retain an explicitly labelled DuckDB simulation until their native replica is provisioned and verified. `docker compose --profile reports up -d` exposes local HTML reports at http://127.0.0.1:8080.
 
 ## Required checks before delivery

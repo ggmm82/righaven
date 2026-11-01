@@ -1,12 +1,12 @@
-# Acceptance of the recipe
+# Acceptance of the guided data project
 
-A reviewer accepts the delivery only when these are observable:
+- **Goal and provenance:** preserve the actual user outcome. Distinguish documented, observed and inferred schema facts. Resolve or explicitly accept gaps and uncertain relations.
+- **Catalog:** cover source tables and relevant columns, business descriptions, PII labels and a readable relationship diagram.
+- **Laboratory:** verify the empty schema and constraints. Distinguish DuckDB simulation from a source-engine replica; never claim engine parity from DDL re-parsing alone.
+- **Synthetic scenarios:** verify reproducibility, keys, CHECKs, orphan prevention, updates, deletes and anomalies meaningful to the business.
+- **Recurring pipeline:** test a second load without duplicates, transformation audits, reconciliation and recovery after restart. Confirm cursor semantics; a suggestive column name is not sufficient.
+- **Business reporting:** deliver actual consultable reports and editable definitions using user-confirmed dimensions and measures. Reconcile KPIs with the source. An example count mart or BI-ready tables do not satisfy this gate.
+- **Package:** inspect a successful host-owned harness_package_check report tied to the current package files, not just a generic CI fixture. Check included locks, exact startup instructions, durable state, independent schedules and absence of secrets.
+- **User control:** bind phases to native activities, present saved evidence and wait for owner approval. A changed source invalidates dependent approvals without deleting earlier files.
 
-- **Model**: every table of the documentation is present, keys and relations are either declared or explicitly documented; `issues.md` items are resolved or accepted.
-- **Catalog**: descriptions for every table and for the columns the user cares about; PII labelled; ER diagram readable.
-- **Replica**: `verification.json` without mismatches; engine limits listed.
-- **Stub data**: at least two batches, zero orphan rows, CHECK constraints respected, reproducible files.
-- **Pipeline**: local `dlt.run` row counts equal the stub source; SQLMesh plan applied with audits; a mart total reconciled.
-- **Package**: crontab valid, linters clean or justified, no secrets, runbook with release steps and the checks not performed.
-
-Not covered by the recipe and never to be claimed: connectivity, permissions and performance on the real systems, correctness of business definitions not confirmed by the user, BI reports.
+Do not claim external connectivity, permissions, performance, native BI deployment or production verification unless actually tested with authorized access. The synthetic local path remains usable without those connections.

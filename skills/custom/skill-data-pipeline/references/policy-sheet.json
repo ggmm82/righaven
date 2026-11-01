@@ -59,6 +59,18 @@
       "requirement": "Il runbook elenca i controlli non eseguiti: sistemi reali, volumi, tempi, report BI.",
       "critical": true,
       "method": "content"
+    },
+    {
+      "id": "bi_delivered",
+      "requirement": "Actual business report and editable sources open on the synthetic warehouse and reconcile agreed KPIs. BI-ready tables alone do not pass.",
+      "critical": true,
+      "method": "functional"
+    },
+    {
+      "id": "export_started",
+      "requirement": "The exact exported package is built and started independently of RigHaven; a second cycle and restart pass. Preserve command logs and artifact hashes.",
+      "critical": true,
+      "method": "functional"
     }
   ],
   "depends_on": [

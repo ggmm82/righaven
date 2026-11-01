@@ -64,19 +64,32 @@ def render(root, data):
     if not definitions:
         raise ValueError('Define the business measures before reporting')
     warehouse = os.environ.get('RIGHAVEN_WAREHOUSE_DUCKDB', str(data / 'warehouse.duckdb'))
+    production=os.environ.get('PIPELINE_ENV')=='prod'
+    if production:
+        from sqlalchemy import create_engine,text
+        connection=os.environ.get('REPORTING__CREDENTIALS')
+        if not connection:raise ValueError('Configure a read-only reporting connection or explicitly choose REPORT_MODE=external')
+        engine=create_engine(connection)
+        con=engine.connect()
+    else:
+        engine=None
+        con=duckdb.connect(warehouse, read_only=True)
     reports = []
-    with duckdb.connect(warehouse, read_only=True) as con:
+    try:
         for metric in definitions:
             # A read-only database also prevents mutating SQL; disallow external input readers.
             sql = metric['sql']
             import re
             if not re.match(r'^\s*(SELECT|WITH)\b', sql, re.I) or re.search(r'\b(read_\w+|attach|copy|install|load)\s*\(?', sql, re.I):
                 raise ValueError('Reports require a read-only warehouse SELECT')
-            result = con.execute(sql)
+            result = con.execute(text(sql)) if production else con.execute(sql)
             rows = result.fetchmany(10001)
             if len(rows) > 10000:
                 raise ValueError('Aggregate the BI query to at most 10000 rows')
-            reports.append({'title': metric['title'], 'columns': [c[0] for c in result.description], 'rows': rows})
+            reports.append({'title': metric['title'], 'columns': list(result.keys()) if production else [c[0] for c in result.description], 'rows': [list(row) for row in rows]})
+    finally:
+        con.close()
+        if engine is not None:engine.dispose()
     folder = data / 'reports'; folder.mkdir(exist_ok=True)
     # Script data is escaped against closing tags; user content is inserted using textContent.
     payload = json.dumps(reports, default=str).replace('<', '\\u003c').replace('>', '\\u003e').replace('&', '\\u0026')
@@ -150,8 +163,10 @@ def main():
                 applied.write_text(config_hash)
             if due('transform'):
                 state['operations'].append(command([sqlmesh, '--gateway', gateway, 'run'], project))
-                if os.environ.get('PIPELINE_ENV', 'test') != 'prod':
+                if os.environ.get('REPORT_MODE','html')=='html':
                     state['report'] = render(root, data)
+                elif os.environ.get('REPORT_MODE')!='external':
+                    raise ValueError('REPORT_MODE must be html or external')
                 finished('transform')
             state['status'] = 'passed'
         except Exception as error:

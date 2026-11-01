@@ -1,6 +1,6 @@
 # Phases and gates
 
-Every call writes a fresh `output` folder with `receipt.json` and the sources it used. A gate passes only on the evidence listed; otherwise stop, report the gap and ask.
+This is a technical operation map for specialists, not a user form or a fixed team. Use the seven persisted journey phases and owner approval gates; compile the roles required by each outcome. Every call writes a fresh `output` folder with `receipt.json` and the sources it used. A gate passes only on the evidence listed; otherwise stop, report the gap and ask.
 
 | # | Operation(s) | Gate evidence |
 |---|---|---|
@@ -16,7 +16,7 @@ Every call writes a fresh `output` folder with `receipt.json` and the sources it
 ## Periodic generation and scheduled runs
 
 - Stub batches are numbered; dates move one day per batch from 2026-01-01 and keys never overlap, so batch N can reference parents of earlier batches. In the package the `stubs` job runs `stubgen.py --batch auto` against the test replica; it is disabled when `PIPELINE_ENV=prod`.
-- Ingestion uses dlt `merge` on tables with a primary key and `append` otherwise; incremental cursors are only NOT NULL modified/created timestamps. Confirm them: a wrong cursor silently skips changes.
+- Ingestion defaults to repeatable full snapshots. A NOT NULL modified timestamp may propose a cursor, but it stays disabled until explicitly confirmed and tested against updates, deletes and replay. Do not infer change-capture guarantees from a column name.
 - SQLMesh `run` processes the intervals due according to each model's `cron`; `deploy` (`plan --auto-apply`) applies model changes and is a release step.
 
 ## File sources (XML, JSON, Parquet, CSV)
@@ -26,3 +26,5 @@ Use `duckdb.infer` on a representative folder. XML records (repeated children of
 ## Oracle or documentation only
 
 Write the DDL from the documentation in Oracle (or the documented) dialect, or write the model directly in YAML (see MODEL.md), then continue from phase 2. Mark the source as documented: it was not read from a database.
+
+The final package phase requires harness_package_check on the actual package. Its host-owned success report must match the current files. Complete real business reports, native/source compatibility checks and the owner's approvals; the technical map above is not sufficient on its own.
