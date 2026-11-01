@@ -116,7 +116,7 @@ def destination():
 
 
 def main():
-    if ENV in ('local','test','lab'):resources=local_resources(os.environ['RIGHAVEN_SOURCE_DUCKDB'])
+    if ENV in ('local','test'):resources=local_resources(os.environ['RIGHAVEN_SOURCE_DUCKDB'])
     elif ENV in ('prod','lab'):resources=production_resources()
     else:raise SystemExit('PIPELINE_ENV must be local, test or prod')
     pipeline=dlt.pipeline(pipeline_name=(os.environ.get('PIPELINE_NAME') or '{name}_ingestion'),destination=destination(),dataset_name=DATASET,

@@ -103,6 +103,14 @@ print(json.dumps(result))
             else:raise AssertionError('Native PostgreSQL source lab did not complete')
             count=run(*compose_args,'exec','-T','source-db','psql','-U','righaven_lab','-d','source_lab','-tAc','SELECT count(*) FROM vendite."Cliente"').strip()
             assert count=='3',count
+            # Change only PostgreSQL: this proves ingestion reads the native
+            # source, rather than accidentally reusing the DuckDB seed file.
+            run(*compose_args,'exec','-T','source-db','psql','-U','righaven_lab','-d','source_lab','-c',
+                'DELETE FROM vendite.ordine WHERE id=(SELECT min(id) FROM vendite.ordine)')
+            run(*compose_args,'exec','-T','pipeline','/opt/ingest/bin/python','/app/ingestion/pipeline.py')
+            native_count=run(*compose_args,'exec','-T','pipeline','/opt/ingest/bin/python','-c',
+                "import duckdb;c=duckdb.connect('/data/warehouse.duckdb',read_only=True);print(c.execute('SELECT count(*) FROM raw.ordine').fetchone()[0])").strip()
+            assert native_count=='2',native_count
             print('Exported package OK: clean build, read-only startup, ordered cycles, replacement/restart, durable state, repeatable snapshots, real BI report and actual PostgreSQL source lab')
         except Exception:
             if compose_args:
