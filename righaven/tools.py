@@ -661,7 +661,7 @@ def harness_validate(runtime: Runtime, role_id: str, task: str = '') -> str:
             except Exception as error:
                 result = {'ok': False, 'error': str(error)[:500]}
             return {'sheet': sheet['id'], 'ok': bool(result.get('ok')), 'error': result.get('error', '')}
-        for wave in policy_workflow.waves(to_run):
+        for wave in policy_workflow.waves(to_run, {s['id'] for s in report['sheets'] if s['status'] != 'pending'}):
             current = {s['id']: s['status'] for s in report['sheets']}
             ready = [s for s in wave if all(current.get(d) == 'passed' for d in s['depends_on'])]
             runs += [{'sheet': s['id'], 'ok': False, 'error': 'In attesa delle sheet da cui dipende: ' + ', '.join(s['depends_on'])}

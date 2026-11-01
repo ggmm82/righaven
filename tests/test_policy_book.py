@@ -113,6 +113,10 @@ class PolicyBookTests(unittest.TestCase):
     def test_independent_sheets_share_a_wave_and_dependants_wait(self):
         sheets = [{'id': 'a', 'depends_on': []}, {'id': 'b', 'depends_on': []}, {'id': 'c', 'depends_on': ['a']}]
         self.assertEqual([[s['id'] for s in wave] for wave in policy_workflow.waves(sheets)], [['a', 'b'], ['c']])
+        # A re-validation repeats only pending sheets: a prerequisite already passed does not block its dependants.
+        self.assertEqual([[s['id'] for s in wave] for wave in policy_workflow.waves([sheets[2]], {'a', 'b'})], [['c']])
+        with self.assertRaisesRegex(ValueError, 'non risolvibili'):
+            policy_workflow.waves([sheets[2]])
 
 
 class PolicyWorkflowTests(unittest.TestCase):
