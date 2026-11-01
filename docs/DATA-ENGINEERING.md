@@ -41,8 +41,8 @@ For SchemaCrawler, an explicit JDBC URL with separate credentials is also accept
 These are placeholders, not working credentials. Do not paste real values into
 chat prompts, skill instructions, notebooks, SQL, logs or Gallery metadata. The
 adapter keeps connection configuration in a private temporary file, redacts
-native logs and excludes it from receipts and sources. It does not create a
-connection-vault UI. `connection_env` is available only when a matching
+native logs and excludes it from receipts and sources. Registered user connections
+(below) are the recommended path; a hand-written `connection_file` remains for scripted use. `connection_env` is available only when a matching
 `RIGHAVEN_DB_*` secret has actually been supplied to that job; it is not
 automatically forwarded from the Gateway.
 
@@ -56,7 +56,9 @@ documents per collection and reports this limit. The extracted row cap is
 
 Users register SQL Server, PostgreSQL, MySQL/MariaDB, Oracle and Microsoft Entra ID connections on the
 **Connections** page and tick them for a task in its project panel; every assignment of that task
-receives them and the adapters take `connection: "ID"`. Details: [Connections](CONNECTIONS.md).
+receives them and the adapters take `connection: "ID"`. Details: [Connections](CONNECTIONS.md). Sources are read-only; a destination
+connection may allow writing into one schema, per task, through `dlt.load` only
+([Writing into a destination](CONNECTIONS.md#writing-into-a-destination)).
 
 ## Tool choices and upstream references
 

@@ -11,16 +11,16 @@ type Kind="postgres"|"sqlserver"|"mysql"|"oracle"|"entra";
 type Test={ok:boolean;detail:string;at:string};
 type Connection={id:string;kind:Kind;name:string;description?:string;host?:string;port?:number;database?:string;username?:string;tls?:boolean;read_only?:boolean;
  authentication?:"password"|"entra"|"microsoft";entra_connection?:string;tenant_id?:string;client_id?:string;cloud?:string;has_secret:boolean;tools:string[];last_test?:Test;updated_at?:string;
- mode?:"user"|"application";signed_in?:boolean;account?:string};
+ mode?:"user"|"application";signed_in?:boolean;account?:string;write_enabled?:boolean;write_schema?:string};
 type SignIn={id:string;user_code:string;verification_uri:string;interval:number;status:string;detail?:string};
 type Form={id:string;kind:Kind;name:string;description:string;host:string;port:string;database:string;username:string;password:string;tls:boolean;read_only:boolean;
- authentication:"password"|"entra"|"microsoft";entra_connection:string;tenant_id:string;client_id:string;client_secret:string;cloud:string;mode:"user"|"application"};
+ authentication:"password"|"entra"|"microsoft";entra_connection:string;tenant_id:string;client_id:string;client_secret:string;cloud:string;mode:"user"|"application";access:"read"|"write";write_schema:string};
 
 const PORTS:Record<Kind,string>={postgres:"5432",sqlserver:"1433",mysql:"3306",oracle:"1521",entra:""};
 const LABELS:Record<Kind,string>={postgres:"PostgreSQL",sqlserver:"SQL Server / Azure SQL / Fabric",mysql:"MySQL / MariaDB",oracle:"Oracle",entra:"Microsoft Entra ID"};
 const DEFAULT_CLIENT="04b07795-8ddb-461a-bbee-02f9e1bf7b46";
 const blank=(kind:Kind):Form=>({id:"",kind,name:"",description:"",host:"",port:PORTS[kind],database:"",username:"",password:"",tls:true,read_only:false,
- authentication:kind==="sqlserver"?"microsoft":"password",entra_connection:"",tenant_id:"",client_id:"",client_secret:"",cloud:"public",mode:"user"});
+ authentication:kind==="sqlserver"?"microsoft":"password",entra_connection:"",tenant_id:"",client_id:"",client_secret:"",cloud:"public",mode:"user",access:"read",write_schema:""});
 const slug=(text:string)=>text.normalize("NFD").replace(/\p{M}/gu,"").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"").replace(/^([^a-z])/,"c-$1").slice(0,40);
 
 /** Personal database and Microsoft cloud connections; secrets are encrypted and never shown again. */
@@ -37,12 +37,12 @@ export default function ConnectionsPage(){
  useEffect(()=>{let live=true;void fetch(`${getBackendBaseURL()}/api/harness/access-catalog`).then(async r=>{if(!r.ok)throw Error(String(r.status));return r.json() as Promise<{providers:ProviderAccess[]}>;}).then(v=>{if(live)setProviders(v.providers);}).catch(()=>undefined);return()=>{live=false;};},[]);
  const entras=(rows??[]).filter(r=>r.kind==="entra");
  function edit(row:Connection){setEditing(row.id);setNotice("");setError("");
-  setForm({...blank(row.kind),...Object.fromEntries(Object.entries(row).filter(([,v])=>typeof v==="string"||typeof v==="boolean")),port:String(row.port??PORTS[row.kind]),password:"",client_secret:""} as Form);}
+  setForm({...blank(row.kind),...Object.fromEntries(Object.entries(row).filter(([,v])=>typeof v==="string"||typeof v==="boolean")),port:String(row.port??PORTS[row.kind]),password:"",client_secret:"",access:row.write_enabled?"write":"read",write_schema:row.write_schema??""} as Form);}
  async function save(){if(!form)return;setBusy("save");setError("");setNotice("");
   const body:Record<string,unknown>={kind:form.kind,name:form.name,description:form.description};
   if(!editing)body.id=form.id||slug(form.name);
   if(form.kind==="entra")Object.assign(body,{mode:form.mode,tenant_id:form.tenant_id,client_id:form.mode==="user"&&form.client_id===DEFAULT_CLIENT?"":form.client_id,cloud:form.cloud,...(form.mode==="application"&&form.client_secret?{client_secret:form.client_secret}:{})});
-  else Object.assign(body,{host:form.host,port:Number(form.port),database:form.database,tls:form.tls,read_only:form.read_only,
+  else Object.assign(body,{host:form.host,port:Number(form.port),database:form.database,tls:form.tls,read_only:form.read_only,access:form.access,write_schema:form.access==="write"?form.write_schema:"",
    authentication:form.kind==="sqlserver"?form.authentication:"password",
    ...(form.authentication==="entra"&&form.kind==="sqlserver"?{entra_connection:form.entra_connection}
     :form.authentication==="microsoft"&&form.kind==="sqlserver"?{username:form.username,tenant_id:form.tenant_id}
@@ -58,7 +58,7 @@ export default function ConnectionsPage(){
  async function listDatabases(row:Connection){setError("");setBusy("db-"+row.id);setCatalog({id:row.id,rows:null});try{const r=await fetch(`${base}/${row.id}/databases`,{method:"POST"});const v=await r.json();
   if(!r.ok)throw Error(typeof v.detail==="string"?v.detail:String(r.status));setCatalog({id:row.id,rows:v.databases});}catch(e){setCatalog(null);setError(e instanceof Error?e.message:String(e));}finally{setBusy("");}}
  async function selectDatabase(row:Connection,database:string){setError("");
-  const body={kind:row.kind,name:row.name,description:row.description??"",host:row.host,port:row.port,database,tls:row.tls,read_only:row.read_only,authentication:row.authentication,
+  const body={kind:row.kind,name:row.name,description:row.description??"",host:row.host,port:row.port,database,tls:row.tls,read_only:row.read_only,access:row.write_enabled?"write":"read",write_schema:row.write_schema??"",authentication:row.authentication,
    ...(row.authentication==="microsoft"?{username:row.username,tenant_id:row.tenant_id}:{entra_connection:row.entra_connection})};
   const r=await fetch(`${base}/${row.id}`,{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});const v=await r.json();
   if(!r.ok){setError(typeof v.detail==="string"?v.detail:String(r.status));return;}setNotice(t(`Database «${database}» scelto per ${row.name}.`,`Database “${database}” chosen for ${row.name}.`));setReload(n=>n+1);}
@@ -128,7 +128,12 @@ export default function ConnectionsPage(){
        {entras.length===0&&<span className="text-muted-foreground text-xs">{t("Aggiungi prima il tuo account Microsoft (Nuova: Microsoft Entra ID).","Add your Microsoft account first (New: Microsoft Entra ID).")}</span>}</label>
      :form.kind==="sqlserver"&&form.authentication==="microsoft"?null:<>{input("username",t("Utente","User"))}{input("password",t("Password","Password")+(editing?t(" (vuota = invariata)"," (empty = unchanged)"):""),{type:"password",autoComplete:"new-password"})}</>}
      <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={form.tls} onChange={e=>setForm(f=>f&&{...f,tls:e.target.checked})}/>{t("Connessione cifrata (TLS)","Encrypted connection (TLS)")}</label>
-     <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={form.read_only} onChange={e=>setForm(f=>f&&{...f,read_only:e.target.checked})}/>{t("Confermo che l’account ha solo permessi di lettura","I confirm the account has read-only permissions")}</label>
+     <label className="block text-sm md:col-span-2">{t("Uso","Use")}<select className={field} aria-label={t("Uso della connessione","Connection use")} value={form.access} onChange={e=>setForm(f=>f&&{...f,access:e.target.value as "read"|"write"})}>
+      <option value="read">{t("Sola lettura (consigliato per le sorgenti)","Read only (recommended for sources)")}</option>
+      <option value="write">{t("Lettura e scrittura in uno schema dedicato (destinazione)","Read and write in a dedicated schema (destination)")}</option></select></label>
+     {form.access==="read"?<label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={form.read_only} onChange={e=>setForm(f=>f&&{...f,read_only:e.target.checked})}/>{t("Confermo che l’account ha solo permessi di lettura","I confirm the account has read-only permissions")}</label>
+      :<>{input("write_schema",t("Schema in cui RigHaven può scrivere","Schema RigHaven may write to"),{placeholder:"righaven"})}
+       <p className="text-muted-foreground text-xs md:col-span-2">{t("Gli incarichi possono solo caricare tabelle già verificate in questo schema, sostituendole o accodandole: mai SQL libero. Per ogni incarico decidi tu se consentire la scrittura, nella scheda «Connessioni del lavoro». Usa un account con permessi limitati a questo schema.","Tasks can only load already verified tables into this schema, replacing or appending them: never arbitrary SQL. For each task you decide whether to allow writing, in “Task connections”. Use an account whose permissions are limited to this schema.")}</p></>}
     </>}
    </div>
    <div className="flex gap-2"><button className="bg-primary text-primary-foreground rounded px-3 py-2 text-sm disabled:opacity-50" disabled={busy==="save"} onClick={()=>void save()}>{t("Salva","Save")}</button>
@@ -138,9 +143,9 @@ export default function ConnectionsPage(){
   {rows?.length===0&&!form&&<p className="text-sm">{t("Nessuna connessione registrata.","No connections registered.")}</p>}
   <ul className="space-y-3">{rows?.map(r=><li key={r.id} className="rounded-lg border p-4 text-sm" data-testid={"connection-"+r.id}>
    <div className="flex flex-wrap items-start justify-between gap-2">
-    <div><p className="font-semibold">{r.name} <span className="text-muted-foreground font-normal">· {LABELS[r.kind]} · {r.id}</span></p>
+    <div className="min-w-0 break-words [overflow-wrap:anywhere]"><p className="font-semibold">{r.name} <span className="text-muted-foreground font-normal">· {LABELS[r.kind]} · {r.id}</span></p>
      <p className="text-muted-foreground">{r.kind==="entra"?(r.mode==="user"?(r.signed_in?t("Account ","Account ")+(r.account??""):t("Accesso Microsoft da completare","Microsoft sign-in to complete"))+" · "+t("tenant ","tenant ")+r.tenant_id:t("Applicazione · tenant ","Application · tenant ")+r.tenant_id+" · "+t("app ","app ")+r.client_id):(r.host??"")+":"+String(r.port??"")+" / "+(r.database??"")+(r.authentication==="entra"?" · Entra ID ("+(r.entra_connection??"")+")":" · "+(r.username??""))+(r.authentication==="microsoft"?" · "+(r.signed_in?t("accesso Microsoft attivo","Microsoft signed in"):t("accesso Microsoft da completare","Microsoft sign-in to complete")):"")}</p>
-     {r.kind!=="entra"&&<p className={r.read_only?"":"text-destructive"}>{r.read_only?t("Sola lettura dichiarata","Read-only declared"):t("Non dichiarata in sola lettura: gli strumenti la rifiutano","Not declared read-only: tools refuse it")}</p>}
+     {r.kind!=="entra"&&<p className={r.read_only||r.write_enabled?"":"text-destructive"}>{r.write_enabled?t(`Scrittura consentita nello schema ${r.write_schema??""}, se la abiliti nell’incarico`,`Writing allowed in schema ${r.write_schema??""}, when you enable it in the task`):r.read_only?t("Sola lettura dichiarata","Read-only declared"):t("Non dichiarata in sola lettura: gli strumenti la rifiutano","Not declared read-only: tools refuse it")}</p>}
      {r.tools.length>0&&<p className="text-muted-foreground text-xs">{t("Usabile con: ","Usable with: ")}{r.tools.join(", ")}</p>}
      {r.last_test&&<p className={r.last_test.ok?"text-xs":"text-destructive text-xs"}>{t("Ultima prova ","Last test ")}{r.last_test.at.replace("T"," ").slice(0,16)}: {r.last_test.detail}</p>}
     </div>

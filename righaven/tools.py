@@ -359,8 +359,15 @@ def harness_plan(runtime: Runtime, brief: str = '', steps_json: str = '',
         check_capability_choice(json.loads(strategy_json), policy)
     if roles_json:
         from .project_brief import rejected_tools
+        from .journeys import view as journey_view
         excluded = rejected_tools((read_project(workspace) or {}).get('outcome'))
-        for spec in json.loads(roles_json):
+        specs = json.loads(roles_json)
+        journey = journey_view(workspace)
+        if journey and isinstance(specs, list):
+            from .journeys import with_recipe_skills
+            specs = with_recipe_skills(specs, journey, policy.get('skill_names', []))
+            roles_json = json.dumps(specs, ensure_ascii=False)
+        for spec in specs:
             require_tools(policy, spec.get('tools', []))
             if excluded & set(spec.get('tools', [])):
                 raise ValueError('Il ruolo ' + str(spec.get('id')) + ' usa programmi di alternative non scelte dall’utente: '
@@ -616,6 +623,15 @@ def harness_validate(runtime: Runtime, role_id: str, task: str = '') -> str:
     from . import policy_workflow
     from .projects import governance_state, save_policy_validation
     workspace = workspace_for(runtime)
+    from .journeys import view as guided_view
+    guided = guided_view(workspace)
+    if guided and not guided['complete']:
+        # Not an error to investigate: final validation belongs to the finished product, after the last guided phase.
+        current = next((s for s in guided['stages'] if s['id'] == guided['current']), None)
+        return json.dumps({'ok': False, 'deferred': True, 'current_phase': guided['current'],
+                           'instruction': 'Final policy validation runs once, on the finished product, after every guided phase is settled. '
+                                          'Nothing is blocked: continue with the current phase' + (' «' + current['title']['it'] + '»' if current else '') +
+                                          ' using harness_journey and native activities. Do not ask the owner about this and do not investigate it.'}, ensure_ascii=False)
     value = governance_state(workspace)
     if not policy_workflow.governed(value):
         raise ValueError('Questo progetto è precedente al Policy Book: usa purpose=review per la revisione di qualità')
@@ -652,7 +668,7 @@ def harness_validate(runtime: Runtime, role_id: str, task: str = '') -> str:
             except Exception as error:
                 result = {'ok': False, 'error': str(error)[:500]}
             return {'sheet': sheet['id'], 'ok': bool(result.get('ok')), 'error': result.get('error', '')}
-        for wave in policy_workflow.waves(to_run):
+        for wave in policy_workflow.waves(to_run, {s['id'] for s in report['sheets'] if s['status'] != 'pending'}):
             current = {s['id']: s['status'] for s in report['sheets']}
             ready = [s for s in wave if all(current.get(d) == 'passed' for d in s['depends_on'])]
             runs += [{'sheet': s['id'], 'ok': False, 'error': 'In attesa delle sheet da cui dipende: ' + ', '.join(s['depends_on'])}

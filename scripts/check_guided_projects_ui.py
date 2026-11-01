@@ -53,13 +53,14 @@ def main():
         (root/'config.ts').write_text('export function getBackendBaseURL(){return ""}')
         (root/'hooks.ts').write_text('export function useI18n(){return {locale:"it-IT"}}')
         (root/'router.ts').write_text('export function useRouter(){return {push:(url:string)=>{window.location.href=url}}}')
+        (root/'uploads.ts').write_text('export async function uploadFiles(id:string,files:File[]){(window as any).uploaded=files.map(f=>f.name);return {files:files.map(f=>({virtual_path:"/mnt/user-data/uploads/"+f.name}))}}')
         (root/'threads.ts').write_text('export async function createThread(id:string){return window.fetch("/api/threads",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({thread_id:id})}).then(r=>r.json())}')
         entry='''import React from 'react';import{createRoot}from'react-dom/client';import Recipes from PAGE;import Connections from CONNECTIONS;import{ProjectJourney,useJourney}from PANEL;
 function Journey(){const id=location.pathname.split('/').pop()!;const state=useJourney(id);return <ProjectJourney threadId={id} state={state}/>;}
 createRoot(document.getElementById('root')!).render(location.pathname.includes('/chats/')?<Journey/>:location.pathname==='/connections'?<Connections/>:<Recipes/>);'''
         (root/'entry.tsx').write_text(entry.replace('PAGE',json.dumps(str(repo/'frontend/recipes-page.tsx'))).replace('PANEL',json.dumps(str(repo/'frontend/project-journey.tsx')))
                                       .replace('CONNECTIONS',json.dumps(str(repo/'frontend/connections-page.tsx'))))
-        aliases={'@/core/api/fetcher':str(root/'fetch.ts'),'@/core/config':str(root/'config.ts'),'@/core/i18n/hooks':str(root/'hooks.ts'),'@/core/i18n/ui-text':str(repo/'frontend/ui-text.ts'),'@/components/workspace/concept-map':str(repo/'frontend/concept-map.tsx'),'@/core/threads/api':str(root/'threads.ts'),'next/navigation':str(root/'router.ts')}
+        aliases={'@/core/api/fetcher':str(root/'fetch.ts'),'@/core/config':str(root/'config.ts'),'@/core/i18n/hooks':str(root/'hooks.ts'),'@/core/i18n/ui-text':str(repo/'frontend/ui-text.ts'),'@/components/workspace/concept-map':str(repo/'frontend/concept-map.tsx'),'@/core/threads/api':str(root/'threads.ts'),'@/core/uploads/api':str(root/'uploads.ts'),'next/navigation':str(root/'router.ts')}
         build={'entryPoints':[str(root/'entry.tsx')],'outfile':str(root/'app.js'),'bundle':True,'jsx':'automatic','nodePaths':[str(modules)],'alias':aliases}
         subprocess.run(['node','-e','require('+json.dumps(str(modules/'esbuild'))+').buildSync('+json.dumps(build)+')'],check=True)
         class Handler(BaseHTTPRequestHandler):
@@ -105,10 +106,18 @@ createRoot(document.getElementById('root')!).render(location.pathname.includes('
                     page.goto(f'http://127.0.0.1:{server.server_port}/recipes')
                     page.get_by_role('button',name='Usa questa ricetta',exact=True).click()
                     page.get_by_label('Cosa vuoi realizzare? Descrivilo con parole tue.',exact=True).fill('Dai documenti al catalogo, ai dati sintetici e al report vendite')
+                    documents=page.get_by_test_id('intake-documents')
+                    expect(documents).to_contain_text('Per questa ricetta servono')
+                    documents.locator('input[type=file]').set_input_files([{'name':'schema.sql','mimeType':'text/plain','buffer':b'CREATE TABLE ordini (id INT PRIMARY KEY);'}])
+                    expect(documents).to_contain_text('schema.sql')
+                    documents.get_by_label('Link a documentazione esterna (uno per riga)').fill('https://example.com/dizionario-dati')
                     page.get_by_role('button',name='Avanti',exact=True).click()
+                    expect(page.get_by_test_id('intake-connections')).to_contain_text('Nessuna connessione registrata')
                     page.get_by_role('button',name='Rivedi e avvia',exact=True).click()
                     page.get_by_role('button',name='Crea progetto guidato',exact=True).click()
                     page.wait_for_url('**/workspace/chats/*')
+                    notes=journeys.view(workspace)['answers']['notes']
+                    assert '/mnt/user-data/uploads/schema.sql' in notes and 'https://example.com/dizionario-dati' in notes, notes
                     card=page.get_by_test_id('journey-card');panel=page.get_by_test_id('project-journey');expect(panel).to_be_visible()
                     expect(panel).to_contain_text('Pipeline dati end-to-end')
                     panel.get_by_role('button',name='Tutte le fasi',exact=True).click()
@@ -116,6 +125,9 @@ createRoot(document.getElementById('root')!).render(location.pathname.includes('
                     page.reload();expect(panel).to_be_visible()
                     projects.create_plan(workspace,'Catalogo',[{'id':'catalog','agent':'workspace','goal':'Read docs','depends_on':[]}])
                     artifact=workspace/'catalog.md';artifact.write_text('Schema and documented relationships')
+                    plan=workspace/'.righaven-project'/'project.json';value=json.loads(plan.read_text())
+                    value['steps'].append({'id':'review','agent':'workspace','goal':'Revisione indipendente','status':'completed','purpose':'review','depends_on':[],
+                                           'attempts':[{'status':'completed','finished_at':'2999-01-01T00:00:00+00:00'}]});state.atomic_json(plan,value)
                     current=journeys.view(workspace);journeys.record(workspace,'understand',[str(artifact)],['catalog'],'Catalogo con provenienza pronto per la revisione',current['revision'])
                     page.reload()
                     decision=page.get_by_test_id('journey-decision')
@@ -193,7 +205,7 @@ createRoot(document.getElementById('root')!).render(location.pathname.includes('
                 page=browser.new_page(viewport={'width':1200,'height':900});errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
                 page.goto(f'http://127.0.0.1:{server.server_port}/recipes')
                 concepts=page.get_by_test_id('concept-map');concepts.locator('summary').click()
-                expect(concepts.get_by_test_id('concept-flow')).to_contain_text('squadra: ogni ruolo usa skill + ambiente')
+                expect(concepts.get_by_test_id('concept-flow')).to_contain_text('incarico → squadra: ogni ruolo usa skill + ambiente')
                 expect(concepts).to_contain_text('Ricetta · sei qui')
                 expect(concepts.get_by_role('link',name='Ambiente')).to_have_attribute('href','/workspace/environments')
                 page.get_by_role('button',name='Nuova ricetta',exact=True).click()

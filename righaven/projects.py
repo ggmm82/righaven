@@ -365,6 +365,9 @@ def create_plan(workspace, brief, steps, project_type='', omissions=None, *, sum
             value['brief'] = clean_summary(brief, 4000)
         from .journeys import _load as load_journey, pin_policy, outcome_seed
         journey = load_journey(folder)
+        if journey and journey.get('connections') and not value.get('connections'):
+            # Connections chosen in the recipe intake: the owner's consent, given before the task's project existed.
+            value['connections'] = {**journey['connections'], 'updated_at': utcnow()}
         if journey:
             # A guided project already knows the owner's goal: it is the result, not a question to ask again.
             seed = outcome_seed(journey)
@@ -595,6 +598,27 @@ def archive_plan(workspace, reason):
     return {'id': value['id'], 'archived': True, 'files_preserved': True}
 
 
+def _proportionate_review(workspace, folder, value):
+    """In a guided task: one independent review per approved phase result, at most one more after a correction."""
+    from .journeys import _load as load_journey, view as journey_view
+    saved = load_journey(folder)
+    if not saved:
+        return
+    guided = journey_view(workspace, saved)
+    current = next((s for s in guided['stages'] if s['id'] == guided['current']), None)
+    if not current:
+        return
+    if current.get('gate') is False:
+        raise ValueError('This phase needs no separate review: its checks belong to the work itself; record the result with harness_journey')
+    steps = {s['id']: s for s in value.get('steps', [])}
+    produced = max([a.get('finished_at') or '' for sid in current.get('steps', []) if sid in steps
+                    for a in steps[sid].get('attempts', [])] or [''])
+    reviews = [a for s in value.get('steps', []) if s.get('purpose') == 'review' for a in s.get('attempts', [])
+               if (a.get('finished_at') or '') >= produced and a.get('status') == 'completed']
+    if len(reviews) >= 2:
+        raise ValueError('This phase result already had two independent reviews: correct the result or submit the phase to the owner')
+
+
 def execute_step(workspace, agent, task, step_id, invoke, *, provider=None, purpose='work', request_id='', role=None, policy_sheet=None):
     if purpose not in ('work', 'preview', 'review', 'integration', 'delivery'):
         raise ValueError('Scopo incarico non valido')
@@ -615,6 +639,8 @@ def execute_step(workspace, agent, task, step_id, invoke, *, provider=None, purp
                     raise ValueError('Start the current guided phase with harness_journey and its native activity IDs; wait for owner approval before later phases')
             policy_workflow.require_production(value)
             discussed = policy_workflow.pass_checkpoint(value, request_id)
+        elif policy_sheet is None:
+            _proportionate_review(workspace, folder, value)
         if policy_sheet is not None and (purpose != 'review' or not policy_workflow.governed(value) or policy_sheet['id'] not in
                 {s['id'] for s in (value.get('policy_plan') or {}).get('sheets', [])}):
             raise ValueError('La validazione di una policy sheet richiede una revisione prevista dal Policy Plan')

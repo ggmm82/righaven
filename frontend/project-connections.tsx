@@ -6,7 +6,7 @@ import { fetch } from "@/core/api/fetcher";
 import { getBackendBaseURL } from "@/core/config";
 import { tr, useUiLanguage } from "@/core/i18n/ui-text";
 
-type Connection = { id: string; name: string; kind: string; host?: string; database?: string; read_only?: boolean; authentication?: string; tools?: string[]; missing?: boolean };
+type Connection = { id: string; name: string; kind: string; host?: string; database?: string; read_only?: boolean; authentication?: string; tools?: string[]; missing?: boolean; write_enabled?: boolean; write_schema?: string; write?: boolean };
 
 const kinds: Record<string, string> = { postgres: "PostgreSQL", sqlserver: "SQL Server", mysql: "MySQL", oracle: "Oracle", entra: "Microsoft Entra ID" };
 
@@ -15,6 +15,7 @@ export function ProjectConnections({ threadId }: { threadId: string }) {
   useUiLanguage();
   const [all, setAll] = useState<Connection[] | null>(null);
   const [assigned, setAssigned] = useState<string[]>([]);
+  const [writable, setWritable] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const base = getBackendBaseURL();
@@ -27,19 +28,21 @@ export function ProjectConnections({ threadId }: { threadId: string }) {
       if (!live) return;
       setAll(mine.connections);
       setAssigned(current.assigned.map((c) => c.id));
+      setWritable(current.assigned.filter((c) => c.write).map((c) => c.id));
     }).catch(() => setAll([]));
     return () => { live = false; };
   }, [base, threadId]);
-  async function save(ids: string[]) {
+  async function save(ids: string[], write: string[] = writable.filter((id) => ids.includes(id))) {
     setBusy(true);
     setMessage("");
     const response = await fetch(`${base}/api/threads/${encodeURIComponent(threadId)}/harness-connections`, {
-      method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ids }),
+      method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ids, write }),
     });
     const value = (await response.json()) as { assigned?: Connection[]; detail?: string };
     setBusy(false);
     if (!response.ok) { setMessage(typeof value.detail === "string" ? value.detail : String(response.status)); return; }
     setAssigned((value.assigned ?? []).map((c) => c.id));
+    setWritable((value.assigned ?? []).filter((c) => c.write).map((c) => c.id));
     setMessage(tr("Salvato: il coordinatore vedrà queste connessioni dal prossimo turno.", "Saved: the coordinator will see these connections from its next turn."));
   }
   if (all === null) return null;
@@ -51,8 +54,12 @@ export function ProjectConnections({ threadId }: { threadId: string }) {
     {all.length === 0 && <p className="text-xs">{tr("Nessuna connessione necessaria per documenti e dati sintetici. Se serve un accesso esterno, puoi aggiungerlo in ", "No connection is needed for documents and synthetic data. For external access, add one in ")}<a className="underline" href="/workspace/connections">{tr("Connessioni", "Connections")}</a>.</p>}
     <ul className="space-y-1">{all.map((c) => <li key={c.id}><label className="flex items-start gap-2">
       <input type="checkbox" disabled={busy} checked={assigned.includes(c.id)} onChange={(event) => void save(event.target.checked ? [...assigned, c.id] : assigned.filter((id) => id !== c.id))}/>
-      <span><strong>{c.name}</strong> · {kinds[c.kind] ?? c.kind}{c.database ? " · " + c.database : ""}{c.kind !== "entra" && !c.read_only && <span className="text-destructive"> · {tr("non dichiarata in sola lettura: gli strumenti la rifiuteranno", "not declared read-only: tools will refuse it")}</span>}</span>
-    </label></li>)}</ul>
+      <span><strong>{c.name}</strong> · {kinds[c.kind] ?? c.kind}{c.database ? " · " + c.database : ""}{c.kind !== "entra" && !c.read_only && !c.write_enabled && <span className="text-destructive"> · {tr("non dichiarata in sola lettura: gli strumenti la rifiuteranno", "not declared read-only: tools will refuse it")}</span>}</span>
+    </label>
+    {c.write_enabled && assigned.includes(c.id) && <label className="ml-6 mt-1 flex items-start gap-2 text-xs" data-testid={"write-consent-" + c.id}>
+      <input type="checkbox" disabled={busy} checked={writable.includes(c.id)} onChange={(event) => void save(assigned, event.target.checked ? [...writable, c.id] : writable.filter((id) => id !== c.id))}/>
+      <span>{tr(`Consenti scrittura in questo incarico (solo tabelle verificate, nello schema ${c.write_schema ?? ""}). Ogni consegna dell’accesso resta nel registro.`, `Allow writing in this task (verified tables only, in schema ${c.write_schema ?? ""}). Every delivery of this access is logged.`)}</span>
+    </label>}</li>)}</ul>
     {message && <p className="mt-2 text-xs">{message}</p>}
   </details>;
 }

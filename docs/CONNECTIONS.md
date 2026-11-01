@@ -24,7 +24,8 @@ assignment of that task and to no other.
    (`client_credentials`, scope `https://database.windows.net/.default`); for your account it
    exchanges the saved sign-in for a token. Microsoft's error code is reported when refused.
 3. **Declare read-only.** RigHaven's adapters only read, and they refuse database connections the
-   user has not declared read-only. Use an account with read permissions only.
+   user has not declared read-only. Use an account with read permissions only. For a destination see
+   *Writing into a destination* below.
 4. **Assign** it to a task from the project panel (*Task connections*). The coordinator then sees the
    connection's name, kind, server, database and the tools that support it, never its secret.
 5. **Use.** When an assignment of the task starts, RigHaven decrypts the task's connections into a
@@ -91,6 +92,26 @@ revoked or expires (`AADSTS700082`, password change, sign-in frequency policy), 
 the administrator to allow the flow for RigHaven, or use an application connection. Database
 permissions are those of your account: grant yourself read-only access, and declare the SQL
 connection read-only.
+
+## Writing into a destination
+
+Sources stay read-only. A destination, such as a staging schema of the warehouse that the BI reads,
+can receive data from RigHaven:
+
+1. In the connection choose **Read and write in a dedicated schema** and name the schema (for
+   example `righaven`). Use a database account whose permissions are limited to that schema.
+2. In the task card, *Task connections*, assign the connection and tick **Allow writing in this
+   task**. Without that tick the task receives the connection read-only. Each task decides on its own.
+3. The team can then only run `dlt.load`: it copies tables already verified in the local DuckDB
+   files (for example the reconciled marts, or `raw.table` after an ingestion run) into that schema,
+   replacing or appending them. There is no free SQL, no other schema and at most one million rows per
+   load. Each delivery of write access is recorded in the task log; the load receipt lists tables,
+   rows, mode and target.
+
+Connections with a SQL user and password write through SQLAlchemy (PostgreSQL, MySQL/MariaDB, SQL
+Server, Oracle). Connections with your Microsoft account (Azure SQL, Fabric Warehouse) write T-SQL
+through usql with a short-lived token; this path has not been exercised against a real Azure or
+Fabric target by the repository tests (CI loads into a SQLite file).
 
 ## Network
 

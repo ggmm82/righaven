@@ -152,3 +152,9 @@ COPY versions.lock.json /app/worker-source/versions.lock.json
 COPY config/toolkit /app/worker-source/config/toolkit
 COPY config/tool-capabilities.json /app/worker-source/config/tool-capabilities.json
 COPY docker/Dockerfile.sandbox /app/worker-source/docker/Dockerfile.sandbox
+
+# Build identity shown on the Overview page. Kept as the last layer so it never invalidates caches.
+ARG RIGHAVEN_COMMIT=""
+ARG RIGHAVEN_BUILT_AT=""
+ARG RIGHAVEN_REF=""
+ENV RIGHAVEN_COMMIT=$RIGHAVEN_COMMIT RIGHAVEN_BUILT_AT=$RIGHAVEN_BUILT_AT RIGHAVEN_REF=$RIGHAVEN_REF

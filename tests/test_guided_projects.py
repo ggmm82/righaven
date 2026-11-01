@@ -7,6 +7,14 @@ from unittest.mock import patch
 from righaven import journeys, projects, policy_book, state
 
 
+def reviewed(work, status='completed', finished='2999-01-01T00:00:00+00:00'):
+    """Record an independent review step, as the native plan does after a quality review job."""
+    path=Path(work)/'.righaven-project'/'project.json';value=json.loads(path.read_text())
+    value['steps']=[s for s in value['steps'] if s['id']!='review']+[{'id':'review','agent':'workspace','goal':'Independent review','status':status,
+        'purpose':'review','depends_on':[],'attempts':[{'status':status,'finished_at':finished}]}]
+    state.atomic_json(path,value)
+
+
 class GuidedProjects(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(); self.addCleanup(self.temp.cleanup)
@@ -15,6 +23,7 @@ class GuidedProjects(unittest.TestCase):
         patcher = patch.object(state, 'STATE', self.root / 'state'); patcher.start(); self.addCleanup(patcher.stop)
         self.value = journeys.start(self.work, 'data-pipeline', {'goal':'Create a documented data laboratory and business reports'})
         projects.create_plan(self.work, 'Data laboratory', [{'id':'catalog','agent':'workspace','goal':'Read documentation','depends_on':[]}])
+        reviewed(self.work)
 
     def submit(self, identifier, filename='catalog.md'):
         path=self.work/filename; path.write_text('Verified model and provenance')
@@ -36,6 +45,21 @@ class GuidedProjects(unittest.TestCase):
         approved=journeys.decide(self.work,'understand',True,submitted['revision'])
         self.assertEqual(approved['current'],'design')
         with self.assertRaises(ValueError): self.submit('package')
+
+    def test_owner_decides_only_on_reviewed_results(self):
+        path=self.work/'catalog.md';path.write_text('Catalog')
+        for status,finished,message in (('pending','','Wait for the running'),('completed','',None)):
+            reviewed(self.work,status,finished)
+            current=journeys.view(self.work)
+            if message:
+                with self.assertRaisesRegex(ValueError,message):
+                    journeys.record(self.work,'understand',[str(path)],['catalog'],'Catalogo pronto',current['revision'])
+        projects_json=self.work/'.righaven-project'/'project.json';value=json.loads(projects_json.read_text())
+        value['steps']=[s for s in value['steps'] if s['id']!='review'];state.atomic_json(projects_json,value)
+        with self.assertRaisesRegex(ValueError,'Run the independent quality review'):
+            journeys.record(self.work,'understand',[str(path)],['catalog'],'Catalogo pronto',journeys.view(self.work)['revision'])
+        started=journeys.record(self.work,'understand',[],['catalog'],'Inizio la fase',journeys.view(self.work)['revision'])
+        self.assertEqual(started['stages'][0]['status'],'working','starting a phase needs no review')
 
     def test_start_work_links_native_steps_and_rejects_missing_artifacts(self):
         working=journeys.record(self.work,'understand',[],['catalog'],'Reading the saved documentation',self.value['revision'])
@@ -91,6 +115,31 @@ class GuidedProjects(unittest.TestCase):
         self.assertEqual(done['awaiting_owner'],[])
         with self.assertRaises(ValueError):journeys.decide_many(self.work,['design'],'approve',done['revision'])
 
+    def test_connections_chosen_in_the_intake_are_assigned_when_the_project_starts(self):
+        other=self.root/'conn';other.mkdir()
+        from righaven import connections
+        fixture=patch.object(connections,'folder',side_effect=lambda user:(self.root/'users'/user).mkdir(parents=True,exist_ok=True) or self.root/'users'/user)
+        fixture.start();self.addCleanup(fixture.stop)
+        value=journeys.start(other,'data-pipeline',{'goal':'Leggi il warehouse'},0,None,['provawh'],'alice',{'provawh':'source'},['provawh'])
+        self.assertEqual(journeys.compact(value)['connections'],[{'id':'provawh','use':'source','write':False}],'writing is consent for destinations only')
+        with self.assertRaises(ValueError):journeys.start(self.root/'x','data-pipeline',{'goal':'x'},0,None,['a'],None)
+        projects.create_plan(other,'Catalogo',[{'id':'read','agent':'workspace','goal':'Leggi','depends_on':[]}])
+        stored=json.loads((other/'.righaven-project'/'project.json').read_text())['connections']
+        self.assertEqual((stored['ids'],stored['owner']),(['provawh'],'alice'))
+        # The first phase must read the source connection the owner chose.
+        plan=other/'.righaven-project'/'project.json';project=json.loads(plan.read_text())
+        project['steps'].append({'id':'review','agent':'workspace','goal':'Review','status':'completed','purpose':'review','depends_on':[],
+                                 'attempts':[{'status':'completed','finished_at':'2999-01-01T00:00:00+00:00'}]})
+        state.atomic_json(plan,project)
+        artifact=other/'catalogo.md';artifact.write_text('Catalogo')
+        with self.assertRaisesRegex(ValueError,'source connections the owner chose'):
+            journeys.record(other,'understand',[str(artifact)],['read'],'Catalogo pronto',journeys.view(other)['revision'])
+        project=json.loads(plan.read_text());project['roles']=[{'id':'lettore','connections':['provawh']}];state.atomic_json(plan,project)
+        self.assertEqual(journeys.record(other,'understand',[str(artifact)],['read'],'Catalogo pronto',journeys.view(other)['revision'])['stages'][0]['status'],'review')
+        destination=self.root/'dest';destination.mkdir()
+        both=journeys.start(destination,'data-pipeline',{'goal':'Scrivi i mart'},0,None,['dw'],'alice',{'dw':'destination'},['dw'])
+        self.assertEqual(journeys.compact(both)['connections'],[{'id':'dw','use':'destination','write':True}])
+
     def test_goal_from_the_intake_is_the_project_result_without_asking_again(self):
         value=projects.read_project(self.work)
         self.assertEqual(value['outcome']['result'],'Create a documented data laboratory and business reports')
@@ -100,6 +149,35 @@ class GuidedProjects(unittest.TestCase):
         # A coordinator that only records open questions keeps the owner's goal as the result.
         projects.create_plan(self.work,'',[],outcome={'questions':['Foglio di calcolo o pagina web?']})
         self.assertEqual(projects.read_project(self.work)['outcome']['result'],'Create a documented data laboratory and business reports')
+
+    def test_reviews_stay_proportionate_and_phases_without_approval_need_none(self):
+        def run(step, purpose, turn):
+            folder=self.work/'outputs'/(step+turn);folder.mkdir(parents=True,exist_ok=True);(folder/'out.md').write_text('testo')
+            reply={'ok':True,'error':'','output_dir':str(folder),'handoff':{'source_files':[],'output_files':[str(folder/'out.md')],'previews':[],
+                   'checks':[{'name':'Letto','status':'passed','evidence':'riaperto'}]}}
+            return json.loads(projects.execute_step(self.work,'workspace','Esegui',step,lambda task,started:json.dumps(reply),purpose=purpose,request_id=turn))
+        projects.set_policy_plan(self.work,[])
+        projects.create_plan(self.work,'',[{'id':'rev','agent':'workspace','goal':'Revisione','depends_on':[]}])
+        path=self.work/'.righaven-project'/'project.json';value=json.loads(path.read_text())
+        value['steps']=[s for s in value['steps'] if s['id']!='review'];state.atomic_json(path,value)
+        journeys.record(self.work,'understand',[],['catalog'],'Leggo la documentazione',journeys.view(self.work)['revision'])
+        self.assertTrue(run('catalog','work','t1')['ok'])
+        self.assertTrue(run('rev','review','t2')['ok'])
+        self.assertTrue(run('rev','review','t3')['ok'],'one more review after a correction is allowed')
+        with self.assertRaisesRegex(ValueError,'already had two independent reviews'):
+            run('rev','review','t4')
+        with projects.locked(self.work) as folder:
+            raw=json.loads((folder/'journey.json').read_text());raw['definition']['stages'][0]['gate']=False
+            state.atomic_json(folder/'journey.json',raw)
+        with self.assertRaisesRegex(ValueError,'needs no separate review'):
+            run('rev','review','t5')
+
+    def test_guided_roles_receive_the_recipe_skills(self):
+        journey=journeys.view(self.work)
+        self.assertEqual(journey['recipe']['skills'],['skill-data-pipeline'])
+        roles=journeys.with_recipe_skills([{'id':'catalog','skills':['skill-duckdb']},{'id':'reviewer'}],journey,['skill-data-pipeline','skill-duckdb'])
+        self.assertEqual([r['skills'] for r in roles],[['skill-data-pipeline','skill-duckdb'],['skill-data-pipeline']])
+        self.assertEqual(journeys.with_recipe_skills([{'id':'x'}],journey,[])[0]['skills'],[],'only skills the account has enabled')
 
     def test_guided_phase_gates_replace_chat_checkpoints_while_free_projects_keep_them(self):
         def run(work, step, turn):

@@ -3,6 +3,10 @@ on:
   push:
     branches: [main]
   pull_request:
+    # Documentation-only changes do not rebuild and restart the runtime; main still builds every merge.
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
   workflow_dispatch:
 concurrency:
   group: harness-${{ github.event.pull_request.number || github.ref }}
@@ -133,11 +137,18 @@ jobs:
         if: matrix.component == 'sandbox' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
         id: software
         run: python scripts/software_image.py resolve
+      - name: Record the build identity shown on the Overview page
+        id: identity
+        run: echo "built_at=$(date -u +%Y-%m-%dT%H:%MZ)" >> "$GITHUB_OUTPUT"
       - name: Build deployment candidate once
         uses: docker/build-push-action@v6
         with:
           context: .
           file: docker/Dockerfile.${{ matrix.component }}
+          build-args: |
+            RIGHAVEN_COMMIT=${{ github.event.pull_request.head.sha || github.sha }}
+            RIGHAVEN_BUILT_AT=${{ steps.identity.outputs.built_at }}
+            RIGHAVEN_REF=${{ github.event.pull_request.number && format('PR #{0}', github.event.pull_request.number) || github.ref_name }}
           target: ${{ matrix.component == 'sandbox' && 'core' || '' }}
           tags: righaven-${{ matrix.component }}:0.1.0
           labels: org.opencontainers.image.source=https://github.com/${{ github.repository }}

@@ -113,6 +113,10 @@ class PolicyBookTests(unittest.TestCase):
     def test_independent_sheets_share_a_wave_and_dependants_wait(self):
         sheets = [{'id': 'a', 'depends_on': []}, {'id': 'b', 'depends_on': []}, {'id': 'c', 'depends_on': ['a']}]
         self.assertEqual([[s['id'] for s in wave] for wave in policy_workflow.waves(sheets)], [['a', 'b'], ['c']])
+        # A re-validation repeats only pending sheets: a prerequisite already passed does not block its dependants.
+        self.assertEqual([[s['id'] for s in wave] for wave in policy_workflow.waves([sheets[2]], {'a', 'b'})], [['c']])
+        with self.assertRaisesRegex(ValueError, 'non risolvibili'):
+            policy_workflow.waves([sheets[2]])
 
 
 class PolicyWorkflowTests(unittest.TestCase):
@@ -268,6 +272,13 @@ class PolicyLifecycleTests(unittest.TestCase):
         self.lock = threading.Lock()
         # The three first-wave reviews only pass this barrier if they really run together.
         self.barrier = threading.Barrier(3, timeout=20)
+
+    def test_final_validation_waits_for_the_last_guided_phase_without_an_error(self):
+        from righaven import journeys
+        journeys.start(self.root, 'data-pipeline', {'goal': 'Dashboard semplice con dati di esempio'})
+        reply = json.loads(harness_validate.func(runtime=self.runtime, role_id='reviewer'))
+        self.assertEqual((reply['ok'], reply['deferred'], reply['current_phase']), (False, True, 'understand'))
+        self.assertIn('Nothing is blocked', reply['instruction'])
 
     def reply(self, text):
         from types import SimpleNamespace

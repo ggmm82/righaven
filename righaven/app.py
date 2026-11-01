@@ -41,6 +41,8 @@ app.include_router(journey_router)
 app.include_router(connection_router)
 from .usage_routes import router as usage_router
 app.include_router(usage_router)
+from .build_routes import router as build_router
+app.include_router(build_router)
 from contextlib import asynccontextmanager
 from starlette.concurrency import run_in_threadpool
 _native_lifespan = app.router.lifespan_context

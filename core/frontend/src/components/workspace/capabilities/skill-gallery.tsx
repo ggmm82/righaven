@@ -96,7 +96,8 @@ function SkillList({ skills, query }: { skills: Skill[]; query: string }) {
   const { user } = useAuth();
   const isAdmin = user?.system_role === "admin";
   const [exportName, setExportName] = useState<string | null>(null);
-  const [filter, setFilter] = useState<string>("public");
+  // RigHaven ships its skills as integrations: open on all skills so the list is never empty by default.
+  const [filter, setFilter] = useState<string>("all");
   const { mutate: enableSkill, isPending: isEnabling } = useEnableSkill();
   const [selectedSkill, setSelectedSkill] = useState<Skill | null>(null);
   const params=useSearchParams();

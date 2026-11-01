@@ -32,10 +32,13 @@ class Connection(BaseModel):
     client_secret: Optional[str] = Field(default=None, max_length=512)
     cloud: str = Field(default='public', max_length=20)
     mode: Optional[str] = Field(default=None, max_length=20)
+    access: Optional[str] = Field(default=None, max_length=10)
+    write_schema: Optional[str] = Field(default=None, max_length=128)
 
 
 class Assignment(BaseModel):
     ids: list[str] = Field(default_factory=list, max_length=10)
+    write: list[str] = Field(default_factory=list, max_length=10)
 
 
 async def run(function, *args):
@@ -123,8 +126,9 @@ async def assign(thread_id: ThreadId, body: Assignment, request: Request):
     same_origin(request)
     workspace = get_paths().sandbox_user_data_dir(thread_id, user_id=get_effective_user_id())
     from .audit_log import append
-    result = await run(connections.assign, get_effective_user_id(), workspace, body.ids)
-    append(workspace, 'Connessioni', 'Connessioni assegnate al lavoro', 'completed', ', '.join(body.ids) or 'nessuna')
+    result = await run(connections.assign, get_effective_user_id(), workspace, body.ids, body.write)
+    append(workspace, 'Connessioni', 'Connessioni assegnate al lavoro', 'completed', (', '.join(body.ids) or 'nessuna')
+           + (' · scrittura consentita: ' + ', '.join(body.write) if body.write else ''))
     return {'assigned': result}
 
 

@@ -242,6 +242,11 @@ export function DelegateProgress({ threadId, active, pending, coordinatorError =
   const nativeSummary = nativeOperation ? nativeOperation.label + (nativeOperation.progress?.total ? tr(` · ${nativeOperation.progress.done ?? 0}/${nativeOperation.progress.total} campioni`, ` · ${nativeOperation.progress.done ?? 0}/${nativeOperation.progress.total} samples`) : "") : null;
   const summary = clarifying && !working ? (questions[0] || tr("Mancano risultato atteso e forma della consegna.", "Expected result and delivery form are missing.")) : working ? (nativeSummary ?? (specificAction ? current.summary : current.work_summary || current.summary)) : attention?.message
     ?? (coordinatorError ? tr("Il coordinatore si è fermato. I file già salvati restano disponibili.", "The coordinator has stopped. Files already saved remain available.") : project?.summary || project?.brief);
+  // In a guided task the saved path is the source of truth while the team is idle: the coordinator's last summary may predate the owner's decision.
+  const guidedStatus = guided.journey && !working && !active && !paused ? (guided.journey.awaiting_owner?.length
+    ? tr("Tocca a te: decidi sulla fase nel riquadro qui sopra.", "Your turn: decide on the phase in the box above.")
+    : guided.journey.complete ? null
+    : guidedStage ? tr(`Fase «${guidedStage.title.it}» pronta per la squadra: premi Riprendi lavoro.`, `Phase “${guidedStage.title.en}” is ready for the team: press Resume work.`) : null) : null;
   const toggle = (value: string) => setPanel(tab === value ? null : { threadId, tab: value });
   useEffect(() => { setPanel(null); setResumeRequested(null); setResumeError(null); setAcceptError(null); setAccepting(false); setControlBusy(false); setControlNotice(""); }, [threadId]);
   useEffect(() => {
@@ -623,9 +628,9 @@ export function DelegateProgress({ threadId, active, pending, coordinatorError =
       <div className="flex items-center justify-between gap-2"><strong className="text-sm" data-testid="harness-status"><span aria-hidden="true" className={`mr-2 inline-block h-2 w-2 rounded-full ${working ? "bg-blue-500" : ready ? "bg-emerald-500" : attention || clarifying || coordinatorError ? "bg-amber-500" : "bg-muted-foreground"}`} />{title}</strong>
         {current && <span className="text-muted-foreground shrink-0 text-xs">{duration(secondsSince(current.started_at || current.created_at, now))}</span>}
       </div>
-      {summary && !paused && <p className="line-clamp-2 text-sm" data-testid="harness-summary">{summary}</p>}
+      {(guidedStatus ?? summary) && !paused && <p className="line-clamp-2 text-sm" data-testid="harness-summary">{guidedStatus ?? summary}</p>}
       {health && <p className="text-muted-foreground line-clamp-1 text-xs" data-testid="harness-health">{health}</p>}
-      {!paused && !working && !clarifying && project?.next_action && !attention && <p className="text-muted-foreground line-clamp-2 text-xs">{tr("Prossimo passo:", "Next step:")} {project.next_action}</p>}
+      {!paused && !working && !clarifying && !guidedStatus && project?.next_action && !attention && <p className="text-muted-foreground line-clamp-2 text-xs">{tr("Prossimo passo:", "Next step:")} {project.next_action}</p>}
       {waitingForReview && !active && <p className="text-xs">{tr("Guarda il risultato e indica nella chat cosa vuoi correggere. Una verifica non disponibile non richiede di rigenerare tutto.", "Look at the result and say in the chat what you want to fix. An unavailable check does not require regenerating everything.")}</p>}
       {(attention || coordinatorError) && !active && !working && <p className="text-xs">{attention?.action ?? tr("Verifica il servizio AI e riprendi il lavoro dai risultati disponibili.", "Check the AI service and resume work from the available results.")}
         {(!attention || attention.code.startsWith("provider_")) && <> <a className="underline" href="/workspace/harness">{tr("Apri La tua squadra", "Open Your team")}</a></>}</p>}

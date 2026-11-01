@@ -1,4 +1,5 @@
 """Real Gateway owner and permission checks for guided projects."""
+import json
 import os
 from pathlib import Path
 from types import SimpleNamespace
@@ -46,6 +47,10 @@ class JourneyRoutes(unittest.TestCase):
                 self.assertEqual(client.put(url,json=conflict,headers=headers).status_code,409)
                 work=root/'alice/guided';projects.create_plan(work,'Read documentation',[{'id':'read','agent':'workspace','goal':'Catalog','depends_on':[]}])
                 artifact=work/'catalog.md';artifact.write_text('Documented model')
+                plan=work/'.righaven-project'/'project.json';value=json.loads(plan.read_text())
+                value['steps'].append({'id':'review','agent':'workspace','goal':'Independent review','status':'completed','purpose':'review','depends_on':[],
+                                       'attempts':[{'status':'completed','finished_at':'2999-01-01T00:00:00+00:00'}]})
+                state.atomic_json(plan,value)  # the phase was independently reviewed before the owner decides
                 pending=journeys.record(work,'understand',[str(artifact)],['read'],'Actual catalog for owner review',saved['revision'])
                 decision={'stage_id':'understand','approve':True,'expected_revision':pending['revision']}
                 self.assertEqual(client.post(url+'/decision',json=decision,headers={'X-Test-User':'bob'}).status_code,404)

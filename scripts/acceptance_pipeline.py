@@ -190,9 +190,30 @@ def dlt(c):
     if (INSTALL/'apps/sqlmesh/venv/bin/python').is_file():
         readable=subprocess.run([python('sqlmesh'),'-c',"import duckdb,sys;print(duckdb.connect(sys.argv[1],read_only=True).execute('SELECT count(*) FROM raw.ordine').fetchone()[0])",str(c.root/'Run/warehouse.duckdb')],capture_output=True,text=True)
         c.check('The warehouse written by DuckDB 2 is readable by the SQLMesh DuckDB',readable.stdout.strip()=='3',readable.stderr[-300:])
+    load_destination(c)
     secret=c.root/'leaky';shutil.copytree(project,secret);(secret/'.env').write_text('X=1\n')
     denied=subprocess.run(['dlt-cli','call','run',json.dumps({'input':str(secret/'pipeline.py'),'resource_dir':str(secret),'source_database':str(source),'output':str(c.root/'Denied')})],capture_output=True,text=True)
     c.check('A project containing a credentials file is refused',denied.returncode!=0,denied.stderr[-300:])
+
+
+def load_destination(c):
+    """dlt.load writes the verified tables only into a write-enabled schema the owner allowed for the task."""
+    folder=Path('/run/righaven/connections')
+    try:folder.mkdir(parents=True,exist_ok=True)
+    except PermissionError:
+        c.check('dlt.load fixture skipped: the connection mount cannot be created here',True,'');return
+    target=c.root/'destination.sqlite'
+    (folder/'destinazione.json').write_text(json.dumps({'kind':'postgres','url':'sqlite:///'+str(target),'write_enabled':True,'write_schema':'main'}))
+    (folder/'sola-lettura.json').write_text(json.dumps({'kind':'postgres','url':'sqlite:///'+str(target),'read_only':True,'write_enabled':False,'write_schema':''}))
+    try:
+        warehouse=c.root/'Run/warehouse.duckdb'
+        result=operation(c,'load',connection='destinazione',database=str(warehouse),tables=['raw.ordine'],mode='replace',output=str(c.root/'Load'))
+        rows=subprocess.run([python('dlt'),'-c',"import sqlalchemy,sys;e=sqlalchemy.create_engine('sqlite:///'+sys.argv[1]);print(e.connect().exec_driver_sql('SELECT count(*), sum(importo) FROM ordine').fetchone())",str(target)],capture_output=True,text=True)
+        c.check('dlt.load writes the verified table into the owner-enabled destination',result['rows']==3 and rows.stdout.strip().startswith('(3,'),[result,rows.stdout,rows.stderr[-300:]])
+        denied=subprocess.run(['dlt-cli','call','load',json.dumps({'connection':'sola-lettura','database':str(warehouse),'tables':['ordine'],'mode':'append','output':str(c.root/'LoadDenied')})],capture_output=True,text=True)
+        c.check('A connection without write consent for the task is refused',denied.returncode!=0 and 'Scrittura non consentita' in denied.stderr,denied.stderr[-300:])
+    finally:
+        for name in ('destinazione.json','sola-lettura.json'):(folder/name).unlink(missing_ok=True)
 
 
 def sqlmesh(c):

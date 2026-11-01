@@ -304,9 +304,13 @@ def live(workspace, value):
     return result
 
 
-def waves(sheets):
-    """Independent sheets run together; a dependent sheet waits for its prerequisites."""
-    remaining, done, result = list(sheets), set(), []
+def waves(sheets, settled=()):
+    """Independent sheets run together; a dependent sheet waits for its prerequisites.
+
+    settled names sheets outside this run that already have a verdict for the product
+    (for example a passed sheet a re-validation does not repeat): their dependants are not blocked.
+    """
+    remaining, done, result = list(sheets), set(settled), []
     while remaining:
         ready = [s for s in remaining if set(s['depends_on']) <= done]
         if not ready:

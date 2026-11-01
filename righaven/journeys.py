@@ -50,9 +50,13 @@ def _answers(body):
     return result
 
 
-def start(workspace, identifier, answers, expected_revision=0, recipe=None):
+def start(workspace, identifier, answers, expected_revision=0, recipe=None, connections=None, owner=None, uses=None, write=None):
+    """Save the owner's choices; connections picked in the intake are assigned to the task when its project starts."""
     recipe = recipe or definition(identifier)
     clean = _answers(answers)
+    if connections is not None and (not isinstance(connections, list) or len(connections) > 10 or not owner
+                                    or not all(isinstance(c, str) for c in connections)):
+        raise ValueError('Invalid connections')
     if not clean['goal']:
         raise ValueError('Describe the desired outcome')
     with locked(workspace) as folder:
@@ -60,7 +64,7 @@ def start(workspace, identifier, answers, expected_revision=0, recipe=None):
         if previous:
             if previous['recipe_id'] != identifier:
                 raise ValueError('This task already has a guided workflow')
-            if previous['answers'] == clean:
+            if previous['answers'] == clean and (connections is None or (previous.get('connections') or {}).get('ids') == connections):
                 return view(workspace, previous)  # Idempotent retry after a lost save response.
             if previous['revision'] != expected_revision:
                 raise ValueError('Guided project changed; reload before saving')
@@ -79,6 +83,11 @@ def start(workspace, identifier, answers, expected_revision=0, recipe=None):
                      'definition': copy.deepcopy(recipe['workflow']), 'answers': clean, 'created_at': utcnow(),
                      'revision': 0, 'stages': [{'id': s['id'], 'status': 'pending', 'evidence': [], 'steps': [], 'note': ''}
                                                for s in recipe['workflow']['stages']]}
+        if connections is not None:
+            ids = list(dict.fromkeys(connections))
+            uses = {k: v for k, v in (uses or {}).items() if k in ids and v in ('source', 'destination')}
+            # The owner says what each connection is for; a destination they allow writing to carries that consent.
+            value['connections'] = {'owner': str(owner), 'ids': ids, 'uses': uses, 'write': [c for c in (write or []) if uses.get(c) == 'destination']}
         _save(folder, value)
     return view(workspace, value)
 
@@ -190,6 +199,14 @@ def record(workspace, stage_id, evidence, steps, note, expected_revision, propos
         project = load(folder, workspace) or {}
         if not steps or not set(steps).issubset({s['id'] for s in project.get('steps', [])}):
             raise ValueError('Link this phase to actual native project activities')
+        if evidence and stage.get('gate', True):
+            _require_review(project, steps)
+        if evidence and not stage['depends_on']:
+            # The first phase reads the source: connections the owner chose as sources must actually be used.
+            sources = [c for c, use in ((raw.get('connections') or {}).get('uses') or {}).items() if use == 'source']
+            declared = {c for role in project.get('roles', []) for c in role.get('connections', [])}
+            if set(sources) - declared:
+                raise ValueError('Read the source connections the owner chose in this phase: declare them in roles_json connections: ' + ', '.join(sorted(set(sources) - declared)))
         kept = []
         for filename in evidence:
             path = artifact_path(workspace, filename)
@@ -208,6 +225,17 @@ def record(workspace, stage_id, evidence, steps, note, expected_revision, propos
         _invalidate(raw, stage_id)
         _save(folder, raw)
     return view(workspace, raw)
+
+
+def _require_review(project, steps):
+    """The owner decides on reviewed results: the independent review of the phase must have finished first."""
+    by_id = {s['id']: s for s in project.get('steps', [])}
+    produced = max([a.get('finished_at') or '' for sid in steps for a in by_id[sid].get('attempts', [])] or [''])
+    reviews = [s for s in project.get('steps', []) if s.get('purpose') == 'review']
+    if any(s['status'] in ('pending', 'running') for s in reviews):
+        raise ValueError('Wait for the running quality review to finish before submitting this phase to the owner')
+    if not any(s['status'] == 'completed' and ((s.get('attempts') or [{}])[-1].get('finished_at') or '') >= produced for s in reviews):
+        raise ValueError('Run the independent quality review of this phase before submitting it to the owner')
 
 
 def _invalidate(value, identifier):
@@ -305,6 +333,17 @@ def pin_policy(plan, journey):
     return plan
 
 
+def with_recipe_skills(roles, journey, enabled):
+    """A guided task works with its recipe's method: every role receives the recipe skills the account has enabled."""
+    method = [s for s in (journey.get('recipe') or {}).get('skills', []) if s in set(enabled)]
+    result = []
+    for role in roles:
+        if isinstance(role, dict) and isinstance(role.get('skills', []), list):
+            role = {**role, 'skills': list(dict.fromkeys([*method, *role.get('skills', [])]))[:12]}
+        result.append(role)
+    return result
+
+
 def compact(value):
     """What the coordinator needs each turn: choices, phase states and evidence paths, without the full definition and policy."""
     if not value:
@@ -313,6 +352,8 @@ def compact(value):
     return {'recipe_id': value['recipe_id'], **({'recipe': recipe} if recipe else {}),
             'revision': value['revision'], 'answers': value['answers'], 'current': value['current'],
             'complete': value['complete'], 'awaiting_owner': value.get('awaiting_owner', []),
+            'connections': [{'id': c, 'use': ((value.get('connections') or {}).get('uses') or {}).get(c, 'unspecified'),
+                             'write': c in ((value.get('connections') or {}).get('write') or [])} for c in (value.get('connections') or {}).get('ids', [])],
             'stages': [{'id': s['id'], 'title': s['title']['it'], 'outcome': s['outcome']['it'], 'status': s['status'], 'available': s['available'],
                         'gate': s.get('gate', True), 'note': s.get('note', '')[:400], 'evidence': [e['path'] for e in s.get('evidence', [])],
                         **({'proposal': s['proposal']} if s.get('proposal') else {}), **({'decision_note': s['decision_note'][:400]} if s.get('decision_note') else {})}
@@ -327,7 +368,8 @@ def instructions(workspace):
             '\nRead the attachments first. Ask at most three decisive unknowns, with recommendations. '
             'Connections are optional; complete a synthetic local path without real accounts. '
             'Compose dynamic roles and use authorized skills/environments for the current outcome. '
-            'Record actual evidence and native step IDs with harness_journey; only the owner approves gates, '
+            'Record actual evidence and native step IDs with harness_journey; only the owner approves gates. '
+            'Submit a gated phase only after its independent quality review has finished, so the owner decides on reviewed results; '
             'phases with gate=false complete when their evidence is recorded. '
             + (value['definition'].get('guidance') or '') + (' ' if value['definition'].get('guidance') else '') +
             'Do not ask the user to write SQL, JSON, YAML or CLI commands. '
@@ -335,6 +377,12 @@ def instructions(workspace):
             'Only the owner approves, asks for corrections or skips a phase, with the buttons in the project card above the chat '
             '(«Approva fase», «Chiedi correzioni», «Salta fase»). Never use ask_clarification or a chat question to approve, confirm or continue a phase, '
             'and never claim a chat reply approved it: after submitting a phase result, end the turn with a short summary and point to «Tocca a te» in the project card. '
-            'Use ask_clarification only for a decisive choice about the result that no phase answers. '
+            'Use ask_clarification only for a decisive choice about the result that no phase answers; never to ask how to continue between phases. '
+            'Keep checks proportionate: one independent review (purpose=review) per phase that asks for approval, one more only after a correction; '
+            'phases without approval need no separate review and reviews are never reviewed. harness_validate is the final policy validation of the finished product '
+            'and runs only after the last phase is settled. '
+            'Every role works with the recipe skills (recipe.skills, added automatically) and, where the phase needs them, the recipe tools. '
+            'The connections in this task (connections) were chosen by the owner: roles that read the source or write the destination must declare them in roles_json connections; '
+            'if a phase does not use them, say why in its note. '
             'At the first turn compare the goal with all phases and, in that same turn, propose skipping every phase the goal does not need '
             '(for example a demo with sample data needs no replica, recurring pipeline or package) with harness_journey(propose_skip=true) and a reason; the owner decides all of them at once.')
