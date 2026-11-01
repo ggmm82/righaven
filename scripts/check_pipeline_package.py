@@ -69,10 +69,18 @@ print(json.dumps(result))
                 assert '<table' not in html and 'Business report' in html and 'textContent' in html # tables are rendered from actual saved data
                 run('docker','exec',container,'/opt/ingest/bin/python','/app/ops/orchestrate.py','health')
                 run('docker','rm','-f',container)
-            # Run an identical snapshot again without generating another batch: no duplicate rows.
-            run('docker','run','--rm','--network=none','--mount','type=volume,src='+volume+',dst=/data',
-                '-e','PIPELINE_ENV=test','-e','RIGHAVEN_SOURCE_DUCKDB=/data/source-stub.duckdb','-e','RIGHAVEN_WAREHOUSE_DUCKDB=/data/warehouse.duckdb',tag,
-                '/opt/ingest/bin/python','/app/ingestion/pipeline.py')
+            # Verify updates/deletes and a repeated snapshot using actual source data.
+            snapshot_args=['docker','run','--rm','--network=none','--mount','type=volume,src='+volume+',dst=/data',
+                '-e','PIPELINE_ENV=test','-e','RIGHAVEN_SOURCE_DUCKDB=/data/source-stub.duckdb','-e','RIGHAVEN_WAREHOUSE_DUCKDB=/data/warehouse.duckdb',tag]
+            edit="import duckdb;c=duckdb.connect('/data/source-stub.duckdb');c.execute('DELETE FROM vendite.ordine WHERE id=(SELECT min(id) FROM vendite.ordine)');c.execute('UPDATE vendite.ordine SET importo=87654321 WHERE id=(SELECT min(id) FROM vendite.ordine)')"
+            run(*snapshot_args,'/opt/ingest/bin/python','-c',edit)
+            for repeat in (1,2):
+                run(*snapshot_args,'/opt/ingest/bin/python','/app/ingestion/pipeline.py')
+                raw=run(*snapshot_args,'/opt/ingest/bin/python','-c',"import duckdb;c=duckdb.connect('/data/warehouse.duckdb',read_only=True);print(c.execute('SELECT count(*), max(importo) FROM raw.ordine').fetchone())")
+                assert '5' in raw and '87654321' in raw,raw
+            run(*snapshot_args,'/opt/transform/bin/sqlmesh','-p','/data/transform','--gateway','local','plan','--restate-model','*','--auto-apply','--no-prompts')
+            total=run(*snapshot_args,'/opt/transform/bin/python','-c',"import duckdb;c=duckdb.connect('/data/warehouse.duckdb',read_only=True);print(c.execute('SELECT sum(ordine_count) FROM marts.ordine_by_cliente').fetchone()[0])").strip()
+            assert total=='5',total
             # Actual source-engine laboratory, using the delivered Compose overlay.
             package=out/'package'
             (package/'.env').write_text((package/'.env.example').read_text().replace('STUB_ROWS=200','STUB_ROWS=3')+'\nSTUB_ROWS_LIMIT=3\n')

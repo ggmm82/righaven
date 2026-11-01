@@ -9,3 +9,6 @@ reports/
 *.zip
 pip-metadata-*/
 pip-unpack-*/
+
+# Local smoke-test logs are not release inputs.
+/logs/

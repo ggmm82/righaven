@@ -37,6 +37,7 @@ class JourneyRoutes(unittest.TestCase):
                 self.assertEqual(client.get(url,headers={'X-Test-User':'bob'}).status_code,404)
                 self.assertEqual(client.get(url,headers={'X-Test-User':'denied'}).status_code,403)
                 body={'recipe_id':'data-pipeline','answers':{'goal':'Document the supplied schema'},'expected_revision':0}
+                self.assertEqual(client.put(url,json={**body,'recipe_id':'unknown-workflow'},headers=headers).status_code,404)
                 response=client.put(url,json=body,headers=headers);self.assertEqual(response.status_code,200,response.text)
                 saved=response.json()['journey'];self.assertTrue(saved['connections_optional'])
                 self.assertEqual(client.get(url,headers=headers).json()['journey']['revision'],saved['revision'])

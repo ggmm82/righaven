@@ -164,7 +164,7 @@ def invoke(app,action,args,cli):
                     connection={**connection,'database':'warehouse.duckdb'}
                     gateway['connection']=connection
                 database=Path(connection.get('database','data.duckdb'))
-                if database.is_absolute() or '..' in database.parts:raise ValueError('Keep SQLMesh state and data inside the copied project')
+                if database.is_absolute() or '..' in database.parts or '{{' in str(database):raise ValueError('Keep SQLMesh state and data inside the copied project')
             project=output/'project';shutil.copytree(sources,project)
             # SQLMesh checks every gateway's engine library when it loads the configuration; the executed copy keeps
             # only the selected local gateway, the original with its production gateways stays in Sources.

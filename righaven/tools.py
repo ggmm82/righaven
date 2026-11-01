@@ -83,6 +83,8 @@ async def harness_package_check(runtime: Runtime, package_path: str) -> str:
         package_path: Existing exported package directory inside this conversation outputs.
     """
     from .package_checks import check
+    from .capability_policy import runtime_policy, require_tools
+    require_tools(runtime_policy(runtime),['dlt','sqlmesh','faker','duckdb','supercronic'])
     from .cancellation import call
     return json.dumps(await call(check, workspace_for(runtime), package_path), ensure_ascii=False)
 

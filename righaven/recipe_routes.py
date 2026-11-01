@@ -59,7 +59,11 @@ async def guided_start(thread_id: ThreadId, body: GuidedStart, request: Request)
     same_origin(request)
     from .capability_policy import native_policy
     policy = await run_in_threadpool(native_policy, get_effective_user_id())
-    if journeys.definition(body.recipe_id)['skill'] not in policy['skill_names']:
+    try:
+        selected_recipe=journeys.definition(body.recipe_id)
+    except ValueError as error:
+        raise HTTPException(404,str(error)) from error
+    if selected_recipe['skill'] not in policy['skill_names']:
         raise HTTPException(403, 'Enable the workflow skill before starting this guided project')
     workspace = get_paths().sandbox_user_data_dir(thread_id, user_id=get_effective_user_id())
     try:
