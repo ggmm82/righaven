@@ -144,6 +144,11 @@ def invoke(app,action,args,cli):
                 database=Path(connection.get('database','data.duckdb'))
                 if database.is_absolute() or '..' in database.parts:raise ValueError('Keep SQLMesh state and data inside the copied project')
             project=output/'project';shutil.copytree(sources,project)
+            if len(gateways)>1:
+                # SQLMesh checks every gateway's engine library when it loads the configuration; the executed copy keeps
+                # only the selected local gateway, the original with its production gateways stays in Sources.
+                executed={**config,'gateways':{selected:gateways[selected]},'default_gateway':selected}
+                (project/actual.relative_to(sources)).write_text(json.dumps(executed,indent=2))
             if args.get('warehouse'):
                 # The DuckDB warehouse filled by a local dlt run becomes the executed gateway's database (a copy).
                 warehouse=cli.scoped(args['warehouse'])
