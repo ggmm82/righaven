@@ -842,15 +842,19 @@ window.showThread();
                               {'id':'lab','title':text('Laboratorio','Laboratory'),'outcome':text('Replica vuota','Empty replica'),'status':'pending','available':False,'gate':False,'note':'','evidence':[]}]}
                 page.reload()
                 strip=dock.get_by_test_id('project-journey')
-                expect(strip).to_contain_text('Pipeline dati end-to-end')
+                identity=dock.get_by_test_id('project-identity')
+                expect(identity.get_by_test_id('project-journey')).to_have_count(1)  # one card: the path lives inside the project header
                 expect(strip.get_by_test_id('journey-goal')).to_have_text('Obiettivo: Dashboard semplice con dati di esempio')
-                expect(strip.get_by_test_id('journey-progress')).to_have_text('0/3 fasi concluse')
+                expect(identity.get_by_test_id('journey-progress')).to_have_text('0/3 fasi concluse')
+                expect(identity).not_to_contain_text('incarichi conclusi')  # a single progress measure
+                expect(strip.get_by_role('button',name='Prosegui con la squadra')).to_have_count(0)  # one action row
+                expect(dock.get_by_role('button',name='Riprendi lavoro')).to_have_count(0)  # the owner decides first
                 decision=strip.get_by_test_id('journey-decision')
                 expect(decision.get_by_role('link',name='catalogo.md')).to_be_visible()
                 decision.get_by_role('button',name='Approva fase',exact=True).click()
-                expect(strip.get_by_test_id('journey-progress')).to_have_text('1/3 fasi concluse')
+                expect(identity.get_by_test_id('journey-progress')).to_have_text('1/3 fasi concluse')
                 assert state['journey_decision']=={'stage_id':'understand','action':'approve','expected_revision':4,'note':''},state['journey_decision']
-                strip.get_by_role('button',name='Tutte le fasi',exact=True).click()
+                dock.get_by_role('button',name='Fasi e dettagli',exact=True).click()
                 phases=page.get_by_test_id('journey-phases')
                 expect(phases.get_by_test_id('journey-phase')).to_have_count(3)
                 expect(phases.get_by_test_id('journey-phase').nth(2)).to_contain_text('senza approvazione')

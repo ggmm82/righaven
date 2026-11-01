@@ -13,7 +13,7 @@ export type Journey={recipe_id:string;recipe?:{title:string;skills:string[];envi
 export type JourneyAction="approve"|"revise"|"skip"|"reopen"|"keep";
 
 const DONE=["approved","skipped"];
-const continueMessage=()=>tr("Prosegui il percorso guidato salvato con harness_journey. Leggi prima gli allegati e le mie scelte; presenta il prossimo risultato utile. Non chiedermi configurazioni tecniche. Le connessioni sono facoltative.","Continue the saved guided project with harness_journey. Read attachments and my choices first; present the next useful result. Do not ask me to write technical configuration. Connections are optional.");
+export const continueMessage=()=>tr("Prosegui il percorso guidato salvato con harness_journey. Leggi prima gli allegati e le mie scelte; presenta il prossimo risultato utile. Non chiedermi configurazioni tecniche. Le connessioni sono facoltative.","Continue the saved guided project with harness_journey. Read attachments and my choices first; present the next useful result. Do not ask me to write technical configuration. Connections are optional.");
 
 /** One source of truth for the guided project of a thread, shared by the card strip and the Path tab. */
 export function useJourney(threadId:string){
@@ -72,19 +72,22 @@ function Proposals({stages,state}:{stages:Stage[];state:JourneyState}){
  </div>;
 }
 
+export const settledPhases=(journey:Journey)=>journey.stages.filter(s=>DONE.includes(s.status)).length;
+
 /** Compact path strip shown in the project card: where we are, what waits for the owner, how to go on. */
-export function JourneyStrip({threadId,state,onOpen,onContinue,busyTeam}:{threadId:string;state:JourneyState;onOpen?:()=>void;onContinue?:(message:string)=>unknown;busyTeam?:boolean}){
+export function JourneyStrip({threadId,state,onOpen,onContinue,busyTeam,embedded=false}:{threadId:string;state:JourneyState;onOpen?:()=>void;onContinue?:(message:string)=>unknown;busyTeam?:boolean;embedded?:boolean}){
  const language=useUiLanguage();
  const journey=state.journey;
  if(!journey)return null;
  const settled=journey.stages.filter(s=>DONE.includes(s.status)).length;
  const current=journey.stages.find(s=>s.id===journey.current);
  const waiting=journey.stages.filter(s=>(journey.awaiting_owner??[]).includes(s.id));
- return <section className="space-y-2 border-b p-3 text-sm" data-testid="project-journey" aria-label={tr("Percorso guidato","Guided project")}>
-  <div className="flex flex-wrap items-baseline justify-between gap-2">
+ // Embedded in the project card the strip has no title, counter or buttons of its own: the card provides one header and one action row.
+ return <section className={embedded?"space-y-2 text-sm":"space-y-2 border-b p-3 text-sm"} data-testid="project-journey" aria-label={tr("Percorso guidato","Guided project")}>
+  {!embedded&&<div className="flex flex-wrap items-baseline justify-between gap-2">
    <p className="font-semibold">{tr("Percorso guidato","Guided project")}{journey.recipe?.title?` · ${journey.recipe.title}`:""}</p>
    <p className="text-muted-foreground text-xs" data-testid="journey-progress">{settled}/{journey.stages.length} {tr("fasi concluse","phases settled")}</p>
-  </div>
+  </div>}
   <ol className="flex gap-1" aria-label={tr("Fasi del percorso","Guided phases")}>{journey.stages.map(s=><li key={s.id} className="min-w-0 flex-1" title={`${title(s)} · ${statusLabel(s.status)}`}>
    <span className={`block h-1.5 rounded-full ${tone(s.status)} ${s.id===journey.current?"ring-2 ring-offset-1 ring-blue-500/60":""}`}/><span className="sr-only">{title(s)}: {statusLabel(s.status)}</span></li>)}</ol>
   <p data-testid="journey-goal"><strong>{tr("Obiettivo:","Goal:")}</strong> {journey.answers.goal}</p>
@@ -92,14 +95,14 @@ export function JourneyStrip({threadId,state,onOpen,onContinue,busyTeam}:{thread
    <ul className="mt-1 list-inside list-disc">{journey.recipe.outputs[language].map(o=><li key={o}>{o}</li>)}</ul>
    {journey.stages.some(s=>s.status==="skipped")&&<p className="text-muted-foreground mt-1">{tr("Le fasi saltate non producono i loro risultati.","Skipped phases do not produce their results.")}</p>}</details>}
   {journey.complete?<p>{tr("Tutte le fasi sono concluse: la squadra può completare la consegna.","All phases are settled: the team can complete the delivery.")}</p>
-   :current&&<p data-testid="journey-current"><strong>{tr("Fase attuale:","Current phase:")}</strong> {title(current)} · {statusLabel(current.status)}{current.gate===false?tr(" · senza approvazione"," · no approval needed"):""}</p>}
+   :current&&<p data-testid="journey-current"><strong>{tr(`Fase ${journey.stages.indexOf(current)+1} di ${journey.stages.length}:`,`Phase ${journey.stages.indexOf(current)+1} of ${journey.stages.length}:`)}</strong> {title(current)} · {statusLabel(current.status)}{current.gate===false?tr(" · senza approvazione"," · no approval needed"):""}</p>}
   {waiting.filter(s=>s.status==="review"||waiting.filter(w=>w.status!=="review").length===1).map(s=><Decision key={s.id+":"+journey.revision} stage={s} state={state} threadId={threadId}/>)}
   {waiting.filter(s=>s.status!=="review").length>1&&<Proposals stages={waiting.filter(s=>s.status!=="review")} state={state}/>}
   {state.error&&<p className="text-xs" role="alert">{state.error}</p>}
-  <div className="flex flex-wrap gap-2">
+  {!embedded&&<div className="flex flex-wrap gap-2">
    {onOpen&&<button type="button" className="rounded-lg border px-3 py-1.5" onClick={onOpen}>{tr("Tutte le fasi","All phases")}</button>}
    {onContinue&&!waiting.length&&!journey.complete&&!busyTeam&&<button type="button" disabled={state.busy} className="rounded-lg border px-3 py-1.5" onClick={()=>onContinue(continueMessage())}>{tr("Prosegui con la squadra","Continue with the team")}</button>}
-  </div>
+  </div>}
  </section>;
 }
 

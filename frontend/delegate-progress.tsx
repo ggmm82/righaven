@@ -12,7 +12,7 @@ import { ProjectConnections } from "./project-connections";
 import { ProjectDesign, type Design } from "./project-design";
 import { ProjectGuide } from "./project-guide";
 import { GovernanceStrip, ProfileUseLine, ToolChoices, type LiveGovernance, type ToolDecision } from "./project-governance";
-import { JourneyPhases, JourneyStrip, ProjectJourney, useJourney } from "./project-journey";
+import { continueMessage, JourneyPhases, JourneyStrip, ProjectJourney, settledPhases, useJourney } from "./project-journey";
 
 const providers: Record<string, string> = trMap({ codex:["Codex", "Codex"], gemini:["Antigravity", "Antigravity"], deepseek:["DeepSeek", "DeepSeek"], openai:["OpenAI compatibile", "OpenAI compatible"] });
 type Delivery = { version_state?: string; recovery?: { status: string; message: string; session_error: string }; unchanged_content?: boolean; change_kind?: string; content_version?: number | null; reused_archive_checks?: number; finalization_pending?: string[]; source_coverage?: { status: string; components: { name: string; tool: string; status: string; sources: {path: string; member?: string}[] }[] }; timing?: {status:string; cues:{name:string;status:string;delta_seconds:number}[]}; category?: string; version?: number | null; execution_status?: string; file_count?: number; role_title?: string; review?: { target_delivery_id: string | null; target_version?: number | null; target_label: string; status: string; validated: boolean; matches_current_brief: boolean; report_path: string; correction_count: number }; id: string; title: string; agent: string; at: string; current: boolean; contribution?: boolean; technical_status: string; issues: string[]; purpose: string };
@@ -325,7 +325,7 @@ export function DelegateProgress({ threadId, active, pending, coordinatorError =
     try {
       if (paused) { await pause(); await control(false); }
       else if(deliveryRequested) await control(false);
-      await onContinue?.();
+      await (guided.journey ? onContinue?.(continueMessage()) : onContinue?.());
       if (resumeOwner.current === owner && resumeSequence.current === sequence) setControlNotice("");
     }
     catch {
@@ -608,13 +608,14 @@ export function DelegateProgress({ threadId, active, pending, coordinatorError =
       </footer>}
       </div>
     </dialog>}
-    {guided.journey && <JourneyStrip threadId={threadId} state={guided} busyTeam={active || working} onContinue={onContinue} onOpen={() => toggle("journey")}/>}
     <div className="space-y-1 p-3" role="status" aria-live="polite" aria-atomic="true">
       {project && <div className="mb-2 space-y-1 border-b pb-2" data-testid="project-identity">
-        <p className="line-clamp-1 text-sm font-semibold tracking-tight">{project.outcome?.title || project.outcome?.result || tr("Il tuo progetto", "Your project")}</p>
+        <div className="flex items-baseline justify-between gap-2"><p className="line-clamp-1 text-sm font-semibold tracking-tight">{project.outcome?.title || guided.journey?.recipe?.title || project.outcome?.result || tr("Il tuo progetto", "Your project")}</p>
+          {guided.journey && <p className="text-muted-foreground shrink-0 text-xs" data-testid="journey-progress">{settledPhases(guided.journey)}/{guided.journey.stages.length} {tr("fasi concluse", "phases settled")}</p>}</div>
         {selectedDelivery?.version && <p className="text-xs">{versionName(selectedDelivery)}{editing && editing.id !== selectedDelivery.id ? tr(` · ${versionName(editing)} in lavorazione`, ` · ${versionName(editing)} in progress`) : ""}</p>}
         <p className="text-muted-foreground line-clamp-1 text-xs">{tr("Consegna:", "Delivery:")} {project.outcome?.format || tr("da definire", "to be defined")}</p>
-        {planned.length > 0 && <p className="text-muted-foreground line-clamp-2 text-xs">{completed} {tr("di", "of")} {planned.length} {tr("incarichi conclusi", "assignments completed")}</p>}
+        {planned.length > 0 && !guided.journey && <p className="text-muted-foreground line-clamp-2 text-xs">{completed} {tr("di", "of")} {planned.length} {tr("incarichi conclusi", "assignments completed")}</p>}
+        {guided.journey && <JourneyStrip threadId={threadId} state={guided} embedded/>}
         <GovernanceStrip governance={governance}/>
       </div>}
       <div className="flex items-center justify-between gap-2"><strong className="text-sm" data-testid="harness-status"><span aria-hidden="true" className={`mr-2 inline-block h-2 w-2 rounded-full ${working ? "bg-blue-500" : ready ? "bg-emerald-500" : attention || clarifying || coordinatorError ? "bg-amber-500" : "bg-muted-foreground"}`} />{title}</strong>
@@ -637,8 +638,8 @@ export function DelegateProgress({ threadId, active, pending, coordinatorError =
       <button type="button" className={tabStyle} onClick={() => toggle("intervene")}>{tr("Intervieni", "Step in")}</button>
       {(active || working) && <button type="button" className={tabStyle} disabled={controlBusy||deliveryRequested} onClick={()=>void deliverNow()}>{deliveryRequested?tr("Consegna richiesta…", "Delivery requested…"):tr("Consegna ora", "Deliver now")}</button>}
       {(active || working) && onPause && <button type="button" className={tabStyle} disabled={controlBusy} onClick={() => void pauseWork()}>{controlBusy ? tr("Attendi…", "Please wait…") : tr("Metti in pausa", "Pause")}</button>}
-      {!active && !working && (deliveryRequested || (!ready && !waitingForReview && !questions.length)) && onContinue && <button type="button" className={tabStyle} disabled={controlBusy || resumeRequested === threadId} onClick={() => void resume()}>{resumeRequested === threadId ? tr("Ripresa richiesta…", "Resume requested…") : tr("Riprendi lavoro", "Resume work")}</button>}
-      <button type="button" className={`${tabStyle} ml-auto`} onClick={() => toggle("project")}>{tr("Dettagli progetto", "Project details")}</button>
+      {!active && !working && !guided.journey?.awaiting_owner?.length && (deliveryRequested || (!ready && !waitingForReview && !questions.length)) && onContinue && <button type="button" className={tabStyle} disabled={controlBusy || resumeRequested === threadId} onClick={() => void resume()}>{resumeRequested === threadId ? tr("Ripresa richiesta…", "Resume requested…") : tr("Riprendi lavoro", "Resume work")}</button>}
+      <button type="button" className={`${tabStyle} ml-auto`} onClick={() => toggle(guided.journey ? "journey" : "project")}>{guided.journey ? tr("Fasi e dettagli", "Phases and details") : tr("Dettagli progetto", "Project details")}</button>
     </nav>
 
   </section>;

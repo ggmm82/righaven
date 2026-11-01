@@ -35,11 +35,19 @@ def main():
             def __init__(self,code,body):self.status_code,self.body=code,body
             def json(self):return self.body
         if url.endswith('/devicecode'):return Reply(200,{'device_code':'D','user_code':'ABCD-EFGH','verification_uri':'https://microsoft.com/devicelogin','expires_in':900,'interval':1})
+        if data.get('grant_type')=='refresh_token':return Reply(200,{'access_token':'AT','expires_in':3600})
         polls.append(1)
-        return Reply(400,{'error':'authorization_pending'}) if len(polls)<2 else Reply(200,{'refresh_token':'RT-secret','id_token':'h.'+claims+'.s'})
+        return Reply(400,{'error':'authorization_pending'}) if len(polls)%2 else Reply(200,{'refresh_token':'RT-secret','id_token':'h.'+claims+'.s'})
+    def azure(url,headers,timeout):
+        class Reply:
+            headers={'content-type':'application/json'}
+            def __init__(self,body):self.status_code,self.body=200,body
+            def json(self):return self.body
+        if url.endswith('/subscriptions?api-version=2022-12-01'):return Reply({'value':[{'subscriptionId':'s1','displayName':'Produzione'}]})
+        return Reply({'value':[{'name':'vendite/master'},{'name':'vendite/erp','location':'westeurope'},{'name':'vendite/hr','location':'westeurope'}]})
     with tempfile.TemporaryDirectory() as directory,patch.object(state,'STATE',Path(directory)/'state'),\
          patch.object(connections,'folder',side_effect=lambda user:(Path(directory)/'users'/user).mkdir(parents=True,exist_ok=True) or Path(directory)/'users'/user),\
-         patch.dict(os.environ,{'RIGHAVEN_CREDENTIALS_KEY':Fernet.generate_key().decode()}),patch('httpx.post',side_effect=microsoft):
+         patch.dict(os.environ,{'RIGHAVEN_CREDENTIALS_KEY':Fernet.generate_key().decode()}),patch('httpx.post',side_effect=microsoft),patch('httpx.get',side_effect=azure):
         root=Path(directory);workspace=root/'work';workspace.mkdir()
         (root/'fetch.ts').write_text('export const fetch=window.fetch.bind(window);')
         (root/'config.ts').write_text('export function getBackendBaseURL(){return ""}')
@@ -75,6 +83,7 @@ createRoot(document.getElementById('root')!).render(location.pathname.includes('
                 if self.path=='/api/harness/connections':return self.send(json.dumps(connections.save('owner',body)))
                 if self.path.endswith('/sign-in'):return self.send(json.dumps(connections.sign_in('owner',self.path.split('/')[4])))
                 if self.path.endswith('/sign-in/poll'):return self.send(json.dumps(connections.complete_sign_in('owner',self.path.split('/')[4])))
+                if self.path.endswith('/databases'):return self.send(json.dumps(connections.databases('owner',self.path.split('/')[4])))
                 if self.path.endswith('/decision'):
                     value=(journeys.decide_many(workspace,body['stage_ids'],body['action'],body['expected_revision'],body['note']) if body.get('stage_ids')
                            else journeys.decide(workspace,body['stage_id'],None,body['expected_revision'],body['note'],body['action']));return self.send(json.dumps({'journey':value}))
@@ -83,6 +92,7 @@ createRoot(document.getElementById('root')!).render(location.pathname.includes('
                 return self.send('{}',code=404)
             def do_PUT(self):
                 body=json.loads(self.rfile.read(int(self.headers.get('Content-Length','0'))))
+                if self.path.startswith('/api/harness/connections/'):return self.send(json.dumps(connections.save('owner',body,self.path.split('/')[4])))
                 value=journeys.start(workspace,body['recipe_id'],body['answers'],body['expected_revision'],journeys.definition(body['recipe_id'],'owner'));return self.send(json.dumps({'journey':value}))
         server=ThreadingHTTPServer(('127.0.0.1',0),Handler);thread=threading.Thread(target=server.serve_forever,daemon=True);thread.start()
         try:
@@ -157,6 +167,26 @@ createRoot(document.getElementById('root')!).render(location.pathname.includes('
                 expect(signing).to_contain_text('Accesso completato: marco@contoso.com',timeout=10000)
                 expect(row).to_contain_text('Account marco@contoso.com')
                 assert 'RT-secret' not in json.dumps(connections.listing('owner'))
+                # SQL Server with my Microsoft account: paste the connection string, sign in, pick the database from the list.
+                page.get_by_role('button',name='Nuova: SQL Server / Azure SQL / Fabric',exact=True).click()
+                form=page.get_by_test_id('connection-form')
+                expect(form.get_by_label('Autenticazione',exact=True)).to_have_value('microsoft')
+                form.get_by_label('Nome',exact=True).fill('Vendite Azure')
+                form.get_by_label('Server, URL o stringa di connessione',exact=True).fill('Server=tcp:vendite.database.windows.net,1433;Initial Catalog=;User ID=marco@contoso.com;Encrypt=True;')
+                form.get_by_label('Utente (email dell’account Microsoft)',exact=True).fill('marco@contoso.com')
+                form.get_by_label('Confermo che l’account ha solo permessi di lettura').check()
+                form.get_by_role('button',name='Salva',exact=True).click()
+                sql=page.get_by_test_id('connection-vendite-azure')
+                expect(sql).to_contain_text('vendite.database.windows.net:1433')
+                expect(sql.get_by_role('button',name='Elenca database',exact=True)).to_be_disabled()
+                sql.get_by_role('button',name='Accedi con Microsoft',exact=True).click()
+                expect(sql.get_by_test_id('microsoft-sign-in')).to_contain_text('Accesso completato: marco@contoso.com',timeout=10000)
+                sql.get_by_role('button',name='Elenca database',exact=True).click()
+                listing=sql.get_by_test_id('database-list')
+                expect(listing).to_contain_text('erp');expect(listing).not_to_contain_text('master')
+                listing.get_by_role('listitem').filter(has_text='erp').get_by_role('button',name='Usa questo database').click()
+                expect(sql).to_contain_text('vendite.database.windows.net:1433 / erp')
+                assert connections._read('owner','vendite-azure')['refresh_token']=='RT-secret','choosing the database keeps the sign-in'
                 assert not errors,errors
                 page.close()
                 # Recipe editor: the user composes skills, environment and phases into a new recipe, then starts it.
@@ -165,27 +195,32 @@ createRoot(document.getElementById('root')!).render(location.pathname.includes('
                 expect(page.get_by_test_id('recipe-vocabulary')).to_contain_text('Skill · come si lavora')
                 page.get_by_role('button',name='Nuova ricetta',exact=True).click()
                 editor=page.get_by_test_id('recipe-editor')
-                editor.get_by_label('Titolo',exact=True).fill('Dashboard demo')
-                editor.get_by_label('Quando usarla',exact=True).fill('Per mostrare un’idea con dati di esempio')
-                editor.get_by_label('Cosa produce, in breve',exact=True).fill('Una dashboard semplice con dati sintetici')
-                editor.get_by_label('duckdb',exact=False).check()
-                editor.get_by_label('Ambiente',exact=True).select_option('dati')
-                expect(editor.get_by_test_id('recipe-tools')).to_contain_text('duckdb, jupyter')
-                editor.get_by_label('Titolo fase 1',exact=True).fill('Indicatori')
+                editor.get_by_label('Nome della ricetta',exact=False).fill('Dashboard demo')
+                editor.get_by_label('Che risultato produce',exact=False).fill('Una dashboard semplice con dati sintetici')
+                editor.get_by_label('Quando conviene usarla',exact=False).fill('Per mostrare un’idea con dati di esempio')
+                editor.get_by_label('Cosa si ottiene alla fine',exact=False).fill('Dashboard HTML con i sorgenti')
+                editor.get_by_label('Cosa deve allegare chi la usa',exact=False).fill('Elenco degli indicatori')
+                editor.get_by_role('button',name='Avanti',exact=True).click()
+                editor.get_by_label('Nome fase 1',exact=True).fill('Indicatori')
                 editor.get_by_label('Risultato fase 1',exact=True).fill('Misure e dimensioni concordate')
                 editor.get_by_role('button',name='Aggiungi fase',exact=True).click()
-                editor.get_by_label('Titolo fase 2',exact=True).fill('Dashboard')
+                editor.get_by_label('Nome fase 2',exact=True).fill('Dashboard')
                 editor.get_by_label('Risultato fase 2',exact=True).fill('Report consultabile')
-                editor.get_by_test_id('recipe-phase').nth(1).get_by_label('chiede approvazione').uncheck()
-                editor.get_by_label('Cosa allega l’utente (obbligatorio)',exact=True).fill('Elenco degli indicatori')
-                editor.get_by_label('Cosa si ottiene (obbligatorio)',exact=True).fill('Dashboard HTML con i sorgenti')
+                expect(editor.get_by_test_id('recipe-phase').nth(1).get_by_label('Mi fermo per l’approvazione')).not_to_be_checked()
+                editor.get_by_role('button',name='Avanti',exact=True).click()
+                editor.get_by_label('Dati e analisi',exact=False).check()
+                expect(editor.get_by_test_id('recipe-tools')).to_contain_text('duckdb, jupyter')
+                editor.get_by_text('Cambia le competenze (facoltativo)',exact=True).click()
+                editor.get_by_label('duckdb',exact=False).check()
+                editor.get_by_role('button',name='Avanti',exact=True).click()
+                expect(editor.get_by_test_id('recipe-preview')).to_contain_text('Indicatori — Misure e dimensioni concordate')
                 editor.get_by_role('button',name='Salva ricetta',exact=True).click()
                 mine=page.locator('[data-testid^="recipe-dashboard-demo"]')
                 expect(mine).to_contain_text('tua')
                 expect(mine.get_by_test_id(re.compile('recipe-blocks-'))).to_contain_text('duckdb')
                 expect(mine).to_contain_text('automatica')
                 mine.get_by_role('button',name='Duplica',exact=True).click()
-                expect(page.get_by_test_id('recipe-editor').get_by_label('Titolo',exact=True)).to_have_value('Copia di Dashboard demo')
+                expect(page.get_by_test_id('recipe-editor').get_by_label('Nome della ricetta',exact=False)).to_have_value('Copia di Dashboard demo')
                 page.get_by_test_id('recipe-editor').get_by_role('button',name='Annulla',exact=True).click()
                 assert not errors,errors
                 page.close()

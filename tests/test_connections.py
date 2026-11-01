@@ -132,6 +132,95 @@ class ConnectionTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'personal'):
             connections.sign_in('alice', 'azsql')
 
+    def test_pasted_urls_and_connection_strings_fill_server_port_database_and_user(self):
+        cases = {
+            'Server=tcp:vendite.database.windows.net,1433;Initial Catalog=erp;User ID=marco@contoso.com;Encrypt=True;':
+                {'host': 'vendite.database.windows.net', 'port': 1433, 'database': 'erp', 'username': 'marco@contoso.com'},
+            'jdbc:sqlserver://srv.example.com:1444;databaseName=dw;user=lettore;encrypt=true':
+                {'host': 'srv.example.com', 'port': 1444, 'database': 'dw', 'username': 'lettore'},
+            'tcp:abc.datawarehouse.fabric.microsoft.com,1433': {'host': 'abc.datawarehouse.fabric.microsoft.com', 'port': 1433},
+            'postgresql://lettore@pg.example.com:5433/vendite?sslmode=require': {'host': 'pg.example.com', 'port': 5433, 'database': 'vendite', 'username': 'lettore'},
+            'https://vendite.database.windows.net/': {'host': 'vendite.database.windows.net'},
+        }
+        for text, expected in cases.items():
+            with self.subTest(text=text):
+                self.assertEqual(connections.address('sqlserver', text, {'port': 1433}), expected)
+        self.assertEqual(connections.address('sqlserver', 'db.example.com'), {}, 'a plain host is left as typed')
+        for wrong in ('Server=;Database=x;', 'tcp:srv\\SQLEXPRESS'):
+            with self.assertRaises(ValueError):
+                connections.address('sqlserver', wrong)
+        view = connections.save('alice', {'id': 'incollata', 'kind': 'sqlserver', 'name': 'ERP', 'password': 'p', 'read_only': True,
+                                          'host': 'Server=tcp:erp.example.com,1444;Database=Vendite;User ID=lettore;'})
+        self.assertEqual((view['host'], view['port'], view['database'], view['username']), ('erp.example.com', 1444, 'Vendite', 'lettore'))
+
+    def test_sql_server_with_my_microsoft_account_user_and_database_list(self):
+        import base64
+        claims = lambda who: base64.urlsafe_b64encode(json.dumps({'preferred_username': who}).encode()).decode().rstrip('=')
+        signed_as = ['altro@contoso.com', 'marco@contoso.com']
+
+        class Reply:
+            headers = {'content-type': 'application/json'}
+            def __init__(self, code, body): self.status_code, self.body = code, body
+            def json(self): return self.body
+
+        def post(url, data, timeout):
+            if url.endswith('/devicecode'):
+                return Reply(200, {'device_code': 'D', 'user_code': 'C', 'verification_uri': 'https://microsoft.com/devicelogin'})
+            if data['grant_type'].endswith('device_code'):
+                return Reply(200, {'refresh_token': 'RT', 'id_token': 'h.' + claims(signed_as.pop(0)) + '.s'})
+            return Reply(200, {'access_token': 'AT ' + data['scope'].split()[0], 'expires_in': 3600})
+
+        def get(url, headers, timeout):
+            self.assertTrue(headers['Authorization'].startswith('Bearer AT '))
+            if url.endswith('/subscriptions?api-version=2022-12-01'):
+                return Reply(200, {'value': [{'subscriptionId': 's1', 'displayName': 'Produzione'}, {'subscriptionId': 's2', 'displayName': 'Altra'}]})
+            if '/subscriptions/s2/' in url:
+                return Reply(403, {'error': {'code': 'AuthorizationFailed'}})
+            if '/subscriptions/s1/resources' in url:
+                self.assertIn("Microsoft.Sql/servers/databases", url)
+                return Reply(200, {'value': [{'name': 'vendite/master'}, {'name': 'vendite/erp', 'location': 'westeurope'},
+                                             {'name': 'altro/hr', 'location': 'westeurope'}]})
+            if url.endswith('/v1/workspaces'):
+                return Reply(200, {'value': [{'id': 'w1', 'displayName': 'Analisi'}]})
+            if url.endswith('/w1/warehouses'):
+                return Reply(200, {'value': [{'displayName': 'Magazzino', 'properties': {'connectionString': 'abc.datawarehouse.fabric.microsoft.com'}}]})
+            if url.endswith('/w1/lakehouses'):
+                return Reply(200, {'value': [{'displayName': 'Lago', 'properties': {'sqlEndpointProperties': {'connectionString': 'other.datawarehouse.fabric.microsoft.com'}}}]})
+            return Reply(404, {'errorCode': 'NotFound'})
+
+        view = connections.save('alice', {'id': 'azsql', 'kind': 'sqlserver', 'name': 'Azure SQL', 'authentication': 'microsoft', 'read_only': True,
+                                          'host': 'Server=tcp:vendite.database.windows.net,1433;User ID=marco@contoso.com;'})
+        self.assertEqual((view['username'], view['database'], view['signed_in'], view['tools']), ('marco@contoso.com', '', False, ['usql']))
+        with self.assertRaisesRegex(ValueError, 'email'):
+            connections.save('alice', {'id': 'senza-email', 'kind': 'sqlserver', 'name': 'x', 'authentication': 'microsoft', 'host': 'a.database.windows.net', 'username': 'marco'})
+        with patch('httpx.post', side_effect=post), patch('httpx.get', side_effect=get):
+            connections.sign_in('alice', 'azsql')
+            wrong = connections.complete_sign_in('alice', 'azsql')
+            self.assertEqual(wrong['status'], 'failed'); self.assertIn('altro@contoso.com', wrong['detail'])
+            self.assertFalse(connections.public_view(connections._read('alice', 'azsql'))['signed_in'], 'another account is not kept')
+            connections.sign_in('alice', 'azsql')
+            self.assertEqual(connections.complete_sign_in('alice', 'azsql')['status'], 'signed_in')
+            listed = connections.databases('alice', 'azsql')
+            self.assertEqual(listed, {'databases': [{'name': 'erp', 'detail': 'Produzione · westeurope'}], 'source': 'azure'})
+            with self.assertRaisesRegex(ValueError, 'Choose the database'):
+                connections._file(connections._read('alice', 'azsql'), 'alice')
+            body = {'kind': 'sqlserver', 'name': 'Azure SQL', 'authentication': 'microsoft', 'read_only': True,
+                    'host': 'vendite.database.windows.net', 'username': 'marco@contoso.com', 'database': 'erp'}
+            self.assertTrue(connections.save('alice', body, 'azsql')['signed_in'], 'choosing the database keeps the sign-in')
+            delivered = connections._file(connections._read('alice', 'azsql'), 'alice')
+            self.assertTrue(delivered['usql_url'].startswith('azuresql://marco%40contoso.com:AT%20https%3A%2F%2Fdatabase.windows.net%2F.default@vendite.database.windows.net:1433?database=erp'))
+            self.assertNotIn('RT', json.dumps(delivered))
+            connections.save('alice', {**body, 'id': 'fabric', 'host': 'abc.datawarehouse.fabric.microsoft.com', 'database': ''})
+            connections._write('alice', {**connections._read('alice', 'fabric'), 'refresh_token': 'RT'})
+            self.assertEqual(connections.databases('alice', 'fabric')['databases'], [{'name': 'Magazzino', 'detail': 'Warehouse · Analisi'}])
+            connections.save('alice', {**body, 'id': 'onprem', 'host': 'sql.example.com'})
+            connections._write('alice', {**connections._read('alice', 'onprem'), 'refresh_token': 'RT'})
+            with self.assertRaisesRegex(ValueError, 'type the database name'):
+                connections.databases('alice', 'onprem')
+        self.sqlserver()
+        with self.assertRaisesRegex(ValueError, 'Microsoft account'):
+            connections.databases('alice', 'erp')
+
     def test_existing_entra_applications_keep_working(self):
         connections.save('alice', {'id': 'app', 'kind': 'entra', 'mode': 'application', 'name': 'App', 'tenant_id': 'contoso.onmicrosoft.com',
                                    'client_id': '11111111-2222-3333-4444-555555555555', 'client_secret': 'segreto'})
