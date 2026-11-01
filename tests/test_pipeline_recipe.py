@@ -28,7 +28,8 @@ class NamingAndCursors(unittest.TestCase):
         nullable = json.loads(json.dumps(MODEL))
         nullable['tables'][1]['columns'][4]['nullable'] = True
         self.assertIsNone({t['target']: t for t in pipeline_scaffold.plan_tables(nullable)}['ordine']['cursor'])
-        self.assertEqual(tables['ordine']['write_disposition'], 'merge')
+        self.assertEqual(tables['ordine']['write_disposition'], 'replace')
+        self.assertFalse(tables['ordine']['cursor_confirmed'])
 
     def test_multi_schema_targets_are_prefixed(self):
         model = json.loads(json.dumps(MODEL))
@@ -87,6 +88,26 @@ class CatalogAndInputs(unittest.TestCase):
 
 
 class PackageTemplates(unittest.TestCase):
+    def test_confirming_a_cursor_cannot_silently_replace_the_entire_warehouse(self):
+        import runpy
+        from types import SimpleNamespace
+        from unittest.mock import Mock, patch
+        incremental=Mock(return_value='validated-cursor')
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory)
+            (root/'tables.json').write_text(json.dumps(pipeline_scaffold.plan_tables(MODEL)))
+            (root/'pipeline.py').write_text(pipeline_scaffold.PIPELINE.replace('{name}','test'))
+            with patch.dict(sys.modules,{'dlt':SimpleNamespace(sources=SimpleNamespace(incremental=incremental))}):
+                package=runpy.run_path(str(root/'pipeline.py'))
+                table=package['TABLES'][1]
+                self.assertIsNone(package['confirmed_incremental'](table))
+                table['cursor_confirmed']=True
+                with self.assertRaisesRegex(ValueError,'discard history'):
+                    package['confirmed_incremental'](table)
+                incremental.assert_not_called()
+                table['write_disposition']='merge'
+                self.assertEqual(package['confirmed_incremental'](table),'validated-cursor')
+
     def test_runner_and_dockerfile_contracts(self):
         self.assertIn('flock -n 9', pipeline_scaffold.RUN_SH)
         self.assertIn('disabled in production', pipeline_scaffold.RUN_SH)
@@ -96,13 +117,14 @@ class PackageTemplates(unittest.TestCase):
         self.assertIn('USER pipeline', docker)
         self.assertNotIn('msodbcsql18', pipeline_scaffold.dockerfile('postgres'))
         env = pipeline_scaffold.env_example('fabric', 'oracle')
-        self.assertTrue(all(line.endswith('=') or '=' not in line or line.split('=', 1)[1] in ('test', 'raw', 'local', '200', 'fabric', '/data/source-stub.duckdb', '/data/warehouse.duckdb')
+        self.assertTrue(all(line.endswith('=') or '=' not in line or line.split('=', 1)[1] in ('test', 'raw', 'local', '200', 'fabric', 'project_ingestion', 'html', '/data/source-stub.duckdb', '/data/warehouse.duckdb')
                             for line in env.splitlines() if not line.startswith('#')), 'no secret values in .env.example')
 
     def test_production_gateway_uses_env_var_secrets(self):
         for target in ('postgres', 'tsql', 'fabric'):
             config = pipeline_scaffold.sqlmesh_config(target, 'vendite', '@hourly')
             self.assertIn('default_gateway: local', config)
+            self.assertIn("{{ env_var('RIGHAVEN_WAREHOUSE_DUCKDB'",config, 'generated f-string must retain actual Jinja braces')
             for line in config.splitlines():
                 if 'password' in line:
                     self.assertIn('env_var(', line, target)

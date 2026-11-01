@@ -12,6 +12,7 @@ import { ProjectConnections } from "./project-connections";
 import { ProjectDesign, type Design } from "./project-design";
 import { ProjectGuide } from "./project-guide";
 import { GovernanceStrip, ProfileUseLine, ToolChoices, type LiveGovernance, type ToolDecision } from "./project-governance";
+import { ProjectJourney } from "./project-journey";
 
 const providers: Record<string, string> = trMap({ codex:["Codex", "Codex"], gemini:["Antigravity", "Antigravity"], deepseek:["DeepSeek", "DeepSeek"], openai:["OpenAI compatibile", "OpenAI compatible"] });
 type Delivery = { version_state?: string; recovery?: { status: string; message: string; session_error: string }; unchanged_content?: boolean; change_kind?: string; content_version?: number | null; reused_archive_checks?: number; finalization_pending?: string[]; source_coverage?: { status: string; components: { name: string; tool: string; status: string; sources: {path: string; member?: string}[] }[] }; timing?: {status:string; cues:{name:string;status:string;delta_seconds:number}[]}; category?: string; version?: number | null; execution_status?: string; file_count?: number; role_title?: string; review?: { target_delivery_id: string | null; target_version?: number | null; target_label: string; status: string; validated: boolean; matches_current_brief: boolean; report_path: string; correction_count: number }; id: string; title: string; agent: string; at: string; current: boolean; contribution?: boolean; technical_status: string; issues: string[]; purpose: string };
@@ -378,13 +379,14 @@ export function DelegateProgress({ threadId, active, pending, coordinatorError =
     const timer = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(timer);
   }, [working, pending]);
-  if (!jobs.length && !project && !pending && !coordinatorError) return <details className="mb-2 rounded-xl border text-sm" data-testid="chat-audit-only" onToggle={event => setPanel(event.currentTarget.open ? { threadId, tab: "audit" } : null)}>
+  if (!jobs.length && !project && !pending && !coordinatorError) return <><ProjectJourney threadId={threadId} onContinue={onContinue}/><details className="mb-2 rounded-xl border text-sm" data-testid="chat-audit-only" onToggle={event => setPanel(event.currentTarget.open ? { threadId, tab: "audit" } : null)}>
     <summary className="cursor-pointer p-3">{tr("Registro della conversazione", "Conversation log")}</summary>
     {tab === "audit" && <div className="p-3"><ConversationAudit key={threadId} threadId={threadId} /></div>}
-  </details>;
+  </details></>;
   const health = current ? jobHealth(current, now) : null;
   const recent = [...jobs.filter((job) => !terminalJob(job)), ...jobs.filter(terminalJob).slice(0, 4)];
   return <section ref={dock} className="bg-background relative mb-2 rounded-2xl border shadow-sm" aria-label={tr("Il tuo progetto", "Your project")} data-testid="delegate-progress">
+    <ProjectJourney threadId={threadId} onContinue={onContinue}/>
     {tab && <dialog ref={dialog} onCancel={() => setPanel(null)} onClose={() => setPanel(null)} aria-labelledby="harness-panel-title" className={`bg-background text-foreground fixed inset-0 m-auto ${readingLesson && tab === "experience" ? "h-[calc(100dvh-2rem)]" : "h-[85dvh]"} max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-3xl overflow-hidden rounded-2xl border p-0 shadow-xl backdrop:bg-black/40`} data-testid="harness-drawer">
       <div className="flex h-full min-h-0 flex-col">
       <header className="flex shrink-0 items-center justify-between gap-2 border-b px-4 py-3">

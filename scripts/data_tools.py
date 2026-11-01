@@ -159,14 +159,17 @@ def invoke(app,action,args,cli):
                     if gateway.get(key):raise ValueError('Use the local gateway for state and test connections')
                 connection=gateway.get('connection') or {}
                 if connection.get('type')!='duckdb' or set(connection)&{'password','token','host','user','url'}:raise ValueError('The executed gateway must be an isolated local DuckDB connection')
+                # The exported package uses a data-volume path; isolated checks always use a copied local database.
+                if connection.get('database') == "{{ env_var('RIGHAVEN_WAREHOUSE_DUCKDB', '/data/warehouse.duckdb') }}":
+                    connection={**connection,'database':'warehouse.duckdb'}
+                    gateway['connection']=connection
                 database=Path(connection.get('database','data.duckdb'))
-                if database.is_absolute() or '..' in database.parts:raise ValueError('Keep SQLMesh state and data inside the copied project')
+                if database.is_absolute() or '..' in database.parts or '{{' in str(database):raise ValueError('Keep SQLMesh state and data inside the copied project')
             project=output/'project';shutil.copytree(sources,project)
-            if len(gateways)>1:
-                # SQLMesh checks every gateway's engine library when it loads the configuration; the executed copy keeps
-                # only the selected local gateway, the original with its production gateways stays in Sources.
-                executed={**config,'gateways':{selected:gateways[selected]},'default_gateway':selected}
-                (project/actual.relative_to(sources)).write_text(json.dumps(executed,indent=2))
+            # SQLMesh checks every gateway's engine library when it loads the configuration; the executed copy keeps
+            # only the selected local gateway, the original with its production gateways stays in Sources.
+            executed={**config,'gateways':{selected:gateways[selected]},'default_gateway':selected}
+            (project/actual.relative_to(sources)).write_text(json.dumps(executed,indent=2))
             if args.get('warehouse'):
                 # The DuckDB warehouse filled by a local dlt run becomes the executed gateway's database (a copy).
                 warehouse=cli.scoped(args['warehouse'])

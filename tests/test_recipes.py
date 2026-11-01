@@ -24,7 +24,7 @@ class RecipeCatalog(unittest.TestCase):
         for locale, phrase in (('it-IT', 'Usa la ricetta'), ('en-US', 'Use the')):
             card = recipes.detail('data-pipeline', locale)
             self.assertTrue(card['attach_required'] and card['outputs'] and card['questions'])
-            self.assertTrue(card['starter'].startswith(phrase), locale)
+            self.assertEqual(card['starter'], '', 'guided intake replaces bracketed prompts')
             self.assertTrue(any(p['checkpoint'] for p in card['phases']))
             self.assertTrue(any('password' in item.lower() or 'credenzial' in item.lower() for item in card['attach_never']))
         self.assertEqual([p['checkpoint'] for p in recipes.detail('data-pipeline', 'it')['phases']],
@@ -36,7 +36,7 @@ class RecipeCatalog(unittest.TestCase):
         self.assertEqual(recipes.coordinator_index({'skill-harness'}), [])
         row = recipes.coordinator_index({'skill-data-pipeline'})[0]
         self.assertEqual(row['skill'], 'skill-data-pipeline')
-        self.assertIn('Modello e catalogo', row['checkpoints'])
+        self.assertIn('Comprensione e catalogo', row['checkpoints'])
         self.assertLess(len(json.dumps(everything, ensure_ascii=False)), 4000, 'compact enough for every coordinator turn')
 
     def test_unknown_recipe_and_invalid_definitions_are_rejected(self):
@@ -58,7 +58,8 @@ class RecipeCatalog(unittest.TestCase):
         self.assertIn('frontend/recipes-page.tsx ./frontend/src/app/workspace/recipes/page.tsx', docker)
         self.assertIn('frontend/use-chat-mode.ts ./frontend/src/components/workspace/chats/use-chat-mode.ts', docker)
         hook = (ROOT / 'frontend/use-chat-mode.ts').read_text()
-        self.assertIn('/api/harness/recipes/', hook)
+        self.assertNotIn('recipeStarter', hook)
+        self.assertIn('/harness-journey', (ROOT / 'frontend/recipes-page.tsx').read_text())
         self.assertIn('createSkillPrompt', hook, 'the existing skill mode keeps working')
         self.assertIn('/workspace/recipes', (ROOT / 'core/frontend/src/components/workspace/workspace-nav-chat-list.tsx').read_text())
 

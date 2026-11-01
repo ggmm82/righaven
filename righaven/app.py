@@ -33,10 +33,11 @@ app.include_router(maintenance_router)
 from .version_routes import router as version_router
 app.include_router(version_router)
 from .policy_routes import router as policy_router
-from .recipe_routes import router as recipe_router
+from .recipe_routes import router as recipe_router, journey_router
 from .connection_routes import router as connection_router
 app.include_router(policy_router)
 app.include_router(recipe_router)
+app.include_router(journey_router)
 app.include_router(connection_router)
 from .usage_routes import router as usage_router
 app.include_router(usage_router)

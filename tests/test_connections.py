@@ -94,7 +94,7 @@ class ConnectionTests(unittest.TestCase):
         assigned = connections.assign('alice', self.workspace, ['erp', 'scrittura'])
         self.assertEqual([c['id'] for c in assigned], ['erp', 'scrittura'])
         self.assertNotIn('p@ss:w/rd', json.dumps(projects.read_project(self.workspace)['connections']))
-        delivery = connections.Delivery(self.workspace, Path(self.temp.name) / 'job-c')
+        delivery = connections.Delivery(self.workspace, Path(self.temp.name) / 'job-c', role={'connections':['erp','scrittura']})
         private = Path(self.temp.name) / 'job-c'
         self.assertEqual(sorted(p.name for p in private.iterdir()), ['erp.json', 'scrittura.json'], 'every assigned connection, chosen by the user')
         self.assertEqual(json.loads((private / 'erp.json').read_text())['username'], 'lettore')
@@ -102,6 +102,8 @@ class ConnectionTests(unittest.TestCase):
         self.assertEqual(delivery.mount_arguments(lambda path, target, ro: f'{path}:{target}:{ro}'), ['--mount', f'{private}:/run/righaven/connections:True'])
         self.assertEqual([c['id'] for c in delivery.public], ['erp', 'scrittura'])
         self.assertNotIn('p@ss:w/rd', json.dumps(delivery.public))
+        self.assertEqual(connections.Delivery(self.workspace, Path(self.temp.name)/'review').public, [], 'review roles receive no connections by default')
+        with self.assertRaises(ValueError):connections.Delivery(self.workspace, Path(self.temp.name)/'denied', role={'connections':['not-granted']})
         delivery.close()
         self.assertFalse(private.exists(), 'the private folder disappears with the worker')
         connections.assign('alice', self.workspace, [])

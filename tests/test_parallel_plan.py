@@ -51,6 +51,19 @@ class ParallelPlanTests(unittest.TestCase):
         self.assertEqual(tools.sibling_plan_calls(runtime('work-3', alone)), [])
         self.assertEqual(tools.sibling_plan_calls(SimpleNamespace(tool_call_id=None, state={})), [])
 
+    def test_phase_start_is_ordered_before_its_sibling_assignment(self):
+        calls=[{'id':'guided-plan','name':'harness_plan'},{'id':'guided-start','name':'harness_journey'},{'id':'guided-work','name':'harness_delegate'}]
+        self.assertEqual(tools.sibling_plan_calls(runtime('guided-work',calls)),['guided-plan','guided-start'])
+        self.assertEqual(tools.sibling_plan_calls(runtime('guided-start',calls),names=('harness_plan',)),['guided-plan'])
+        @tools.signals_plan
+        def finish(runtime):return None
+        finish(runtime=runtime('guided-plan',calls))
+        order=[]
+        worker=threading.Thread(target=lambda:(tools.wait_for_sibling_plans(runtime('guided-work',calls)),order.append('started')))
+        worker.start();time.sleep(.05);self.assertEqual(order,[])
+        finish(runtime=runtime('guided-start',calls));worker.join(5)
+        self.assertEqual(order,['started'])
+
     def test_the_registered_tool_still_exposes_the_plan_arguments(self):
         self.assertIn('roles_json', tools.harness_plan.args)
         self.assertIn('policies_json', tools.harness_plan.args)

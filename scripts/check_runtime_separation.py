@@ -17,7 +17,7 @@ def main():
         shutil.copy2(manifest, source / 'config/worker-bundle.json')
         for section in json.loads(manifest.read_text()).values():
             for relative in section.values():
-                target = source / relative; target.parent.mkdir(exist_ok=True)
+                target = source / relative; target.parent.mkdir(parents=True,exist_ok=True)
                 shutil.copy2(repo / relative, target)
         shutil.copytree(repo/'config',source/'config',dirs_exist_ok=True)
         shutil.copytree(repo/'docker',source/'docker')

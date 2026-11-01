@@ -5,45 +5,370 @@
       "id": "data-pipeline",
       "skill": "skill-data-pipeline",
       "environment": "pipeline-dati",
-      "tools": ["sqlglot", "duckdb", "tbls", "faker", "dlt", "sqlmesh", "supercronic", "hadolint", "shellcheck", "actionlint", "gitleaks"],
-      "keywords": ["database", "schema", "catalogo", "catalog", "data dictionary", "dizionario dati", "ddl", "etl", "elt", "pipeline", "data warehouse", "warehouse", "replica", "dati di test", "test data", "stub", "power bi", "fabric", "bi", "ingestion", "acquisizione"],
+      "tools": [
+        "sqlglot",
+        "duckdb",
+        "tbls",
+        "faker",
+        "dlt",
+        "sqlmesh",
+        "supercronic",
+        "hadolint",
+        "shellcheck",
+        "actionlint",
+        "gitleaks"
+      ],
+      "keywords": [
+        "database",
+        "schema",
+        "catalogo",
+        "catalog",
+        "data dictionary",
+        "dizionario dati",
+        "ddl",
+        "etl",
+        "elt",
+        "pipeline",
+        "data warehouse",
+        "warehouse",
+        "replica",
+        "dati di test",
+        "test data",
+        "stub",
+        "power bi",
+        "fabric",
+        "bi",
+        "ingestion",
+        "acquisizione"
+      ],
       "it": {
         "title": "Pipeline dati end-to-end",
-        "summary": "Dalla documentazione di un database a un catalogo descritto, a un ambiente di test con dati finti e a un pacchetto pronto per la produzione che alimenta il tuo strumento BI.",
+        "summary": "Dai documenti a un laboratorio dati, pipeline periodiche, report BI e pacchetto distribuibile verificato.",
         "when": "Hai la documentazione o un'analisi di un database e vuoi descriverlo, provarlo in locale senza dati reali e impostare acquisizione, trasformazioni e reportistica.",
-        "attach_required": ["Almeno una descrizione dello schema: script DDL (anche solo schema, senza dati), un documento di analisi (PDF, Word, Excel) oppure file di esempio JSON, XML, Parquet o CSV"],
-        "attach_optional": ["Dizionario dati o glossario con il significato di tabelle e colonne", "Elenco delle tabelle prioritarie", "Esempi dei report o degli indicatori che la BI deve mostrare", "Vincoli di orario o di frequenza (per esempio: aggiornamento ogni notte)"],
-        "attach_never": ["Credenziali o password di produzione: se serve leggere un database vivo ti chiederò un account in sola lettura da fornire come file privato"],
-        "questions": ["Su quale database gira la sorgente (PostgreSQL, SQL Server, MySQL/MariaDB, Oracle, solo file)?", "Dove arrivano i dati in produzione (PostgreSQL, SQL Server, Microsoft Fabric)?", "Quale strumento BI usate (Power BI, Metabase, Superset, altro)?", "Ogni quanto vanno acquisiti e trasformati i dati?", "Quante righe per tabella servono nei lotti di prova?"],
-        "outputs": ["Catalogo dei dati: una pagina per tabella, diagramma delle relazioni, dati personali evidenziati", "Modello dello schema riutilizzabile e script di creazione per ogni database", "Replica locale vuota e dati di prova sintetici in più lotti, coerenti tra loro", "Pacchetto di produzione: acquisizione, trasformazioni, tabelle per la BI, pianificazione, container e guida al rilascio", "Rapporto di verifica: cosa è stato provato, con quali risultati, e cosa resta da provare sui sistemi reali"],
-        "phases": [
-          {"title": "Raccolta e domande", "checkpoint": true, "detail": "Leggo i documenti e confermo con te sorgente, destinazione, BI e frequenze."},
-          {"title": "Modello e catalogo", "checkpoint": true, "detail": "Ricavo lo schema, aggiungo le descrizioni della documentazione e ti mostro il catalogo da rivedere."},
-          {"title": "Replica e dati di prova", "checkpoint": false, "detail": "Creo la replica vuota, la verifico e genero due lotti di dati finti senza errori di relazione."},
-          {"title": "Pacchetto di produzione", "checkpoint": true, "detail": "Genero il pacchetto e concordo con te le tabelle finali per la BI."},
-          {"title": "Prova completa e consegna", "checkpoint": false, "detail": "Eseguo l'intera catena sui dati di prova, riconcilio i totali e consegno con il rapporto."}
+        "attach_required": [
+          "Almeno una descrizione dello schema: script DDL (anche solo schema, senza dati), un documento di analisi (PDF, Word, Excel) oppure file di esempio JSON, XML, Parquet o CSV"
         ],
-        "prerequisites": ["Niente da installare: gli strumenti vengono preparati automaticamente alla prima fase (la prima volta richiede alcuni minuti)", "Per andare in produzione dopo la consegna: un server con Docker oppure un workspace Microsoft Fabric, e un account in sola lettura sulla sorgente"],
-        "starter": "Usa la ricetta «Pipeline dati end-to-end».\n\nAllego: [descrivi i file allegati: DDL, documento di analisi, file di esempio]\nDatabase sorgente: [PostgreSQL / SQL Server / MySQL / Oracle / solo file]\nDestinazione in produzione: [PostgreSQL / SQL Server / Microsoft Fabric / da decidere]\nStrumento BI: [Power BI / Metabase / Superset / altro]\nFrequenza: [es. acquisizione ogni ora, trasformazione ogni notte]\nCosa mi serve di più: [catalogo / ambiente di test con dati finti / pacchetto per la produzione / tutto]"
+        "attach_optional": [
+          "Dizionario dati o glossario con il significato di tabelle e colonne",
+          "Elenco delle tabelle prioritarie",
+          "Esempi dei report o degli indicatori che la BI deve mostrare",
+          "Vincoli di orario o di frequenza (per esempio: aggiornamento ogni notte)"
+        ],
+        "attach_never": [
+          "Credenziali o password di produzione: se serve leggere un database vivo ti chiederò un account in sola lettura da fornire come file privato"
+        ],
+        "questions": [
+          "Su quale database gira la sorgente (PostgreSQL, SQL Server, MySQL/MariaDB, Oracle, solo file)?",
+          "Dove arrivano i dati in produzione (PostgreSQL, SQL Server, Microsoft Fabric)?",
+          "Quale strumento BI usate (Power BI, Metabase, Superset, altro)?",
+          "Ogni quanto vanno acquisiti e trasformati i dati?",
+          "Quante righe per tabella servono nei lotti di prova?"
+        ],
+        "outputs": [
+          "Catalogo dei dati: una pagina per tabella, diagramma delle relazioni, dati personali evidenziati",
+          "Modello dello schema riutilizzabile e script di creazione per ogni database",
+          "Replica locale vuota e dati di prova sintetici in più lotti, coerenti tra loro",
+          "Pacchetto di produzione: acquisizione, trasformazioni, tabelle per la BI, pianificazione, container e guida al rilascio",
+          "Rapporto di verifica: cosa è stato provato, con quali risultati, e cosa resta da provare sui sistemi reali"
+        ],
+        "phases": [
+          {
+            "title": "Comprensione e catalogo",
+            "detail": "Schema documentato, provenienza, descrizioni e domande aperte",
+            "checkpoint": true
+          },
+          {
+            "title": "Progettazione",
+            "detail": "Architettura, indicatori di business, frequenze e regole di acquisizione concordati",
+            "checkpoint": true
+          },
+          {
+            "title": "Laboratorio",
+            "detail": "Database vuoto, servizi e compatibilità con il motore sorgente dichiarata",
+            "checkpoint": true
+          },
+          {
+            "title": "Dati di prova",
+            "detail": "Lotti ripetibili, modifiche, cancellazioni, vincoli e anomalie",
+            "checkpoint": true
+          },
+          {
+            "title": "Pipeline verificata",
+            "detail": "Acquisizioni ripetute, trasformazioni, riconciliazione e recupero degli errori",
+            "checkpoint": true
+          },
+          {
+            "title": "Reportistica",
+            "detail": "Report realmente consultabili, modificabili e con gli indicatori concordati",
+            "checkpoint": true
+          },
+          {
+            "title": "Pacchetto distribuibile",
+            "detail": "Avvio pulito, secondo ciclo, riavvio e guida al rilascio verificati",
+            "checkpoint": true
+          }
+        ],
+        "prerequisites": [
+          "Niente da installare: gli strumenti vengono preparati automaticamente alla prima fase (la prima volta richiede alcuni minuti)",
+          "Per andare in produzione dopo la consegna: un server con Docker oppure un workspace Microsoft Fabric, e un account in sola lettura sulla sorgente"
+        ],
+        "starter": ""
       },
       "en": {
         "title": "End-to-end data pipeline",
-        "summary": "From a database's documentation to a described catalog, a test environment with synthetic data and a production-ready package feeding your BI tool.",
+        "summary": "From documents to a data lab, periodic pipelines, BI reports and a verified deployable package.",
         "when": "You have the documentation or an analysis of a database and want to describe it, try it locally without real data and set up acquisition, transformations and reporting.",
-        "attach_required": ["At least one description of the schema: DDL scripts (schema only, no data), an analysis document (PDF, Word, Excel) or sample JSON, XML, Parquet or CSV files"],
-        "attach_optional": ["Data dictionary or glossary with the meaning of tables and columns", "List of priority tables", "Examples of the reports or indicators the BI must show", "Time or frequency constraints (for example: refresh every night)"],
-        "attach_never": ["Production credentials or passwords: if a live database must be read I will ask for a read-only account supplied as a private file"],
-        "questions": ["Which database does the source run on (PostgreSQL, SQL Server, MySQL/MariaDB, Oracle, files only)?", "Where does the data land in production (PostgreSQL, SQL Server, Microsoft Fabric)?", "Which BI tool do you use (Power BI, Metabase, Superset, other)?", "How often must data be acquired and transformed?", "How many rows per table do the test batches need?"],
-        "outputs": ["Data catalog: one page per table, relationship diagram, personal data highlighted", "Reusable schema model and creation scripts for each database", "Empty local replica and synthetic test data in several consistent batches", "Production package: acquisition, transformations, BI tables, scheduling, container and release guide", "Verification report: what was tested, with which results, and what remains to be tested on the real systems"],
-        "phases": [
-          {"title": "Intake and questions", "checkpoint": true, "detail": "I read the documents and confirm source, destination, BI and frequencies with you."},
-          {"title": "Model and catalog", "checkpoint": true, "detail": "I derive the schema, add the documentation's descriptions and show you the catalog to review."},
-          {"title": "Replica and test data", "checkpoint": false, "detail": "I create the empty replica, verify it and generate two batches of synthetic data without relationship errors."},
-          {"title": "Production package", "checkpoint": true, "detail": "I generate the package and agree the final BI tables with you."},
-          {"title": "Full test and delivery", "checkpoint": false, "detail": "I run the whole chain on the test data, reconcile totals and deliver with the report."}
+        "attach_required": [
+          "At least one description of the schema: DDL scripts (schema only, no data), an analysis document (PDF, Word, Excel) or sample JSON, XML, Parquet or CSV files"
         ],
-        "prerequisites": ["Nothing to install: tools are prepared automatically at the first phase (a few minutes the first time)", "To go to production after delivery: a server with Docker or a Microsoft Fabric workspace, and a read-only account on the source"],
-        "starter": "Use the \"End-to-end data pipeline\" recipe.\n\nAttached: [describe the attached files: DDL, analysis document, sample files]\nSource database: [PostgreSQL / SQL Server / MySQL / Oracle / files only]\nProduction destination: [PostgreSQL / SQL Server / Microsoft Fabric / to be decided]\nBI tool: [Power BI / Metabase / Superset / other]\nFrequency: [e.g. acquire hourly, transform nightly]\nWhat I need most: [catalog / test environment with synthetic data / production package / all of it]"
+        "attach_optional": [
+          "Data dictionary or glossary with the meaning of tables and columns",
+          "List of priority tables",
+          "Examples of the reports or indicators the BI must show",
+          "Time or frequency constraints (for example: refresh every night)"
+        ],
+        "attach_never": [
+          "Production credentials or passwords: if a live database must be read I will ask for a read-only account supplied as a private file"
+        ],
+        "questions": [
+          "Which database does the source run on (PostgreSQL, SQL Server, MySQL/MariaDB, Oracle, files only)?",
+          "Where does the data land in production (PostgreSQL, SQL Server, Microsoft Fabric)?",
+          "Which BI tool do you use (Power BI, Metabase, Superset, other)?",
+          "How often must data be acquired and transformed?",
+          "How many rows per table do the test batches need?"
+        ],
+        "outputs": [
+          "Data catalog: one page per table, relationship diagram, personal data highlighted",
+          "Reusable schema model and creation scripts for each database",
+          "Empty local replica and synthetic test data in several consistent batches",
+          "Production package: acquisition, transformations, BI tables, scheduling, container and release guide",
+          "Verification report: what was tested, with which results, and what remains to be tested on the real systems"
+        ],
+        "phases": [
+          {
+            "title": "Understanding and catalog",
+            "detail": "Documented schema, provenance, descriptions and unresolved questions",
+            "checkpoint": true
+          },
+          {
+            "title": "Design",
+            "detail": "Agreed architecture, KPIs, schedules and extraction semantics",
+            "checkpoint": true
+          },
+          {
+            "title": "Laboratory",
+            "detail": "Empty database, services and explicit source-engine compatibility",
+            "checkpoint": true
+          },
+          {
+            "title": "Test scenarios",
+            "detail": "Deterministic batches, updates, deletes, constraints and anomalies",
+            "checkpoint": true
+          },
+          {
+            "title": "Verified pipeline",
+            "detail": "Repeated ingestion, transformations, reconciliation and recovery",
+            "checkpoint": true
+          },
+          {
+            "title": "Business intelligence",
+            "detail": "Actual editable reports with agreed business measures",
+            "checkpoint": true
+          },
+          {
+            "title": "Deployable package",
+            "detail": "Clean-start, second-run, restart evidence and deployment runbook",
+            "checkpoint": true
+          }
+        ],
+        "prerequisites": [
+          "Nothing to install: tools are prepared automatically at the first phase (a few minutes the first time)",
+          "To go to production after delivery: a server with Docker or a Microsoft Fabric workspace, and a read-only account on the source"
+        ],
+        "starter": ""
+      },
+      "workflow": {
+        "version": 1,
+        "stages": [
+          {
+            "id": "understand",
+            "title": {
+              "it": "Comprensione e catalogo",
+              "en": "Understanding and catalog"
+            },
+            "outcome": {
+              "it": "Schema documentato, provenienza, descrizioni e domande aperte",
+              "en": "Documented schema, provenance, descriptions and unresolved questions"
+            },
+            "depends_on": []
+          },
+          {
+            "id": "design",
+            "title": {
+              "it": "Progettazione",
+              "en": "Design"
+            },
+            "outcome": {
+              "it": "Architettura, indicatori di business, frequenze e regole di acquisizione concordati",
+              "en": "Agreed architecture, KPIs, schedules and extraction semantics"
+            },
+            "depends_on": [
+              "understand"
+            ]
+          },
+          {
+            "id": "lab",
+            "title": {
+              "it": "Laboratorio",
+              "en": "Laboratory"
+            },
+            "outcome": {
+              "it": "Database vuoto, servizi e compatibilità con il motore sorgente dichiarata",
+              "en": "Empty database, services and explicit source-engine compatibility"
+            },
+            "depends_on": [
+              "design"
+            ]
+          },
+          {
+            "id": "data",
+            "title": {
+              "it": "Dati di prova",
+              "en": "Test scenarios"
+            },
+            "outcome": {
+              "it": "Lotti ripetibili, modifiche, cancellazioni, vincoli e anomalie",
+              "en": "Deterministic batches, updates, deletes, constraints and anomalies"
+            },
+            "depends_on": [
+              "lab"
+            ]
+          },
+          {
+            "id": "pipeline",
+            "title": {
+              "it": "Pipeline verificata",
+              "en": "Verified pipeline"
+            },
+            "outcome": {
+              "it": "Acquisizioni ripetute, trasformazioni, riconciliazione e recupero degli errori",
+              "en": "Repeated ingestion, transformations, reconciliation and recovery"
+            },
+            "depends_on": [
+              "data"
+            ]
+          },
+          {
+            "id": "bi",
+            "title": {
+              "it": "Reportistica",
+              "en": "Business intelligence"
+            },
+            "outcome": {
+              "it": "Report realmente consultabili, modificabili e con gli indicatori concordati",
+              "en": "Actual editable reports with agreed business measures"
+            },
+            "depends_on": [
+              "pipeline"
+            ]
+          },
+          {
+            "id": "package",
+            "title": {
+              "it": "Pacchetto distribuibile",
+              "en": "Deployable package"
+            },
+            "outcome": {
+              "it": "Avvio pulito, secondo ciclo, riavvio e guida al rilascio verificati",
+              "en": "Clean-start, second-run, restart evidence and deployment runbook"
+            },
+            "depends_on": [
+              "bi"
+            ]
+          }
+        ],
+        "policy": {
+          "id": "recipe_data_pipeline",
+          "title": "Pipeline dati: consegna verificata",
+          "version": 1,
+          "summary": "Per le consegne della ricetta pipeline dati: catalogo descritto, replica vuota verificata, dati di prova coerenti, catena locale provata e pacchetto di produzione senza segreti.",
+          "mandatory": false,
+          "rules": [
+            "Distingui struttura osservata nel database, struttura documentata e ipotesi: le relazioni non dichiarate restano documentate, non vincoli.",
+            "Non collegarti a sistemi di produzione senza un account in sola lettura autorizzato dall’utente; nessuna credenziale in modelli, pacchetti, log o lezioni.",
+            "Le colonne con dati personali sono marcate pii e nei dati di prova sono sempre sintetiche.",
+            "Dichiara ciò che il motore di destinazione non applica (per esempio le chiavi su Fabric) e coprilo con audit SQLMesh.",
+            "Consegna i passi di rilascio non eseguiti: lock con hash, digest dell’immagine, credenziali, primo deploy, collegamento dello strumento BI."
+          ],
+          "handoff_checks": [
+            {
+              "id": "model_reviewed",
+              "requirement": "Il modello copre tutte le tabelle documentate e le segnalazioni di issues.md sono risolte o accettate.",
+              "critical": true
+            },
+            {
+              "id": "replica_verified",
+              "requirement": "La replica vuota corrisponde al modello: tabelle, colonne e chiavi primarie senza discrepanze.",
+              "critical": true
+            },
+            {
+              "id": "local_chain_tested",
+              "requirement": "Dati di prova in almeno due lotti senza righe orfane, acquisizione locale e piano SQLMesh applicato con audit.",
+              "critical": true
+            }
+          ],
+          "final_checks": [
+            {
+              "id": "catalog_described",
+              "requirement": "Il catalogo descrive ogni tabella e le colonne rilevanti, con dati personali marcati e diagramma ER.",
+              "critical": true,
+              "method": "content"
+            },
+            {
+              "id": "mart_reconciled",
+              "requirement": "Almeno un totale di un mart è riconciliato con la sorgente di prova, con il valore riportato.",
+              "critical": true,
+              "method": "functional"
+            },
+            {
+              "id": "schedule_valid",
+              "requirement": "Il crontab è valido e i job non si sovrappongono; Dockerfile, script e CI superano i linter o le eccezioni sono motivate.",
+              "critical": true,
+              "method": "technical"
+            },
+            {
+              "id": "package_without_secrets",
+              "requirement": "Il pacchetto di produzione non contiene segreti.",
+              "critical": true,
+              "method": "technical",
+              "probe": "no_secrets"
+            },
+            {
+              "id": "limits_declared",
+              "requirement": "Il runbook elenca i controlli non eseguiti: sistemi reali, volumi, tempi, report BI.",
+              "critical": true,
+              "method": "content"
+            },
+            {
+              "id": "bi_delivered",
+              "requirement": "Actual business report and editable sources open on the synthetic warehouse and reconcile agreed KPIs. BI-ready tables alone do not pass.",
+              "critical": true,
+              "method": "functional"
+            },
+            {
+              "id": "export_started",
+              "requirement": "The exact exported package is built and started independently of RigHaven; a second cycle and restart pass. Preserve command logs and artifact hashes.",
+              "critical": true,
+              "method": "functional"
+            }
+          ],
+          "depends_on": [
+            "quality_standard"
+          ],
+          "applies_to": [
+            "delivery"
+          ]
+        }
       }
     }
   ]

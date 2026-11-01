@@ -33,7 +33,7 @@ def validate(recipe, known_tools=None):
         text = recipe.get(locale)
         if not isinstance(text, dict):
             raise ValueError('Ricetta ' + recipe['id'] + ': testi ' + locale + ' mancanti')
-        for field, limit in (('title', 80), ('summary', 400), ('when', 400), ('starter', 1500)):
+        for field, limit in (('title', 80), ('summary', 400), ('when', 400)):
             _text(text.get(field), limit)
         for field in TEXT_LISTS:
             items = text.get(field, [])

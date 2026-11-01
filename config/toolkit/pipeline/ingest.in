@@ -1,0 +1,7 @@
+dlt[duckdb,postgres,mssql,fabric,sql-database]==1.31.0
+Faker==40.43.0
+psycopg[binary]==3.3.6
+pymssql==2.4.6
+PyMySQL==1.2.3
+oracledb==26.0.1
+pyodbc==5.3.0

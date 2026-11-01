@@ -10,7 +10,7 @@ from pathlib import Path
 import pipeline_model as pm
 
 DESTINATIONS={'postgres':'postgres','tsql':'mssql','fabric':'fabric','duckdb':'duckdb'}
-SOURCE_DRIVERS={'postgres':('postgresql+psycopg2','psycopg2-binary==2.9.11'),'tsql':('mssql+pyodbc','pyodbc==5.3.0'),
+SOURCE_DRIVERS={'postgres':('postgresql+psycopg','psycopg[binary]==3.3.6'),'tsql':('mssql+pyodbc','pyodbc==5.3.0'),
                 'mysql':('mysql+pymysql','PyMySQL==1.2.3'),'oracle':('oracle+oracledb','oracledb==26.0.1'),'sqlite':('sqlite',None),
                 'duckdb':('duckdb',None),'fabric':('mssql+pyodbc','pyodbc==5.3.0')}
 DLT='1.31.0';SQLMESH='0.236.4';FAKER='40.43.0';DUCKDB_TRANSFORM='1.5.6'
@@ -36,11 +36,11 @@ def plan_tables(model):
         target=snake((t['schema']+'__' if len(schemas)>1 and t['schema'] else '')+t['name'])
         # dlt raises on missing cursor values: only NOT NULL columns qualify.
         candidates=[c for c in t['columns'] if not c['nullable']]
-        cursor=next((c['name'] for c in candidates if CURSOR.match(c['name'])),None) or next((c['name'] for c in candidates if CREATED.match(c['name'])),None)
+        cursor=next((c['name'] for c in candidates if CURSOR.match(c['name'])),None)
         cursor_type=next((c['type'] for c in t['columns'] if c['name']==cursor),None)
         if cursor and not re.match(r'(?i)(TIMESTAMP|DATE|DATETIME|INT|BIGINT)',cursor_type or ''):cursor=None
         rows.append({'schema':t['schema'],'name':t['name'],'target':target,'primary_key':list(t['primary_key']),'cursor':cursor,
-                     'write_disposition':'merge' if t['primary_key'] else 'append',
+                     'write_disposition':'replace', 'cursor_confirmed':False, 'candidate_cursor':cursor,
                      'columns':[{'name':c['name'],'target':snake(c['name']),'type':c['type'],'nullable':c['nullable'],'pii':bool(c.get('pii'))} for c in t['columns']]})
     return rows
 
@@ -76,11 +76,19 @@ DATASET=os.environ.get('DESTINATION_DATASET','raw')
 STORAGE='v1.4.0'  # readable by the DuckDB versions of dlt and SQLMesh
 
 
+def confirmed_incremental(table):
+    if not table.get('cursor_confirmed'):
+        return None
+    if not table.get('cursor') or not table.get('primary_key') or table['write_disposition'] != 'merge':
+        raise ValueError('Confirmed incremental acquisition requires a cursor, primary key and merge disposition; replace would discard history')
+    return dlt.sources.incremental(table['cursor'])
+
+
 def local_resources(path):
     import duckdb
     def reader(table):
         name=('"'+table['schema']+'".' if table['schema'] else '')+'"'+table['name']+'"'
-        cursor=dlt.sources.incremental(table['cursor']) if table.get('cursor') else None
+        cursor=confirmed_incremental(table)
         @dlt.resource(name=table['target'],primary_key=table['primary_key'] or None,write_disposition=table['write_disposition'])
         def rows(updated=cursor):
             con=duckdb.connect(path,read_only=True)
@@ -99,14 +107,14 @@ def production_resources():
     resources=[]
     for t in TABLES:
         resource=sql_table(table=t['name'],schema=t['schema'] or None,
-                           incremental=dlt.sources.incremental(t['cursor']) if t.get('cursor') else None,
+                           incremental=confirmed_incremental(t),
                            primary_key=t['primary_key'] or None,write_disposition=t['write_disposition'])
         resources.append(resource.with_name(t['target']))
     return resources
 
 
 def destination():
-    if ENV in ('local','test'):
+    if ENV in ('local','test','lab'):
         import duckdb
         path=os.environ.get('RIGHAVEN_WAREHOUSE_DUCKDB','warehouse.duckdb')
         if not Path(path).exists():
@@ -117,9 +125,9 @@ def destination():
 
 def main():
     if ENV in ('local','test'):resources=local_resources(os.environ['RIGHAVEN_SOURCE_DUCKDB'])
-    elif ENV=='prod':resources=production_resources()
+    elif ENV in ('prod','lab'):resources=production_resources()
     else:raise SystemExit('PIPELINE_ENV must be local, test or prod')
-    pipeline=dlt.pipeline(pipeline_name=os.environ.get('PIPELINE_NAME','{name}_ingestion'),destination=destination(),dataset_name=DATASET,
+    pipeline=dlt.pipeline(pipeline_name=(os.environ.get('PIPELINE_NAME') or '{name}_ingestion'),destination=destination(),dataset_name=DATASET,
                           pipelines_dir=os.environ.get('DLT_PIPELINES_DIR'))
     info=pipeline.run(resources)
     print(info)
@@ -128,6 +136,19 @@ def main():
 
 if __name__=='__main__':
     main()
+'''
+
+ENTRYPOINT_SH='''#!/bin/sh
+set -eu
+case "${1:-schedule}" in
+ schedule)
+   /opt/ingest/bin/python /app/ops/orchestrate.py init
+   /opt/ingest/bin/python /app/ops/orchestrate.py tick
+   exec /usr/local/bin/supercronic -passthrough-logs /app/ops/crontab
+   ;;
+ init|cycle|tick|report|health) exec /opt/ingest/bin/python /app/ops/orchestrate.py "$@" ;;
+ *) exec "$@" ;;
+esac
 '''
 
 RUN_SH='''#!/bin/sh
@@ -149,11 +170,11 @@ case "${job}" in
     /opt/ingest/bin/python "${app}/ingestion/pipeline.py"
     ;;
   transform)
-    cd "${app}/transform"
+    cd "${data}/transform"
     /opt/transform/bin/sqlmesh --gateway "${SQLMESH_GATEWAY:-prod}" run
     ;;
   deploy)
-    cd "${app}/transform"
+    cd "${data}/transform"
     /opt/transform/bin/sqlmesh --gateway "${SQLMESH_GATEWAY:-prod}" plan --auto-apply --no-prompts
     ;;
   stubs)
@@ -195,9 +216,9 @@ PY
 '''
 
 
-def dockerfile(target):
+def dockerfile(target, source_dialect=None):
     odbc=''
-    if target in ('tsql','fabric'):
+    if target in ('tsql','fabric') or source_dialect in ('tsql','fabric'):
         odbc='''
 # Microsoft ODBC Driver 18 for SQL Server / Fabric Warehouse (signed Microsoft repository).
 RUN curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor -o /usr/share/keyrings/microsoft-prod.gpg \\
@@ -212,10 +233,10 @@ FROM python:3.11-slim-bookworm
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 ARG TARGETARCH
-ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 APP_DIR=/app DATA_DIR=/data
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 APP_DIR=/app DATA_DIR=/data DLT_PIPELINES_DIR=/data/dlt
 
 RUN apt-get update \\
- && apt-get install -y --no-install-recommends ca-certificates=* curl=7.* gnupg=2.* util-linux=2.* \\
+ && apt-get install -y --no-install-recommends ca-certificates=* curl=7.* gnupg=2.* util-linux=2.* libodbc2=2.* \\
  && rm -rf /var/lib/apt/lists/*
 {odbc}
 # supercronic {SUPERCRONIC['version']}: cron for containers, verified by SHA-256.
@@ -238,15 +259,48 @@ RUN python -m venv /opt/ingest && /opt/ingest/bin/pip install --no-cache-dir --r
 
 RUN useradd --system --uid 10001 --home-dir /data --shell /usr/sbin/nologin pipeline && mkdir -p /data && chown pipeline /data
 COPY --chown=root:root . /app
-RUN chmod 0755 /app/ops/run.sh /app/ops/init-test.sh
+RUN chmod 0755 /app/ops/run.sh /app/ops/init-test.sh /app/ops/entrypoint.sh
 
 USER pipeline
 WORKDIR /data
-HEALTHCHECK --interval=5m --timeout=10s CMD ["/usr/local/bin/supercronic", "-test", "/app/ops/crontab"]
-ENTRYPOINT ["/usr/local/bin/supercronic", "-passthrough-logs"]
-CMD ["/app/ops/crontab"]
+HEALTHCHECK --interval=5m --start-period=10m --timeout=10s CMD ["/opt/ingest/bin/python", "/app/ops/orchestrate.py", "health"]
+ENTRYPOINT ["/app/ops/entrypoint.sh"]
+CMD ["schedule"]
 '''
 
+
+POSTGRES_LAB='''# Isolated synthetic PostgreSQL source. Trust auth is scoped to this private, portless test network.
+services:
+  source-db:
+    image: postgres:16-bookworm
+    environment:
+      POSTGRES_DB: source_lab
+      POSTGRES_USER: righaven_lab
+      POSTGRES_HOST_AUTH_METHOD: trust
+    volumes:
+      - source-lab:/var/lib/postgresql/data
+      - ./schema/source.postgres.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    networks: [synthetic-lab]
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U righaven_lab -d source_lab"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+  pipeline:
+    environment:
+      PIPELINE_ENV: lab
+      SQLMESH_GATEWAY: local
+      SOURCES__SQL_DATABASE__CREDENTIALS: postgresql+psycopg://righaven_lab@source-db:5432/source_lab
+    depends_on:
+      source-db:
+        condition: service_healthy
+    networks: [synthetic-lab]
+networks:
+  synthetic-lab:
+    internal: true
+volumes:
+  source-lab:
+'''
 
 def compose(name):
     return f'''# docker compose up -d  (see README for the environment variables)
@@ -265,6 +319,16 @@ services:
       - no-new-privileges:true
     cap_drop:
       - ALL
+  reports:
+    profiles: [reports]
+    image: {name}-pipeline:local
+    entrypoint: [/opt/transform/bin/python, -m, http.server, "8080", --directory, /data/reports]
+    ports: ["127.0.0.1:8080:8080"]
+    volumes: [pipeline-data:/data:ro]
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
 volumes:
   pipeline-data:
 '''
@@ -273,13 +337,13 @@ volumes:
 def env_example(target,source_dialect):
     dest=DESTINATIONS[target].upper()
     lines=['# Copy to .env and fill in; never commit .env.','# Environment: test runs stub generation and a local DuckDB warehouse; prod uses the systems below.',
-           'PIPELINE_ENV=test','PIPELINE_NAME=','DESTINATION_DATASET=raw','SQLMESH_GATEWAY=local','STUB_ROWS=200',
+           'PIPELINE_ENV=test','PIPELINE_NAME=project_ingestion','DESTINATION_DATASET=raw','SQLMESH_GATEWAY=local','STUB_ROWS=200','REPORT_MODE=html','# REPORTING__CREDENTIALS=',
            'RIGHAVEN_SOURCE_DUCKDB=/data/source-stub.duckdb','RIGHAVEN_WAREHOUSE_DUCKDB=/data/warehouse.duckdb','',
            '# Production source (read-only account), SQLAlchemy URL for dlt sql_database:',
            'SOURCES__SQL_DATABASE__CREDENTIALS=','',
            '# Production destination for dlt:','DESTINATION_TYPE='+DESTINATIONS[target],
            'DESTINATION__'+dest+'__CREDENTIALS=','',
-           '# Production warehouse for SQLMesh (gateway prod):','WAREHOUSE_HOST=','WAREHOUSE_PORT=','WAREHOUSE_DATABASE=','WAREHOUSE_USER=','WAREHOUSE_PASSWORD=']
+           '# Production warehouse for SQLMesh (gateway prod):','# WAREHOUSE_HOST=','# WAREHOUSE_PORT=','# WAREHOUSE_DATABASE=','# WAREHOUSE_USER=','# WAREHOUSE_PASSWORD=']
     if target=='fabric':lines+=['# Fabric: service principal for the Warehouse SQL endpoint','FABRIC_TENANT_ID=','FABRIC_CLIENT_ID=','FABRIC_CLIENT_SECRET=']
     return '\n'.join(lines)+'\n'
 
@@ -320,7 +384,7 @@ gateways:
   local:
     connection:
       type: duckdb
-      database: warehouse.duckdb
+      database: "{{{{ env_var('RIGHAVEN_WAREHOUSE_DUCKDB', '/data/warehouse.duckdb') }}}}"
   prod:
 {prod}default_gateway: local
 model_defaults:
@@ -439,13 +503,13 @@ def readme(model,target,source_dialect,tables,schedule,mart):
     return f'''# {model['name']}: data pipeline
 
 Generated by RigHaven from the schema model `schema/model.json` ({len(tables)} tables, source dialect `{source_dialect}`, production warehouse `{target}`).
-Review every file before release: this is a starting package with tests, not an approved production system.
+Hashed dependencies are included. Acceptance is determined by the delivered verification report, not by this generated document.
 
 ## Flow
 
 1. **Source** (read-only account) → **dlt** (`ingestion/pipeline.py`, tables and cursors in `ingestion/tables.json`) → dataset `raw` in the warehouse.
 2. **SQLMesh** (`transform/`): `staging.stg_*` views with key audits, then `marts.*` business tables{' (example: `marts.'+mart+'`)' if mart else ''}.
-3. **BI**: your existing tool (Power BI, Metabase, Superset, ...) reads the `marts` schema of the production warehouse.
+3. **BI**: the local HTML report uses `reporting/metrics.json` and saves interactive results in `/data/reports`. Replace example counts with agreed KPIs. Your existing tool (Power BI, Metabase, Superset, ...) reads the `marts` schema of the production warehouse.
 4. **Test environment**: `ops/init-test.sh` creates the empty replica (`schema/replica.duckdb.sql`) and the `stubs` job adds a synthetic batch on every run (`stubs/stubgen.py`, deterministic, foreign-key consistent).
 
 ## Tables
@@ -466,23 +530,19 @@ Personal data columns (always synthetic in test): {', '.join('`'+p+'`' for p in 
 
 ```bash
 cp .env.example .env            # fill in values; .env is never committed
-uv pip compile --generate-hashes ingestion/requirements.in -o ingestion/requirements.lock
-uv pip compile --generate-hashes transform/requirements.in -o transform/requirements.lock
 docker compose build
-docker compose run --rm pipeline /app/ops/init-test.sh     # test environment only
-docker compose run --rm pipeline /app/ops/run.sh stubs
-docker compose run --rm pipeline /app/ops/run.sh ingest
-docker compose run --rm -e SQLMESH_GATEWAY=local pipeline /app/ops/run.sh deploy
+docker compose run --rm pipeline cycle
+docker compose run --rm pipeline cycle   # proves repeatability
+docker compose run --rm pipeline health
 docker compose up -d
 ```
 
-For production set `PIPELINE_ENV=prod`, `SQLMESH_GATEWAY=prod`, the source and destination credentials, run `deploy` once and start the service.
-Pin the base image by digest and keep the lock files committed.
+For production set `PIPELINE_ENV=prod`, `SQLMESH_GATEWAY=prod`, source/destination credentials and a read-only SQLAlchemy URL in `REPORTING__CREDENTIALS` for HTML reporting. For an external native BI deployment set `REPORT_MODE=external` explicitly and deliver its verified native project. The runtime applies changed SQLMesh models before running due intervals.
+Pin base images by digest for a production release and keep the included lock files committed. For a PostgreSQL source, `docker compose -f compose.yaml -f compose.lab.yaml up -d` creates the actual empty source engine on a private network and periodically refreshes it with synthetic data. Other engines retain an explicitly labelled DuckDB simulation until their native replica is provisioned and verified. `docker compose --profile reports up -d` exposes local HTML reports at http://127.0.0.1:8080.
 
-## Checks performed by RigHaven before delivery
+## Required checks before delivery
 
-Empty replica created and verified against the model; stub batches loaded with foreign keys enforced; ingestion run on stub data; SQLMesh plan
-applied on the local warehouse with audits; crontab validated; Dockerfile, shell scripts and CI linted; no secrets in the package.
+The verification report must record actual evidence for clean start, two cycles, restart, source counts, agreed KPIs, report opening and editable source portability. Do not mark these passed solely because this package was generated.
 Not performed: connection to the real source and warehouse, production volumes and timings, BI reports.
 
 ## Microsoft Fabric
@@ -511,8 +571,8 @@ def requirements(target,source_dialect):
     driver=SOURCE_DRIVERS.get(source_dialect,(None,None))[1]
     extra={'postgres':'postgres','tsql':'mssql','fabric':'fabric','duckdb':'duckdb'}[target]
     ingest=[f'dlt[{extra},sql-database]=={DLT}',f'Faker=={FAKER}']+([driver] if driver else [])
-    engine={'postgres':'[postgres]','tsql':'[mssql-odbc]','fabric':'[fabric]','duckdb':''}[target]
-    transform=[f'sqlmesh{engine}=={SQLMESH}',f'duckdb=={DUCKDB_TRANSFORM}']
+    engine={'postgres':'','tsql':'[mssql-odbc]','fabric':'[fabric]','duckdb':''}[target]
+    transform=[f'sqlmesh{engine}=={SQLMESH}',f'duckdb=={DUCKDB_TRANSFORM}','psycopg2-binary==2.9.11']
     header='# Exact top-level pins; generate the hashed lock with:  uv pip compile --generate-hashes {} -o {}\n'
     return (header.format('ingestion/requirements.in','ingestion/requirements.lock')+'\n'.join(ingest)+'\n',
             header.format('transform/requirements.in','transform/requirements.lock')+'\n'.join(transform)+'\n')
@@ -522,6 +582,7 @@ def scaffold(model,output,*,target,source_dialect,name,schedule,stub_source=None
     if target not in DESTINATIONS:raise ValueError('Destinazione tra '+', '.join(DESTINATIONS))
     name=re.sub(r'[^a-z0-9_]','_',(name or model['name']).lower()).strip('_') or 'pipeline'
     root=output/'package';root.mkdir()
+    write(root,'package-spec.json',json.dumps({'name':name,'target':target,'source_dialect':source_dialect},indent=2))
     tables=plan_tables(model)
     write(root,'schema/model.json',json.dumps(model,indent=2,ensure_ascii=False))
     replica,limits=pm.ddl(model,'duckdb');write(root,'schema/replica.duckdb.sql',replica)
@@ -532,6 +593,10 @@ def scaffold(model,output,*,target,source_dialect,name,schedule,stub_source=None
     write(root,'ingestion/pipeline.py',PIPELINE.replace('{name}',name))
     ingest,transform=requirements(target,source_dialect)
     write(root,'ingestion/requirements.in',ingest);write(root,'transform/requirements.in',transform)
+    lock_root=Path(__file__).resolve().parents[1]/'config/toolkit/pipeline'
+    if not lock_root.exists():lock_root=None
+    for env,source in [('ingestion','ingest'),('transform','transform')]:
+        shutil.copyfile(lock_root/(source+'.lock') if lock_root else Path(__file__).with_name('package-'+source+'.lock'),root/env/'requirements.lock')
     write(root,'transform/config.yaml',sqlmesh_config(target,name,schedule['transform_model_cron']))
     write(root,'transform/external_models.yaml',external_models(tables))
     for t in tables:write(root,'transform/models/staging/stg_'+t['target']+'.sql',staging_model(t))
@@ -539,10 +604,21 @@ def scaffold(model,output,*,target,source_dialect,name,schedule,stub_source=None
     if mart:write(root,'transform/models/marts/'+mart+'.sql',body)
     write(root,'transform/models/marts/README.md','# Marts\n\nBusiness tables read by the BI tool. Each model declares grain, description and audits; keep the measures consistent with the catalog.\n')
     (root/'stubs').mkdir();shutil.copy2(Path(__file__).resolve().parent/'stubgen.py',root/'stubs'/'stubgen.py')
-    crontab=('# supercronic schedule (UTC unless TZ is set). Jobs never overlap: ops/run.sh locks each one.\n'
-             f"{schedule['stubs']} /app/ops/run.sh stubs\n{schedule['ingest']} /app/ops/run.sh ingest\n{schedule['transform']} /app/ops/run.sh transform\n")
-    write(root,'ops/crontab',crontab);write(root,'ops/run.sh',RUN_SH,0o755);write(root,'ops/init-test.sh',INIT_SH,0o755)
-    write(root,'Dockerfile',dockerfile(target));write(root,'compose.yaml',compose(name));write(root,'.env.example',env_example(target,source_dialect))
+    crontab=('# One ordered cycle; ingestion and transformation never overlap shared storage.\n'
+             "* * * * * /opt/ingest/bin/python /app/ops/orchestrate.py tick\n")
+    write(root,'ops/crontab',crontab)
+    write(root,'ops/schedules.json',json.dumps({k:schedule[k] for k in ('stubs','ingest','transform')},indent=2))
+    write(root,'ops/run.sh',RUN_SH,0o755);write(root,'ops/init-test.sh',INIT_SH,0o755)
+    write(root,'ops/entrypoint.sh',ENTRYPOINT_SH,0o755)
+    shutil.copyfile(Path(__file__).with_name('pipeline_runtime.py'),root/'ops/orchestrate.py')
+    shutil.copyfile(Path(__file__).with_name('pipeline_seed.py'),root/'ops/seed-source.py')
+    if source_dialect=='postgres':
+        source_ddl,_=pm.ddl(model,'postgres')
+        write(root,'schema/source.postgres.sql',source_ddl)
+        write(root,'compose.lab.yaml',POSTGRES_LAB)
+    write(root,'reporting/metrics.json',json.dumps([{'title':'Example: source row counts — replace with agreed business KPIs','sql':' UNION ALL '.join("SELECT '"+t['target']+"' AS source, count(*) AS rows FROM raw."+t['target'] for t in tables)}],indent=2))
+    write(root,'reporting/README.md','Define agreed business measures in metrics.json. Example counts are not an accepted business report. The runtime saves an offline interactive HTML report and its query results. Production BI uses the configured warehouse; remote report adapters must be configured and tested separately.\n')
+    write(root,'Dockerfile',dockerfile(target,source_dialect));write(root,'compose.yaml',compose(name));write(root,'.env.example',env_example(target,source_dialect))
     write(root,'.dockerignore','.env\n**/__pycache__\n*.duckdb\n.git\n')
     write(root,'.gitignore','.env\n*.duckdb\n*.duckdb.wal\n__pycache__/\n.cache/\nlogs/\n')
     write(root,'.github/workflows/pipeline.yml',CI)
@@ -550,6 +626,8 @@ def scaffold(model,output,*,target,source_dialect,name,schedule,stub_source=None
     write(root,'README.md',readme(model,target,source_dialect,tables,{'stubs':schedule['stubs'],'ingest':schedule['ingest'],'transform':schedule['transform']},mart))
     files=sorted(str(p.relative_to(root)) for p in root.rglob('*') if p.is_file())
     return {'package':'package','name':name,'target':target,'tables':len(tables),'staging_models':len(tables),'example_mart':mart,
-            'incremental_tables':[t['target'] for t in tables if t['cursor']],'files':files,'limits':limits+[
-            'I file requirements.lock vanno generati con hash prima della build (comando nel README).',
+            'incremental_tables':[t['target'] for t in tables if t.get('cursor_confirmed')],
+            'proposed_cursors':{t['target']:t['candidate_cursor'] for t in tables if t['candidate_cursor']},'files':files,'limits':limits+[
+            'Local replica is a DuckDB simulation. Source-engine parity must be tested separately.',
+            'Example report counts must be replaced with approved business KPIs.',
             'Il pacchetto non è stato eseguito contro la sorgente e il warehouse reali.']}

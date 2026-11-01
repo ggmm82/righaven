@@ -60,7 +60,11 @@
     "pipeline_model.py": "scripts/pipeline_model.py",
     "pipeline_scaffold.py": "scripts/pipeline_scaffold.py",
     "stubgen.py": "scripts/stubgen.py",
-    "acceptance_pipeline.py": "scripts/acceptance_pipeline.py"
+    "acceptance_pipeline.py": "scripts/acceptance_pipeline.py",
+    "pipeline_runtime.py": "scripts/pipeline_runtime.py",
+    "package-ingest.lock": "config/toolkit/pipeline/ingest.lock",
+    "package-transform.lock": "config/toolkit/pipeline/transform.lock",
+    "pipeline_seed.py": "scripts/pipeline_seed.py"
   },
   "righaven-worker": {
     "run_agent.py": "righaven/run_agent.py",

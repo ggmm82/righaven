@@ -1,48 +1,31 @@
 import { useParams, useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef } from "react";
 
 import { usePromptInputController } from "@/components/ai-elements/prompt-input";
-import { fetch } from "@/core/api/fetcher";
-import { getBackendBaseURL } from "@/core/config";
 import { useI18n } from "@/core/i18n/hooks";
 
 /**
  * Hook to determine if the chat is in a specific mode based on URL parameters, and to set an initial prompt input value accordingly.
- * `?mode=skill` prefills the skill creation prompt; `?recipe=ID` prefills the recipe's starter message in the user's language.
+ * `?mode=skill` prefills skill creation. Guided projects use persisted intake, not prompt templates.
  */
 export function useSpecificChatMode() {
-  const { t, locale } = useI18n();
+  const { t } = useI18n();
   const { thread_id: threadIdFromPath } = useParams<{ thread_id: string }>();
   const searchParams = useSearchParams();
-  const promptInputController = usePromptInputController();
-  const recipe = threadIdFromPath === "new" ? searchParams.get("recipe") : null;
-  const [recipeStarter, setRecipeStarter] = useState<string | undefined>(undefined);
   useEffect(() => {
-    if (!recipe || !/^[a-z][a-z0-9-]{1,39}$/.test(recipe)) return;
-    let live = true;
-    const language = locale === "it-IT" ? "it" : "en";
-    void fetch(`${getBackendBaseURL()}/api/harness/recipes/${encodeURIComponent(recipe)}?locale=${language}`)
-      .then((r) => (r.ok ? r.json() : null))
-      .then((v: { starter?: string } | null) => {
-        if (live && v?.starter) setRecipeStarter(v.starter);
-      })
-      .catch(() => undefined);
-    return () => {
-      live = false;
-    };
-  }, [recipe, locale]);
+    const legacyRecipe=searchParams.get("recipe");
+    if(threadIdFromPath==="new"&&legacyRecipe&&/^[a-z][a-z0-9-]{1,39}$/.test(legacyRecipe)) window.location.replace("/workspace/recipes");
+  },[searchParams,threadIdFromPath]);
+  const promptInputController = usePromptInputController();
   const inputInitialValue = useMemo(() => {
     if (threadIdFromPath !== "new") {
       return undefined;
-    }
-    if (recipe) {
-      return recipeStarter;
     }
     if (searchParams.get("mode") !== "skill") {
       return undefined;
     }
     return t.inputBox.createSkillPrompt;
-  }, [threadIdFromPath, searchParams, recipe, recipeStarter, t.inputBox.createSkillPrompt]);
+  }, [threadIdFromPath, searchParams, t.inputBox.createSkillPrompt]);
   const lastInitialValueRef = useRef<string | undefined>(undefined);
   const setInputRef = useRef(promptInputController.textInput.setInput);
   setInputRef.current = promptInputController.textInput.setInput;

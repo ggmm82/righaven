@@ -12,6 +12,7 @@ on:
       - 'scripts/domain_*'
       - 'scripts/acceptance_domain.py'
       - 'scripts/pipeline_*'
+      - 'scripts/check_pipeline_package.py'
       - 'scripts/stubgen.py'
       - 'scripts/acceptance_pipeline.py'
       - 'scripts/install_extended.py'
@@ -32,6 +33,9 @@ jobs:
       max-parallel: 4
       matrix:
         include:
+          # Exercise the exported end-to-end package before unrelated domains.
+          - environment: data-pipeline
+            tools: sqlglot duckdb tbls faker dlt sqlmesh supercronic
           - environment: claude-code
             tools: ""
           - environment: data-connectors
@@ -74,8 +78,6 @@ jobs:
             tools: jq yq ajv
           - environment: publishing
             tools: mjml abcm2ps abcmidi hunspell vale
-          - environment: data-pipeline
-            tools: sqlglot duckdb tbls faker dlt sqlmesh supercronic
     steps:
       - uses: actions/checkout@v4
       - uses: docker/setup-buildx-action@v3
@@ -98,6 +100,9 @@ jobs:
           else
             python scripts/check_environment_runtime.py --tools $SELECTED_TOOLS --verification-dependencies
           fi
+      - name: Build and run the exported pipeline independently of RigHaven
+        if: matrix.environment == 'data-pipeline'
+        run: python scripts/check_pipeline_package.py
       - name: Preserve failure diagnostics
         if: failure()
         run: docker ps -a && docker images

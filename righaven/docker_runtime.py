@@ -503,7 +503,7 @@ def delegate(agent_id, task, workspace, tool_call_id=None, on_started=None, requ
             credentials=ApiCredentialSession(engine,jobs/(name+'-credentials'),settings.get('connection_id'))
         from .connections import Delivery as ConnectionDelivery
         # The connections the user assigned to this task, deleted with the worker.
-        connections=ConnectionDelivery(workspace,jobs/(name+'-connections'))
+        connections=ConnectionDelivery(workspace,jobs/(name+'-connections'),role=role)
         from .resource_budget import BUDGET
         from .cancellation import requested
         class CancelBudget:
