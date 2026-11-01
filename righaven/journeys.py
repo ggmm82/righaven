@@ -324,6 +324,17 @@ def pin_policy(plan, journey):
     return plan
 
 
+def with_recipe_skills(roles, journey, enabled):
+    """A guided task works with its recipe's method: every role receives the recipe skills the account has enabled."""
+    method = [s for s in (journey.get('recipe') or {}).get('skills', []) if s in set(enabled)]
+    result = []
+    for role in roles:
+        if isinstance(role, dict) and isinstance(role.get('skills', []), list):
+            role = {**role, 'skills': list(dict.fromkeys([*method, *role.get('skills', [])]))[:12]}
+        result.append(role)
+    return result
+
+
 def compact(value):
     """What the coordinator needs each turn: choices, phase states and evidence paths, without the full definition and policy."""
     if not value:
@@ -357,7 +368,11 @@ def instructions(workspace):
             '(«Approva fase», «Chiedi correzioni», «Salta fase»). Never use ask_clarification or a chat question to approve, confirm or continue a phase, '
             'and never claim a chat reply approved it: after submitting a phase result, end the turn with a short summary and point to «Tocca a te» in the project card. '
             'Use ask_clarification only for a decisive choice about the result that no phase answers; never to ask how to continue between phases. '
-            'Each phase is checked by its independent review (purpose=review); harness_validate is the final policy validation of the finished product '
+            'Keep checks proportionate: one independent review (purpose=review) per phase that asks for approval, one more only after a correction; '
+            'phases without approval need no separate review and reviews are never reviewed. harness_validate is the final policy validation of the finished product '
             'and runs only after the last phase is settled. '
+            'Every role works with the recipe skills (recipe.skills, added automatically) and, where the phase needs them, the recipe tools. '
+            'The connections in this task (connections) were chosen by the owner: roles that read the source or write the destination must declare them in roles_json connections; '
+            'if a phase does not use them, say why in its note. '
             'At the first turn compare the goal with all phases and, in that same turn, propose skipping every phase the goal does not need '
             '(for example a demo with sample data needs no replica, recurring pipeline or package) with harness_journey(propose_skip=true) and a reason; the owner decides all of them at once.')

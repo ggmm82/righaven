@@ -137,6 +137,35 @@ class GuidedProjects(unittest.TestCase):
         projects.create_plan(self.work,'',[],outcome={'questions':['Foglio di calcolo o pagina web?']})
         self.assertEqual(projects.read_project(self.work)['outcome']['result'],'Create a documented data laboratory and business reports')
 
+    def test_reviews_stay_proportionate_and_phases_without_approval_need_none(self):
+        def run(step, purpose, turn):
+            folder=self.work/'outputs'/(step+turn);folder.mkdir(parents=True,exist_ok=True);(folder/'out.md').write_text('testo')
+            reply={'ok':True,'error':'','output_dir':str(folder),'handoff':{'source_files':[],'output_files':[str(folder/'out.md')],'previews':[],
+                   'checks':[{'name':'Letto','status':'passed','evidence':'riaperto'}]}}
+            return json.loads(projects.execute_step(self.work,'workspace','Esegui',step,lambda task,started:json.dumps(reply),purpose=purpose,request_id=turn))
+        projects.set_policy_plan(self.work,[])
+        projects.create_plan(self.work,'',[{'id':'rev','agent':'workspace','goal':'Revisione','depends_on':[]}])
+        path=self.work/'.righaven-project'/'project.json';value=json.loads(path.read_text())
+        value['steps']=[s for s in value['steps'] if s['id']!='review'];state.atomic_json(path,value)
+        journeys.record(self.work,'understand',[],['catalog'],'Leggo la documentazione',journeys.view(self.work)['revision'])
+        self.assertTrue(run('catalog','work','t1')['ok'])
+        self.assertTrue(run('rev','review','t2')['ok'])
+        self.assertTrue(run('rev','review','t3')['ok'],'one more review after a correction is allowed')
+        with self.assertRaisesRegex(ValueError,'already had two independent reviews'):
+            run('rev','review','t4')
+        with projects.locked(self.work) as folder:
+            raw=json.loads((folder/'journey.json').read_text());raw['definition']['stages'][0]['gate']=False
+            state.atomic_json(folder/'journey.json',raw)
+        with self.assertRaisesRegex(ValueError,'needs no separate review'):
+            run('rev','review','t5')
+
+    def test_guided_roles_receive_the_recipe_skills(self):
+        journey=journeys.view(self.work)
+        self.assertEqual(journey['recipe']['skills'],['skill-data-pipeline'])
+        roles=journeys.with_recipe_skills([{'id':'catalog','skills':['skill-duckdb']},{'id':'reviewer'}],journey,['skill-data-pipeline','skill-duckdb'])
+        self.assertEqual([r['skills'] for r in roles],[['skill-data-pipeline','skill-duckdb'],['skill-data-pipeline']])
+        self.assertEqual(journeys.with_recipe_skills([{'id':'x'}],journey,[])[0]['skills'],[],'only skills the account has enabled')
+
     def test_guided_phase_gates_replace_chat_checkpoints_while_free_projects_keep_them(self):
         def run(work, step, turn):
             folder=work/'outputs'/(step+turn);folder.mkdir(parents=True,exist_ok=True);(folder/'out.md').write_text('testo')

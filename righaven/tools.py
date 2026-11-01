@@ -359,8 +359,15 @@ def harness_plan(runtime: Runtime, brief: str = '', steps_json: str = '',
         check_capability_choice(json.loads(strategy_json), policy)
     if roles_json:
         from .project_brief import rejected_tools
+        from .journeys import view as journey_view
         excluded = rejected_tools((read_project(workspace) or {}).get('outcome'))
-        for spec in json.loads(roles_json):
+        specs = json.loads(roles_json)
+        journey = journey_view(workspace)
+        if journey and isinstance(specs, list):
+            from .journeys import with_recipe_skills
+            specs = with_recipe_skills(specs, journey, policy.get('skill_names', []))
+            roles_json = json.dumps(specs, ensure_ascii=False)
+        for spec in specs:
             require_tools(policy, spec.get('tools', []))
             if excluded & set(spec.get('tools', [])):
                 raise ValueError('Il ruolo ' + str(spec.get('id')) + ' usa programmi di alternative non scelte dall’utente: '

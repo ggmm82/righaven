@@ -184,6 +184,8 @@
   "This pack requires tools not supported by the runtime catalog": "Questo pacchetto richiede strumenti non supportati dal catalogo del runtime",
   "This pack version is not published": "Questa versione del pacchetto non è pubblicata",
   "This phase is already settled": "Questa fase è già conclusa",
+  "This phase needs no separate review: its checks belong to the work itself; record the result with harness_journey": "Questa fase non richiede una revisione separata: i controlli fanno parte del lavoro; registra il risultato con harness_journey",
+  "This phase result already had two independent reviews: correct the result or submit the phase to the owner": "Questo risultato ha già avuto due revisioni indipendenti: correggilo o sottoponi la fase al proprietario",
   "This result is not available for approval": "Questo risultato non è disponibile per l’approvazione",
   "This review is moderated; contact the administrator": "Questa recensione è moderata: contatta l’amministratore",
   "This task already has a guided workflow": "Questo lavoro ha già un percorso guidato",

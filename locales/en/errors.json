@@ -830,6 +830,8 @@
   "This pack requires tools not supported by the runtime catalog": null,
   "This pack version is not published": null,
   "This phase is already settled": null,
+  "This phase needs no separate review: its checks belong to the work itself; record the result with harness_journey": null,
+  "This phase result already had two independent reviews: correct the result or submit the phase to the owner": null,
   "This result is not available for approval": null,
   "This review is moderated; contact the administrator": null,
   "This task already has a guided workflow": null,
