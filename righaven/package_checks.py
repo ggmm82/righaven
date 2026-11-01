@@ -119,7 +119,7 @@ def check(workspace, package_path):
                 update(progress,'checking','Testing exported package: cycle '+str(cycle)+' and saved state',limits=limits)
                 args=base_arguments(worker,limits);args[args.index('--network=bridge')]='--network=none'
                 command(*args,'-d','--read-only','--mount','type=volume,src='+volume+',dst=/data',
-                        '-e','PIPELINE_ENV=test','-e','SQLMESH_GATEWAY=local','-e','STUB_ROWS=3',
+                        '-e','PIPELINE_ENV=test','-e','SQLMESH_GATEWAY=local','-e','STUB_ROWS=3','-e','STUB_ROWS_LIMIT=3',
                         '-e','RIGHAVEN_SOURCE_DUCKDB=/data/source-stub.duckdb','-e','RIGHAVEN_WAREHOUSE_DUCKDB=/data/warehouse.duckdb',image,timeout=60)
                 deadline=time.monotonic()+300
                 while time.monotonic()<deadline:

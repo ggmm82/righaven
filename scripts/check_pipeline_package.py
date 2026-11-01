@@ -43,7 +43,7 @@ print(json.dumps(result))
             def launch():
                 run('docker','run','-d','--name',container,'--network=none','--read-only','--cap-drop=ALL','--security-opt=no-new-privileges','--tmpfs','/tmp:rw,size=512m',
                     '--memory=2048m','--cpus=2','--mount','type=volume,src='+volume+',dst=/data',
-                    '-e','PIPELINE_ENV=test','-e','SQLMESH_GATEWAY=local','-e','STUB_ROWS=3','-e','RIGHAVEN_SOURCE_DUCKDB=/data/source-stub.duckdb',
+                    '-e','PIPELINE_ENV=test','-e','SQLMESH_GATEWAY=local','-e','STUB_ROWS=3','-e','STUB_ROWS_LIMIT=3','-e','RIGHAVEN_SOURCE_DUCKDB=/data/source-stub.duckdb',
                     '-e','RIGHAVEN_WAREHOUSE_DUCKDB=/data/warehouse.duckdb',tag)
             previous=None
             for cycle in (1,2):
@@ -72,7 +72,7 @@ print(json.dumps(result))
                 '/opt/ingest/bin/python','/app/ingestion/pipeline.py')
             # Actual source-engine laboratory, using the delivered Compose overlay.
             package=out/'package'
-            (package/'.env').write_text((package/'.env.example').read_text().replace('STUB_ROWS=200','STUB_ROWS=3'))
+            (package/'.env').write_text((package/'.env.example').read_text().replace('STUB_ROWS=200','STUB_ROWS=3')+'\nSTUB_ROWS_LIMIT=3\n')
             compose_args=['docker','compose','-p',container+'-lab','-f',str(package/'compose.yaml'),'-f',str(package/'compose.lab.yaml')]
             run(*compose_args,'up','-d','--no-build',timeout=300)
             deadline=time.monotonic()+240

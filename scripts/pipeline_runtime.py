@@ -146,7 +146,15 @@ def main():
             def finished(kind):
                 last[kind]=time.time();temporary=timing.with_suffix('.tmp');temporary.write_text(json.dumps(last));temporary.replace(timing)
             if due('stubs') and os.environ.get('PIPELINE_ENV', 'test') != 'prod':
-                state['operations'].append(command([ingest, root / 'stubs/stubgen.py', '--model', root / 'schema/model.json',
+                model_file=root/'schema/model.json'
+                sample_limit=int(os.environ.get('STUB_ROWS_LIMIT','0'))
+                if sample_limit:
+                    if not 1<=sample_limit<=100000:raise ValueError('STUB_ROWS_LIMIT must be zero or a positive bounded sample size')
+                    model=json.loads(model_file.read_text())
+                    for table in model['tables']:table['rows']=min(int(table.get('rows') or os.environ.get('STUB_ROWS','200')),sample_limit)
+                    model_file=data/'bounded-test-model.json';model_file.write_text(json.dumps(model))
+                    state['sample_rows_per_table_limit']=sample_limit
+                state['operations'].append(command([ingest, root / 'stubs/stubgen.py', '--model', model_file,
                     '--output', data / 'stubs', '--database', os.environ['RIGHAVEN_SOURCE_DUCKDB'], '--rows', os.environ.get('STUB_ROWS', '200')]))
                 finished('stubs')
             if due('ingest'):
