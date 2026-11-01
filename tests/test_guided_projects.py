@@ -7,6 +7,14 @@ from unittest.mock import patch
 from righaven import journeys, projects, policy_book, state
 
 
+def reviewed(work, status='completed', finished='2999-01-01T00:00:00+00:00'):
+    """Record an independent review step, as the native plan does after a quality review job."""
+    path=Path(work)/'.righaven-project'/'project.json';value=json.loads(path.read_text())
+    value['steps']=[s for s in value['steps'] if s['id']!='review']+[{'id':'review','agent':'workspace','goal':'Independent review','status':status,
+        'purpose':'review','depends_on':[],'attempts':[{'status':status,'finished_at':finished}]}]
+    state.atomic_json(path,value)
+
+
 class GuidedProjects(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(); self.addCleanup(self.temp.cleanup)
@@ -15,6 +23,7 @@ class GuidedProjects(unittest.TestCase):
         patcher = patch.object(state, 'STATE', self.root / 'state'); patcher.start(); self.addCleanup(patcher.stop)
         self.value = journeys.start(self.work, 'data-pipeline', {'goal':'Create a documented data laboratory and business reports'})
         projects.create_plan(self.work, 'Data laboratory', [{'id':'catalog','agent':'workspace','goal':'Read documentation','depends_on':[]}])
+        reviewed(self.work)
 
     def submit(self, identifier, filename='catalog.md'):
         path=self.work/filename; path.write_text('Verified model and provenance')
@@ -36,6 +45,21 @@ class GuidedProjects(unittest.TestCase):
         approved=journeys.decide(self.work,'understand',True,submitted['revision'])
         self.assertEqual(approved['current'],'design')
         with self.assertRaises(ValueError): self.submit('package')
+
+    def test_owner_decides_only_on_reviewed_results(self):
+        path=self.work/'catalog.md';path.write_text('Catalog')
+        for status,finished,message in (('pending','','Wait for the running'),('completed','',None)):
+            reviewed(self.work,status,finished)
+            current=journeys.view(self.work)
+            if message:
+                with self.assertRaisesRegex(ValueError,message):
+                    journeys.record(self.work,'understand',[str(path)],['catalog'],'Catalogo pronto',current['revision'])
+        projects_json=self.work/'.righaven-project'/'project.json';value=json.loads(projects_json.read_text())
+        value['steps']=[s for s in value['steps'] if s['id']!='review'];state.atomic_json(projects_json,value)
+        with self.assertRaisesRegex(ValueError,'Run the independent quality review'):
+            journeys.record(self.work,'understand',[str(path)],['catalog'],'Catalogo pronto',journeys.view(self.work)['revision'])
+        started=journeys.record(self.work,'understand',[],['catalog'],'Inizio la fase',journeys.view(self.work)['revision'])
+        self.assertEqual(started['stages'][0]['status'],'working','starting a phase needs no review')
 
     def test_start_work_links_native_steps_and_rejects_missing_artifacts(self):
         working=journeys.record(self.work,'understand',[],['catalog'],'Reading the saved documentation',self.value['revision'])

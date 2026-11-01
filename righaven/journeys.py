@@ -196,6 +196,8 @@ def record(workspace, stage_id, evidence, steps, note, expected_revision, propos
         project = load(folder, workspace) or {}
         if not steps or not set(steps).issubset({s['id'] for s in project.get('steps', [])}):
             raise ValueError('Link this phase to actual native project activities')
+        if evidence and stage.get('gate', True):
+            _require_review(project, steps)
         kept = []
         for filename in evidence:
             path = artifact_path(workspace, filename)
@@ -214,6 +216,17 @@ def record(workspace, stage_id, evidence, steps, note, expected_revision, propos
         _invalidate(raw, stage_id)
         _save(folder, raw)
     return view(workspace, raw)
+
+
+def _require_review(project, steps):
+    """The owner decides on reviewed results: the independent review of the phase must have finished first."""
+    by_id = {s['id']: s for s in project.get('steps', [])}
+    produced = max([a.get('finished_at') or '' for sid in steps for a in by_id[sid].get('attempts', [])] or [''])
+    reviews = [s for s in project.get('steps', []) if s.get('purpose') == 'review']
+    if any(s['status'] in ('pending', 'running') for s in reviews):
+        raise ValueError('Wait for the running quality review to finish before submitting this phase to the owner')
+    if not any(s['status'] == 'completed' and ((s.get('attempts') or [{}])[-1].get('finished_at') or '') >= produced for s in reviews):
+        raise ValueError('Run the independent quality review of this phase before submitting it to the owner')
 
 
 def _invalidate(value, identifier):
@@ -334,7 +347,8 @@ def instructions(workspace):
             '\nRead the attachments first. Ask at most three decisive unknowns, with recommendations. '
             'Connections are optional; complete a synthetic local path without real accounts. '
             'Compose dynamic roles and use authorized skills/environments for the current outcome. '
-            'Record actual evidence and native step IDs with harness_journey; only the owner approves gates, '
+            'Record actual evidence and native step IDs with harness_journey; only the owner approves gates. '
+            'Submit a gated phase only after its independent quality review has finished, so the owner decides on reviewed results; '
             'phases with gate=false complete when their evidence is recorded. '
             + (value['definition'].get('guidance') or '') + (' ' if value['definition'].get('guidance') else '') +
             'Do not ask the user to write SQL, JSON, YAML or CLI commands. '

@@ -46,6 +46,8 @@ class JourneyRoutes(unittest.TestCase):
                 self.assertEqual(client.put(url,json=conflict,headers=headers).status_code,409)
                 work=root/'alice/guided';projects.create_plan(work,'Read documentation',[{'id':'read','agent':'workspace','goal':'Catalog','depends_on':[]}])
                 artifact=work/'catalog.md';artifact.write_text('Documented model')
+                from tests.test_guided_projects import reviewed
+                reviewed(work)
                 pending=journeys.record(work,'understand',[str(artifact)],['read'],'Actual catalog for owner review',saved['revision'])
                 decision={'stage_id':'understand','approve':True,'expected_revision':pending['revision']}
                 self.assertEqual(client.post(url+'/decision',json=decision,headers={'X-Test-User':'bob'}).status_code,404)

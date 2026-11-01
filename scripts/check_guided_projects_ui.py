@@ -125,6 +125,9 @@ createRoot(document.getElementById('root')!).render(location.pathname.includes('
                     page.reload();expect(panel).to_be_visible()
                     projects.create_plan(workspace,'Catalogo',[{'id':'catalog','agent':'workspace','goal':'Read docs','depends_on':[]}])
                     artifact=workspace/'catalog.md';artifact.write_text('Schema and documented relationships')
+                    plan=workspace/'.righaven-project'/'project.json';value=json.loads(plan.read_text())
+                    value['steps'].append({'id':'review','agent':'workspace','goal':'Revisione indipendente','status':'completed','purpose':'review','depends_on':[],
+                                           'attempts':[{'status':'completed','finished_at':'2999-01-01T00:00:00+00:00'}]});state.atomic_json(plan,value)
                     current=journeys.view(workspace);journeys.record(workspace,'understand',[str(artifact)],['catalog'],'Catalogo con provenienza pronto per la revisione',current['revision'])
                     page.reload()
                     decision=page.get_by_test_id('journey-decision')
