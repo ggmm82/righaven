@@ -111,6 +111,9 @@ Un comando registrato non è un workflow collaudato: verifica prerequisiti, dati
 | [abcmidi](../../skill-abcmidi/references/CAPABILITIES.md) | Convert ABC music notation into a MIDI file for listening checks | ABC source and MIDI file |
 | [hunspell](../../skill-hunspell/references/CAPABILITIES.md) | List words not found in the Italian or English Hunspell dictionary; names and technical terms need human review | Text and list of unknown words |
 | [vale](../../skill-vale/references/CAPABILITIES.md) | Check prose against style rules (Vale built-in rules or a supplied .vale.ini with local styles); save JSON alerts | Text, .vale.ini with styles and JSON alerts |
+| [tbls](../../skill-tbls/references/CAPABILITIES.md) | Generate the data catalog from the schema model: Markdown pages per table, ER diagram, relations, labels and description coverage | Schema model JSON, generated tbls schema, configuration, Markdown pages and ER diagram |
+| [supercronic](../../skill-supercronic/references/CAPABILITIES.md) | Validate a crontab with supercronic and list each job with its schedule; nothing is executed | Crontab and native validation output |
+| [faker](../../skill-faker/references/CAPABILITIES.md) | Generate deterministic, foreign-key consistent stub data from the schema model for a batch (periodic runs use increasing batch numbers) into a DuckDB copy and Parquet/CSV/JSON Lines/XML files | Schema model, generator script, per-batch CSV/Parquet/JSON Lines/XML files, stub DuckDB database and manifest |
 
 ## Passaggi tra strumenti
 

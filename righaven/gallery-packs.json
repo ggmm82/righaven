@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0.0",
   "hub_name": "RigHaven Hub",
-  "total_packs": 200,
+  "total_packs": 208,
   "packs": [
     {
       "id": "env-data-engineering-rig",
@@ -11887,6 +11887,664 @@
           "$RIGHAVEN_OUTPUT_DIR"
         ]
       }
+    },
+    {
+      "id": "cli-tbls",
+      "name": "tbls",
+      "category": "cli-tool",
+      "tags": [
+        "cli-tool",
+        "tbls"
+      ],
+      "i18n": {
+        "en": {
+          "title": "tbls",
+          "description": "Generate the data catalog from the schema model: Markdown pages per table, ER diagram, relations, labels and description coverage."
+        },
+        "it": {
+          "title": "tbls",
+          "description": "Generate the data catalog from the schema model: Markdown pages per table, ER diagram, relations, labels and description coverage."
+        }
+      },
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "tbls"
+      ],
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      },
+      "cli_binaries": [
+        {
+          "name": "tbls",
+          "executable": "/usr/local/bin/tbls-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities tbls"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Generate the data catalog from the schema model: Markdown pages per table, ER diagram, relations, labels and description coverage.",
+      "verification_command": "craft capabilities tbls"
+    },
+    {
+      "id": "skill-tbls",
+      "name": "tbls skill",
+      "category": "skill",
+      "tags": [
+        "skill",
+        "tbls"
+      ],
+      "i18n": {
+        "en": {
+          "title": "tbls skill",
+          "description": "Data catalog and schema documentation. Generate the data catalog from the schema model: Markdown pages per table, ER diagram, relations, labels and description coverage."
+        },
+        "it": {
+          "title": "Skill tbls",
+          "description": "Data catalog and schema documentation. Generate the data catalog from the schema model: Markdown pages per table, ER diagram, relations, labels and description coverage."
+        }
+      },
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "tbls"
+      ],
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      },
+      "cli_binaries": [
+        {
+          "name": "tbls",
+          "executable": "/usr/local/bin/tbls-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities tbls"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Generate the data catalog from the schema model: Markdown pages per table, ER diagram, relations, labels and description coverage.",
+      "verification_command": "craft capabilities tbls"
+    },
+    {
+      "id": "cli-supercronic",
+      "name": "supercronic",
+      "category": "cli-tool",
+      "tags": [
+        "cli-tool",
+        "supercronic"
+      ],
+      "i18n": {
+        "en": {
+          "title": "supercronic",
+          "description": "Validate a crontab with supercronic and list each job with its schedule; nothing is executed."
+        },
+        "it": {
+          "title": "supercronic",
+          "description": "Validate a crontab with supercronic and list each job with its schedule; nothing is executed."
+        }
+      },
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "supercronic"
+      ],
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      },
+      "cli_binaries": [
+        {
+          "name": "supercronic",
+          "executable": "/usr/local/bin/supercronic-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities supercronic"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Validate a crontab with supercronic and list each job with its schedule; nothing is executed.",
+      "verification_command": "craft capabilities supercronic"
+    },
+    {
+      "id": "skill-supercronic",
+      "name": "supercronic skill",
+      "category": "skill",
+      "tags": [
+        "skill",
+        "supercronic"
+      ],
+      "i18n": {
+        "en": {
+          "title": "supercronic skill",
+          "description": "Container cron scheduler. Validate a crontab with supercronic and list each job with its schedule; nothing is executed."
+        },
+        "it": {
+          "title": "Skill supercronic",
+          "description": "Container cron scheduler. Validate a crontab with supercronic and list each job with its schedule; nothing is executed."
+        }
+      },
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "supercronic"
+      ],
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      },
+      "cli_binaries": [
+        {
+          "name": "supercronic",
+          "executable": "/usr/local/bin/supercronic-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities supercronic"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Validate a crontab with supercronic and list each job with its schedule; nothing is executed.",
+      "verification_command": "craft capabilities supercronic"
+    },
+    {
+      "id": "cli-faker",
+      "name": "Faker",
+      "category": "cli-tool",
+      "tags": [
+        "cli-tool",
+        "faker"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Faker",
+          "description": "Generate deterministic, foreign-key consistent stub data from the schema model for a batch (periodic runs use increasing batch numbers) into a DuckDB copy and Parquet/CSV/JSON Lines/XML files."
+        },
+        "it": {
+          "title": "Faker",
+          "description": "Generate deterministic, foreign-key consistent stub data from the schema model for a batch (periodic runs use increasing batch numbers) into a DuckDB copy and Parquet/CSV/JSON Lines/XML files."
+        }
+      },
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "faker"
+      ],
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      },
+      "cli_binaries": [
+        {
+          "name": "faker",
+          "executable": "/usr/local/bin/faker-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities faker"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Generate deterministic, foreign-key consistent stub data from the schema model for a batch (periodic runs use increasing batch numbers) into a DuckDB copy and Parquet/CSV/JSON Lines/XML files.",
+      "verification_command": "craft capabilities faker"
+    },
+    {
+      "id": "skill-faker",
+      "name": "Faker skill",
+      "category": "skill",
+      "tags": [
+        "skill",
+        "faker"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Faker skill",
+          "description": "Synthetic test data. Generate deterministic, foreign-key consistent stub data from the schema model for a batch (periodic runs use increasing batch numbers) into a DuckDB copy and Parquet/CSV/JSON Lines/XML files."
+        },
+        "it": {
+          "title": "Skill Faker",
+          "description": "Synthetic test data. Generate deterministic, foreign-key consistent stub data from the schema model for a batch (periodic runs use increasing batch numbers) into a DuckDB copy and Parquet/CSV/JSON Lines/XML files."
+        }
+      },
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "faker"
+      ],
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      },
+      "cli_binaries": [
+        {
+          "name": "faker",
+          "executable": "/usr/local/bin/faker-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities faker"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Generate deterministic, foreign-key consistent stub data from the schema model for a batch (periodic runs use increasing batch numbers) into a DuckDB copy and Parquet/CSV/JSON Lines/XML files.",
+      "verification_command": "craft capabilities faker"
+    },
+    {
+      "id": "env-pipeline-dati",
+      "name": "End-to-end Data Pipeline",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "environment",
+      "tags": [
+        "environment",
+        "data-engineering",
+        "recipe",
+        "sqlglot",
+        "duckdb",
+        "tbls",
+        "faker",
+        "dlt",
+        "sqlmesh",
+        "supercronic",
+        "schemacrawler",
+        "usql",
+        "hadolint",
+        "shellcheck",
+        "actionlint",
+        "gitleaks"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "sqlglot",
+        "duckdb",
+        "tbls",
+        "faker",
+        "dlt",
+        "sqlmesh",
+        "supercronic",
+        "schemacrawler",
+        "usql",
+        "hadolint",
+        "shellcheck",
+        "actionlint",
+        "gitleaks"
+      ],
+      "skills": [
+        "skill-data-pipeline"
+      ],
+      "i18n": {
+        "en": {
+          "title": "End-to-end Data Pipeline",
+          "description": "Describe and catalog a database schema from its documentation, replicate it empty locally, generate periodic stub data, test ingestion and transformations and deliver a production-ready package with marts for the existing BI tool."
+        },
+        "it": {
+          "title": "Pipeline dati end-to-end",
+          "description": "Descrivere e catalogare lo schema di un database dalla documentazione, replicarlo vuoto in locale, generare dati di prova periodici, provare acquisizione e trasformazioni e consegnare un pacchetto pronto per la produzione, con mart per lo strumento BI esistente."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      },
+      "cli_binaries": [
+        {
+          "name": "sqlglot",
+          "executable": "/usr/local/bin/sqlglot-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities sqlglot"
+        },
+        {
+          "name": "duckdb",
+          "executable": "/usr/local/bin/duckdb-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities duckdb"
+        },
+        {
+          "name": "tbls",
+          "executable": "/usr/local/bin/tbls-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities tbls"
+        },
+        {
+          "name": "faker",
+          "executable": "/usr/local/bin/faker-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities faker"
+        },
+        {
+          "name": "dlt",
+          "executable": "/usr/local/bin/dlt-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities dlt"
+        },
+        {
+          "name": "sqlmesh",
+          "executable": "/usr/local/bin/sqlmesh-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities sqlmesh"
+        },
+        {
+          "name": "supercronic",
+          "executable": "/usr/local/bin/supercronic-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities supercronic"
+        },
+        {
+          "name": "schemacrawler",
+          "executable": "/usr/local/bin/schemacrawler-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities schemacrawler"
+        },
+        {
+          "name": "usql",
+          "executable": "/usr/local/bin/usql-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities usql"
+        },
+        {
+          "name": "hadolint",
+          "executable": "/usr/local/bin/hadolint-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities hadolint"
+        },
+        {
+          "name": "shellcheck",
+          "executable": "/usr/local/bin/shellcheck-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities shellcheck"
+        },
+        {
+          "name": "actionlint",
+          "executable": "/usr/local/bin/actionlint-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities actionlint"
+        },
+        {
+          "name": "gitleaks",
+          "executable": "/usr/local/bin/gitleaks-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities gitleaks"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Describe and catalog a database schema from its documentation, replicate it empty locally, generate periodic stub data, test ingestion and transformations and deliver a production-ready package with marts for the existing BI tool.",
+      "verification_command": "craft capabilities dlt && craft capabilities faker && craft capabilities tbls"
+    },
+    {
+      "id": "skill-data-pipeline",
+      "name": "Data pipeline recipe",
+      "version": "1.0.0",
+      "author": "righaven-core",
+      "category": "skill",
+      "tags": [
+        "skill",
+        "recipe",
+        "data-engineering"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "sqlglot",
+        "duckdb",
+        "tbls",
+        "faker",
+        "dlt",
+        "sqlmesh",
+        "supercronic",
+        "schemacrawler",
+        "usql",
+        "hadolint",
+        "shellcheck",
+        "actionlint",
+        "gitleaks"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Recipe: end-to-end data pipeline",
+          "description": "From schema documentation to a production package: catalog, empty local replica, periodic stub data, scheduled ingestion, tested transformations and BI-ready marts."
+        },
+        "it": {
+          "title": "Ricetta: pipeline dati end-to-end",
+          "description": "Dalla documentazione dello schema al pacchetto di produzione: catalogo, replica locale vuota, dati di prova periodici, acquisizione schedulata, trasformazioni testate e mart pronti per la BI."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ]
+      },
+      "cli_binaries": [
+        {
+          "name": "sqlglot",
+          "executable": "/usr/local/bin/sqlglot-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities sqlglot"
+        },
+        {
+          "name": "duckdb",
+          "executable": "/usr/local/bin/duckdb-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities duckdb"
+        },
+        {
+          "name": "tbls",
+          "executable": "/usr/local/bin/tbls-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities tbls"
+        },
+        {
+          "name": "faker",
+          "executable": "/usr/local/bin/faker-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities faker"
+        },
+        {
+          "name": "dlt",
+          "executable": "/usr/local/bin/dlt-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities dlt"
+        },
+        {
+          "name": "sqlmesh",
+          "executable": "/usr/local/bin/sqlmesh-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities sqlmesh"
+        },
+        {
+          "name": "supercronic",
+          "executable": "/usr/local/bin/supercronic-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities supercronic"
+        },
+        {
+          "name": "schemacrawler",
+          "executable": "/usr/local/bin/schemacrawler-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities schemacrawler"
+        },
+        {
+          "name": "usql",
+          "executable": "/usr/local/bin/usql-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities usql"
+        },
+        {
+          "name": "hadolint",
+          "executable": "/usr/local/bin/hadolint-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities hadolint"
+        },
+        {
+          "name": "shellcheck",
+          "executable": "/usr/local/bin/shellcheck-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities shellcheck"
+        },
+        {
+          "name": "actionlint",
+          "executable": "/usr/local/bin/actionlint-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities actionlint"
+        },
+        {
+          "name": "gitleaks",
+          "executable": "/usr/local/bin/gitleaks-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities gitleaks"
+        }
+      ],
+      "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Follow skill-data-pipeline phase by phase and record the evidence of each gate.",
+      "verification_command": "craft capabilities sqlglot && craft capabilities faker"
     }
   ]
 }

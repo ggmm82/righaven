@@ -8,6 +8,7 @@ import { duration, jobHealth, secondsSince, terminalJob, type JobProgress } from
 
 import { ConversationAudit, OperationDetails } from "./conversation-audit";
 import { ExperiencePanel } from "./experience-panel";
+import { ProjectConnections } from "./project-connections";
 import { ProjectDesign, type Design } from "./project-design";
 import { ProjectGuide } from "./project-guide";
 import { GovernanceStrip, ProfileUseLine, ToolChoices, type LiveGovernance, type ToolDecision } from "./project-governance";
@@ -414,6 +415,7 @@ export function DelegateProgress({ threadId, active, pending, coordinatorError =
         </section>
         <ToolChoices decisions={project.outcome?.tool_options}/>
         <GovernanceStrip governance={governance} expanded threadId={threadId} onChanged={next => setSnapshot(previous => previous?.threadId === threadId ? { ...previous, governance: next } : previous)}/>
+        <ProjectConnections threadId={threadId}/>
         {questions.length > 0 && <section className="space-y-2 rounded-xl border border-amber-500/30 bg-amber-500/5 p-4" data-testid="brief-questions">
           <h4 className="font-semibold">{tr("Le scelte che mancano", "Choices still missing")}</h4>
           <ul className="list-inside list-disc">{questions.map((q, i) => <li key={i}>{q}</li>)}</ul>

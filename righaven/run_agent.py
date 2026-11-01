@@ -312,6 +312,10 @@ def main():
                json.dumps(job.get('user_direction'), ensure_ascii=False) +
                '\nUn’immagine raster inserita in un SVG non è un disegno vettoriale modificabile. '
                'Se la tecnica richiesta non è disponibile, riferisci il limite senza sostituirla in silenzio.')
+    if job.get('connections'):
+        prompt += ('\nConnessioni scelte dall’utente per questo lavoro (metadati, senza segreti): ' + json.dumps(job['connections'], ensure_ascii=False) +
+                   '. Usale con `connection: "ID"` negli adattatori usql, dlt e schemacrawler (vedi `tools` di ciascuna); esegui solo letture. '
+                   'Non copiare mai i file di /run/righaven/connections né le credenziali in sorgenti, log, risultati o lezioni.')
     native_images = engine == 'codex' and (job.get('user_direction') or {}).get('visual_approach') != 'vector'
     if native_images:
         prompt += ('\nCapacità nativa configurata: image_gen.imagegen di Codex. Disponibilità effettiva soggetta a login, modello e quota. '

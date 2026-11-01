@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "recipes": [
+    {
+      "id": "data-pipeline",
+      "skill": "skill-data-pipeline",
+      "environment": "pipeline-dati",
+      "tools": ["sqlglot", "duckdb", "tbls", "faker", "dlt", "sqlmesh", "supercronic", "hadolint", "shellcheck", "actionlint", "gitleaks"],
+      "keywords": ["database", "schema", "catalogo", "catalog", "data dictionary", "dizionario dati", "ddl", "etl", "elt", "pipeline", "data warehouse", "warehouse", "replica", "dati di test", "test data", "stub", "power bi", "fabric", "bi", "ingestion", "acquisizione"],
+      "it": {
+        "title": "Pipeline dati end-to-end",
+        "summary": "Dalla documentazione di un database a un catalogo descritto, a un ambiente di test con dati finti e a un pacchetto pronto per la produzione che alimenta il tuo strumento BI.",
+        "when": "Hai la documentazione o un'analisi di un database e vuoi descriverlo, provarlo in locale senza dati reali e impostare acquisizione, trasformazioni e reportistica.",
+        "attach_required": ["Almeno una descrizione dello schema: script DDL (anche solo schema, senza dati), un documento di analisi (PDF, Word, Excel) oppure file di esempio JSON, XML, Parquet o CSV"],
+        "attach_optional": ["Dizionario dati o glossario con il significato di tabelle e colonne", "Elenco delle tabelle prioritarie", "Esempi dei report o degli indicatori che la BI deve mostrare", "Vincoli di orario o di frequenza (per esempio: aggiornamento ogni notte)"],
+        "attach_never": ["Credenziali o password di produzione: se serve leggere un database vivo ti chiederò un account in sola lettura da fornire come file privato"],
+        "questions": ["Su quale database gira la sorgente (PostgreSQL, SQL Server, MySQL/MariaDB, Oracle, solo file)?", "Dove arrivano i dati in produzione (PostgreSQL, SQL Server, Microsoft Fabric)?", "Quale strumento BI usate (Power BI, Metabase, Superset, altro)?", "Ogni quanto vanno acquisiti e trasformati i dati?", "Quante righe per tabella servono nei lotti di prova?"],
+        "outputs": ["Catalogo dei dati: una pagina per tabella, diagramma delle relazioni, dati personali evidenziati", "Modello dello schema riutilizzabile e script di creazione per ogni database", "Replica locale vuota e dati di prova sintetici in più lotti, coerenti tra loro", "Pacchetto di produzione: acquisizione, trasformazioni, tabelle per la BI, pianificazione, container e guida al rilascio", "Rapporto di verifica: cosa è stato provato, con quali risultati, e cosa resta da provare sui sistemi reali"],
+        "phases": [
+          {"title": "Raccolta e domande", "checkpoint": true, "detail": "Leggo i documenti e confermo con te sorgente, destinazione, BI e frequenze."},
+          {"title": "Modello e catalogo", "checkpoint": true, "detail": "Ricavo lo schema, aggiungo le descrizioni della documentazione e ti mostro il catalogo da rivedere."},
+          {"title": "Replica e dati di prova", "checkpoint": false, "detail": "Creo la replica vuota, la verifico e genero due lotti di dati finti senza errori di relazione."},
+          {"title": "Pacchetto di produzione", "checkpoint": true, "detail": "Genero il pacchetto e concordo con te le tabelle finali per la BI."},
+          {"title": "Prova completa e consegna", "checkpoint": false, "detail": "Eseguo l'intera catena sui dati di prova, riconcilio i totali e consegno con il rapporto."}
+        ],
+        "prerequisites": ["Niente da installare: gli strumenti vengono preparati automaticamente alla prima fase (la prima volta richiede alcuni minuti)", "Per andare in produzione dopo la consegna: un server con Docker oppure un workspace Microsoft Fabric, e un account in sola lettura sulla sorgente"],
+        "starter": "Usa la ricetta «Pipeline dati end-to-end».\n\nAllego: [descrivi i file allegati: DDL, documento di analisi, file di esempio]\nDatabase sorgente: [PostgreSQL / SQL Server / MySQL / Oracle / solo file]\nDestinazione in produzione: [PostgreSQL / SQL Server / Microsoft Fabric / da decidere]\nStrumento BI: [Power BI / Metabase / Superset / altro]\nFrequenza: [es. acquisizione ogni ora, trasformazione ogni notte]\nCosa mi serve di più: [catalogo / ambiente di test con dati finti / pacchetto per la produzione / tutto]"
+      },
+      "en": {
+        "title": "End-to-end data pipeline",
+        "summary": "From a database's documentation to a described catalog, a test environment with synthetic data and a production-ready package feeding your BI tool.",
+        "when": "You have the documentation or an analysis of a database and want to describe it, try it locally without real data and set up acquisition, transformations and reporting.",
+        "attach_required": ["At least one description of the schema: DDL scripts (schema only, no data), an analysis document (PDF, Word, Excel) or sample JSON, XML, Parquet or CSV files"],
+        "attach_optional": ["Data dictionary or glossary with the meaning of tables and columns", "List of priority tables", "Examples of the reports or indicators the BI must show", "Time or frequency constraints (for example: refresh every night)"],
+        "attach_never": ["Production credentials or passwords: if a live database must be read I will ask for a read-only account supplied as a private file"],
+        "questions": ["Which database does the source run on (PostgreSQL, SQL Server, MySQL/MariaDB, Oracle, files only)?", "Where does the data land in production (PostgreSQL, SQL Server, Microsoft Fabric)?", "Which BI tool do you use (Power BI, Metabase, Superset, other)?", "How often must data be acquired and transformed?", "How many rows per table do the test batches need?"],
+        "outputs": ["Data catalog: one page per table, relationship diagram, personal data highlighted", "Reusable schema model and creation scripts for each database", "Empty local replica and synthetic test data in several consistent batches", "Production package: acquisition, transformations, BI tables, scheduling, container and release guide", "Verification report: what was tested, with which results, and what remains to be tested on the real systems"],
+        "phases": [
+          {"title": "Intake and questions", "checkpoint": true, "detail": "I read the documents and confirm source, destination, BI and frequencies with you."},
+          {"title": "Model and catalog", "checkpoint": true, "detail": "I derive the schema, add the documentation's descriptions and show you the catalog to review."},
+          {"title": "Replica and test data", "checkpoint": false, "detail": "I create the empty replica, verify it and generate two batches of synthetic data without relationship errors."},
+          {"title": "Production package", "checkpoint": true, "detail": "I generate the package and agree the final BI tables with you."},
+          {"title": "Full test and delivery", "checkpoint": false, "detail": "I run the whole chain on the test data, reconcile totals and deliver with the report."}
+        ],
+        "prerequisites": ["Nothing to install: tools are prepared automatically at the first phase (a few minutes the first time)", "To go to production after delivery: a server with Docker or a Microsoft Fabric workspace, and a read-only account on the source"],
+        "starter": "Use the \"End-to-end data pipeline\" recipe.\n\nAttached: [describe the attached files: DDL, analysis document, sample files]\nSource database: [PostgreSQL / SQL Server / MySQL / Oracle / files only]\nProduction destination: [PostgreSQL / SQL Server / Microsoft Fabric / to be decided]\nBI tool: [Power BI / Metabase / Superset / other]\nFrequency: [e.g. acquire hourly, transform nightly]\nWhat I need most: [catalog / test environment with synthetic data / production package / all of it]"
+      }
+    }
+  ]
+}

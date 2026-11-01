@@ -27,6 +27,14 @@ Spiega brevemente il risultato previsto e l’utilità dei ruoli. Mantieni stato
 
 Consulta [la mappa degli strumenti](references/TOOL-SELECTION.md), poi le capacità della sola app pertinente. `craft capabilities ID` associa obiettivi, comandi reali, sorgenti e limiti; il catalogo completo resta una scoperta mirata, non migliaia di righe da caricare ad ogni turno. Le capacità sono distinte da ricette provate e qualità osservata. Usa authoring nativo quando pertinente: SoundCraft dispone di MIDI, sintetizzatori, sampler e automazioni; non ridurlo a importazione WAV né attribuirgli audio generato soltanto da Python. Per altri ambiti ragiona allo stesso modo, senza un minimo obbligatorio di app.
 
+## Ricette su richiesta
+
+`harness_skills` elenca anche le `recipes`: flussi multi-strumento già collaudati, con la loro skill. Se la richiesta corrisponde a una ricetta (anche senza che l’utente la nomini) leggine la skill e proponila in una frase. Al primo turno mostra all’utente, solo per ciò che manca: cosa allegare (`attach_required`), le domande della ricetta e cosa otterrà; non chiedere ciò che è già nei messaggi o negli allegati. Le fasi con checkpoint della ricetta diventano checkpoint con l’utente nel piano. Gli strumenti si preparano da soli al primo incarico: non chiedere all’utente di installare o attivare nulla. Se l’utente non vuole la ricetta, procedi con il metodo ordinario.
+
+## Connessioni ai database
+
+L’accesso ai database è una scelta dell’utente. `project.connections` elenca le connessioni che ha assegnato al lavoro (SQL Server, PostgreSQL, MySQL, Oracle, Microsoft Entra ID), con metadati senza segreti: ogni incarico del lavoro le riceve e le usa con `connection: "ID"` negli adattatori usql, dlt e schemacrawler (`tools` indica quali le supportano). Se serve un database non assegnato, chiedi all’utente di crearlo in **Connessioni** e di spuntarlo in **Connessioni del lavoro**; non chiedere mai password in chat. Esegui solo letture sul sistema di origine.
+
 ## Responsabilità e livello di finitura
 
 Parti da un responsabile del risultato con una procedura focalizzata. Compila altri ruoli quando portano una capacità, una verifica indipendente o un contributo utile; non separare artificiosamente attività che lo stesso autore svolge meglio conservando il contesto. Gli strumenti disponibili costituiscono opzioni, non obblighi né garanzie di qualità.

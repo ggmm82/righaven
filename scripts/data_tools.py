@@ -12,8 +12,24 @@ def secret_config(args,cli,output):
         if source.stat().st_size>256*1024**2:raise ValueError('Supply a bounded database snapshot of at most 256 MiB')
         target=output/'Sources'/source.name;shutil.copy2(source,target)
         return {'url':'sqlite:///'+str(target),'jdbc_url':'jdbc:sqlite:'+str(target)},[]
-    if args.get('authorized') is not True:raise ValueError('Authorize the read-only data source explicitly and use a read-only database account')
     cfg={}
+    if args.get('connection'):
+        # A user connection assigned to the project, delivered privately to this assignment only.
+        name=args['connection']
+        if not re.fullmatch(r'[a-z][a-z0-9-]{1,39}',name):raise ValueError('Use the ID of a connection assigned to the project')
+        path=Path('/run/righaven/connections')/(name+'.json')
+        if not path.is_file():raise ValueError('Connection '+name+' is not available to this assignment: the role must declare it and the user must assign it to the project')
+        cfg=json.loads(path.read_text())
+        if cfg.get('kind')=='entra':raise ValueError('A Microsoft Entra ID application is not a database: use a SQL Server connection that authenticates with it')
+        if cfg.get('read_only') is not True:raise ValueError('The connection is not declared read-only')
+        cfg={k:v for k,v in cfg.items() if k in ('url','jdbc_url','usql_url','username','password')}
+        values=[v for v in cfg.values() if isinstance(v,str) and v]
+        for key in ('url','usql_url'):
+            if cfg.get(key):
+                parsed=urlsplit(cfg[key])
+                if parsed.password:values.append(unquote(parsed.password))
+        return cfg,values
+    if args.get('authorized') is not True:raise ValueError('Authorize the read-only data source explicitly and use a read-only database account')
     if args.get('connection_env'):
         name=args['connection_env']
         if not re.fullmatch(r'RIGHAVEN_DB_[A-Z0-9_]{1,64}',name):raise ValueError('Use a RIGHAVEN_DB_* environment variable')
@@ -78,10 +94,12 @@ def invoke(app,action,args,cli):
     if schema:shutil.copy2(schema,sources/'schema.json')
     shutil.copy2(Path(__file__).with_name('data_job.py'),sources/'data_job.py')
     cfg,values=(None,[])
-    if app in ('usql','schemacrawler') or app=='dlt' and (action=='discover' or any(args.get(k) for k in ('database','connection_file','connection_env'))):
+    if app in ('usql','schemacrawler') or app=='dlt' and (action=='discover' or any(args.get(k) for k in ('database','connection_file','connection_env','connection'))):
         cfg,values=secret_config(args,cli,output)
         if cfg is None:raise ValueError('Select a local database or a supplied private connection')
-    if app in ('dlt','usql') and cfg is not None and not cfg.get('url'):raise ValueError('This tool requires a SQLAlchemy/MongoDB URL, not a JDBC-only connection')
+    if app=='dlt' and cfg is not None and not cfg.get('url'):raise ValueError('This tool requires a SQLAlchemy/MongoDB URL; Microsoft Entra ID SQL connections are available to usql')
+    if app=='usql' and cfg is not None and not (cfg.get('url') or cfg.get('usql_url')):raise ValueError('usql requires a database URL')
+    if app=='schemacrawler' and cfg is not None and not (cfg.get('jdbc_url') or cfg.get('url')):raise ValueError('SchemaCrawler requires a JDBC connection; Microsoft Entra ID SQL connections are available to usql')
     if app=='dlt' and action=='extract' and source is None and not (cfg and cfg['url'].startswith(('mongodb://','mongodb+srv://'))):raise ValueError('Provide an input JSON/CSV file or a saved SELECT query')
     env={'DLT_TELEMETRY':'false','RUNTIME__DLTHUB_TELEMETRY':'false','OMP_NUM_THREADS':'2'}
     with tempfile.TemporaryDirectory(prefix='righaven-data-') as private:
@@ -98,7 +116,7 @@ def invoke(app,action,args,cli):
             if not actual or actual.suffix.lower()!='.sql':raise ValueError('Use a saved .sql SELECT query')
             check={**spec,'action':'validate_sql'};request.write_text(json.dumps(check))
             run([str(cli.INSTALL/'apps/sqlglot/venv/bin/python'),str(Path(__file__).with_name('data_job.py')),str(request)],output,output,env,values)
-            config=folder/'usql.yaml';config.write_text(json.dumps({'connections':{'righaven':usql_url(cfg['url'])}}));config.chmod(0o600)
+            config=folder/'usql.yaml';config.write_text(json.dumps({'connections':{'righaven':cfg.get('usql_url') or usql_url(cfg['url'])}}));config.chmod(0o600)
             run(['usql','--config',str(config),'--no-rc','--no-password','--json','--file',str(actual),'righaven'],output,output,env,values)
             shutil.copy2(output/'native-stdout.log',output/'query-result.json')
         elif app=='schemacrawler':
@@ -126,18 +144,41 @@ def invoke(app,action,args,cli):
             gateways=config.get('gateways')
             if not isinstance(gateways,dict) or not gateways:raise ValueError('Declare an explicit local DuckDB gateway')
             if (sources/'config.py').exists():raise ValueError('Use YAML configuration for the isolated local SQLMesh adapter')
-            for gateway in gateways.values():
-                if not isinstance(gateway,dict):raise ValueError('Each SQLMesh gateway must be a local connection mapping')
+            selected=args.get('gateway') or config.get('default_gateway') or next(iter(gateways))
+            if selected not in gateways:raise ValueError('Gateway '+str(selected)+' non dichiarato nella configurazione')
+            for name,gateway in gateways.items():
+                if not isinstance(gateway,dict):raise ValueError('Each SQLMesh gateway must be a connection mapping')
+                if name!=selected:
+                    # Production gateways stay in the package but are never contacted here; secrets must come from env_var().
+                    for item in (gateway.get('connection') or {},gateway.get('state_connection') or {}):
+                        for key,value in item.items():
+                            if re.search(r'(?i)password|secret|token|key',key) and value and 'env_var' not in str(value):
+                                raise ValueError('Gateway '+name+': '+key+' deve arrivare da {{ env_var(...) }}, non scritto nella configurazione')
+                    continue
                 for key in ('state_connection','test_connection'):
                     if gateway.get(key):raise ValueError('Use the local gateway for state and test connections')
                 connection=gateway.get('connection') or {}
-                if connection.get('type')!='duckdb' or set(connection)&{'password','token','host','user','url'}:raise ValueError('This adapter plans/applies isolated local DuckDB projects only')
+                if connection.get('type')!='duckdb' or set(connection)&{'password','token','host','user','url'}:raise ValueError('The executed gateway must be an isolated local DuckDB connection')
                 database=Path(connection.get('database','data.duckdb'))
                 if database.is_absolute() or '..' in database.parts:raise ValueError('Keep SQLMesh state and data inside the copied project')
             project=output/'project';shutil.copytree(sources,project)
-            argv=[str(cli.INSTALL/'apps/sqlmesh/venv/bin/sqlmesh'),'-p',str(project),'plan','dev','--no-prompts','--auto-apply'] if args.get('apply_local') else [str(cli.INSTALL/'apps/sqlmesh/venv/bin/sqlmesh'),'-p',str(project),'plan','dev','--no-prompts','--explain']
+            if len(gateways)>1:
+                # SQLMesh checks every gateway's engine library when it loads the configuration; the executed copy keeps
+                # only the selected local gateway, the original with its production gateways stays in Sources.
+                executed={**config,'gateways':{selected:gateways[selected]},'default_gateway':selected}
+                (project/actual.relative_to(sources)).write_text(json.dumps(executed,indent=2))
+            if args.get('warehouse'):
+                # The DuckDB warehouse filled by a local dlt run becomes the executed gateway's database (a copy).
+                warehouse=cli.scoped(args['warehouse'])
+                if warehouse.suffix!='.duckdb':raise ValueError('warehouse deve essere un file .duckdb')
+                local_db=project/Path(gateways[selected]['connection'].get('database','data.duckdb'))
+                if '{{' in str(local_db):raise ValueError('Il gateway locale deve indicare un percorso fisso per usare warehouse')
+                local_db.parent.mkdir(parents=True,exist_ok=True);shutil.copy2(warehouse,local_db)
+            native=str(cli.INSTALL/'apps/sqlmesh/venv/bin/sqlmesh')
+            argv=[native,'-p',str(project),'--gateway',selected,'plan','dev','--no-prompts','--auto-apply'] if args.get('apply_local') else [native,'-p',str(project),'--gateway',selected,'plan','dev','--no-prompts','--explain']
             run(argv,output,project,env,[])
-            (output/'result.json').write_text(json.dumps({'mode':'applied_local' if args.get('apply_local') else 'plan_only','project':'project','limits':['No remote deployment is performed.']}))
+            (output/'result.json').write_text(json.dumps({'mode':'applied_local' if args.get('apply_local') else 'plan_only','project':'project','gateway':selected,
+                'production_gateways':[n for n in gateways if n!=selected],'limits':['No remote deployment is performed; production gateways are not contacted.']}))
     if source and cli.digest(source)!=original:raise RuntimeError('Original source was modified')
     result={'status':'passed','output':str(output),'sources':str(sources),'original_preserved':True}
     if (output/'result.json').is_file():result['analysis']=json.loads((output/'result.json').read_text())

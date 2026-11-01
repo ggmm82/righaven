@@ -43,6 +43,9 @@ def read_project(workspace):
     result['outcome'] = value.get('outcome')
     result['user_direction'] = value.get('user_direction')
     result['user_control'] = value.get('user_control')
+    if value.get('connections'):
+        from .connections import assigned
+        result['connections'] = assigned(workspace, value)
     from .revision import correction_focus
     focus = correction_focus(value)
     if focus:

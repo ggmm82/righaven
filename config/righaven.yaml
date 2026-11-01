@@ -1806,6 +1806,63 @@ subagents:
       - task
       - ask_clarification
       - present_files
+    tbls:
+      description: 'Data catalog and schema documentation: Generate the data catalog
+        from the schema model: Markdown pages per table, ER diagram, relations, labels
+        and description coverage. Usa tbls-cli.'
+      system_prompt: This is the tbls tool integration, not a fixed professional role.
+        Use harness_delegate with agent="tbls" and include inputs, paths, editable
+        sources, opening application and observable acceptance checks. Inherit the
+        executing team model; do not run CLIs in the Gateway. Report real results
+        and limitations. Project roles are assigned dynamically.
+      skills:
+      - skill-workspace
+      - skill-tbls
+      model: inherit
+      max_turns: 50
+      timeout_seconds: 1800
+      disallowed_tools:
+      - task
+      - ask_clarification
+      - present_files
+    supercronic:
+      description: 'Container cron scheduler: Validate a crontab with supercronic
+        and list each job with its schedule; nothing is executed. Usa supercronic-cli.'
+      system_prompt: This is the supercronic tool integration, not a fixed professional
+        role. Use harness_delegate with agent="supercronic" and include inputs, paths,
+        editable sources, opening application and observable acceptance checks. Inherit
+        the executing team model; do not run CLIs in the Gateway. Report real results
+        and limitations. Project roles are assigned dynamically.
+      skills:
+      - skill-workspace
+      - skill-supercronic
+      model: inherit
+      max_turns: 50
+      timeout_seconds: 1800
+      disallowed_tools:
+      - task
+      - ask_clarification
+      - present_files
+    faker:
+      description: 'Synthetic test data: Generate deterministic, foreign-key consistent
+        stub data from the schema model for a batch (periodic runs use increasing
+        batch numbers) into a DuckDB copy and Parquet/CSV/JSON Lines/XML files. Usa
+        faker-cli.'
+      system_prompt: This is the faker tool integration, not a fixed professional
+        role. Use harness_delegate with agent="faker" and include inputs, paths, editable
+        sources, opening application and observable acceptance checks. Inherit the
+        executing team model; do not run CLIs in the Gateway. Report real results
+        and limitations. Project roles are assigned dynamically.
+      skills:
+      - skill-workspace
+      - skill-faker
+      model: inherit
+      max_turns: 50
+      timeout_seconds: 1800
+      disallowed_tools:
+      - task
+      - ask_clarification
+      - present_files
 subagent_runtime:
   max_running: 1
   max_queued: 24
@@ -2322,7 +2379,13 @@ lead_prompt_overlay:
     and English) (List words not found in the Italian or English Hunspell dictionary;
     names and technical terms need human review.); vale per Prose style linting (Check
     prose against style rules (Vale built-in rules or a supplied .vale.ini with local
-    styles); save JSON alerts.).'
+    styles); save JSON alerts.); tbls per Data catalog and schema documentation (Generate
+    the data catalog from the schema model: Markdown pages per table, ER diagram,
+    relations, labels and description coverage.); supercronic per Container cron scheduler
+    (Validate a crontab with supercronic and list each job with its schedule; nothing
+    is executed.); faker per Synthetic test data (Generate deterministic, foreign-key
+    consistent stub data from the schema model for a batch (periodic runs use increasing
+    batch numbers) into a DuckDB copy and Parquet/CSV/JSON Lines/XML files.).'
 auth:
   local:
     allow_registration: true

@@ -53,7 +53,14 @@
     "acceptance_data.py": "scripts/acceptance_data.py",
     "domain_specs.py": "scripts/domain_specs.py",
     "domain_tools.py": "scripts/domain_tools.py",
-    "acceptance_domain.py": "scripts/acceptance_domain.py"
+    "acceptance_domain.py": "scripts/acceptance_domain.py",
+    "pipeline_specs.py": "scripts/pipeline_specs.py",
+    "pipeline_tools.py": "scripts/pipeline_tools.py",
+    "pipeline_job.py": "scripts/pipeline_job.py",
+    "pipeline_model.py": "scripts/pipeline_model.py",
+    "pipeline_scaffold.py": "scripts/pipeline_scaffold.py",
+    "stubgen.py": "scripts/stubgen.py",
+    "acceptance_pipeline.py": "scripts/acceptance_pipeline.py"
   },
   "righaven-worker": {
     "run_agent.py": "righaven/run_agent.py",

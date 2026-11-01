@@ -933,5 +933,8 @@
     "hunspell-it",
     "hunspell-en-us"
   ],
-  "vale": []
+  "vale": [],
+  "tbls": [],
+  "supercronic": [],
+  "faker": []
 }

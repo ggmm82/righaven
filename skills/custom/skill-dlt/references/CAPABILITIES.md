@@ -11,6 +11,7 @@ Versione esaminata: **1.31.0**. Audit del catalogo nativo: 2026-10-25.
 |---|---|
 | Inspect SQL metadata with SQLAlchemy or MongoDB collection structure. Produce editable schema JSON; sampling is not complete semantic understanding. | `dlt.discover` |
 | Extract bounded local JSON/CSV or authorized read-only SQL/MongoDB data into a private DuckDB pipeline. Preserve pipeline, schema, receipt and reconciliation. | `dlt.extract` |
+| Run a project dlt pipeline locally against a stub source database and a local DuckDB destination; production credentials are never used. | `dlt.run` |
 
 Gli ID sopra sono registrati dalla CLI, non una certificazione di ogni funzione. Scopri parametri, contesto e disponibilità prima di mutare il documento. Le prove minime ripetibili sono in `CLI-RECIPE.md`; la qualità di produzione è trattata in `QUALITY.md`.
 
@@ -26,5 +27,5 @@ Separate SQL metadata, sampled document fields and business hypotheses. Keep pip
 4. Apri un input pertinente, salva presto il sorgente e verifica una prova a finitura prevista. Riduci il perimetro prima della qualità.
 5. Verifica le proprietà salvate e un export effettivo; non trasformare il codice di uscita zero in una valutazione professionale.
 
-Catalogo esaminato: 2 ID unici (le integrazioni con adattatore descrivono le operazioni esposte, non l’intera API upstream). SHA256 della rilevazione: `2d0f7aebfdf4dc85c530e515fcdba4c8fc46399bad6b3ffa851a6469b1e0b337`.
+Catalogo esaminato: 3 ID unici (le integrazioni con adattatore descrivono le operazioni esposte, non l’intera API upstream). SHA256 della rilevazione: `d9090e8460ce5410f9d00de561480ee60ac92ec0910d0506d737f6728c47bc78`.
 Fonte: https://github.com/dlt-hub/dlt. Il catalogo locale della versione fissata prevale sulla documentazione di versioni successive.

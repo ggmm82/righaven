@@ -51,9 +51,15 @@ def checked_args(app, action, args):
         raise ValueError('Unknown operation, missing or unsupported arguments')
     for name, value in args.items():
         field = spec['properties'][name]
-        types = {'string': (str,), 'integer': (int,), 'number': (float, int), 'boolean': (bool,)}
+        types = {'string': (str,), 'integer': (int,), 'number': (float, int), 'boolean': (bool,), 'array': (list,)}
         if type(value) not in types[field['type']]:
             raise ValueError('Wrong argument type: ' + name)
+        if field['type'] == 'array':
+            item = field.get('items', {})
+            if (len(value) > 50 or len(value) < field.get('minItems', 0) or field.get('uniqueItems') and len(set(map(str, value))) != len(value)
+                    or any(type(v) not in types[item.get('type', 'string')] or 'enum' in item and v not in item['enum'] for v in value)):
+                raise ValueError('Argument outside supported values: ' + name)
+            continue
         if isinstance(value, float) and not math.isfinite(value):
             raise ValueError('A finite numeric value is required: ' + name)
         if isinstance(value, str) and (not value.strip() or len(value) > 4000 or '\0' in value):

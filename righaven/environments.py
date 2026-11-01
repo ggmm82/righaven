@@ -39,6 +39,7 @@ PRESETS = [
     {'id': 'email-newsletter', 'name': 'Email e newsletter', 'purpose': 'Realizzare email responsive con sorgenti MJML modificabili e HTML compilato con validazione rigorosa.', 'tools': ['mjml']},
     {'id': 'musica-abc', 'name': 'Musica in notazione ABC', 'purpose': 'Scrivere melodie in notazione testuale, impaginarle come spartiti SVG e ascoltarle in MIDI.', 'tools': ['abcm2ps', 'abcmidi']},
     {'id': 'revisione-testi', 'name': 'Revisione linguistica dei testi', 'purpose': 'Controllare ortografia italiana e inglese e regole di stile su testi lunghi senza servizi esterni.', 'tools': ['hunspell', 'vale']},
+    {'id': 'pipeline-dati', 'name': 'Pipeline dati end-to-end', 'purpose': 'Descrivere e catalogare lo schema di un database dalla documentazione, replicarlo vuoto in locale, generare dati di prova periodici, provare acquisizione e trasformazioni e consegnare un pacchetto pronto per la produzione con mart per lo strumento BI esistente.', 'tools': ['sqlglot', 'duckdb', 'tbls', 'faker', 'dlt', 'sqlmesh', 'supercronic', 'schemacrawler', 'usql', 'hadolint', 'shellcheck', 'actionlint', 'gitleaks'], 'skills': ['skill-data-pipeline']},
 ]
 CORE_SKILLS = ('skill-harness', 'skill-workspace')
 NAME = re.compile(r'[a-z0-9][a-z0-9-]{0,63}\Z')
@@ -154,7 +155,7 @@ def resolve_skills(user_id, names, *, strict=True):
 
 def preset_catalog():
     known = {a['id'] for a in applications()}
-    return [{**p, 'skills':[*CORE_SKILLS,'skill-problem-solving','skill-quality-review',*['skill-'+t for t in p['tools'] if t in known]],
+    return [{**p, 'skills':[*CORE_SKILLS,'skill-problem-solving','skill-quality-review',*p.get('skills',[]),*['skill-'+t for t in p['tools'] if t in known]],
              'missing_tools':[t for t in p['tools'] if t not in known]} for p in PRESETS]
 
 

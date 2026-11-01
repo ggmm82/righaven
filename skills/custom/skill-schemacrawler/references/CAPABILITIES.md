@@ -25,5 +25,5 @@ Separate declared constraints from inferred associations and sampled data. Valid
 4. Apri un input pertinente, salva presto il sorgente e verifica una prova a finitura prevista. Riduci il perimetro prima della qualità.
 5. Verifica le proprietà salvate e un export effettivo; non trasformare il codice di uscita zero in una valutazione professionale.
 
-Catalogo esaminato: 1 ID unici (le integrazioni con adattatore descrivono le operazioni esposte, non l’intera API upstream). SHA256 della rilevazione: `6c5f20b9dee57b611bb980a66bdeb214211d67fb3604936b0fb2b4928bdd6d61`.
+Catalogo esaminato: 1 ID unici (le integrazioni con adattatore descrivono le operazioni esposte, non l’intera API upstream). SHA256 della rilevazione: `ca69d25575b37db2c3a46b1ec4e200a7bc7cb46f69785b61ca316f81d84ec4b2`.
 Fonte: https://github.com/schemacrawler/SchemaCrawler. Il catalogo locale della versione fissata prevale sulla documentazione di versioni successive.
