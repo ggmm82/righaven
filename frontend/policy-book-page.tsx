@@ -1,5 +1,6 @@
 "use client";
 import {useEffect,useState,type ReactNode} from "react";
+import {ConceptMap} from "@/components/workspace/concept-map";
 import {useI18n} from "@/core/i18n/hooks";
 import {fetch} from "@/core/api/fetcher";
 import {getBackendBaseURL} from "@/core/config";
@@ -111,6 +112,7 @@ export default function PolicyBookPage(){
  return <main className="mx-auto w-full max-w-6xl space-y-5 overflow-y-auto p-6">
   <header><h1 className="text-2xl font-semibold">Policy Book</h1>
    <p className="mt-2 text-muted-foreground">{t("Le policy sono le regole che RigHaven fa rispettare in ogni progetto: cosa devono fare gli specialisti mentre lavorano, cosa devono dichiarare e come viene verificato il prodotto finito prima della consegna. I progetti usano la versione fissata nel proprio Policy Plan.","Policies are the rules RigHaven enforces in every project: what specialists must do while working, what they must declare, and how the finished product is checked before delivery. Projects keep the version pinned in their Policy Plan.")}</p></header>
+  <ConceptMap current="policy"/>
   <div className="grid gap-5 md:grid-cols-[18rem_1fr]">
    <nav aria-label={t("Policy sheet","Policy sheets")} className="space-y-2">
     {canManage&&<button className={button+" w-full"} disabled={busy} onClick={startNew}>{t("Nuova policy guidata","New guided policy")}</button>}

@@ -7,7 +7,8 @@ and tells the coordinator which skills and tools to use. Its tools are prepared
 on demand at the first assignment; nothing has to be activated beforehand.
 
 Built-in recipes ship in recipes.json. Users create their own (or duplicate a
-built-in one) from the Recipes page; administrators may share them with everyone.
+built-in one) from the Recipes page and may publish them to the catalog, where
+everyone finds them next to environments and skills; administrators can withdraw them.
 """
 import json
 import re
@@ -268,12 +269,13 @@ def update(owner, identifier, draft, skill_names, expected_revision, administrat
 
 
 def share(owner, identifier, shared, administrator):
-    if not administrator:
-        raise ValueError('Only an administrator shares recipes with everyone')
+    """Publish a recipe to the catalog (Community Gallery and Recipes) or withdraw it: its author, or an administrator."""
     path = _path(identifier)
     if not path.is_file():
         raise ValueError('Ricetta non trovata')
     recipe = json.loads(path.read_text())
+    if recipe['owner'] != owner and not administrator:
+        raise ValueError('Only the author or an administrator publishes this recipe')
     recipe.update(shared=bool(shared), revision=recipe['revision'] + 1, updated_at=utc())
     state.atomic_json(path, recipe)
     return recipe

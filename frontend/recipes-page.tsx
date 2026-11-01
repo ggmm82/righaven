@@ -2,6 +2,7 @@
 import {useRouter} from "next/navigation";
 import {useEffect,useState} from "react";
 
+import {ConceptMap} from "@/components/workspace/concept-map";
 import {fetch} from "@/core/api/fetcher";
 import {getBackendBaseURL} from "@/core/config";
 import {useI18n} from "@/core/i18n/hooks";
@@ -23,7 +24,11 @@ export default function RecipesPage(){
  const [recipes,setRecipes]=useState<Recipe[]|null>(null),[open,setOpen]=useState<string|null>(null),[error,setError]=useState("");
  useEffect(()=>{let live=true;
   void fetch(`${getBackendBaseURL()}/api/harness/recipes?locale=${it?"it":"en"}`).then(async r=>{const v=await r.json();if(!r.ok)throw Error(typeof v.detail==="string"?v.detail:String(r.status));return v as {recipes:Recipe[];can_share?:boolean};})
-   .then(v=>{if(live){setRecipes(v.recipes);setCanShare(!!v.can_share);setOpen(o=>o??v.recipes[0]?.id??null);}}).catch(e=>{if(live)setError(e instanceof Error?e.message:String(e));});
+   .then(v=>{if(live){setRecipes(v.recipes);setCanShare(!!v.can_share);setOpen(o=>o??v.recipes[0]?.id??null);
+    // Links from the Community Gallery: ?use=ID starts the guided intake, ?duplicate=ID opens a copy in the editor.
+    const params=new URLSearchParams(location.search);const use=params.get("use"),copy=params.get("duplicate");
+    const target=v.recipes.find(r=>r.id===(use??copy));if(target&&use){setChosen(target.id);setStep(0);setOpen(target.id);}if(target&&copy)void edit(target,true);
+    if(use??copy)history.replaceState(null,"",location.pathname);}}).catch(e=>{if(live)setError(e instanceof Error?e.message:String(e));});
   return()=>{live=false;};},[it,reload]);
  const [editing,setEditing]=useState<{draft:RecipeDraft;id?:string;revision?:number}|null>(null);
  async function call(url:string,init?:RequestInit){const r=await fetch(`${getBackendBaseURL()}/api/harness/recipes${url}`,init);const v=await r.json() as {draft?:RecipeDraft;detail?:unknown};if(!r.ok)throw Error(typeof v.detail==="string"?v.detail:String(r.status));return v;}
@@ -49,11 +54,7 @@ export default function RecipesPage(){
     "Descrivi il risultato e avvia un percorso salvato nel progetto. Allega poi la documentazione in chat: la squadra la legge, propone le scelte mancanti e ti presenta risultati da approvare. Nessuna connessione reale è necessaria per il laboratorio di prova.",
     "Describe your outcome and start a saved guided project. Attach documentation in chat: the team reads it, proposes missing choices and presents results for approval. No real connection is needed for the test laboratory.")}</p>
    <p className="text-muted-foreground text-sm">{t("Non serve sceglierle a mano: se descrivi un lavoro che corrisponde a una ricetta, il coordinatore te la propone.","You do not have to pick them by hand: if you describe work that matches a recipe, the coordinator proposes it.")}</p>
-   <div className="grid gap-2 text-sm md:grid-cols-3" data-testid="recipe-vocabulary">
-    <a className="rounded border p-3 hover:bg-muted" href="/workspace/capabilities"><span className="font-semibold">{t("Skill · come si lavora","Skills · how to work")}</span><span className="text-muted-foreground block text-xs">{t("Metodi, controlli di qualità e competenza sugli strumenti.","Methods, quality checks and tool expertise.")}</span></a>
-    <a className="rounded border p-3 hover:bg-muted" href="/workspace/environments"><span className="font-semibold">{t("Ambienti · con quali strumenti","Environments · with which tools")}</span><span className="text-muted-foreground block text-xs">{t("Programmi preparati al primo utilizzo e riutilizzabili.","Programs prepared on first use and reusable.")}</span></a>
-    <div className="rounded border p-3"><span className="font-semibold">{t("Ricette · il percorso","Recipes · the path")}</span><span className="text-muted-foreground block text-xs">{t("Fasi e approvazioni che combinano skill e ambiente per un tipo di risultato.","Phases and approvals combining skills and an environment for a kind of result.")}</span></div>
-   </div>
+   <ConceptMap current="recipe"/>
    {!editing&&<button className="rounded border px-3 py-2 text-sm" onClick={()=>{setChosen(null);setEditing({draft:emptyDraft()});}}>{t("Nuova ricetta","New recipe")}</button>}
   </header>
   {editing&&<RecipeEditor key={editing.id??editing.draft.based_on??"new"} it={it} initial={editing.draft} identifier={editing.id} revision={editing.revision}
@@ -69,12 +70,12 @@ export default function RecipesPage(){
   {recipes===null&&!error&&<p className="text-sm">{t("Caricamento…","Loading…")}</p>}
   {recipes?.map(r=><section key={r.id} className="rounded-lg border p-5" data-testid={"recipe-"+r.id}>
    <div className="flex flex-wrap items-start justify-between gap-3">
-    <div className="space-y-1"><h2 className="text-lg font-semibold">{r.title} <span className="rounded border px-1 align-middle text-xs font-normal">{!r.custom?t("integrata","built-in"):r.mine?(r.shared?t("tua, condivisa","yours, shared"):t("tua","yours")):t("condivisa","shared")}</span></h2><p className="text-sm">{r.summary}</p>
+    <div className="space-y-1"><h2 className="text-lg font-semibold">{r.title} <span className="rounded border px-1 align-middle text-xs font-normal">{!r.custom?t("integrata","built-in"):r.mine?(r.shared?t("tua · nel catalogo","yours · in the catalog"):t("tua · privata","yours · private")):t("dal catalogo","from the catalog")}</span></h2><p className="text-sm">{r.summary}</p>
      <p className="text-muted-foreground text-sm"><span className="font-medium">{t("Quando usarla: ","When to use it: ")}</span>{r.when}</p></div>
     <div className="flex flex-wrap gap-2">
      {(r.mine||(canShare&&r.custom&&r.shared))&&<button className="rounded border px-3 py-2 text-sm" onClick={()=>void edit(r,false)}>{t("Modifica","Edit")}</button>}
      <button className="rounded border px-3 py-2 text-sm" onClick={()=>void edit(r,true)}>{t("Duplica","Duplicate")}</button>
-     {r.custom&&canShare&&<button className="rounded border px-3 py-2 text-sm" onClick={()=>void share(r)}>{r.shared?t("Rendi privata","Make private"):t("Condividi con tutti","Share with everyone")}</button>}
+     {r.custom&&(r.mine||canShare)&&<button className="rounded border px-3 py-2 text-sm" onClick={()=>void share(r)}>{r.shared?t("Ritira dal catalogo","Withdraw from the catalog"):t("Pubblica nel catalogo","Publish to the catalog")}</button>}
      {r.mine&&<button className="rounded border px-3 py-2 text-sm" onClick={()=>void remove(r)}>{t("Elimina","Delete")}</button>}
      <button className="rounded border px-3 py-2 text-sm" onClick={()=>setOpen(open===r.id?null:r.id)}>{open===r.id?t("Nascondi dettagli","Hide details"):t("Dettagli","Details")}</button>
      <button className="bg-primary text-primary-foreground rounded px-3 py-2 text-sm" onClick={()=>{setEditing(null);setChosen(r.id);setStep(0);setError("");window.scrollTo({top:0});}}>{t("Usa questa ricetta","Use this recipe")}</button>

@@ -42,7 +42,8 @@ Recipes are offered on demand from the **Recipes** page or proposed by the
 coordinator when a request matches. Skills say *how* to work, environments *with
 which tools*, and a recipe is the phased path that combines them: you can create
 your own recipes or duplicate a built-in one from the Recipes page; see
-[Recipes](docs/RECIPES.md).
+[Recipes](docs/RECIPES.md). How project, recipe, team, skills, environments,
+connections, policies and deliveries fit together: [Concepts](docs/CONCEPTS.md).
 
 ## Getting started
 

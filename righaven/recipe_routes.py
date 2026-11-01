@@ -58,7 +58,7 @@ async def authorized_skills():
 @require_permission('agents', 'read')
 async def catalog(request: Request, locale: str = 'it'):
     return {'recipes': await run_in_threadpool(recipes.catalog, locale, get_effective_user_id()),
-            'can_share': await is_admin_user(request)}
+            'can_share': await is_admin_user(request), 'can_publish_own': True}
 
 
 def editor_options(user_id):

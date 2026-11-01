@@ -1,6 +1,7 @@
 "use client";
 import {useEffect,useState} from "react";
 
+import {ConceptMap} from "@/components/workspace/concept-map";
 import {fetch} from "@/core/api/fetcher";
 import {getBackendBaseURL} from "@/core/config";
 import {useI18n} from "@/core/i18n/hooks";
@@ -56,7 +57,7 @@ export default function ConnectionsPage(){
  const [catalog,setCatalog]=useState<{id:string;rows:{name:string;detail:string}[]|null}|null>(null);
  async function listDatabases(row:Connection){setError("");setBusy("db-"+row.id);setCatalog({id:row.id,rows:null});try{const r=await fetch(`${base}/${row.id}/databases`,{method:"POST"});const v=await r.json();
   if(!r.ok)throw Error(typeof v.detail==="string"?v.detail:String(r.status));setCatalog({id:row.id,rows:v.databases});}catch(e){setCatalog(null);setError(e instanceof Error?e.message:String(e));}finally{setBusy("");}}
- async function useDatabase(row:Connection,database:string){setError("");
+ async function selectDatabase(row:Connection,database:string){setError("");
   const body={kind:row.kind,name:row.name,description:row.description??"",host:row.host,port:row.port,database,tls:row.tls,read_only:row.read_only,authentication:row.authentication,
    ...(row.authentication==="microsoft"?{username:row.username,tenant_id:row.tenant_id}:{entra_connection:row.entra_connection})};
   const r=await fetch(`${base}/${row.id}`,{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});const v=await r.json();
@@ -83,6 +84,7 @@ export default function ConnectionsPage(){
     "Usa account in sola lettura: gli strumenti RigHaven eseguono solo letture e rifiutano i database non dichiarati in sola lettura. Per Azure SQL e Microsoft Fabric aggiungi prima il tuo account Microsoft (accesso con autenticazione a più fattori, consigliato) oppure un’applicazione Entra ID, poi una connessione SQL Server che lo usa.",
     "Use read-only accounts: RigHaven tools only read and refuse databases not declared read-only. For Azure SQL and Microsoft Fabric first add your Microsoft account (sign-in with multi-factor authentication, recommended) or an Entra ID application, then a SQL Server connection that uses it.")}</p>
   </header>
+  <ConceptMap current="connection"/>
   {error&&<p className="text-destructive text-sm" role="alert">{error}</p>}
   {notice&&<p className="text-sm">{notice}</p>}
   <section className="space-y-3 rounded-xl border p-4" data-testid="model-accesses"><h2 className="font-semibold">{t("Modelli e CLI ufficiali","Models and official CLIs")}</h2><p className="text-sm">{t("Gli stessi collegamenti di Modelli e risorse: nessun secondo login. Il modello rimane assegnabile al coordinatore, alla squadra o a entrambi. Gli accessi condivisi sono gestiti dall’amministratore.","The same connections as Models & resources: no duplicate login. Models remain assignable to coordinator, team or both. Shared connections are managed by the administrator.")}</p><ul className="space-y-2">{providers.map(p=><li key={p.id} className="flex flex-wrap justify-between gap-2"><span>{p.name} · {p.status==="configured"?t("Configurato","Configured"):t("Verifica in Modelli","Check Models")}</span><a className="underline" href={p.manage_url}>{t("Apri configurazione","Open configuration")}</a></li>)}</ul></section>
@@ -163,7 +165,7 @@ export default function ConnectionsPage(){
     {catalog.rows===null?<p>{t("Cerco i database visibili al tuo account…","Looking for the databases your account can see…")}</p>
      :catalog.rows.length===0?<p>{t("Nessun database trovato con questo account su questo server: scrivi il nome nella connessione.","No database found with this account on this server: type the name in the connection.")}</p>
      :<ul className="space-y-1">{catalog.rows.map(d=><li key={d.name} className="flex flex-wrap items-center justify-between gap-2"><span><strong>{d.name}</strong> <span className="text-muted-foreground text-xs">{d.detail}</span></span>
-       <button className="rounded border px-2 py-1 text-xs" disabled={r.database===d.name} onClick={()=>void useDatabase(r,d.name)}>{r.database===d.name?t("In uso","In use"):t("Usa questo database","Use this database")}</button></li>)}</ul>}
+       <button className="rounded border px-2 py-1 text-xs" disabled={r.database===d.name} onClick={()=>void selectDatabase(r,d.name)}>{r.database===d.name?t("In uso","In use"):t("Usa questo database","Use this database")}</button></li>)}</ul>}
    </div>}
   </li>)}</ul>
   <p className="text-muted-foreground text-xs">{t(

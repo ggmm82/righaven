@@ -30,12 +30,19 @@ export type GalleryPack = {
   security_policy: { rootless: boolean; network_access: boolean; writable_paths: string[]; read_only_mounts: string[] };
 };
 
+type CatalogRecipe={id:string;title:string;summary:string;custom:boolean;shared:boolean;skills:string[];environment:string|null;phases:unknown[]};
+
 function GalleryContent() {useUiLanguage();
   const { locale, t } = useI18n();
   const [packs, setPacks] = useState<GalleryPack[]>([]);
   const [category, setCategory] = useState<string>("");
-  useEffect(()=>{const value=new URLSearchParams(location.search).get("category");if(value&&["environment","cli-tool","skill"].includes(value))setCategory(value);},[]);
+  useEffect(()=>{const value=new URLSearchParams(location.search).get("category");if(value&&["environment","cli-tool","skill","recipe"].includes(value))setCategory(value);},[]);
+  // Recipes join the same catalog: built-in ones and those their authors published, next to environments and skills.
+  const [recipes,setRecipes]=useState<CatalogRecipe[]>([]);
+  useEffect(()=>{const controller=new AbortController();void fetch(`${getBackendBaseURL()}/api/harness/recipes?locale=${locale}`,{signal:controller.signal}).then(async r=>{if(!r.ok)throw Error(String(r.status));return (await r.json() as {recipes:CatalogRecipe[]}).recipes;})
+   .then(v=>{if(!controller.signal.aborted)setRecipes(v.filter(r=>!r.custom||r.shared));}).catch(()=>undefined);return()=>controller.abort();},[locale]);
   const [query, setQuery] = useState<string>("");
+  const shownRecipes=(category===""||category==="recipe")?recipes.filter(r=>!query.trim()||(r.title+" "+r.summary).toLowerCase().includes(query.trim().toLowerCase())):[];
   const [statusMessage, setStatusMessage] = useState<string>("");
   const [selectedPack, setSelectedPack] = useState<GalleryPack | null>(null);
   const [feedbackVersion,setFeedbackVersion]=useState("");
@@ -49,6 +56,7 @@ function GalleryContent() {useUiLanguage();
 
   async function loadPacks(signal?:AbortSignal) {
     const params = new URLSearchParams();
+    if (category==="recipe") { setPacks([]); return; }
     if (category) params.set("category", category);
     if (query.trim()) params.set("q", query.trim());
     params.set("locale", locale);
@@ -187,6 +195,7 @@ function GalleryContent() {useUiLanguage();
             ["environment", t("gallery.filter_environment")],
             ["cli-tool", t("gallery.filter_cli_tool")],
             ["skill", t("gallery.filter_skill")],
+            ["recipe", locale==="it"?"Ricette":"Recipes"],
           ] as const).map(([cat, label]) => (
             <button
               key={cat}
@@ -200,7 +209,19 @@ function GalleryContent() {useUiLanguage();
         </div>
       </div>
 
-      {packs.length===0&&<p role="status">{locale==="it"?"Nessun risultato: cambia ricerca o categoria.":"No matches: try another search or category."}</p>}
+      {shownRecipes.length>0&&<section className="space-y-2" data-testid="gallery-recipes">
+        <h2 className="text-sm font-semibold">{locale==="it"?"Ricette · percorsi a fasi che combinano skill e ambienti":"Recipes · phased paths combining skills and environments"}</h2>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">{shownRecipes.map(r=><article key={r.id} className="flex flex-col justify-between rounded-xl border p-4 shadow-sm" data-testid={"gallery-recipe-"+r.id}>
+          <div className="space-y-2"><span className="rounded-full border px-2 py-0.5 text-xs font-medium uppercase">{locale==="it"?"ricetta":"recipe"}{r.custom?(locale==="it"?" · community":" · community"):(locale==="it"?" · integrata":" · built-in")}</span>
+            <h3 className="text-base font-semibold">{r.title}</h3><p className="text-xs text-muted-foreground">{r.summary}</p>
+            <p className="text-xs">{r.phases.length} {locale==="it"?"fasi":"phases"} · {locale==="it"?"skill: ":"skills: "}{r.skills.map(s=>s.replace(/^skill-/,"")).join(", ")}{r.environment?` · ${locale==="it"?"ambiente":"environment"}: ${r.environment}`:""}</p></div>
+          <div className="mt-4 flex flex-wrap gap-2 border-t pt-3 text-xs">
+            <a className="rounded-lg bg-primary px-3 py-1 font-medium text-primary-foreground" href={`/workspace/recipes?use=${encodeURIComponent(r.id)}`}>{locale==="it"?"Usa questa ricetta":"Use this recipe"}</a>
+            <a className="rounded border px-2 py-1" href={`/workspace/recipes?duplicate=${encodeURIComponent(r.id)}`}>{locale==="it"?"Copia nelle mie ricette":"Copy to my recipes"}</a>
+          </div></article>)}</div>
+        <p className="text-xs text-muted-foreground">{locale==="it"?"Per pubblicare una tua ricetta: Ricette → Pubblica nel catalogo.":"To publish one of your recipes: Recipes → Publish to the catalog."}</p>
+      </section>}
+      {packs.length===0&&shownRecipes.length===0&&<p role="status">{locale==="it"?"Nessun risultato: cambia ricerca o categoria.":"No matches: try another search or category."}</p>}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {packs.map((pack) => (
           <article key={pack.id} className="flex flex-col justify-between rounded-xl border p-4 shadow-sm">

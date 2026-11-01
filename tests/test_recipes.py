@@ -100,8 +100,11 @@ class UserRecipes(unittest.TestCase):
         edited = recipes.update('alice', mine['id'], self.draft(title='Dashboard vendite'), self.SKILLS, mine['revision'])
         self.assertEqual((edited['id'], edited['it']['title']), (mine['id'], 'Dashboard vendite'))
         with self.assertRaises(ValueError):
-            recipes.share('alice', mine['id'], True, administrator=False)
-        recipes.share('admin', mine['id'], True, administrator=True)
+            recipes.share('bob', mine['id'], True, administrator=False)
+        recipes.share('alice', mine['id'], True, administrator=False)  # the author publishes to the catalog
+        recipes.share('admin', mine['id'], False, administrator=True)  # an administrator can withdraw it
+        self.assertNotIn(mine['id'], [r['id'] for r in recipes.catalog('it', 'bob')])
+        recipes.share('alice', mine['id'], True, administrator=False)
         self.assertIn(mine['id'], [r['id'] for r in recipes.coordinator_index(set(self.SKILLS), 'bob')])
         self.assertNotIn(mine['id'], [r['id'] for r in recipes.coordinator_index({'skill-harness'}, 'bob')], 'needs every recipe skill')
         with self.assertRaises(ValueError):

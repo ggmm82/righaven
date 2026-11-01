@@ -94,7 +94,7 @@ window.showThread();
             '--outfile=' + str(folder / 'app.js'), '--alias:react=' + str(modules / 'react'),
             '--alias:react-dom=' + str(modules / 'react-dom'), '--alias:@/core/api/fetcher=' + str(folder / 'fetch.ts'),
             '--alias:@/core/config=' + str(folder / 'config.ts'), '--alias:@/core/i18n/hooks=' + str(folder / 'hooks.ts'),
-            '--alias:@/core/i18n/ui-text=' + str(repo / 'frontend/ui-text.ts')], check=True, capture_output=True)
+            '--alias:@/core/i18n/ui-text=' + str(repo / 'frontend/ui-text.ts'), '--alias:@/components/workspace/concept-map=' + str(repo / 'frontend/concept-map.tsx')], check=True, capture_output=True)
         paragraphs = ''.join('<p class="mb-10">Messaggio storico %d: dettagli di una conversazione lunga.</p>' % i for i in range(100))
         (folder / 'index.html').write_text('''<!doctype html><html><meta name="viewport" content="width=device-width, initial-scale=1"><meta charset="utf-8"><link rel="stylesheet" href="/app.css">
 <body><main class="mx-auto flex h-dvh max-w-[960px] flex-col"><header class="shrink-0 border-b p-3">Chat RigHaven</header><div id="messages" class="min-h-0 flex-1 overflow-y-auto p-3">'''+paragraphs+'''</div><footer class="shrink-0 p-3"><div id="root"></div><textarea class="h-14 w-full rounded border p-2" aria-label="Scrivi un messaggio"></textarea></footer></main><script src="/app.js"></script></body></html>''')

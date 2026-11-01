@@ -59,7 +59,7 @@ function Journey(){const id=location.pathname.split('/').pop()!;const state=useJ
 createRoot(document.getElementById('root')!).render(location.pathname.includes('/chats/')?<Journey/>:location.pathname==='/connections'?<Connections/>:<Recipes/>);'''
         (root/'entry.tsx').write_text(entry.replace('PAGE',json.dumps(str(repo/'frontend/recipes-page.tsx'))).replace('PANEL',json.dumps(str(repo/'frontend/project-journey.tsx')))
                                       .replace('CONNECTIONS',json.dumps(str(repo/'frontend/connections-page.tsx'))))
-        aliases={'@/core/api/fetcher':str(root/'fetch.ts'),'@/core/config':str(root/'config.ts'),'@/core/i18n/hooks':str(root/'hooks.ts'),'@/core/i18n/ui-text':str(repo/'frontend/ui-text.ts'),'@/core/threads/api':str(root/'threads.ts'),'next/navigation':str(root/'router.ts')}
+        aliases={'@/core/api/fetcher':str(root/'fetch.ts'),'@/core/config':str(root/'config.ts'),'@/core/i18n/hooks':str(root/'hooks.ts'),'@/core/i18n/ui-text':str(repo/'frontend/ui-text.ts'),'@/components/workspace/concept-map':str(repo/'frontend/concept-map.tsx'),'@/core/threads/api':str(root/'threads.ts'),'next/navigation':str(root/'router.ts')}
         build={'entryPoints':[str(root/'entry.tsx')],'outfile':str(root/'app.js'),'bundle':True,'jsx':'automatic','nodePaths':[str(modules)],'alias':aliases}
         subprocess.run(['node','-e','require('+json.dumps(str(modules/'esbuild'))+').buildSync('+json.dumps(build)+')'],check=True)
         class Handler(BaseHTTPRequestHandler):
@@ -192,7 +192,10 @@ createRoot(document.getElementById('root')!).render(location.pathname.includes('
                 # Recipe editor: the user composes skills, environment and phases into a new recipe, then starts it.
                 page=browser.new_page(viewport={'width':1200,'height':900});errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
                 page.goto(f'http://127.0.0.1:{server.server_port}/recipes')
-                expect(page.get_by_test_id('recipe-vocabulary')).to_contain_text('Skill · come si lavora')
+                concepts=page.get_by_test_id('concept-map');concepts.locator('summary').click()
+                expect(concepts.get_by_test_id('concept-flow')).to_contain_text('squadra: ogni ruolo usa skill + ambiente')
+                expect(concepts).to_contain_text('Ricetta · sei qui')
+                expect(concepts.get_by_role('link',name='Ambiente')).to_have_attribute('href','/workspace/environments')
                 page.get_by_role('button',name='Nuova ricetta',exact=True).click()
                 editor=page.get_by_test_id('recipe-editor')
                 editor.get_by_label('Nome della ricetta',exact=False).fill('Dashboard demo')

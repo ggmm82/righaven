@@ -48,8 +48,11 @@ full recipe definition and policy, to keep every turn small.
 
 ## Your own recipes
 
-On the Recipes page **New recipe** opens the editor; **Duplicate** copies any visible recipe,
-including built-in ones, as a starting point. A recipe has:
+On the Recipes page **New recipe** opens a four-step editor; **Duplicate** copies any visible
+recipe, including built-in ones, as a starting point. The steps are *Result* (name, what it
+produces, when to use it, what you get, what to attach), *Phases* (each with its result and an
+optional stop for approval), *Tools* (choose an environment; suitable skills are proposed) and
+*Summary* (a preview of the card plus optional details). A recipe has:
 
 1. **Method · skills**: one to eight skills enabled in your account (methods and tool skills).
 2. **Tools · environment**: an environment preset; its tools, plus those of the chosen tool skills,
@@ -60,10 +63,12 @@ including built-in ones, as a starting point. A recipe has:
    the recipe card, plus optional directions for the team and keywords the coordinator uses to
    propose the recipe.
 
-Recipes are private to their author. An administrator can **share** a recipe with everyone; shared
-recipes appear for all users whose accounts have its skills enabled, both on the page and in the
-coordinator's recipe index. Only the author edits or deletes a recipe (an administrator may also
-edit shared ones). Projects already started keep the phases pinned at start. Texts are checked for
+Recipes are private to their author until the author **publishes them to the catalog**. Published
+recipes appear in the **Community Gallery** (filter *Recipes*, next to environments, CLI tools and
+skills), on the Recipes page of every user and in the coordinator's recipe index for accounts that
+have its skills enabled. From the Gallery, **Use this recipe** starts the guided intake and **Copy to
+my recipes** opens an editable copy. An administrator can withdraw any published recipe. Only the
+author edits or deletes a recipe (an administrator may also edit published ones). Projects already started keep the phases pinned at start. Texts are checked for
 credentials; use Connections for access. User recipes carry phases and approvals, not organization
 policy sheets.
 

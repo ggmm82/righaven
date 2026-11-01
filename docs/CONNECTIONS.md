@@ -32,7 +32,33 @@ assignment of that task and to no other.
    worker ends. The adapters take `connection: "ID"` and redact the values
    from native logs; connection files never enter sources, receipts or lessons.
 
-## Your Microsoft account (OAuth2 with multi-factor authentication)
+## Pasting a server URL or connection string
+
+The *Server* field accepts what you copy from a portal: a host name, `host:port`,
+`tcp:host,port`, a URL (`postgresql://user@host:5432/db`, `sqlserver://…`), a JDBC string
+(`jdbc:sqlserver://host:1433;databaseName=db;user=…`) or an ADO/ODBC string
+(`Server=tcp:host,1433;Initial Catalog=db;User ID=…`). Server, port, database and user are read
+from it; fields you fill explicitly win. Passwords inside a pasted string are not stored: use the
+password field. Named instances (`host\INSTANCE`) need the TCP port instead.
+
+## SQL Server with your Microsoft account
+
+For Azure SQL and Fabric choose **SQL Server / Azure SQL / Fabric** with authentication **My
+Microsoft account**: enter or paste the server, your account email and, optionally, the database.
+Save, press **Sign in with Microsoft** (device code and multi-factor authentication on Microsoft's
+page, as below) and then **List databases**: RigHaven shows the databases your account can see on
+that server and **Use this database** selects one. Signing in with a different account than the
+email of the connection is refused.
+
+The list comes from Microsoft's management APIs, not from a database login: Azure SQL databases
+through Azure Resource Manager (your account needs read access to the server resource), Fabric
+warehouses, lakehouse SQL endpoints and SQL databases through the Fabric REST API (workspace
+membership). When the account has no such access, or for other servers, type the database name.
+
+## Your Microsoft account as a separate identity (OAuth2 with multi-factor authentication)
+
+A Microsoft Entra ID connection in *My Microsoft account* mode can also be shared by several SQL
+connections (authentication *Entra ID application or account already registered*).
 
 For Azure SQL, Fabric SQL endpoints and SQL Server with Entra ID you normally use **your own work or
 school account**, not an application registered in the tenant:

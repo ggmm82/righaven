@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { ConceptMap } from "@/components/workspace/concept-map";
 import { fetch } from "@/core/api/fetcher";
 import { getBackendBaseURL } from "@/core/config";
 import {tr, useUiLanguage, trMap} from "@/core/i18n/ui-text";
@@ -464,6 +465,7 @@ export function DelegateProgress({ threadId, active, pending, coordinatorError =
           <ul className="space-y-2">{project.comparison.criteria.map((item, i) => <li key={i}><strong>{item.status === "improved" ? tr("Migliorato", "Improved") : item.status === "unchanged" ? tr("Invariato", "Unchanged") : item.status === "regressed" ? tr("Peggiorato", "Worse") : tr("Non verificato", "Not verified")}</strong> · {item.evidence}</li>)}</ul>
         </section>}
         {!!project.outcome?.constraints.length && <section><h4 className="font-semibold">{tr("Vincoli", "Constraints")}</h4><ul className="list-inside list-disc">{project.outcome.constraints.map((c, i) => <li key={i}>{c}</li>)}</ul></section>}
+        <ConceptMap current="project"/>
 
       </div>}
       {tab === "preview" && <div className="space-y-3">
@@ -610,7 +612,7 @@ export function DelegateProgress({ threadId, active, pending, coordinatorError =
     </dialog>}
     <div className="space-y-1 p-3" role="status" aria-live="polite" aria-atomic="true">
       {project && <div className="mb-2 space-y-1 border-b pb-2" data-testid="project-identity">
-        <div className="flex items-baseline justify-between gap-2"><p className="line-clamp-1 text-sm font-semibold tracking-tight">{project.outcome?.title || guided.journey?.recipe?.title || project.outcome?.result || tr("Il tuo progetto", "Your project")}</p>
+        <div className="flex items-baseline justify-between gap-2"><p className="line-clamp-1 text-sm font-semibold tracking-tight">{project.outcome?.title || (guided.journey?.recipe?.title ?? "") || project.outcome?.result || tr("Il tuo progetto", "Your project")}</p>
           {guided.journey && <p className="text-muted-foreground shrink-0 text-xs" data-testid="journey-progress">{settledPhases(guided.journey)}/{guided.journey.stages.length} {tr("fasi concluse", "phases settled")}</p>}</div>
         {selectedDelivery?.version && <p className="text-xs">{versionName(selectedDelivery)}{editing && editing.id !== selectedDelivery.id ? tr(` · ${versionName(editing)} in lavorazione`, ` · ${versionName(editing)} in progress`) : ""}</p>}
         <p className="text-muted-foreground line-clamp-1 text-xs">{tr("Consegna:", "Delivery:")} {project.outcome?.format || tr("da definire", "to be defined")}</p>
