@@ -38,6 +38,8 @@ into a described catalog, an empty local replica, periodic synthetic test data,
 tested ingestion and transformations and a production package (Docker and
 supercronic, for PostgreSQL, SQL Server or Microsoft Fabric); see
 [Data Engineering](docs/DATA-ENGINEERING.md#recipe-end-to-end-data-pipeline).
+Recipes are offered on demand from the **Recipes** page or proposed by the
+coordinator when a request matches; see [Recipes](docs/RECIPES.md).
 
 ## Getting started
 

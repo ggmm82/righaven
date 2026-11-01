@@ -1,6 +1,6 @@
 "use client";
 
-import { Home, MessagesSquare, Layers, Wrench, Library, Users, Settings2, ShieldCheck, Gauge } from "lucide-react";
+import { Home, MessagesSquare, Layers, Wrench, Library, Users, Settings2, ShieldCheck, Gauge, ListChecks } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { SidebarGroup, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar";
@@ -16,6 +16,7 @@ export function WorkspaceNavChatList() {
     { label: it ? "Lavoro" : "Workspace", items: [
       { href: "/workspace", label: it ? "Panoramica" : "Overview", icon: Home },
       { href: "/workspace/chats", label: it ? "Attività e risultati" : "Tasks & results", icon: MessagesSquare },
+      { href: "/workspace/recipes", label: it ? "Ricette" : "Recipes", icon: ListChecks },
     ] },
     { label: it ? "Cassetta degli attrezzi" : "Toolbox", items: [
       { href: "/workspace/environments", label: it ? "Ambienti" : "Environments", icon: Layers },

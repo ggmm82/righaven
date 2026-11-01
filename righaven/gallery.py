@@ -6,7 +6,12 @@ from . import state
 from .i18n import normalize_locale, translate
 
 # Skills shipped with RigHaven besides the per-tool skills; recipes orchestrate several tools.
-RECIPE_SKILLS = frozenset({'skill-data-pipeline'})
+def _recipe_skills():
+    from .recipes import skills
+    return skills()
+
+
+RECIPE_SKILLS = _recipe_skills()
 MANAGED_SKILLS = frozenset({'skill-harness', 'skill-workspace', 'skill-problem-solving', 'skill-quality-review'}) | RECIPE_SKILLS
 
 PACK_ID_RE = re.compile(r'^[a-z0-9][a-z0-9-]{1,63}\Z')

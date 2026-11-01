@@ -74,7 +74,8 @@ def experience_root(runtime):
 def harness_skills(runtime:Runtime,query:str='',name:str='',reference:str='SKILL.md',offset:int=0)->str:
     """Discover authorized native skills or read one method/reference in pages.
 
-    Also lists owner environment profiles and all authorized tool capabilities.
+    Also lists owner environment profiles, all authorized tool capabilities and
+    the recipes (tested multi-tool workflows) whose skill is authorized.
     Skills describe methods and tool expertise; available tools and runtime
     images are separate. Read relevant methods before composing a project role.
 
@@ -91,7 +92,9 @@ def harness_skills(runtime:Runtime,query:str='',name:str='',reference:str='SKILL
     import hashlib
     policy=runtime_policy(runtime)
     if not name:
-        return json.dumps({**inventory(policy,query),'environments':environment_inventory(policy)},ensure_ascii=False)
+        from .recipes import coordinator_index
+        return json.dumps({**inventory(policy,query),'environments':environment_inventory(policy),
+                           'recipes':coordinator_index(set(policy.get('skill_names',[])))},ensure_ascii=False)
     source=policy.get('skill_sources',{}).get(name)
     if not source or name not in policy.get('skill_names',[]):raise ValueError('Skill non autorizzata nel profilo')
     root=Path(source).resolve();path=root/reference
