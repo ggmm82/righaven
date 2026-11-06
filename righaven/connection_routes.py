@@ -44,6 +44,7 @@ class Connection(BaseModel):
     version: Optional[str] = Field(default=None, max_length=4)
     node_id: Optional[int] = None
     address: Optional[str] = Field(default=None, max_length=17)
+    agent: Optional[str] = Field(default=None, max_length=20)
     ranges: Optional[list[str]] = Field(default=None, max_length=64)
     exclude: Optional[list[str]] = Field(default=None, max_length=64)
     authorized: Optional[bool] = None
@@ -75,54 +76,108 @@ async def listing(request: Request):
 
 class Discovery(BaseModel):
     network: str = Field(max_length=43)
+    agent: Optional[str] = Field(default=None, max_length=20)
 
 
 class Explore(BaseModel):
     address: str = Field(max_length=45)
+    agent: Optional[str] = Field(default=None, max_length=20)
+
+
+async def pc(request: Request, agent: Optional[str]):
+    """The PC an action is about: an agent of this user, or (no agent) the PC of this server, for administrators only.
+
+    Returns the agent ID, None for the local PC, or raises 403/404."""
+    if agent:
+        from . import agents
+        try:
+            await run_in_threadpool(agents.owned, get_effective_user_id(), agent)
+        except ValueError as error:
+            raise HTTPException(404, str(error)) from error
+        return agent
+    from app.gateway.deps import is_admin_user
+    if not await is_admin_user(request):
+        raise HTTPException(403, 'Solo un amministratore può usare il PC su cui gira RigHaven: collega il tuo PC con RigHaven Agent')
+    return None
+
+
+async def reports(request: Request, agent: Optional[str]):
+    """Where the searches of this PC are kept, or None when this user may not see them."""
+    try:
+        target = await pc(request, agent)
+    except HTTPException:
+        return False
+    if target is None:
+        return None
+    from . import agents
+    return str(agents.folder(target))
 
 
 @router.get('/api/harness/connections/discovery')
 @require_permission('agents', 'read')
-async def discovery(request: Request):
-    """The PC's local networks (from the portable launcher) and the ports a search tries."""
+async def discovery(request: Request, agent: Optional[str] = None):
+    """The PC's local networks (from the portable launcher or an agent) and the ports a search tries."""
     from . import device_discovery
-    return {'networks': device_discovery.local_networks(), 'ports': sorted(device_discovery.PORTS),
-            'allowed': device_discovery.private_allowed(), 'bluetooth': await run(device_discovery.bluetooth),
-            'serial': await run(device_discovery.serial_ports), 'wifi': await run(device_discovery.wifi)}
+    folder = await reports(request, agent)
+    networks = device_discovery.local_networks()
+    if agent and folder:
+        from . import agent_hub
+        networks = agent_hub.state(agent).get('networks', [])
+    if folder is False:
+        return {'networks': [], 'ports': sorted(device_discovery.PORTS), 'allowed': device_discovery.private_allowed(),
+                'bluetooth': None, 'serial': [], 'wifi': None}
+    return {'networks': networks, 'ports': sorted(device_discovery.PORTS),
+            'allowed': device_discovery.private_allowed() or bool(agent), 'bluetooth': await run(device_discovery.bluetooth, folder),
+            'serial': await run(device_discovery.serial_ports, folder), 'wifi': await run(device_discovery.wifi, folder)}
 
 
 @router.get('/api/harness/connections/discovery/ble-history.csv')
 @require_permission('agents', 'read')
-async def ble_history(request: Request):
+async def ble_history(request: Request, agent: Optional[str] = None):
     """Readings of Bluetooth LE sensors heard by the launcher (RigHaven.exe bluetooth N), as CSV."""
     from fastapi.responses import Response
     from . import device_discovery
-    body = await run(device_discovery.ble_history_csv)
+    target = await pc(request, agent)
+    folder = None
+    if target:
+        from . import agents
+        folder = str(agents.folder(target))
+    body = await run(device_discovery.ble_history_csv, folder)
     return Response(body, media_type='text/csv; charset=utf-8',
                     headers={'Content-Disposition': 'attachment; filename="bluetooth-sensors.csv"'})
 
 
 @router.get('/api/harness/connections/discovery/capture.pcapng')
 @require_permission('agents', 'read')
-async def traffic_capture(request: Request):
-    """The last traffic recording of the PC (pktmon), for Wireshark."""
+async def traffic_capture(request: Request, agent: Optional[str] = None):
+    """The last traffic recording of the PC (pktmon), for Wireshark: administrators for this server's PC, the owner for an agent."""
     from fastapi.responses import FileResponse
     from . import device_discovery
-    path = await run(device_discovery.capture_file)
+    target = await pc(request, agent)
+    folder = None
+    if target:
+        from . import agents
+        folder = str(agents.folder(target))
+    path = await run(device_discovery.capture_file, folder)
     return FileResponse(path, media_type='application/vnd.tcpdump.pcap', filename='righaven-traffic.pcapng')
 
 
 class HostRequest(BaseModel):
     action: str = Field(max_length=30)
     args: dict = Field(default_factory=dict)
+    agent: Optional[str] = Field(default=None, max_length=20)
 
 
 @router.get('/api/harness/host')
 @require_permission('agents', 'read')
-async def host_state(request: Request):
-    """Whether the launcher on the PC answers, and the actions it can carry out there."""
+async def host_state(request: Request, agent: Optional[str] = None):
+    """Whether the launcher on the PC (or the given agent) answers, and the actions it can carry out there."""
     from . import host_bridge
-    return await run(host_bridge.state)
+    try:
+        target = await pc(request, agent)
+    except HTTPException:
+        return {'connected': False, 'platform': '', 'actions': [], 'allowed': False}
+    return {**await run(host_bridge.state, target), 'allowed': True}
 
 
 @router.post('/api/harness/host/requests')
@@ -132,14 +187,17 @@ async def host_request(body: HostRequest, request: Request):
     same_origin(request)
     from . import host_bridge
     if body.action in host_bridge.APPROVED_ONLY:
-        raise ValueError('Questa azione scrive su un dispositivo: chiedila nella chat, serve la tua approvazione nella scheda del compito')
-    return await run(host_bridge.request, body.action, body.args)
+        raise HTTPException(400, 'Questa azione scrive su un dispositivo: chiedila nella chat, serve la tua approvazione nella scheda del compito')
+    target = await pc(request, body.agent)
+    return await run(host_bridge.request, body.action, body.args, target)
 
 
 @router.get('/api/harness/host/requests/{identifier}')
 @require_permission('agents', 'read')
 async def host_result(identifier: str, request: Request):
-    from . import host_bridge
+    from . import agent_hub, host_bridge
+    job = agent_hub.JOBS.get(identifier)
+    await pc(request, job['agent'] if job else None)
     return await run(host_bridge.result, identifier)
 
 
@@ -192,6 +250,9 @@ async def explore(body: Explore, request: Request):
     """One address chosen by the owner: ports, name, home page. Nothing is written."""
     same_origin(request)
     from . import device_discovery
+    if body.agent:
+        agent = await pc(request, body.agent)
+        return await run(device_discovery.explore_from_agent, agent, body.address)
     return await run(device_discovery.explore, body.address)
 
 
@@ -201,6 +262,9 @@ async def discover(body: Discovery, request: Request):
     """Search one private network chosen by the owner: TCP connection attempts only, nothing is written."""
     same_origin(request)
     from . import device_discovery
+    if body.agent:
+        agent = await pc(request, body.agent)
+        return await run(device_discovery.scan_from_agent, agent, body.network)
     return await run(device_discovery.scan, body.network)
 
 

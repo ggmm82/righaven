@@ -70,7 +70,7 @@
   "Device change not found: ": "Modifica del dispositivo non trovata: ",
   "Device change: ": "Modifica del dispositivo: ",
   "Device protocol: ": "Protocollo del dispositivo: ",
-  "Device transport: network, serial, local or bluetooth": "Collegamento del dispositivo: rete, seriale, locale o Bluetooth",
+  "Device transport: network, serial, local, bluetooth or agent": "Collegamento del dispositivo: rete, seriale, locale, Bluetooth o agente",
   "Direct package installation is not supported. Declare managed tools; their verified runtime recipes supply dependencies.": "L’installazione diretta di pacchetti non è supportata. Dichiara strumenti gestiti: le loro ricette verificate forniscono le dipendenze.",
   "Document exceeds 64 MiB": "Il documento supera 64 MiB",
   "Document exceeds the editor size limit": "Il documento supera il limite di dimensione dell’editor",

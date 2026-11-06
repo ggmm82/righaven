@@ -25,6 +25,8 @@ ACTIONS = {
     # Any Wi-Fi network the owner chooses: joined for a few seconds to read what answers there.
     'wifi-explore': ('ssid', 'hint', 'key'),
     'pc-devices': (), 'net-listen': (), 'lan-devices': (),
+    # Agents only: the home network searched from the agent (the server cannot see it).
+    'net-scan': ('network',),
     # The owner's own recording of the PC's traffic (Windows asks for administrator rights).
     'traffic-capture': ('seconds',),
 }
@@ -39,6 +41,7 @@ ARGUMENTS = {'busid': re.compile(r'[0-9]{1,3}-[0-9]{1,3}(\.[0-9]{1,3})*\Z'), 'na
              'ssid': re.compile(r'[^\x00-\x1f\x7f]{1,32}\Z'), 'home': re.compile(r'[^\x00-\x1f\x7f]{1,32}\Z'),
              'hint': re.compile(r'(tasmota|shelly|esp|wled|openbeken|tuya|daikin|lg|direct)\Z'), 'password': re.compile(r'[^\x00-\x1f\x7f]{8,63}\Z'),
              'key': re.compile(r'[^\x00-\x1f\x7f]{8,63}\Z'),
+             'network': re.compile(r'(10|172|192)\.\d{1,3}\.\d{1,3}\.\d{1,3}/(2[0-9]|3[0-2]|1[6-9])\Z'),
              'seconds': re.compile(r'(1\d|[2-9]\d|[1-9]\d\d|1[0-7]\d\d|1800)\Z'), 'confirm': re.compile(r'yes\Z')}
 
 
@@ -58,12 +61,17 @@ def folder():
 def _write(path, value):
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_suffix('.tmp')
-    temporary.write_text(json.dumps(value))
+    descriptor = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)  # a request may carry a Wi-Fi password
+    with os.fdopen(descriptor, 'w') as stream:
+        stream.write(json.dumps(value))
     temporary.replace(path)
 
 
-def state():
-    """Whether the launcher answers, on which platform, and what it can do there."""
+def state(agent=None):
+    """Whether the launcher (or the given agent) answers, on which platform, and what it can do there."""
+    if agent:
+        from . import agent_hub
+        return agent_hub.state(agent)
     base = folder()
     try:
         heartbeat = json.loads((base / 'heartbeat.json').read_text())
@@ -76,7 +84,7 @@ def state():
             'matter': heartbeat.get('matter') is True}
 
 
-def request(action, args=None):
+def request(action, args=None, agent=None):
     if action not in ACTIONS:
         raise ValueError('Azione sul PC non disponibile')
     args = args or {}
@@ -94,6 +102,11 @@ def request(action, args=None):
         if not ARGUMENTS[key].fullmatch(value):
             raise ValueError('Parametro non valido per ' + action + ': ' + key)
         clean[key] = value
+    if agent:
+        from . import agent_hub
+        return agent_hub.request(agent, action, clean)
+    if action == 'net-scan':
+        raise ValueError('Questa azione non è disponibile su questo PC')
     current = state()
     if not current['connected']:
         raise ValueError('Il launcher di RigHaven non risponde: tieni aperta la finestra di RigHaven sul PC')
@@ -107,6 +120,10 @@ def request(action, args=None):
 def result(identifier):
     if not re.fullmatch(r'[0-9a-f]{32}', str(identifier)):
         raise ValueError('Richiesta non valida')
+    from . import agent_hub
+    remote = agent_hub.result(identifier)
+    if remote is not None:
+        return remote
     base = folder()
     try:
         value = json.loads((base / 'results' / (identifier + '.json')).read_text()[:2_000_000])
@@ -120,9 +137,23 @@ def result(identifier):
     return {'id': identifier, 'status': 'unknown'}
 
 
-def run(action, args=None, timeout=180, poll=2.0):
-    """Ask the launcher and wait for its answer (used by the chat tools)."""
-    job = request(action, args)
+def pick(user, agent=None):
+    """Which PC a chat tool uses: the agent named, else the launcher next to this server, else the user's agent online."""
+    from . import agent_hub, agents
+    if agent:
+        agents.owned(user, agent)
+        return agent
+    if state()['connected']:
+        return None
+    for row in agents.listing(user):
+        if agent_hub.online(row['id']):
+            return row['id']
+    raise ValueError('Nessun PC collegato: apri RigHaven sul PC, oppure collega un PC con RigHaven Agent (Connessioni → Agenti)')
+
+
+def run(action, args=None, timeout=180, poll=2.0, agent=None):
+    """Ask the launcher or an agent and wait for its answer (used by the chat tools)."""
+    job = request(action, args, agent)
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
         time.sleep(poll)

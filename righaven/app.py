@@ -39,6 +39,8 @@ app.include_router(policy_router)
 app.include_router(recipe_router)
 app.include_router(journey_router)
 app.include_router(connection_router)
+from .agent_routes import router as agent_router
+app.include_router(agent_router)
 from .collaboration_routes import router as collaboration_router
 app.include_router(collaboration_router)
 from . import editor_proxy

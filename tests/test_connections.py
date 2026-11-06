@@ -496,5 +496,25 @@ class ConnectionTests(unittest.TestCase):
         self.assertFalse((self.workspace/'temporary-credentials').exists())
 
 
+    def test_devices_next_to_an_agent_reach_workers_through_a_tunnel(self):
+        from righaven import agents
+        with patch.object(agents, 'owned', side_effect=lambda user, agent: {'id': agent} if user == 'alice' else (_ for _ in ()).throw(ValueError('Agente non trovato'))):
+            com = connections.save('alice', {'id': 'obd', 'kind': 'device', 'name': 'OBD', 'transport': 'agent', 'agent': 'ag_0123456789ab', 'device': 'com5', 'baud': 38400})
+            home = connections.save('alice', {'id': 'presa', 'kind': 'device', 'name': 'Presa', 'transport': 'agent', 'agent': 'ag_0123456789ab',
+                                              'host': '192.168.1.44', 'protocol': 'http'})
+            with self.assertRaises(ValueError):
+                connections.save('bob', {'id': 'x', 'kind': 'device', 'name': 'X', 'transport': 'agent', 'agent': 'ag_0123456789ab', 'device': 'COM5'})
+            with self.assertRaises(ValueError):
+                connections.save('alice', {'id': 'y', 'kind': 'device', 'name': 'Y', 'transport': 'agent', 'agent': 'ag_0123456789ab', 'host': '8.8.8.8', 'protocol': 'http'})
+        self.assertEqual((com['device'], home['port']), ('COM5', 80))
+        record = connections._read('alice', 'obd')
+        with patch('righaven.agent_hub.tunnel', return_value=('172.18.0.5', 42000)) as tunnel:
+            serial = connections.through_agent(record)
+            network = connections.through_agent(connections._read('alice', 'presa'))
+        tunnel.assert_any_call('ag_0123456789ab', 'com:COM5')
+        tunnel.assert_any_call('ag_0123456789ab', 'tcp:192.168.1.44:80')
+        self.assertEqual(connections.device_file(serial)['url'], 'socket://172.18.0.5:42000')
+        self.assertEqual(connections.device_file(network)['url'], 'http://172.18.0.5:42000/')
+
 if __name__ == '__main__':
     unittest.main()

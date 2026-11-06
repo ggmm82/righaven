@@ -39,7 +39,9 @@ FABRIC_SCOPE = 'https://api.fabric.microsoft.com/.default'
 ENTRA_MODES = ('user', 'application')
 MAX_CONNECTIONS = 50
 # Devices and interfaces: a role reaches them only through a task connection, inside its container.
-TRANSPORTS = ('network', 'serial', 'local', 'bluetooth')
+TRANSPORTS = ('network', 'serial', 'local', 'bluetooth', 'agent')
+AGENT_ID = re.compile(r'ag_[0-9a-f]{12}\Z')
+COM_PORT = re.compile(r'COM[0-9]{1,3}\Z')
 BLE_ADDRESS = re.compile(r'[0-9A-F]{2}(:[0-9A-F]{2}){5}\Z')
 PROTOCOLS = {'mqtt': (1883, 8883), 'modbus-tcp': (502, 802), 'http': (80, 443), 'adb': (5555, 5555), 'tuya': (6668, 6668), 'matter': (5580, 5580), 'tcp': (None, None)}
 TUYA_ID = re.compile(r'[A-Za-z0-9]{10,32}\Z')
@@ -277,17 +279,36 @@ def _device(body, previous, record):
     """A device or interface: on the network, a serial port shared over RFC 2217, or attached to this machine."""
     transport = body.get('transport') or (previous or {}).get('transport') or 'network'
     if transport not in TRANSPORTS:
-        raise ValueError('Device transport: network, serial, local or bluetooth')
+        raise ValueError('Device transport: network, serial, local, bluetooth or agent')
     access = body.get('access') or 'read'
     if access not in ('read', 'write'):
         raise ValueError('Access: read or write')
     record.update(transport=transport, write_enabled=access == 'write', read_only=access == 'read')
+    if transport == 'agent':
+        # A device next to the owner's RigHaven Agent: a COM port of that PC, or a device of its home network,
+        # carried to this server's workers by a tunnel of the agent.
+        record['agent'] = _text(body.get('agent') or (previous or {}).get('agent'), 'agente', AGENT_ID, 20)
+        if body.get('device'):
+            record['device'] = _text(str(body.get('device')).upper(), 'porta COM', COM_PORT, 6)
+            baud = body.get('baud', 115200)
+            if baud not in BAUDS:
+                raise ValueError('Baud rate: ' + ', '.join(map(str, BAUDS)))
+            record['baud'] = baud
+            return record
+        try:
+            home = ipaddress.ip_address(str(body.get('host') or '').strip())
+        except ValueError:
+            raise ValueError('Indirizzo del dispositivo nella rete di casa dell’agente: un IP privato, per esempio 192.168.1.44') from None
+        if not home.is_private or home.is_loopback:
+            raise ValueError('Indirizzo del dispositivo nella rete di casa dell’agente: un IP privato, per esempio 192.168.1.44')
     if transport == 'bluetooth':
         # A Bluetooth LE device reached through the PC's Bluetooth by the RigHaven launcher.
         address = str(body.get('address') or (previous or {}).get('address') or '').strip().upper().replace('-', ':')
         if not BLE_ADDRESS.fullmatch(address):
             raise ValueError('Indirizzo Bluetooth non valido: usa la forma 38:A5:C9:3C:2E:9F, dalla ricerca Bluetooth')
         record['address'] = address
+        if body.get('agent') or (previous or {}).get('agent'):
+            record['agent'] = _text(body.get('agent') or (previous or {}).get('agent'), 'agente', AGENT_ID, 20)
         return record
     if transport == 'local':
         if not body.get('device'):
@@ -346,7 +367,7 @@ def _device(body, previous, record):
         if baud not in BAUDS:
             raise ValueError('Baud rate: ' + ', '.join(map(str, BAUDS)))
         record['baud'] = baud
-    if transport == 'network':
+    if transport in ('network', 'agent'):
         # Optional broker or device account; empty fields keep the stored password.
         record['username'] = _text(body.get('username'), 'utente', NAME, 128, False)
         record['password'] = body.get('password') or ((previous or {}).get('password') if record['username'] else '') or ''
@@ -375,6 +396,9 @@ def save(user_id, body, identifier=None):
     if identifier and body.get('id') not in (None, identifier):
         raise ValueError('L’ID di una connessione non si cambia')
     record = validate({**body, 'id': identifier or body.get('id')}, previous)
+    if record.get('agent'):
+        from . import agents
+        agents.owned(user_id, record['agent'])  # only the owner's own agents
     if not identifier and _path(user_id, record['id']).exists():
         raise ValueError('Esiste già una connessione con questo ID')
     if not identifier and len(list(folder(user_id).glob('*.json'))) >= MAX_CONNECTIONS:
@@ -456,9 +480,15 @@ def test(user_id, identifier):
                           + (' (AADSTS' + str(codes[0]) + ')' if codes else '')}
         elif record['kind'] == 'network':
             result = {'ok': True, 'detail': ', '.join(record['ranges']) + ': mapped only when a task uses this connection'}
+        elif record['kind'] == 'device' and record['transport'] == 'agent':
+            from . import agent_hub
+            available = agent_hub.online(record['agent'])
+            result = {'ok': available, 'detail': 'RigHaven Agent è collegato: il dispositivo si apre quando un incarico lo usa' if available
+                      else 'RigHaven Agent non è collegato: avvialo sul PC'}
         elif record['kind'] == 'device' and record['transport'] == 'bluetooth':
             from . import host_bridge
-            available = 'ble-inspect' in host_bridge.state()['actions'] and host_bridge.state()['connected']
+            current = host_bridge.state(record.get('agent'))
+            available = 'ble-inspect' in current['actions'] and current['connected']
             result = {'ok': available, 'detail': 'Il launcher di RigHaven sul PC risponde: usa «Esplora» per collegarti al dispositivo' if available
                       else 'Serve RigHaven per Windows aperto sul PC: è lui che usa il Bluetooth del PC'}
         elif record['kind'] == 'device' and record['transport'] == 'local':
@@ -858,6 +888,18 @@ def _file(record, user_id):
             'username': record['username'], 'password': record['password']}
 
 
+def through_agent(record):
+    """The record a worker receives for a device reached through an agent: the tunnel's address, same protocol."""
+    if record.get('kind') != 'device' or record.get('transport') != 'agent':
+        return record
+    from . import agent_hub
+    if record.get('device'):
+        host, port = agent_hub.tunnel(record['agent'], 'com:' + record['device'])
+        return {**record, 'transport': 'serial', 'protocol': 'socket', 'host': host, 'port': port, 'device': ''}
+    host, port = agent_hub.tunnel(record['agent'], f"tcp:{record['host']}:{record['port']}")
+    return {**record, 'transport': 'network', 'host': host, 'port': port, 'home': record['host']}
+
+
 def device_file(record):
     """What the iot toolkit reads in the worker: an address it can open, never more than the owner configured."""
     value = {k: record[k] for k in ('kind', 'transport', 'protocol', 'host', 'port', 'tls', 'topic', 'path', 'unit', 'baud', 'device', 'version', 'node_id') if k in record}
@@ -905,6 +947,7 @@ class Delivery:
                 except (ValueError, OSError, KeyError) as error:
                     raise ValueError('Assigned connection is unavailable: '+identifier+'. Report this blocker; do not replace its destination with a local database.') from error
                 path = self.directory / (identifier + '.json')
+                record = through_agent(record)
                 content = _file(record, owner)
                 writable = bool(record.get('write_enabled')) and identifier in binding.get('write', [])
                 content.update(write_enabled=writable, write_schema=record.get('write_schema', '') if writable else '')

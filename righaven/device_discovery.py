@@ -167,6 +167,42 @@ def scan(value):
     return {'network': str(net), 'ports': sorted(PORTS), 'devices': devices}
 
 
+def _identified(devices):
+    """Hosts found by an agent in the home network: the same identification as a search from this server."""
+    found = []
+    for item in devices or []:
+        if not isinstance(item, dict):
+            continue
+        try:
+            address = str(ipaddress.ip_address(str(item.get('address'))))
+        except ValueError:
+            continue
+        ports = sorted(p for p in (item.get('ports') or []) if type(p) is int and p in PORTS)
+        page = str(item.get('page') or '')[:12000]
+        title = re.search(r'<title[^>]*>\s*([^<]{1,120})', page, re.I)
+        found.append({'address': address, 'ports': ports, 'name': str(item.get('name') or '')[:120],
+                      'title': title.group(1).strip() if title else '', **(identify(address, ports, page) if ports else PRESENT)})
+    found.sort(key=lambda d: ipaddress.ip_address(d['address']))
+    return found
+
+
+def scan_from_agent(agent, value):
+    """The same search, run by the agent in its own network (this server cannot reach a home network)."""
+    from . import host_bridge
+    net = network(value)
+    answer = host_bridge.run('net-scan', {'network': str(net)}, timeout=600, agent=agent)
+    return {'network': str(net), 'ports': sorted(PORTS), 'devices': _identified(answer.get('devices'))}
+
+
+def explore_from_agent(agent, address):
+    try:
+        host = ipaddress.ip_address(str(address).strip())
+    except ValueError as error:
+        raise ValueError('Indirizzo non valido: ' + str(address)[:60]) from error
+    devices = scan_from_agent(agent, str(host) + '/32')['devices']
+    return devices[0] if devices else {'address': str(host), 'ports': [], 'name': '', 'title': '', 'kind': '', 'label': ''}
+
+
 def explore(address):
     """One address the owner chose: which IoT ports answer, its name and home page. Nothing is written."""
     try:
@@ -180,10 +216,16 @@ def explore(address):
 DISCOVERY_DIR = '/run/righaven/discovery'
 
 
-def capture_file():
+def _reports(directory=None):
+    """The launcher's discovery folder, or the folder of one agent's reports."""
+    from pathlib import Path
+    return Path(directory) if directory else Path(os.getenv('RIGHAVEN_DISCOVERY_DIR', DISCOVERY_DIR))
+
+
+def capture_file(directory=None):
     """The last traffic recording handed over by the launcher."""
     from pathlib import Path
-    path = Path(os.getenv('RIGHAVEN_DISCOVERY_DIR', DISCOVERY_DIR)) / 'capture.pcapng'
+    path = _reports(directory) / 'capture.pcapng'
     if not path.is_file() or path.is_symlink():
         raise ValueError('Nessuna registrazione del traffico: premi «Registra il traffico»')
     return str(path)
@@ -220,11 +262,11 @@ def bluetooth_hint(name):
     return ''
 
 
-def serial_ports():
+def serial_ports(directory=None):
     """Windows COM ports shared by RigHaven.exe serial while RigHaven runs (host and TCP port)."""
     import json
     from pathlib import Path
-    path = Path(os.getenv('RIGHAVEN_DISCOVERY_DIR', DISCOVERY_DIR)) / 'serial.json'
+    path = _reports(directory) / 'serial.json'
     try:
         report = json.loads(path.read_text()[:262_144])
     except (OSError, ValueError):
@@ -244,14 +286,14 @@ def serial_ports():
     return ports
 
 
-def ble_history_csv():
+def ble_history_csv(directory=None):
     """Readings of Bluetooth LE sensors heard by the launcher over time, one row per reading."""
     import csv
     import io
     import json
     from pathlib import Path
     from .ble_sensors import decode
-    path = Path(os.getenv('RIGHAVEN_DISCOVERY_DIR', DISCOVERY_DIR)) / 'ble-history.jsonl'
+    path = _reports(directory) / 'ble-history.jsonl'
     out = io.StringIO()
     writer = csv.writer(out)
     writer.writerow(['at', 'address', 'name', 'format', 'quantity', 'value', 'unit'])
@@ -274,11 +316,11 @@ def ble_history_csv():
     return out.getvalue()
 
 
-def bluetooth():
+def bluetooth(directory=None):
     """The last Bluetooth search made by the launcher on the PC (RigHaven.exe bluetooth)."""
     import json
     from pathlib import Path
-    path = Path(os.getenv('RIGHAVEN_DISCOVERY_DIR', DISCOVERY_DIR)) / 'bluetooth.json'
+    path = _reports(directory) / 'bluetooth.json'
     try:
         report = json.loads(path.read_text()[:1_048_576])
     except (OSError, ValueError):
@@ -323,12 +365,12 @@ def wifi_hint(ssid):
     return ''
 
 
-def wifi():
+def wifi(directory=None):
     """The last Wi-Fi scan of the PC (launcher): nearby networks, including the setup networks
     of devices not configured yet."""
     import json
     from pathlib import Path
-    path = Path(os.getenv('RIGHAVEN_DISCOVERY_DIR', DISCOVERY_DIR)) / 'wifi.json'
+    path = _reports(directory) / 'wifi.json'
     try:
         report = json.loads(path.read_text()[:1_048_576])
     except (OSError, ValueError):
