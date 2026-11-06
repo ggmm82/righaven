@@ -166,6 +166,8 @@ jobs:
           if ($LASTEXITCODE -eq 0) { throw 'A pairing with an unreachable server was accepted' }
           & $agent agent run
           if ($LASTEXITCODE -eq 0) { throw 'RigHaven Agent ran without being paired' }
+          # Both refusals above are the expected outcome: the step succeeds (pwsh would return the last exit code).
+          exit 0
   linux:
     runs-on: ubuntu-24.04
     env:
