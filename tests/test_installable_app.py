@@ -8,11 +8,11 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class InstallableAppTests(unittest.TestCase):
-    def test_only_manifest_and_icons_bypass_the_password_gate(self):
+    def test_only_manifest_icons_and_the_agent_endpoints_bypass_the_password_gate(self):
         text = (ROOT / 'docker/Caddyfile').read_text()
         matcher = re.search(r'@protected not path ([^\n]+)', text)
         self.assertIsNotNone(matcher)
-        self.assertEqual(matcher.group(1).split(), ['/manifest.webmanifest', '/rh-app/*'])
+        self.assertEqual(matcher.group(1).split(), ['/manifest.webmanifest', '/rh-app/*', '/api/webhooks/righaven-agent/*'])
         self.assertIn('basic_auth @protected {', text)
         self.assertEqual(text.count('basic_auth'), 1)
 

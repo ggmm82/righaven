@@ -1,8 +1,9 @@
 """Agents in the web interface (pair, list, revoke, activity) and the agents' own endpoints.
 
-The agent endpoints sit outside the site password of the proxy: the pairing endpoint accepts
+The agent endpoints sit outside the site password (Caddy's basic_auth in the portable
+release, the gateway's own login behind Traefik on Hostinger): the pairing endpoint accepts
 only a valid, short-lived pairing code, the connection only a valid agent token, sent in the
-X-RigHaven-Agent header (the proxy removes the Authorization header).
+X-RigHaven-Agent header (Caddy removes the Authorization header).
 """
 import os
 from typing import Optional
@@ -49,7 +50,7 @@ async def listing(request: Request):
     for row in rows:
         row.update(online=agent_hub.online(row['id']), **{k: v for k, v in agent_hub.state(row['id']).items() if k in ('networks',)})
     return {'agents': rows, 'download': DOWNLOAD.format(repository=os.getenv('RIGHAVEN_REPOSITORY', 'ggmm82/righaven')),
-            'server': str(request.base_url).rstrip('/')}
+            'server': agents.public_address(request)}
 
 
 @router.post('/api/harness/agents/pairings')

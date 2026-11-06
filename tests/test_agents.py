@@ -145,5 +145,29 @@ class AgentTests(unittest.TestCase):
             host_bridge.pick('alice')
 
 
+class PublicAddressTests(unittest.TestCase):
+    class Request:
+        def __init__(self, headers, scheme='http', netloc='gateway:8001'):
+            from types import SimpleNamespace
+            self.headers, self.url = headers, SimpleNamespace(scheme=scheme, netloc=netloc)
+
+    def test_behind_traefik_the_agent_gets_the_https_address(self):
+        from righaven.agents import public_address
+        with patch.dict(os.environ, {'BETTER_AUTH_URL': 'https://righaven.example.org/', 'RIGHAVEN_PUBLIC_URL': ''}):
+            self.assertEqual(public_address(self.Request({'host': 'gateway:8001'})), 'https://righaven.example.org')
+        with patch.dict(os.environ, {'BETTER_AUTH_URL': 'http://localhost:2026', 'RIGHAVEN_PUBLIC_URL': ''}):
+            forwarded = {'host': 'pc.lan:2026', 'x-forwarded-proto': 'https', 'x-forwarded-host': 'rh.example.org'}
+            self.assertEqual(public_address(self.Request(forwarded)), 'https://rh.example.org')
+            self.assertEqual(public_address(self.Request({'host': 'pc.lan:2026'})), 'http://pc.lan:2026')
+
+    def test_the_hostinger_compose_routes_the_agent_to_the_gateway_without_a_password_middleware(self):
+        import yaml
+        compose = yaml.safe_load((Path(__file__).parents[1] / 'config/compose.hostinger.template.yaml').read_text())
+        labels = compose['services']['gateway']['labels']
+        rule = next(l for l in labels if '-gateway.rule=' in l)
+        self.assertIn('PathPrefix(`/api`)', rule)  # /api/webhooks/righaven-agent/* and its WebSocket
+        self.assertFalse([l for l in labels if '-gateway.middlewares=' in l or 'basicauth' in l.lower()])
+
+
 if __name__ == '__main__':
     unittest.main()

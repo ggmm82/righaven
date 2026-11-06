@@ -20,8 +20,8 @@ The PC connects to the server itself: no port of the home router is opened.
 ## Connect a PC
 
 1. On the server open **Connections → Connected PCs (RigHaven Agent)**, type a name ("Home PC")
-   and press **Connect a PC**. The page shows the server address and a code valid ten minutes,
-   usable once.
+   and press **Connect a PC**. The page shows the server address (on Hostinger the HTTPS address
+   Traefik serves, `https://<project>.<TRAEFIK_HOST>`) and a code valid ten minutes, usable once.
 2. Download `RigHaven-Agent-windows-x64.exe` from the release (the link is on the page) and start
    it. On first start Windows may show the SmartScreen warning for an unsigned program: *More
    info → Run anyway*.
@@ -67,9 +67,12 @@ approved by you, one by one.
 - **Pairing.** The code is valid ten minutes and once; wrong codes are throttled. The server keeps
   only a hash of the agent's token; the PC keeps the token encrypted for the Windows account
   (DPAPI). *Revoke* on the page disconnects the agent and invalidates its token at once.
-- **Outside the site password.** The proxy's site password protects the web interface; the
-  agent's two endpoints (`/api/webhooks/righaven-agent/pair` and `/connect`) authenticate
-  themselves, with the code and with the token in the `X-RigHaven-Agent` header.
+- **Outside the site password.** The site password protects the web interface (Caddy's in the
+  portable release; on Hostinger, where Traefik routes `/api` straight to the gateway, the
+  gateway's own login). The agent's endpoints (`/api/webhooks/righaven-agent/pair`, `/connect`,
+  `/capture`) authenticate themselves, with the code and with the token in the
+  `X-RigHaven-Agent` header. Traefik and Caddy both carry the WebSocket of `/connect` as it is:
+  no extra router, label or port is needed.
 - **What the agent opens.** Tunnels reach only COM ports of the PC and private addresses of its
   networks, never the internet. Wi-Fi passwords typed in the page go to the agent for that action
   only and are not stored.

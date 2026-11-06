@@ -7,10 +7,12 @@ only as a hash. Every action asked to an agent is recorded in the owner's agent 
 """
 import hashlib
 import json
+import os
 import re
 import secrets
 import time
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from .state import LOCK, STATE, atomic_json
 
@@ -185,3 +187,15 @@ def folder(identifier):
     path = Path(STATE) / 'agents' / identifier
     path.mkdir(parents=True, exist_ok=True)
     return path
+
+
+def public_address(request) -> str:
+    """The address RigHaven Agent must use: the configured public URL (on Hostinger the HTTPS
+    address Traefik serves), otherwise what the browser used, as forwarded by the proxy."""
+    for name in ('RIGHAVEN_PUBLIC_URL', 'BETTER_AUTH_URL'):
+        configured = os.getenv(name, '').strip().rstrip('/')
+        if configured.startswith(('http://', 'https://')) and urlsplit(configured).hostname not in ('localhost', '127.0.0.1', '::1'):
+            return configured
+    scheme = request.headers.get('x-forwarded-proto', '').split(',')[0].strip() or request.url.scheme
+    host = request.headers.get('x-forwarded-host', '').split(',')[0].strip() or request.headers.get('host') or request.url.netloc
+    return f'{scheme}://{host}'
