@@ -240,8 +240,37 @@ jobs:
             dist/*.tar.gz
             dist/*.tar.gz.sha256
           retention-days: 7
+  android:
+    runs-on: ubuntu-24.04
+    env:
+      TAG: ${{ inputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.14.3'
+      - name: Agent protocol tests and the Android app (the runner has the Android SDK)
+        working-directory: desktop/android
+        run: |
+          test -n "$ANDROID_HOME"
+          export RIGHAVEN_VERSION="${TAG#v}"
+          gradle --no-daemon :core:test :app:assembleRelease
+          cp app/build/outputs/apk/release/app-release.apk "$GITHUB_WORKSPACE/RigHaven-android.apk"
+          cd "$GITHUB_WORKSPACE" && sha256sum RigHaven-android.apk > RigHaven-android.apk.sha256
+          unzip -l RigHaven-android.apk | grep -q classes.dex
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android-app
+          path: |
+            RigHaven-android.apk
+            RigHaven-android.apk.sha256
+          retention-days: 7
   publish:
-    needs: [build, windows, linux]
+    needs: [build, windows, linux, android]
     runs-on: ubuntu-24.04
     permissions:
       contents: write
@@ -251,7 +280,11 @@ jobs:
           pattern: '*-portable'
           merge-multiple: true
           path: dist
+      - uses: actions/download-artifact@v4
+        with:
+          name: android-app
+          path: dist
       - name: Attach the portable apps to the release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release upload "${{ inputs.tag }}" dist/*.zip dist/*.zip.sha256 dist/*.tar.gz dist/*.tar.gz.sha256 dist/*.exe dist/*.exe.sha256 dist/RigHaven-Agent-linux-x64 dist/RigHaven-Agent-linux-x64.sha256 --repo "$GITHUB_REPOSITORY" --clobber
+        run: gh release upload "${{ inputs.tag }}" dist/*.zip dist/*.zip.sha256 dist/*.tar.gz dist/*.tar.gz.sha256 dist/*.exe dist/*.exe.sha256 dist/RigHaven-Agent-linux-x64 dist/RigHaven-Agent-linux-x64.sha256 dist/RigHaven-android.apk dist/RigHaven-android.apk.sha256 --repo "$GITHUB_REPOSITORY" --clobber

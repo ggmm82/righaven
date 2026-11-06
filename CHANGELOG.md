@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.2.0
+
+- **RigHaven for Android.** The app shows the server's web interface and runs RigHaven Agent on
+  the phone as a foreground service: Bluetooth LE search, exploration and approved writes, nearby
+  Wi-Fi networks, search of the phone's network, connection tests and tunnels to hosts of its
+  private network. Pairing with the same code as a PC, token encrypted with the Android Keystore.
+  `RigHaven-android.apk` in the release.
+
 ## 1.1.0
 
 - **On-premise environments.** Coordination, projects and data stay on the server; an environment
