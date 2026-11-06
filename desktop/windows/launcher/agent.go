@@ -39,7 +39,7 @@ type agentConfig struct {
 
 var (
 	agentActions = []string{"bluetooth-scan", "wifi-scan", "com-list", "ble-inspect", "ble-read", "ble-write", "wifi-provision",
-		"wifi-explore", "pc-devices", "net-listen", "lan-devices", "traffic-capture", "net-scan"}
+		"wifi-explore", "pc-devices", "net-listen", "lan-devices", "traffic-capture", "net-scan", "tcp-check"}
 	agentConfigPath = func() string {
 		base := os.Getenv("LOCALAPPDATA")
 		if base == "" {
@@ -315,13 +315,7 @@ func (s *agentSession) openStream(number uint32, target string) {
 	case strings.HasPrefix(target, "com:") && comName.MatchString(strings.TrimPrefix(target, "com:")):
 		stream, err = openCOM(strings.TrimPrefix(target, "com:"))
 	case strings.HasPrefix(target, "tcp:"):
-		host, port, splitErr := net.SplitHostPort(strings.TrimPrefix(target, "tcp:"))
-		ip := net.ParseIP(host)
-		if splitErr != nil || ip == nil || !(ip.IsPrivate() || ip.IsLinkLocalUnicast()) {
-			err = errors.New("only devices of this PC's private network")
-			break
-		}
-		stream, err = net.DialTimeout("tcp", net.JoinHostPort(host, port), 10*time.Second)
+		stream, err = homeDial(strings.TrimPrefix(target, "tcp:"), 10*time.Second)
 	default:
 		err = errors.New("unknown target")
 	}
@@ -356,6 +350,47 @@ func (s *agentSession) closeStream(number uint32, cause error) {
 		}
 		_ = s.send(message)
 	}
+}
+
+// homeResolve is the resolver of this PC (its DNS knows the names of the office or home network).
+var homeResolve = net.DefaultResolver.LookupIPAddr
+
+// homeDial opens host:port of this PC's private network: a private IP, or an internal name
+// (sql01.office.local) whose addresses are all private, so a tunnel never reaches the internet.
+func homeDial(target string, timeout time.Duration) (net.Conn, error) {
+	host, port, err := net.SplitHostPort(target)
+	if err != nil || host == "" {
+		return nil, errors.New("address: host:port")
+	}
+	private := func(ip net.IP) bool { return ip.IsPrivate() || ip.IsLinkLocalUnicast() }
+	var addresses []net.IP
+	if ip := net.ParseIP(host); ip != nil {
+		addresses = []net.IP{ip}
+	} else {
+		ctx, cancel := context.WithTimeout(context.Background(), timeout)
+		found, lookupErr := homeResolve(ctx, host)
+		cancel()
+		if lookupErr != nil || len(found) == 0 {
+			return nil, fmt.Errorf("%s: name not resolved on this PC", host)
+		}
+		for _, a := range found {
+			addresses = append(addresses, a.IP)
+		}
+	}
+	for _, ip := range addresses {
+		if !private(ip) {
+			return nil, fmt.Errorf("%s is not an address of this PC's private network (%s)", host, ip)
+		}
+	}
+	var last error
+	for _, ip := range addresses {
+		conn, dialErr := net.DialTimeout("tcp", net.JoinHostPort(ip.String(), port), timeout)
+		if dialErr == nil {
+			return conn, nil
+		}
+		last = dialErr
+	}
+	return nil, last
 }
 
 // agentHandle carries out one action on this PC, without WSL: the same work as the launcher's
@@ -402,6 +437,14 @@ func agentHandle(a *App, config agentConfig, action string, args map[string]stri
 		return lanDevices()
 	case "net-scan":
 		return scanNetwork(args["network"])
+	case "tcp-check":
+		conn, err := homeDial(args["target"], 6*time.Second)
+		if err != nil {
+			return failed(err)
+		}
+		address := conn.RemoteAddr().String()
+		conn.Close()
+		return map[string]any{"ok": true, "address": address}
 	case "traffic-capture":
 		return captureForServer(a, config, args)
 	}

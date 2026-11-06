@@ -1,4 +1,4 @@
-# RigHaven Agent: your PC for a RigHaven server
+# RigHaven Agent: your PC and on-premise gateway for a RigHaven server
 
 RigHaven can run on a server (for example a VPS, installed from `compose.hostinger.yaml` of a
 release) with its own web interface: chat, projects, environments, data and executions. A server
@@ -12,7 +12,7 @@ disposal, with no WSL and no Docker on the PC.
  Home PC: RigHaven Agent ────────────────────┘
    ├─ Bluetooth, BLE, Wi-Fi, COM ports, devices of the PC and of the home network
    ├─ network listening, traffic recording, port search of the home network
-   └─ tunnels: a COM port or a home-network device to the server's workers
+   └─ tunnels: a COM port, a home-network device or an on-premise database to the server's workers
 ```
 
 The PC connects to the server itself: no port of the home router is opened.
@@ -59,6 +59,32 @@ server, the agent opens the COM port or the device and carries the bytes. Readin
 follow the usual rules: the connection is read only until you allow writing, and each write is
 approved by you, one by one.
 
+## Where each connection goes from
+
+Every connection goes **from the server** unless it says otherwise: cloud databases (Azure SQL,
+Fabric, a managed Postgres), devices and services with an address the server reaches. Nothing to
+choose for them.
+
+A connection says **through which PC** only when the server cannot see what it reaches:
+
+| Connection | Through an agent |
+|---|---|
+| Postgres, SQL Server, MySQL, Oracle of the office or home network | *Reached from → On premise, through «PC»*; the host is a private IP or an internal name (`sql01.office.local`) as that PC sees it; user and password authentication |
+| Device of the home network | *Next to one of my PCs → Home network*; a private IP |
+| USB board, serial adapter | *Next to one of my PCs → COM port* |
+| Bluetooth LE device | the PC chosen in *Act on the PC* when it is created |
+
+**Test** of a connection through an agent runs on that PC: the PC resolves the name and opens the
+port, so the result is what the tasks will find. When a task uses the connection, the server opens
+a tunnel to the agent and the task receives the tunnel's address; for SQL Server the certificate
+is checked against the real server name (`hostNameInCertificate`). An internal name must resolve,
+on the PC, to private addresses only: a name that leads to the internet is refused.
+
+**Several PCs.** Each agent has a name. The page acts on the PC chosen in *Act on the PC*; a
+connection always uses the PC it names; the chat uses the PC the owner names (by name or ID), the
+PC of the server when it is there, the only agent connected, and with several connected it asks
+which one instead of choosing.
+
 ## Security
 
 - **One owner.** An agent belongs to the user who paired it. Its actions, searches, recordings
@@ -86,6 +112,12 @@ approved by you, one by one.
   classes are not forwarded.
 - Matter needs the controller in the home network: it stays available with the full portable
   RigHaven on the PC, not through an agent.
+- On-premise databases use user and password: Microsoft and Entra ID sign-in are for cloud
+  databases, from the server. *Networks to map* (vulnerability scans) run from the server; the
+  home network of an agent is searched with *Find devices*.
+- The tunnel port is on the server's internal network, where the workers run; on a server shared
+  by several users the database account (or the device) is what protects the data, as on any
+  network connection.
 - Tunnels carry TCP and serial bytes; in the *allowlist* egress mode workers reach the internet
   only through the egress proxy, as for every device connection.
 - Not yet tested end to end on a real VPS with a real PC: the protocol, pairing, actions and

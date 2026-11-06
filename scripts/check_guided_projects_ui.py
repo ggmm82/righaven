@@ -474,6 +474,21 @@ createRoot(document.getElementById('root')!).render(location.pathname.includes('
                 expect(page.get_by_test_id('connection-termostato')).to_contain_text('Tramite RigHaven Agent: HTTP · 192.168.50.20:80')
                 saved=connections._read('owner','termostato')
                 assert (saved['transport'],saved['agent'],saved['host']) == ('agent','ag_0123456789ab','192.168.50.20'),saved
+                # On-premise gateway: a SQL Server of the office network, reached through the same PC.
+                page.get_by_role('button',name='Nuova: SQL Server / Azure SQL / Fabric',exact=True).click()
+                form=page.get_by_test_id('connection-form')
+                form.get_by_label('Raggiungibile da',exact=True).select_option('ag_0123456789ab')
+                expect(form.get_by_label('Autenticazione',exact=True)).to_have_count(0)  # through an agent: user and password
+                form.get_by_label('Nome',exact=True).fill('ERP ufficio')
+                form.get_by_label('Server, URL o stringa di connessione',exact=True).fill('sql01.ufficio.local')
+                form.get_by_label('Database',exact=True).fill('erp')
+                form.get_by_label('Utente',exact=True).fill('lettore')
+                form.get_by_label('Password',exact=True).fill('segreta-123')
+                form.get_by_label('Confermo che l’account ha solo permessi di lettura').check()
+                form.get_by_role('button',name='Salva',exact=True).click()
+                expect(page.get_by_test_id('connection-erp-ufficio')).to_contain_text('sql01.ufficio.local:1433 / erp · lettore · on premise, tramite PC di casa')
+                saved=connections._read('owner','erp-ufficio')
+                assert (saved['agent'],saved['authentication'],saved['host']) == ('ag_0123456789ab','password','sql01.ufficio.local'),saved
                 assert not errors,errors
                 page.close()
                 # Recipe editor: the user composes skills, environment and phases into a new recipe, then starts it.

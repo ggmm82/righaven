@@ -145,6 +145,28 @@ class AgentTests(unittest.TestCase):
             host_bridge.pick('alice')
 
 
+    def test_with_several_pcs_online_the_chat_asks_which(self):
+        first = agents.redeem(agents.create_code('alice', 'PC casa')['code'])['agent']
+        second = agents.redeem(agents.create_code('alice', 'Portatile ufficio')['code'])['agent']
+        with patch.object(agent_hub, 'online', return_value=True):
+            with self.assertRaises(host_bridge.SeveralPCs) as asked:
+                host_bridge.pick('alice')
+            self.assertIn('PC casa', str(asked.exception))
+            self.assertIn('Portatile ufficio', str(asked.exception))
+            self.assertEqual(host_bridge.pick('alice', 'portatile ufficio'), second)
+            self.assertEqual(host_bridge.pick('alice', first), first)
+            with self.assertRaises(ValueError):
+                host_bridge.pick('alice', 'PC di nessuno')
+        with patch.object(agent_hub, 'online', side_effect=lambda identifier: identifier == second):
+            self.assertEqual(host_bridge.pick('alice'), second)
+
+    def test_tcp_check_is_asked_only_to_agents(self):
+        with self.assertRaises(ValueError):
+            host_bridge.request('tcp-check', {'target': 'sql01.office.local:1433'})
+        with self.assertRaises(ValueError):
+            host_bridge.request('tcp-check', {'target': 'sql01 ; rm:1'}, agent='ag_000000000000')
+
+
 HOSTINGER = Path(__file__).parents[1] / 'config/compose.hostinger.template.yaml'
 
 

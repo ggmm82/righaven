@@ -389,5 +389,7 @@
   "release unlocked resource slot": null,
   "security_policy must enforce rootless=true": null,
   "security_policy.writable_paths must include $RIGHAVEN_OUTPUT_DIR": null,
-  "tools must be a list of tool identifiers": "tools deve essere un elenco di identificativi di strumenti"
+  "tools must be a list of tool identifiers": "tools deve essere un elenco di identificativi di strumenti",
+  "Through a RigHaven Agent the database uses user and password": "Tramite RigHaven Agent il database usa utente e password",
+  "Through a RigHaven Agent: a private address or an internal name of the agent’s network, for example 192.168.1.20 or sql01.office.local": "Tramite RigHaven Agent: un indirizzo privato o un nome interno della rete dell’agente, per esempio 192.168.1.20 o sql01.office.local"
 }

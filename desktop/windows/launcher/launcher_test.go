@@ -1245,3 +1245,28 @@ func TestAgentPairsConnectsAnswersAndCarriesATunnel(t *testing.T) {
 		t.Fatal("the agent did not stop")
 	}
 }
+
+func TestTunnelsReachOnlyThePrivateNetworkOfThePC(t *testing.T) {
+	previous := homeResolve
+	defer func() { homeResolve = previous }()
+	homeResolve = func(_ context.Context, host string) ([]net.IPAddr, error) {
+		switch host {
+		case "sql01.office.local":
+			return []net.IPAddr{{IP: net.ParseIP("10.255.255.1")}}, nil
+		case "rebind.example":
+			return []net.IPAddr{{IP: net.ParseIP("10.0.0.5")}, {IP: net.ParseIP("8.8.8.8")}}, nil
+		}
+		return nil, errors.New("no such host")
+	}
+	for _, target := range []string{"8.8.8.8:53", "127.0.0.1:1433", "rebind.example:1433", "unknown.local:1433", "no-port"} {
+		if conn, err := homeDial(target, time.Second); err == nil {
+			conn.Close()
+			t.Fatalf("%s should be refused", target)
+		}
+	}
+	// An internal name resolving to a private address is dialled (nothing answers there: a dial error, not a refusal).
+	_, err := homeDial("sql01.office.local:1433", 300*time.Millisecond)
+	if err == nil || strings.Contains(err.Error(), "not an address") || strings.Contains(err.Error(), "not resolved") {
+		t.Fatalf("an internal name should be dialled, got %v", err)
+	}
+}

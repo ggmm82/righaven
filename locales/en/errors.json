@@ -1200,5 +1200,7 @@
   "tool_options: presenta da due a quattro alternative per ogni decisione": "tool_options: present two to four alternatives for every decision",
   "tool_options: tools elenca programmi del catalogo": "tool_options: tools lists catalog programs",
   "tools must be a list of tool identifiers": null,
-  "where: all, network, wifi, bluetooth, usb, com o serial": "where: all, network, wifi, bluetooth, usb, com or serial"
+  "where: all, network, wifi, bluetooth, usb, com o serial": "where: all, network, wifi, bluetooth, usb, com or serial",
+  "Through a RigHaven Agent the database uses user and password": null,
+  "Through a RigHaven Agent: a private address or an internal name of the agent’s network, for example 192.168.1.20 or sql01.office.local": null
 }

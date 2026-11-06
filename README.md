@@ -252,8 +252,10 @@ RigHaven also runs on a server (a VPS, from the release's `compose.hostinger.yam
 own web interface. `RigHaven-Agent-windows-x64.exe` is the small Windows program, with no WSL
 and no Docker, that puts your PC's Bluetooth, Wi-Fi, COM ports and home network at the server's
 disposal: pair it once with a code from **Connections**, and the server's searches, explorations
-and device connections reach your devices through it. The PC connects to the server, no router
-port is opened. See [RigHaven Agent](docs/AGENT.md).
+and device connections reach your devices through it. It is also the **on-premise connection
+gateway**: a database of the office or home network (Postgres, SQL Server, MySQL, Oracle) is
+*reached through* a PC of that network, while cloud databases go from the server. The PC
+connects to the server, no router port is opened. See [RigHaven Agent](docs/AGENT.md).
 
 **On the phone.** RigHaven can be installed as an app from the browser ("Add to Home
 screen" or "Install app") and the project card collapses to one line, so the chat and
@@ -435,7 +437,7 @@ surfaces still need localization. See [workspace guide](docs/WORKSPACE.md),
 | [Model providers](docs/MODEL-PROVIDERS.md) | Codex, Claude Code, Antigravity and OpenAI-compatible APIs: capabilities and limits |
 | [Windows portable app](docs/WINDOWS-PORTABLE.md) | Run RigHaven on one Windows PC in WSL 2 with the same isolation, commands and build |
 | [Linux portable app](docs/LINUX-PORTABLE.md) | Run RigHaven on one Linux PC with its Docker engine |
-| [RigHaven Agent](docs/AGENT.md) | Put a Windows PC's Bluetooth, Wi-Fi, COM ports and home network at the disposal of a RigHaven server |
+| [RigHaven Agent](docs/AGENT.md) | Put a Windows PC's Bluetooth, Wi-Fi, COM ports and home network at the disposal of a RigHaven server; on-premise databases through it |
 | [Phones and the installable app](docs/MOBILE.md) | Install RigHaven as an app, use it from a phone, reach a PC copy on the network |
 | [Environments](docs/OPTIONAL-ENVIRONMENTS.md) | Catalog, preparation, profile reuse and machine usage |
 | [Technical report](docs/technical-report.typ) | Typst source of the architecture report |

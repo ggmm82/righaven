@@ -9,6 +9,12 @@ First stable version.
   devices of the PC and of the home network, network listening and traffic recording at the
   disposal of a RigHaven server (for example on a VPS). Device connections *through an agent*
   reach COM ports and home-network devices with tunnels.
+- **On-premise connection gateway.** Postgres, SQL Server, MySQL and Oracle databases of an
+  office or home network are reached *through* the agent of a PC of that network: a private
+  address or an internal name the PC resolves, a test run from that PC, a tunnel only while a
+  task uses it, no port opened. Cloud databases keep going from the server.
+- **The chat asks which PC.** With several of the owner's PCs connected, the chat's device
+  tools take the PC by name and ask for it instead of choosing one.
 - **Connected PCs in the web interface.** Connect a PC with a code, see its state, revoke it,
   read its activity, choose the PC the device sections act on.
 - **Permissions on actions on the PC.** The PC the server runs on is for administrators, an

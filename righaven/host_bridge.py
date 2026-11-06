@@ -27,6 +27,8 @@ ACTIONS = {
     'pc-devices': (), 'net-listen': (), 'lan-devices': (),
     # Agents only: the home network searched from the agent (the server cannot see it).
     'net-scan': ('network',),
+    # Agents only: whether a host of the agent's network (a database, a device) answers on a port.
+    'tcp-check': ('target',),
     # The owner's own recording of the PC's traffic (Windows asks for administrator rights).
     'traffic-capture': ('seconds',),
 }
@@ -42,6 +44,8 @@ ARGUMENTS = {'busid': re.compile(r'[0-9]{1,3}-[0-9]{1,3}(\.[0-9]{1,3})*\Z'), 'na
              'hint': re.compile(r'(tasmota|shelly|esp|wled|openbeken|tuya|daikin|lg|direct)\Z'), 'password': re.compile(r'[^\x00-\x1f\x7f]{8,63}\Z'),
              'key': re.compile(r'[^\x00-\x1f\x7f]{8,63}\Z'),
              'network': re.compile(r'(10|172|192)\.\d{1,3}\.\d{1,3}\.\d{1,3}/(2[0-9]|3[0-2]|1[6-9])\Z'),
+             # host:port of the agent's network: a private IP or an internal name the agent resolves.
+             'target': re.compile(r'[A-Za-z0-9][A-Za-z0-9.-]{0,252}:[0-9]{1,5}\Z'),
              'seconds': re.compile(r'(1\d|[2-9]\d|[1-9]\d\d|1[0-7]\d\d|1800)\Z'), 'confirm': re.compile(r'yes\Z')}
 
 
@@ -105,7 +109,7 @@ def request(action, args=None, agent=None):
     if agent:
         from . import agent_hub
         return agent_hub.request(agent, action, clean)
-    if action == 'net-scan':
+    if action in ('net-scan', 'tcp-check'):
         raise ValueError('Questa azione non è disponibile su questo PC')
     current = state()
     if not current['connected']:
@@ -137,17 +141,28 @@ def result(identifier):
     return {'id': identifier, 'status': 'unknown'}
 
 
+class SeveralPCs(ValueError):
+    """Several of the owner's PCs are connected and none was named."""
+
+
 def pick(user, agent=None):
-    """Which PC a chat tool uses: the agent named, else the launcher next to this server, else the user's agent online."""
+    """Which PC a chat tool uses: the agent named (its ID or its name), else the launcher next to this
+    server, else the user's only agent online. With several online the owner chooses: never a guess."""
     from . import agent_hub, agents
+    rows = agents.listing(user)
     if agent:
-        agents.owned(user, agent)
-        return agent
+        text = str(agent).strip()
+        named = [r for r in rows if r['id'] == text or r['name'].casefold() == text.casefold()]
+        if len(named) != 1:
+            agents.owned(user, text)  # the usual "not found" for an unknown ID or name
+        return named[0]['id']
     if state()['connected']:
         return None
-    for row in agents.listing(user):
-        if agent_hub.online(row['id']):
-            return row['id']
+    online = [r for r in rows if agent_hub.online(r['id'])]
+    if len(online) == 1:
+        return online[0]['id']
+    if online:
+        raise SeveralPCs('Più PC collegati: indica quale usare (agent): ' + ', '.join(f"{r['name']} ({r['id']})" for r in online))
     raise ValueError('Nessun PC collegato: apri RigHaven sul PC, oppure collega un PC con RigHaven Agent (Connessioni → Agenti)')
 
 

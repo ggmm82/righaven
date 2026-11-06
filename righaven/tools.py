@@ -8,6 +8,7 @@ from .projects import archive_plan, create_plan, execute_step, read_project, set
 from .project_brief import briefing_issue
 import functools
 import json
+import sys
 import threading
 
 
@@ -121,7 +122,7 @@ def harness_journey(runtime: Runtime, stage_id: str = '', evidence_json: str = '
 
 
 @tool('harness_find_devices', parse_docstring=True)
-def harness_find_devices(runtime: Runtime, where: str = 'all', network: str = '') -> str:
+def harness_find_devices(runtime: Runtime, where: str = 'all', network: str = '', pc: str = '') -> str:
     """Identify devices near the owner's PC when the owner asks, without knowing their address.
 
     Read only: nothing is written to any device and the PC joins no network. Sources: the home
@@ -136,13 +137,14 @@ def harness_find_devices(runtime: Runtime, where: str = 'all', network: str = ''
         runtime: Injected RigHaven runtime.
         where: all, network, wifi, bluetooth, usb, com or serial.
         network: Private network to search, for example 192.168.1.0/24; empty means the PC's network.
+        pc: The owner's PC to use, by its name or ID (needed when several of the owner's PCs are connected).
     """
     from . import connections, device_discovery, host_bridge
     if where not in ('all', 'network', 'wifi', 'bluetooth', 'usb', 'com', 'serial'):
         raise ValueError('where: all, network, wifi, bluetooth, usb, com o serial')
     found, notes = {}, []
     try:
-        agent, folder = _pc(runtime)
+        agent, folder = _pc(runtime, pc)
     except ValueError as error:
         agent, folder = False, None
         notes.append(str(error))
@@ -205,7 +207,7 @@ def _connection_id(user, name):
 
 @tool('harness_setup_device', parse_docstring=True)
 def harness_setup_device(runtime: Runtime, kind: str, target: str, name: str = '', protocol: str = '', port: int = 0, note: str = '',
-                         agent_network: bool = False) -> str:
+                         agent_network: bool = False, pc: str = '') -> str:
     """Prepare a device the owner asked to use and create its connection, read only.
 
     Use it only after the owner chose the device (usually from harness_find_devices). It does
@@ -229,6 +231,7 @@ def harness_setup_device(runtime: Runtime, kind: str, target: str, name: str = '
         port: For network: port if not the protocol default.
         note: What the owner wants to do with the device.
         agent_network: For network: the device is in the home network of the owner's RigHaven Agent (the server reaches it through the agent).
+        pc: The owner's PC to use, by its name or ID (needed when several of the owner's PCs are connected).
     """
     from . import connections, device_discovery, host_bridge, matter
     user = resolve_runtime_user_id(runtime)
@@ -236,7 +239,7 @@ def harness_setup_device(runtime: Runtime, kind: str, target: str, name: str = '
     body = {'kind': 'device', 'name': label, 'description': note[:400], 'access': 'read'}
     agent = None
     if kind in ('usb', 'com', 'bluetooth') or (kind == 'network' and agent_network):
-        agent, _ = _pc(runtime)
+        agent, _ = _pc(runtime, pc)
     if agent and kind in ('usb', 'com'):
         # Through an agent a USB serial board is a COM port of the PC, carried to the server by a tunnel.
         if kind == 'usb':
@@ -291,7 +294,7 @@ def harness_setup_device(runtime: Runtime, kind: str, target: str, name: str = '
 
 
 @tool('harness_explore_device', parse_docstring=True)
-def harness_explore_device(runtime: Runtime, kind: str, target: str) -> str:
+def harness_explore_device(runtime: Runtime, kind: str, target: str, pc: str = '') -> str:
     """Explore one thing found near the PC, as Explore does in Connections: read only, no connection needed.
 
     network (target = IP address): which IoT ports answer, its name and home page. wifi
@@ -309,13 +312,16 @@ def harness_explore_device(runtime: Runtime, kind: str, target: str) -> str:
         runtime: Injected RigHaven runtime.
         kind: network, wifi, bluetooth, usb or listen.
         target: IP address, Wi-Fi network name, Bluetooth address or USB busid.
+        pc: The owner's PC to use, by its name or ID (needed when several of the owner's PCs are connected).
     """
     from . import device_discovery, host_bridge
-    agent, _ = _pc(runtime) if kind != 'network' else (None, None)
+    agent, _ = _pc(runtime, pc) if kind != 'network' else (None, None)
     if kind == 'network':
         try:
-            agent, _ = _pc(runtime)
+            agent, _ = _pc(runtime, pc)
         except ValueError:
+            if pc or isinstance(sys.exc_info()[1], host_bridge.SeveralPCs):
+                raise
             agent = None
         return json.dumps(device_discovery.explore_from_agent(agent, target) if agent else device_discovery.explore(target), ensure_ascii=False)
     if kind == 'wifi':

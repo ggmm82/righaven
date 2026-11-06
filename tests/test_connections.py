@@ -515,6 +515,55 @@ class ConnectionTests(unittest.TestCase):
         tunnel.assert_any_call('ag_0123456789ab', 'tcp:192.168.1.44:80')
         self.assertEqual(connections.device_file(serial)['url'], 'socket://172.18.0.5:42000')
         self.assertEqual(connections.device_file(network)['url'], 'http://172.18.0.5:42000/')
+    def test_on_premise_databases_go_through_the_owners_agent(self):
+        from righaven import agents
+        owned = patch.object(agents, 'owned', side_effect=lambda user, agent: {'id': agent} if user == 'alice' else (_ for _ in ()).throw(ValueError('Agente non trovato')))
+        with owned:
+            sql = connections.save('alice', {'id': 'erp', 'kind': 'sqlserver', 'name': 'ERP', 'host': 'sql01.office.local', 'database': 'erp',
+                                             'username': 'reader', 'password': 'secret-1', 'agent': 'ag_0123456789ab'})
+            pg = connections.save('alice', {'id': 'mag', 'kind': 'postgres', 'name': 'Magazzino', 'host': '192.168.10.20', 'database': 'mag',
+                                            'username': 'reader', 'password': 'secret-2', 'agent': 'ag_0123456789ab'})
+            for wrong in ({'host': '8.8.8.8'}, {'host': '127.0.0.1'}, {'authentication': 'microsoft', 'username': 'a@b.com'}):
+                with self.assertRaises(ValueError):
+                    connections.save('alice', {'id': 'z', 'kind': 'sqlserver', 'name': 'Z', 'host': '10.0.0.4', 'database': 'z',
+                                               'username': 'u', 'password': 'p', 'agent': 'ag_0123456789ab', **wrong})
+            with self.assertRaises(ValueError):
+                connections.save('bob', {'id': 'z', 'kind': 'postgres', 'name': 'Z', 'host': '10.0.0.4', 'database': 'z',
+                                         'username': 'u', 'password': 'p', 'agent': 'ag_0123456789ab'})
+            # Back to "from this server": the agent is removed, the stored password kept.
+            moved = connections.save('alice', {'kind': 'postgres', 'name': 'Magazzino', 'host': 'db.example.org', 'database': 'mag',
+                                               'username': 'reader', 'agent': ''}, 'mag')
+        self.assertEqual((sql['agent'], sql['port'], pg['agent']), ('ag_0123456789ab', 1433, 'ag_0123456789ab'))
+        self.assertNotIn('agent', moved)
+        self.assertEqual(connections._read('alice', 'mag')['password'], 'secret-2')
+        with patch('righaven.agent_hub.tunnel', return_value=('172.18.0.5', 42001)) as tunnel:
+            record = connections.through_agent(connections._read('alice', 'erp'))
+        tunnel.assert_called_once_with('ag_0123456789ab', 'tcp:sql01.office.local:1433')
+        content = connections._file(record, 'alice')
+        self.assertEqual((content['host'], content['port'], content['on_premise']), ('172.18.0.5', 42001, 'sql01.office.local'))
+        self.assertIn('hostNameInCertificate=sql01.office.local', content['jdbc_url'])
+        self.assertIn('&hostNameInCertificate=sql01.office.local', content['usql_url'])
+        self.assertIn('@172.18.0.5:42001', content['url'])
+
+    def test_the_test_of_an_on_premise_database_runs_on_the_agents_pc(self):
+        from righaven import agent_hub, agents, host_bridge
+        with patch.object(agents, 'owned', return_value={}):
+            connections.save('alice', {'id': 'erp', 'kind': 'mysql', 'name': 'ERP', 'host': 'db01', 'database': 'erp',
+                                       'username': 'reader', 'password': 'secret-1', 'agent': 'ag_0123456789ab'})
+        with patch.object(agent_hub, 'online', return_value=False):
+            self.assertFalse(connections.test('alice', 'erp')['ok'])
+        with patch.object(agent_hub, 'online', return_value=True), patch.object(agent_hub, 'state', return_value={'actions': ['tcp-check']}), \
+                patch.object(host_bridge, 'run', return_value={'ok': True, 'address': '10.1.1.7:3306'}) as run:
+            result = connections.test('alice', 'erp')
+        run.assert_called_once()
+        self.assertEqual((run.call_args.args[:2], run.call_args.kwargs['agent']), (('tcp-check', {'target': 'db01:3306'}), 'ag_0123456789ab'))
+        self.assertTrue(result['ok'])
+        self.assertIn('10.1.1.7:3306', result['detail'])
+        with patch.object(agent_hub, 'online', return_value=True), patch.object(agent_hub, 'state', return_value={'actions': ['tcp-check']}), \
+                patch.object(host_bridge, 'run', side_effect=ValueError('db01: name not resolved on this PC')):
+            failed = connections.test('alice', 'erp')
+        self.assertEqual((failed['ok'], failed['detail']), (False, 'db01: name not resolved on this PC'))
+
 
 if __name__ == '__main__':
     unittest.main()
