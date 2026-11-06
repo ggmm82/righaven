@@ -1,5 +1,5 @@
 "use client";
-import {useEffect,useState,type Dispatch,type ReactNode,type SetStateAction} from "react";
+import {createContext,useContext,useEffect,useState,type Dispatch,type ReactNode,type SetStateAction} from "react";
 
 import {ConceptMap} from "@/components/workspace/concept-map";
 import {fetch} from "@/core/api/fetcher";
@@ -8,16 +8,20 @@ import {useI18n} from "@/core/i18n/hooks";
 
 type ProviderAccess={id:string;name:string;scope:string;status:string;manage_url:string};
 type Kind="postgres"|"sqlserver"|"mysql"|"oracle"|"entra"|"device"|"network";
-type Transport="network"|"serial"|"local"|"bluetooth";
+type Transport="network"|"serial"|"local"|"bluetooth"|"agent";
+type Agent={id:string;name:string;platform?:string;version?:string;last_seen?:string|null;online:boolean;networks?:string[]};
+/** The PC the device sections act on: "" for the PC of this server (administrators), or an agent of this user. */
+const PcContext=createContext("");
+const withAgent=(url:string,agent:string)=>agent?url+(url.includes("?")?"&":"?")+"agent="+encodeURIComponent(agent):url;
 type Test={ok:boolean;detail:string;at:string};
 type Connection={id:string;kind:Kind;name:string;description?:string;host?:string;port?:number;database?:string;username?:string;tls?:boolean;read_only?:boolean;
  authentication?:"password"|"entra"|"microsoft";entra_connection?:string;tenant_id?:string;client_id?:string;cloud?:string;has_secret:boolean;tools:string[];last_test?:Test;updated_at?:string;
  mode?:"user"|"application";signed_in?:boolean;account?:string;write_enabled?:boolean;write_schema?:string;
- transport?:Transport;protocol?:string;device?:string;topic?:string;path?:string;unit?:number;baud?:number;ranges?:string[];exclude?:string[];address?:string};
+ transport?:Transport;protocol?:string;device?:string;topic?:string;path?:string;unit?:number;baud?:number;ranges?:string[];exclude?:string[];address?:string;agent?:string};
 type SignIn={id:string;user_code:string;verification_uri:string;interval:number;status:string;detail?:string};
 type Form={id:string;kind:Kind;name:string;description:string;host:string;port:string;database:string;username:string;password:string;tls:boolean;read_only:boolean;
  authentication:"password"|"entra"|"microsoft";entra_connection:string;tenant_id:string;client_id:string;client_secret:string;cloud:string;mode:"user"|"application";access:"read"|"write";write_schema:string;
- transport:Transport;protocol:string;device:string;topic:string;path:string;unit:string;baud:string;ranges:string;exclude:string;authorized:boolean;version:string;node_id:string;address:string};
+ transport:Transport;protocol:string;device:string;topic:string;path:string;unit:string;baud:string;ranges:string;exclude:string;authorized:boolean;version:string;node_id:string;address:string;agent:string;via:"com"|"network"};
 
 const PORTS:Record<Kind,string>={postgres:"5432",sqlserver:"1433",mysql:"3306",oracle:"1521",entra:"",device:"",network:""};
 const DEVICE_PORTS:Record<string,string>={mqtt:"1883",mqtts:"8883","modbus-tcp":"502",http:"80",https:"443",adb:"5555",tuya:"6668",tcp:""};
@@ -25,7 +29,7 @@ const LABELS:Record<Kind,string>={postgres:"PostgreSQL",sqlserver:"SQL Server / 
 const DEFAULT_CLIENT="04b07795-8ddb-461a-bbee-02f9e1bf7b46";
 const blank=(kind:Kind):Form=>({id:"",kind,name:"",description:"",host:"",port:PORTS[kind],database:"",username:"",password:"",tls:true,read_only:false,
  authentication:kind==="sqlserver"?"microsoft":"password",entra_connection:"",tenant_id:"",client_id:"",client_secret:"",cloud:"public",mode:"user",access:"read",write_schema:"",
- transport:"network",protocol:"mqtt",device:"",topic:"#",path:"/",unit:"1",baud:"115200",ranges:"",exclude:"",authorized:false,version:"3.3",node_id:"",address:""});
+ transport:"network",protocol:"mqtt",device:"",topic:"#",path:"/",unit:"1",baud:"115200",ranges:"",exclude:"",authorized:false,version:"3.3",node_id:"",address:"",agent:"",via:"network"});
 const slug=(text:string)=>text.normalize("NFD").replace(/\p{M}/gu,"").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"").replace(/^([^a-z])/,"c-$1").slice(0,40);
 
 /** Personal database, Microsoft cloud and device connections; secrets are encrypted and never shown again. */
@@ -39,18 +43,21 @@ export default function ConnectionsPage(){
    .then(v=>{if(live){setRows(v.connections);setDevices(v.devices??[]);}}).catch(e=>{if(live)setError(e instanceof Error?e.message:String(e));});
   return()=>{live=false;};},[base,reload]);
  const [providers,setProviders]=useState<ProviderAccess[]>([]),[devices,setDevices]=useState<string[]>([]),[hostEpoch,setHostEpoch]=useState(0);
+ const [agents,setAgents]=useState<Agent[]>([]),[pc,setPcState]=useState(()=>{try{return localStorage.getItem("righaven.pc")??"";}catch{return "";}});
+ const setPc=(value:string)=>{setPcState(value);try{localStorage.setItem("righaven.pc",value);}catch{/* the choice is only remembered when the browser allows it */}};
  const kindLabel=(k:Kind)=>k==="device"?t("Dispositivo (rete, seriale, USB)","Device (network, serial, USB)"):k==="network"?t("Rete da mappare","Network to map"):LABELS[k];
  useEffect(()=>{let live=true;void fetch(`${getBackendBaseURL()}/api/harness/access-catalog`).then(async r=>{if(!r.ok)throw Error(String(r.status));return r.json() as Promise<{providers:ProviderAccess[]}>;}).then(v=>{if(live)setProviders(v.providers);}).catch(()=>undefined);return()=>{live=false;};},[]);
  const entras=(rows??[]).filter(r=>r.kind==="entra");
  function edit(row:Connection){setEditing(row.id);setNotice("");setError("");
   setForm({...blank(row.kind),...Object.fromEntries(Object.entries(row).filter(([,v])=>typeof v==="string"||typeof v==="boolean")),port:String(row.port??PORTS[row.kind]),password:"",client_secret:"",access:row.write_enabled?"write":"read",write_schema:row.write_schema??"",
-   unit:String(row.unit??1),baud:String(row.baud??115200),ranges:(row.ranges??[]).join(", "),exclude:(row.exclude??[]).join(", "),authorized:row.kind==="network"} as Form);}
+   unit:String(row.unit??1),baud:String(row.baud??115200),via:row.transport==="agent"&&row.device?"com":"network",ranges:(row.ranges??[]).join(", "),exclude:(row.exclude??[]).join(", "),authorized:row.kind==="network"} as Form);}
  async function save(){if(!form)return;setBusy("save");setError("");setNotice("");
   const body:Record<string,unknown>={kind:form.kind,name:form.name,description:form.description};
   if(!editing)body.id=slug(form.id)||slug(form.name);
   if(form.kind==="network")Object.assign(body,{ranges:form.ranges.split(/[\s,;]+/).filter(Boolean),exclude:form.exclude.split(/[\s,;]+/).filter(Boolean),authorized:form.authorized,access:form.access});
-  else if(form.kind==="device")Object.assign(body,{transport:form.transport,access:form.access,
-   ...(form.transport==="bluetooth"?{address:form.address}
+  else if(form.kind==="device")Object.assign(body,{transport:form.transport,access:form.access,...(form.transport==="agent"?{agent:form.agent}:{}),
+   ...(form.transport==="agent"&&form.via==="com"?{device:form.device,baud:Number(form.baud)}
+    :form.transport==="bluetooth"?{address:form.address}
     :form.transport==="local"?{device:form.device,baud:Number(form.baud)}
     :form.transport==="serial"?{host:form.host,port:Number(form.port),baud:Number(form.baud),protocol:form.protocol==="socket"?"socket":"rfc2217"}
     :{host:form.host,protocol:form.protocol,tls:form.tls,...(form.port?{port:Number(form.port)}:{}),username:form.username,...(form.password?{password:form.password}:{}),
@@ -104,9 +111,12 @@ export default function ConnectionsPage(){
   {notice&&<p className="text-sm">{notice}</p>}
   <section className="space-y-3 rounded-xl border p-4" data-testid="model-accesses"><h2 className="font-semibold">{t("Modelli e CLI ufficiali","Models and official CLIs")}</h2><p className="text-sm">{t("Gli stessi collegamenti di Modelli e risorse: nessun secondo login. Il modello rimane assegnabile al coordinatore, alla squadra o a entrambi. Gli accessi condivisi sono gestiti dall’amministratore.","The same connections as Models & resources: no duplicate login. Models remain assignable to coordinator, team or both. Shared connections are managed by the administrator.")}</p><ul className="space-y-2">{providers.map(p=><li key={p.id} className="flex flex-wrap justify-between gap-2"><span>{p.name} · {p.status==="configured"?t("Configurato","Configured"):t("Verifica in Modelli","Check Models")}</span><a className="underline" href={p.manage_url}>{t("Apri configurazione","Open configuration")}</a></li>)}</ul></section>
   <p className="text-sm">{t("Database e identità esterne sono facoltativi. Per analizzare documenti e creare il laboratorio sintetico non devi configurarli.","External databases and identities are optional. You do not need to configure them to analyze documents and build the synthetic laboratory.")}</p>
-  {!form&&<PcDevices t={t} onChanged={()=>{setHostEpoch(n=>n+1);setReload(n=>n+1);}} onCreate={value=>{setEditing(null);setNotice("");setForm(value);}}/>}
-  {!form&&<DeviceDiscovery key={"d"+hostEpoch} base={base} t={t} onCreate={value=>{setEditing(null);setNotice("");setForm(value);}}/>}
-  {!form&&<MatterDevices key={"m"+hostEpoch} t={t} onCreate={value=>{setEditing(null);setNotice("");setForm(value);}}/>}
+  {!form&&<AgentsPanel t={t} pc={pc} setPc={setPc} onAgents={setAgents}/>}
+  <PcContext.Provider value={pc}>
+  {!form&&<PcDevices key={"p"+pc} t={t} onChanged={()=>{setHostEpoch(n=>n+1);setReload(n=>n+1);}} onCreate={value=>{setEditing(null);setNotice("");setForm(value);}}/>}
+  {!form&&<DeviceDiscovery key={"d"+hostEpoch+pc} base={base} t={t} onCreate={value=>{setEditing(null);setNotice("");setForm(value);}}/>}
+  {!form&&!pc&&<MatterDevices key={"m"+hostEpoch} t={t} onCreate={value=>{setEditing(null);setNotice("");setForm(value);}}/>}
+  </PcContext.Provider>
   {!form&&<div className="flex flex-wrap gap-2">{(["postgres","sqlserver","mysql","oracle","entra","device","network"] as Kind[]).map(k=><button key={k} className="rounded border px-3 py-2 text-sm" data-testid={"new-"+k} onClick={()=>{setEditing(null);setForm(blank(k));}}>{t("Nuova: ","New: ")}{kindLabel(k)}</button>)}</div>}
   {form&&<section className="space-y-3 rounded-lg border p-4" data-testid="connection-form">
    <h2 className="font-semibold">{editing?t("Modifica ","Edit ")+editing:t("Nuova connessione ","New connection ")}· {kindLabel(form.kind)}</h2>
@@ -115,7 +125,7 @@ export default function ConnectionsPage(){
     {!editing&&<div>{input("id",t("ID (facoltativo)","ID (optional)"),{placeholder:slug(form.name)||"erp-vendite"})}
      <p className="text-muted-foreground mt-1 text-xs" data-testid="connection-id-hint">{t("Sarà salvato come","Saved as")} <code>{slug(form.id)||slug(form.name)||"…"}</code>{t(": lettere minuscole, cifre e trattini.",": lowercase letters, digits and hyphens.")}</p></div>}
     {input("description",t("Descrizione","Description"))}
-    {form.kind==="network"?<NetworkFields form={form} setForm={setForm} t={t} input={input}/>:form.kind==="device"?<DeviceFields form={form} setForm={setForm} devices={devices} editing={Boolean(editing)} t={t} input={input}/>:form.kind==="entra"?<>
+    {form.kind==="network"?<NetworkFields form={form} setForm={setForm} t={t} input={input}/>:form.kind==="device"?<DeviceFields form={form} setForm={setForm} devices={devices} agents={agents} editing={Boolean(editing)} t={t} input={input}/>:form.kind==="entra"?<>
      <label className="block text-sm md:col-span-2">{t("Tipo di accesso","Access type")}<select className={field} aria-label={t("Tipo di accesso","Access type")} value={form.mode} onChange={e=>setForm(f=>f&&{...f,mode:e.target.value as "user"|"application"})}>
       <option value="user">{t("Il mio account Microsoft (OAuth2, con MFA) · consigliato","My Microsoft account (OAuth2, with MFA) · recommended")}</option>
       <option value="application">{t("Applicazione Entra ID (service principal, segreto client)","Entra ID application (service principal, client secret)")}</option></select></label>
@@ -207,6 +217,7 @@ type Translate=(a:string,b:string)=>string;
 type FieldInput=(key:keyof Form,label:string,props?:Record<string,unknown>)=>ReactNode;
 
 function deviceSummary(r:Connection,t:Translate){
+ if(r.transport==="agent")return t("Tramite RigHaven Agent: ","Through RigHaven Agent: ")+(r.device?r.device+(r.baud?" · "+String(r.baud)+" baud":""):(r.protocol??"").toUpperCase()+" · "+(r.host??"")+":"+String(r.port??""));
  if(r.transport==="bluetooth")return t("Bluetooth LE tramite il PC: ","Bluetooth LE through the PC: ")+(r.address??"");
  if(r.transport==="local")return t("Collegato a questa macchina: ","Attached to this machine: ")+(r.device??"")+(r.baud?" · "+String(r.baud)+" baud":"");
  if(r.transport==="serial")return t("Seriale in rete (RFC 2217): ","Serial over the network (RFC 2217): ")+(r.host??"")+":"+String(r.port??"")+" · "+String(r.baud??"")+" baud";
@@ -214,7 +225,7 @@ function deviceSummary(r:Connection,t:Translate){
 }
 
 /** A device or interface: on the network (MQTT, Modbus TCP, HTTP, TCP), a serial port shared over RFC 2217, or attached to this machine. */
-function DeviceFields({form,setForm,devices,editing,t,input}:{form:Form;setForm:Dispatch<SetStateAction<Form|null>>;devices:string[];editing:boolean;t:Translate;input:FieldInput}){
+function DeviceFields({form,setForm,devices,agents,editing,t,input}:{form:Form;setForm:Dispatch<SetStateAction<Form|null>>;devices:string[];agents:Agent[];editing:boolean;t:Translate;input:FieldInput}){
  const field="mt-1 w-full rounded border bg-transparent px-2 py-1";
  const set=(patch:Partial<Form>)=>setForm(f=>f&&{...f,...patch});
  const bauds=["1200","2400","4800","9600","19200","38400","57600","115200","230400","460800","921600"];
@@ -223,10 +234,18 @@ function DeviceFields({form,setForm,devices,editing,t,input}:{form:Form;setForm:
    <option value="network">{t("In rete: MQTT, Modbus TCP, HTTP o TCP","On the network: MQTT, Modbus TCP, HTTP or TCP")}</option>
    <option value="serial">{t("Porta seriale condivisa in rete (RFC 2217, per esempio ser2net o ESP-Link)","Serial port shared on the network (RFC 2217, for example ser2net or ESP-Link)")}</option>
    <option value="local">{t("Collegato a questa macchina (USB, seriale)","Attached to this machine (USB, serial)")}</option>
-   <option value="bluetooth">{t("Bluetooth LE, tramite il Bluetooth del PC","Bluetooth LE, through the PC's Bluetooth")}</option></select></label>
+   <option value="bluetooth">{t("Bluetooth LE, tramite il Bluetooth del PC","Bluetooth LE, through the PC's Bluetooth")}</option>
+   <option value="agent">{t("Vicino a un mio PC con RigHaven Agent (porta COM o rete di casa)","Next to one of my PCs with RigHaven Agent (COM port or home network)")}</option></select></label>
+  {form.transport==="agent"&&<>
+   <label className="block text-sm">{t("PC con RigHaven Agent","PC with RigHaven Agent")}<select className={field} aria-label={t("PC con RigHaven Agent","PC with RigHaven Agent")} value={form.agent} onChange={e=>set({agent:e.target.value})}>
+    <option value="">{t("Scegli…","Choose…")}</option>{agents.map(a=><option key={a.id} value={a.id}>{a.name}{a.online?"":t(" (scollegato)"," (offline)")}</option>)}</select></label>
+   <label className="block text-sm">{t("Che cosa","What")}<select className={field} aria-label={t("Tipo di collegamento tramite agente","Kind of agent connection")} value={form.via} onChange={e=>set({via:e.target.value as "com"|"network"})}>
+    <option value="network">{t("Dispositivo nella rete di casa del PC","Device in the PC's home network")}</option><option value="com">{t("Porta COM del PC (scheda USB, adattatore Bluetooth)","COM port of the PC (USB board, Bluetooth adapter)")}</option></select></label>
+   {form.via==="com"&&<label className="block text-sm">{t("Porta COM","COM port")}<input className={field} aria-label={t("Porta COM","COM port")} placeholder="COM5" value={form.device} onChange={e=>set({device:e.target.value.toUpperCase()})}/></label>}
+   <p className="text-muted-foreground text-xs md:col-span-2">{t("RigHaven Agent porta il dispositivo a questo server con un tunnel cifrato, solo quando un incarico lo usa. Le scritture restano approvate da te, una per una.","RigHaven Agent carries the device to this server through an encrypted tunnel, only while a task uses it. Writes are still approved by you, one by one.")}</p></>}
   {form.transport==="bluetooth"&&<label className="block text-sm md:col-span-2">{t("Indirizzo Bluetooth","Bluetooth address")}<input className={field} aria-label={t("Indirizzo Bluetooth","Bluetooth address")} placeholder="38:A5:C9:3C:2E:9F" value={form.address} onChange={e=>set({address:e.target.value})}/>
    <span className="text-muted-foreground block text-xs">{t("Dalla ricerca Bluetooth qui sopra. Leggere il dispositivo è libero; ogni scrittura la approvi tu, una per una.","From the Bluetooth search above. Reading the device is free; you approve each write, one by one.")}</span></label>}
-  {form.transport==="network"&&<>
+  {(form.transport==="network"||(form.transport==="agent"&&form.via==="network"))&&<>
    <label className="block text-sm">{t("Protocollo","Protocol")}<select className={field} aria-label={t("Protocollo","Protocol")} value={form.protocol} onChange={e=>set({protocol:e.target.value,port:""})}>
     <option value="mqtt">MQTT</option><option value="modbus-tcp">Modbus TCP</option><option value="http">HTTP</option>
     <option value="adb">{t("Android / Android TV (debug ADB in rete)","Android / Android TV (network ADB debugging)")}</option>
@@ -257,7 +276,7 @@ function DeviceFields({form,setForm,devices,editing,t,input}:{form:Form;setForm:
   {form.transport==="local"&&(devices.length?<label className="block text-sm">{t("Dispositivo","Device")}<select className={field} aria-label={t("Dispositivo","Device")} value={form.device} onChange={e=>set({device:e.target.value})}>
     <option value="">{t("Scegli…","Choose…")}</option>{devices.map(d=><option key={d} value={d}>{d}</option>)}</select></label>
    :<p className="text-muted-foreground text-xs md:col-span-2" data-testid="no-local-devices">{t("Nessuna porta seriale disponibile, quindi questa connessione non si può ancora salvare. Collega la periferica dal riquadro «Periferiche del PC» qui sopra (pulsante «Mostra periferiche USB»), poi riapri questo modulo. Per un dispositivo Wi-Fi scegli invece «In rete».","No serial port available, so this connection cannot be saved yet. Attach the peripheral from the “PC peripherals” panel above (“Show USB peripherals”), then reopen this form. For a Wi-Fi device choose “On the network” instead.")}</p>)}
-  {(form.transport==="serial"||form.transport==="local")&&<label className="block text-sm">{t("Velocità (baud)","Speed (baud)")}<select className={field} aria-label={t("Velocità (baud)","Speed (baud)")} value={form.baud} onChange={e=>set({baud:e.target.value})}>{bauds.map(b=><option key={b} value={b}>{b}</option>)}</select></label>}
+  {(form.transport==="serial"||form.transport==="local"||(form.transport==="agent"&&form.via==="com"))&&<label className="block text-sm">{t("Velocità (baud)","Speed (baud)")}<select className={field} aria-label={t("Velocità (baud)","Speed (baud)")} value={form.baud} onChange={e=>set({baud:e.target.value})}>{bauds.map(b=><option key={b} value={b}>{b}</option>)}</select></label>}
   <label className="block text-sm md:col-span-2">{t("Uso","Use")}<select className={field} aria-label={t("Uso della connessione","Connection use")} value={form.access} onChange={e=>set({access:e.target.value as "read"|"write"})}>
    <option value="read">{t("Solo lettura: osservare e registrare","Read-only: observe and record")}</option>
    <option value="write">{t("Anche scritture (comandi, firmware, app), ognuna approvata da te","Also writes (commands, firmware, apps), each approved by you")}</option></select></label>
@@ -295,9 +314,10 @@ function Actions({children}:{children:ReactNode}){return <span className="ml-2 i
 /** One address on the network, chosen by the owner: ports that answer, name, home page. Nothing is written. */
 function NetExplorer({address,t,onCreate}:{address:string;t:Translate;onCreate?:(form:Form)=>void}){
  const base=getBackendBaseURL()+"/api/harness/connections/discovery/explore";
+ const agent=useContext(PcContext);
  const [value,setValue]=useState<Found&{title?:string}|null>(null),[error,setError]=useState("");
- useEffect(()=>{let live=true;void fetch(base,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({address})}).then(async r=>{const v=await r.json();
-  if(!r.ok)throw Error(typeof v.detail==="string"?v.detail:String(r.status));if(live)setValue(v as Found);}).catch(e=>{if(live)setError(e instanceof Error?e.message:String(e));});return()=>{live=false;};},[base,address]);
+ useEffect(()=>{let live=true;void fetch(base,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({address,...(agent?{agent}:{})})}).then(async r=>{const v=await r.json();
+  if(!r.ok)throw Error(typeof v.detail==="string"?v.detail:String(r.status));if(live)setValue(v as Found);}).catch(e=>{if(live)setError(e instanceof Error?e.message:String(e));});return()=>{live=false;};},[base,address,agent]);
  return <div className="mt-2 space-y-1 rounded border p-2 text-xs" data-testid="net-explorer">
   {error?<p className="text-destructive">{error}</p>:!value?<p>{t("Leggo ","Reading ")}{address}…</p>:<>
    <p><strong>{value.label||address}</strong>{value.name?" · "+value.name:""}{value.title?" · «"+value.title+"»":""}</p>
@@ -322,6 +342,46 @@ function WifiExplorer({network,t,onCreate}:{network:WifiNetwork;t:Translate;onCr
   {value&&<><p>{value.address?value.address+" · ":""}{value.title?<strong>{value.title}</strong>:null}</p>{value.info&&<pre className="max-h-40 overflow-auto whitespace-pre-wrap break-all">{value.info}</pre>}
    {value.address&&<button type="button" className={btn} onClick={()=>onCreate({...blank("device"),name:[value.title,network.ssid].find(Boolean)!.slice(0,80),description:t("Sulla rete Wi-Fi ","On the Wi-Fi network ")+network.ssid,transport:"network",protocol:"http",host:value.address??"",port:"80",path:"/"})}>{t("Crea connessione","Create connection")}</button>}</>}
  </div>;
+}
+
+/** RigHaven Agent: the user's PCs that put their Bluetooth, Wi-Fi, COM ports and home network at the disposal of this server. */
+function AgentsPanel({t,pc,setPc,onAgents}:{t:Translate;pc:string;setPc:(value:string)=>void;onAgents:(agents:Agent[])=>void}){
+ const base=getBackendBaseURL()+"/api/harness/agents";
+ const [rows,setRows]=useState<Agent[]|null>(null),[download,setDownload]=useState(""),[server,setServer]=useState(""),[name,setName]=useState(""),[code,setCode]=useState<{code:string;expires:number}|null>(null);
+ const [error,setError]=useState(""),[busy,setBusy]=useState(""),[confirm,setConfirm]=useState(""),[activity,setActivity]=useState<{at:string;agent:string;action:string;detail:string;status:string}[]|null>(null),[epoch,setEpoch]=useState(0);
+ useEffect(()=>{let live=true;const load=()=>void fetch(base).then(r=>r.ok?r.json() as Promise<{agents:Agent[];download:string;server:string}>:null).then(v=>{if(live&&v){setRows(v.agents);setDownload(v.download);setServer(v.server);onAgents(v.agents);}}).catch(()=>undefined);
+  load();const timer=setInterval(load,code?4000:15000);return()=>{live=false;clearInterval(timer);};},[base,code,epoch]);// eslint-disable-line react-hooks/exhaustive-deps
+ async function pair(){setBusy("pair");setError("");try{const r=await fetch(base+"/pairings",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name})});const v=await r.json();
+  if(!r.ok)throw Error(typeof v.detail==="string"?v.detail:String(r.status));setCode({code:(v as {code:string}).code,expires:Date.now()+Number((v as {expires_in:number}).expires_in)*1000});}
+  catch(e){setError(e instanceof Error?e.message:String(e));}finally{setBusy("");}}
+ async function revoke(id:string){if(confirm!==id){setConfirm(id);return;}setConfirm("");const r=await fetch(base+"/"+id,{method:"DELETE"});
+  if(!r.ok){const v=await r.json();setError(typeof v.detail==="string"?v.detail:String(r.status));return;}if(pc===id)setPc("");setEpoch(n=>n+1);}
+ async function showActivity(){if(activity){setActivity(null);return;}const r=await fetch(base+"/activity");if(r.ok)setActivity(((await r.json()) as {activity:typeof activity}).activity);}
+ const paired=code&&rows?.some(a=>a.name===name&&a.online);
+ return <section className="space-y-3 rounded-xl border p-4" data-testid="agents">
+  <h2 className="font-semibold">{t("PC collegati (RigHaven Agent)","Connected PCs (RigHaven Agent)")}</h2>
+  <p className="text-muted-foreground text-sm">{t("RigHaven Agent è un piccolo programma per Windows: mette Bluetooth, Wi-Fi, porte COM e rete di casa del tuo PC a disposizione di questo server, anche se il server è su un VPS. Il PC si collega lui al server: non serve aprire porte sul router.","RigHaven Agent is a small Windows program: it puts your PC's Bluetooth, Wi-Fi, COM ports and home network at the disposal of this server, even when the server is on a VPS. The PC connects to the server itself: no router port needs to be opened.")}</p>
+  <label className="block text-sm">{t("Agisci sul PC","Act on the PC")}
+   <select className="mt-1 block w-full rounded border bg-transparent px-2 py-1 md:w-96" aria-label={t("Agisci sul PC","Act on the PC")} value={pc} onChange={e=>setPc(e.target.value)}>
+    <option value="">{t("Il PC su cui gira questo server (solo amministratori)","The PC this server runs on (administrators only)")}</option>
+    {(rows??[]).map(a=><option key={a.id} value={a.id}>{a.name}{a.online?t(" · collegato"," · connected"):t(" · scollegato"," · offline")}</option>)}</select></label>
+  {!!rows?.length&&<ul className="divide-y rounded border text-sm" data-testid="agent-list">{rows.map(a=><li key={a.id} className="flex flex-wrap items-center justify-between gap-2 p-2">
+   <span><span className={"mr-2 inline-block h-2 w-2 rounded-full "+(a.online?"bg-green-600":"bg-gray-400")}/>{a.name} <span className="text-muted-foreground text-xs">· {a.platform??""}{a.version?" "+a.version:""}{a.online?t(" · collegato ora"," · connected now"):a.last_seen?t(" · ultimo contatto "," · last seen ")+a.last_seen.replace("T"," ").slice(0,16):""}</span></span>
+   <button type="button" className={"rounded border px-2 py-1 text-xs"+(confirm===a.id?" border-destructive text-destructive":"")} onClick={()=>void revoke(a.id)}>{confirm===a.id?t("Conferma revoca","Confirm revocation"):t("Revoca","Revoke")}</button></li>)}</ul>}
+  {!code?<div className="flex flex-wrap items-end gap-2">
+   <label className="text-sm">{t("Nome del PC da collegare","Name of the PC to connect")}<input className="mt-1 block w-56 rounded border bg-transparent px-2 py-1" aria-label={t("Nome del PC da collegare","Name of the PC to connect")} placeholder={t("PC di casa","Home PC")} value={name} onChange={e=>setName(e.target.value)}/></label>
+   <button type="button" className="bg-primary text-primary-foreground rounded px-3 py-1 text-sm disabled:opacity-50" disabled={!name.trim()||busy==="pair"} onClick={()=>void pair()}>{t("Collega un PC","Connect a PC")}</button></div>
+  :<div className="space-y-2 rounded border border-blue-500/30 bg-blue-500/5 p-3 text-sm" data-testid="agent-pairing" role="status">
+   {paired?<p>{t("Fatto: «","Done: “")}{name}{t("» è collegato. Sceglilo in «Agisci sul PC» per usarlo.","” is connected. Choose it in “Act on the PC” to use it.")}</p>:<>
+   <p>{t("1. Scarica ","1. Download ")}<a className="underline" href={download}>RigHaven-Agent-windows-x64.exe</a>{t(" e avvialo sul PC (al primo avvio Windows può mostrare l’avviso SmartScreen: «Ulteriori informazioni» → «Esegui comunque»)."," and start it on the PC (on first start Windows may show the SmartScreen warning: “More info” → “Run anyway”).")}</p>
+   <p>{t("2. Quando lo chiede, scrivi l’indirizzo del server: ","2. When asked, type the server address: ")}<code className="rounded border px-1">{server}</code></p>
+   <p>{t("3. Poi il codice: ","3. Then the code: ")}<code className="rounded border px-2 py-0.5 text-base font-semibold tracking-widest">{code.code}</code> {t("(vale 10 minuti, una sola volta)","(valid 10 minutes, once)")}</p>
+   <p className="text-muted-foreground text-xs">{t("Questa pagina si aggiorna da sola quando il PC si collega.","This page updates by itself when the PC connects.")}</p></>}
+   <button type="button" className="rounded border px-2 py-1 text-xs" onClick={()=>{setCode(null);setName("");}}>{paired?t("Chiudi","Close"):t("Annulla","Cancel")}</button></div>}
+  <button type="button" className="text-xs underline" onClick={()=>void showActivity()}>{activity?t("Nascondi l’attività","Hide the activity"):t("Mostra l’attività dei PC collegati","Show the activity of connected PCs")}</button>
+  {activity&&<ul className="max-h-48 overflow-auto text-xs" data-testid="agent-activity">{activity.map((a,i)=><li key={i}>{a.at.replace("T"," ").slice(0,19)} · {(rows??[]).find(r=>r.id===a.agent)?.name??a.agent} · {a.action} · {a.status}{a.detail?" · "+a.detail:""}</li>)}</ul>}
+  {error&&<p className="text-destructive text-sm" role="alert">{error}</p>}
+ </section>;
 }
 
 type Announced={address:string;names?:string[];services?:string[];server?:string;location?:string;kinds?:string[]};
@@ -355,7 +415,7 @@ function NetworkTraffic({t,onCreate}:{t:Translate;onCreate:(form:Form)=>void}){
       <button type="button" className={btn} onClick={()=>onCreate({...blank("device"),name:(d.names?.[0]??d.address).slice(0,80),description:[d.server,...(d.services??[])].filter(Boolean).join(" · ").slice(0,400),transport:"network",protocol:"http",host:d.address,port:"80",path:"/"})}>{t("Crea connessione","Create connection")}</button></Actions>
      {open===d.address&&<NetExplorer address={d.address} t={t}/>}</li>)}</ul>)}
   {talks&&<div className="space-y-1 text-xs" data-testid="traffic-summary">
-   <p>{talks.packets} {t("pacchetti","packets")}{talks.download&&<> · <a className="underline" href={getBackendBaseURL()+"/api/harness/connections/discovery/capture.pcapng"} download>{t("Scarica la registrazione (.pcapng, per Wireshark)","Download the recording (.pcapng, for Wireshark)")}</a></>}</p>
+   <p>{talks.packets} {t("pacchetti","packets")}{talks.download&&<> · <a className="underline" href={withAgent(getBackendBaseURL()+"/api/harness/connections/discovery/capture.pcapng",host.agent)} download>{t("Scarica la registrazione (.pcapng, per Wireshark)","Download the recording (.pcapng, for Wireshark)")}</a></>}</p>
    <table className="w-full text-left"><thead><tr><th>{t("Dal PC / dispositivo","From the PC / device")}</th><th>{t("Verso","To")}</th><th>{t("Servizio","Service")}</th><th>{t("Traffico","Traffic")}</th></tr></thead>
     <tbody>{talks.conversations.slice(0,30).map(c=><tr key={c.local+c.remote+c.proto+c.port}><td>{c.local}</td><td className="break-all">{c.name?c.name+" ("+c.remote+")":c.remote}</td><td>{c.proto}{c.port?" "+c.port:""}</td><td>{size(c.bytes)} · {c.packets}</td></tr>)}</tbody></table>
    {!!talks.dns?.length&&<p className="text-muted-foreground">{t("Nomi cercati: ","Names looked up: ")}{talks.dns.slice(0,20).join(", ")}</p>}
@@ -389,12 +449,13 @@ function DeviceDiscovery({base,t,onCreate}:{base:string;t:(a:string,b:string)=>s
   lg:["Condizionatore LG ThinQ in configurazione: si aggiunge con l’app LG ThinQ e si comanda dal cloud LG (anche da Alexa e SmartThings), non in locale.","LG ThinQ air conditioner in setup mode: it is added with the LG ThinQ app and controlled through the LG cloud (also from Alexa and SmartThings), not locally."],
   direct:["Wi-Fi Direct di una stampante o di una TV.","Wi-Fi Direct of a printer or a TV."]};
  async function scanBluetooth(){setScanning(true);setError("");try{await host.ask("bluetooth-scan");setEpoch(n=>n+1);}catch(e){setError(e instanceof Error?e.message:String(e));}finally{setScanning(false);}}
- useEffect(()=>{let live=true;void fetch(base+"/discovery").then(r=>r.ok?r.json() as Promise<DiscoveryInfo>:null).then(v=>{if(live&&v){setInfo(v);setNetwork(n=>n||(v.networks[0]??""));}}).catch(()=>undefined);return()=>{live=false;};},[base,epoch]);
+ const agent=useContext(PcContext);
+ useEffect(()=>{let live=true;void fetch(withAgent(base+"/discovery",agent)).then(r=>r.ok?r.json() as Promise<DiscoveryInfo>:null).then(v=>{if(live&&v){setInfo(v);setNetwork(n=>n||(v.networks[0]??""));}}).catch(()=>undefined);return()=>{live=false;};},[base,epoch,agent]);
  async function search(){setBusy(true);setError("");setFound(null);
   try{
    // Every device of the PC's network answers the PC's ARP, whatever its ports: the launcher lists them with their MAC.
    const all=host.can("lan-devices")?host.ask("lan-devices").catch(()=>({devices:[]})):Promise.resolve({devices:[]});
-   const r=await fetch(base+"/discovery",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({network})});const v=await r.json();
+   const r=await fetch(base+"/discovery",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({network,...(agent?{agent}:{})})});const v=await r.json();
    if(!r.ok)throw Error(typeof v.detail==="string"?v.detail:String(r.status));
    const byPort=(v as {devices:Found[]}).devices;
    const lan=((await all).devices as {address:string;mac:string;vendor?:string;private_mac?:boolean}[]|undefined)??[];
@@ -405,7 +466,7 @@ function DeviceDiscovery({base,t,onCreate}:{base:string;t:(a:string,b:string)=>s
    const num=(a:string)=>a.split(".").reduce((x,y)=>x*256+Number(y),0);
    setFound(merged.sort((a,b)=>num(a.address)-num(b.address)));}
   catch(e){setError(e instanceof Error?e.message:String(e));}finally{setBusy(false);}}
- const create=(d:Found)=>onCreate({...blank("device"),name:d.label.slice(0,80),description:d.name?d.name.slice(0,400):"",transport:"network",host:d.address,
+ const create=(d:Found)=>onCreate({...blank("device"),name:d.label.slice(0,80),description:d.name?d.name.slice(0,400):"",transport:agent?"agent":"network",agent,via:"network",host:d.address,
   protocol:d.suggestion.protocol,port:String(d.suggestion.port),topic:"#",path:"/"});
  const hints:Record<string,[string,string]>={
   obd:["Adattatore OBD-II: associalo in Windows, poi condividi la sua porta COM da «Periferiche del PC» e crea la connessione da «Porte seriali condivise».","OBD-II adapter: pair it in Windows, then share its COM port from “PC peripherals” and create the connection from “Serial ports shared”."],
@@ -485,7 +546,7 @@ function DeviceDiscovery({base,t,onCreate}:{base:string;t:(a:string,b:string)=>s
      return <><ul className="space-y-1 text-sm">{rows.filter(d=>d.present!==false).map(row)}</ul>
       {old.length>0&&<details className="text-sm" data-testid="bluetooth-remembered"><summary className="cursor-pointer text-xs">{t("Ricordati da Windows, non sentiti ora","Remembered by Windows, not heard now")} ({old.length})</summary>
        <ul className="mt-1 space-y-1">{old.map(row)}</ul></details>}</>;})()}
-    {info.bluetooth.devices.some(d=>d.sensor?.readings)&&<a className="text-xs underline" href={base+"/discovery/ble-history.csv"} download>{t("Scarica lo storico delle letture (CSV)","Download the readings history (CSV)")}</a>}</>
+    {info.bluetooth.devices.some(d=>d.sensor?.readings)&&<a className="text-xs underline" href={withAgent(base+"/discovery/ble-history.csv",agent)} download>{t("Scarica lo storico delle letture (CSV)","Download the readings history (CSV)")}</a>}</>
    :<p className="text-muted-foreground text-xs">{t("Nessuna ricerca Bluetooth ancora: premi «Cerca dispositivi Bluetooth».","No Bluetooth search yet: press “Search Bluetooth devices”.")}</p>}
    {host.can("bluetooth-scan")&&<button type="button" className="rounded border px-3 py-1 text-xs disabled:opacity-50" disabled={scanning} onClick={()=>void scanBluetooth()}>{scanning?t("Ricerca Bluetooth e lettura dei sensori (circa 40 s)…","Searching Bluetooth and reading sensors (about 40 s)…"):t("Cerca dispositivi Bluetooth","Search Bluetooth devices")}</button>}
    {!host.state?.connected&&<p className="text-muted-foreground text-xs">{t("Il Bluetooth lo cerca RigHaven sul PC: tieni aperta la finestra di RigHaven e ricarica la pagina.","RigHaven searches Bluetooth on the PC: keep the RigHaven window open and reload the page.")}</p>}
@@ -552,11 +613,12 @@ type HostJob={status:string;result?:Record<string,unknown>};
  * running next to RigHaven: the page asks, the launcher acts and answers. */
 function useHost(){
  const base=getBackendBaseURL()+"/api/harness/host";
+ const agent=useContext(PcContext);
  const [state,setState]=useState<HostState|null>(null);
- useEffect(()=>{let live=true;const load=()=>void fetch(base).then(r=>r.ok?r.json() as Promise<HostState>:null).then(v=>{if(live&&v)setState(v);}).catch(()=>undefined);
-  load();const timer=setInterval(load,10000);return()=>{live=false;clearInterval(timer);};},[base]);
+ useEffect(()=>{let live=true;const load=()=>void fetch(withAgent(base,agent)).then(r=>r.ok?r.json() as Promise<HostState>:null).then(v=>{if(live&&v)setState(v);}).catch(()=>undefined);
+  load();const timer=setInterval(load,10000);return()=>{live=false;clearInterval(timer);};},[base,agent]);
  async function ask(action:string,args:Record<string,string>={}):Promise<Record<string,unknown>>{
-  const r=await fetch(base+"/requests",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action,args})});const v=await r.json();
+  const r=await fetch(base+"/requests",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action,args,...(agent?{agent}:{})})});const v=await r.json();
   if(!r.ok)throw Error(typeof v.detail==="string"?v.detail:String(r.status));
   const id=(v as {id:string}).id;const deadline=Date.now()+300000;
   while(Date.now()<deadline){await new Promise(done=>setTimeout(done,1500));
@@ -564,7 +626,7 @@ function useHost(){
    if(job.status==="done")return job.result??{};
    if(job.status==="failed")throw Error(String((job.result as {error?:string}|undefined)?.error??"failed"));}
   throw Error("timeout");}
- return {state,ask,can:(action:string)=>!!state?.connected&&state.actions.includes(action)};
+ return {state,ask,agent,can:(action:string)=>!!state?.connected&&state.actions.includes(action)};
 }
 
 type GattService={uuid:string;characteristics:{uuid:string;properties?:string[];value?:string;text?:string;error?:string}[]};
@@ -612,6 +674,7 @@ function PcDevices({t,onChanged,onCreate}:{t:(a:string,b:string)=>string;onChang
  const [ports,setPorts]=useState<Record<string,string[]>>({}),[open,setOpen]=useState("");
  const [all,setAll]=useState<{class:string;name:string;bus:string;ok:boolean;vidpid?:string;busid?:string}[]|null>(null);
  async function createShared(name:string){
+  if(host.agent){onCreate({...blank("device"),name,transport:"agent",agent:host.agent,via:"com",device:name,baud:"38400"});return;}
   const info=await (await fetch(getBackendBaseURL()+"/api/harness/connections/discovery")).json() as DiscoveryInfo;
   const shared=(info.serial??[]).find(p=>p.name===name);
   if(!shared){setError(t("La porta è condivisa ma RigHaven non la vede ancora: riprova tra qualche secondo.","The port is shared but RigHaven does not see it yet: try again in a few seconds."));return;}
