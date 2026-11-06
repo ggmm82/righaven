@@ -148,12 +148,16 @@ func nodeArgs(job nodeRun, root string, limits map[string]any) ([]string, string
 			}
 			name = v
 			out = append(out, item, v)
-		case item == "--pids-limit":
-			v, err := value()
+		case item == "--pids-limit" || strings.HasPrefix(item, "--pids-limit="):
+			// The server writes --pids-limit=256; both forms are the same limit.
+			v, err := strings.TrimPrefix(item, "--pids-limit="), error(nil)
+			if item == "--pids-limit" {
+				v, err = value()
+			}
 			if n, convErr := strconv.Atoi(v); err != nil || convErr != nil || n < 16 || n > 4096 {
 				return nil, "", errors.New("pids limit not valid")
 			}
-			out = append(out, item, v)
+			out = append(out, "--pids-limit="+v)
 		case item == "--label":
 			v, err := value()
 			if err != nil || !nodeLabelArg.MatchString(v) {

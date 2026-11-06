@@ -152,6 +152,30 @@ class ComputeNodeTests(unittest.TestCase):
         self.assertIsNone(choose('auto', [cloud]))
 
 
+FIXTURE = Path(__file__).parents[1] / 'desktop/windows/launcher/testdata/server-args.json'
+
+
+def server_template():
+    """A worker command as delegate writes it, with the node's bundle keys: what the node checks."""
+    from righaven import docker_runtime
+    with patch.object(docker_runtime, 'OWNER', 'harness'):  # the gateway's host name, which differs on each machine
+        args = docker_runtime.base_arguments('rh-job-0123456789ab', {'memory_mib': 2048, 'cpus': 2.0, 'tmp_mib': 512, 'threads': 2})
+    args += ['--tmpfs', '/opt/righaven/apps/ffmpeg:ro,size=1m', '--env', 'PATH=/opt/righaven-provider/bin:/usr/bin:/bin',
+             '--label', 'org.righaven.harness.installation=0f3c2a9e-5d41-4b7a-9c1e-2b8d7f6a5e40',
+             '--label', 'org.righaven.harness.workspace=' + 'a' * 64,
+             '--mount', 'type=bind,src={m0},dst=/mnt/user-data,readonly', '--mount', 'type=bind,src={m1},dst=/mnt/user-data/outputs/x',
+             '--mount', 'type=bind,src={m2},dst=/job.json,readonly',
+             'righaven-env:abc', 'python3', '/opt/righaven-worker/run_agent.py', '/job.json']
+    return args
+
+
+class ServerArgumentsTests(unittest.TestCase):
+    def test_the_nodes_fixture_is_what_the_server_writes(self):
+        """The Go test checks this fixture against the node's sandbox rules (TestNodeAcceptsTheServersCommand)."""
+        self.assertEqual(json.loads(FIXTURE.read_text())['args'], server_template(),
+                         'docker_runtime changed the worker command: update the fixture and the node rules together')
+
+
 class HubComputeTests(unittest.TestCase):
     def test_declared_capacity_is_bounded(self):
         self.assertEqual(agent_hub.compute({'cpus': 12, 'memory_mib': 49152, 'jobs': 2, 'docker': '27.1'}),

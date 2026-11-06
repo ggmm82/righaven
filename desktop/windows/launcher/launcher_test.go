@@ -1409,7 +1409,10 @@ func wrapBundle(next http.Handler) http.Handler {
 func TestNodeRefusesCommandsOutsideItsSandboxRules(t *testing.T) {
 	limits := map[string]any{"cpus": 8.0, "memory_mib": 16384}
 	base := func(extra ...string) nodeRun {
-		args := append([]string{"run", "--name", "rh-job-0123456789ab", "--cpus=2", "--memory=2048m"}, extra...)
+		// The options exactly as the server's base_arguments writes them.
+		args := append([]string{"run", "--name", "rh-job-0123456789ab", "--label", "org.righaven.harness.owner=gateway", "--init", "--cap-drop=ALL",
+			"--security-opt=no-new-privileges", "--pids-limit=256", "--memory=2048m", "--memory-swap=2048m", "--cpus=2", "--network=bridge",
+			"--tmpfs", "/tmp:rw,size=512m", "--env", "RIGHAVEN_CPU_THREADS=2", "--env", "TZ=Europe/Rome"}, extra...)
 		return nodeRun{ID: "rh-job-0123456789ab", Image: "img", Mounts: []nodeMount{{Key: "m0", Mode: "ro", Kind: "dir", Target: "/data"}},
 			Args: append(args, "img", "python3", "x.py")}
 	}
@@ -1419,7 +1422,7 @@ func TestNodeRefusesCommandsOutsideItsSandboxRules(t *testing.T) {
 	}
 	for _, extra := range [][]string{{"--privileged"}, {"--device", "/dev/sda"}, {"--network=host"}, {"-v", "/:/host"}, {"--cap-add", "SYS_ADMIN"},
 		{"--mount", "type=bind,src=/etc,dst=/etc"}, {"--mount", "type=bind,src={m0},dst=/data"}, {"--mount", "type=bind,src={m9},dst=/data,readonly"},
-		{"--cpus=64"}, {"--memory=999999m"}, {"--env", "LD_PRELOAD=/x.so"}, {"--label", "com.other=1"}, {"--pid=host"}} {
+		{"--cpus=64"}, {"--memory=999999m"}, {"--env", "LD_PRELOAD=/x.so"}, {"--label", "com.other=1"}, {"--pid=host"}, {"--pids-limit=99999"}} {
 		if _, _, err := nodeArgs(base(extra...), "/runs/x/m", limits); err == nil {
 			t.Fatalf("refused: %v", extra)
 		}
@@ -1493,5 +1496,26 @@ func TestNodeRunsARealContainer(t *testing.T) {
 	}
 	if exec.Command("docker", "inspect", job.ID).Run() == nil {
 		t.Fatal("the container is removed after the run")
+	}
+}
+
+// The server's own worker command (testdata/server-args.json, kept equal to docker_runtime by
+// tests/test_compute_nodes.py) passes the node's sandbox rules.
+func TestNodeAcceptsTheServersCommand(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join("testdata", "server-args.json"))
+	must(t, err)
+	var fixture struct {
+		Image  string      `json:"image"`
+		Mounts []nodeMount `json:"mounts"`
+		Args   []string    `json:"args"`
+	}
+	must(t, json.Unmarshal(data, &fixture))
+	job := nodeRun{ID: "rh-job-0123456789ab", Image: fixture.Image, Mounts: fixture.Mounts, Args: fixture.Args}
+	args, name, err := nodeArgs(job, "/runs/x/m", map[string]any{"cpus": 8.0, "memory_mib": 16384})
+	if err != nil || name != job.ID {
+		t.Fatalf("the server's command must pass: %v", err)
+	}
+	if !strings.Contains(strings.Join(args, " "), "src=/runs/x/m/m0,dst=/mnt/user-data,readonly") || args[len(args)-1] != "/job.json" {
+		t.Fatalf("command on the node: %v", args)
 	}
 }
