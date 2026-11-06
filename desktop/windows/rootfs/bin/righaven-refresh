@@ -1,0 +1,13 @@
+#!/bin/sh
+# Offer newly attached serial ports: the private runtime sees the device nodes present when it
+# starts, so it is recreated; the gateway reads the current list from the discovery folder and
+# keeps running. Data stays in the volumes; running assignments are interrupted.
+set -eu
+. /usr/local/bin/righaven-common
+devices=$(sed -n 's/^RIGHAVEN_DEVICES=//p' "$APP/.env")
+mkdir -p "$APP/discovery"
+printf '{"devices":"%s"}' "$devices" > "$APP/discovery/devices.json.new"
+chmod 644 "$APP/discovery/devices.json.new"
+mv "$APP/discovery/devices.json.new" "$APP/discovery/devices.json"
+$COMPOSE up -d --wait --wait-timeout 300 --force-recreate --no-deps runtime-docker
+say "@@ready"

@@ -1,0 +1,3 @@
+#!/bin/sh
+# Keep the WSL instance alive while RigHaven.exe is open.
+exec tail -f /dev/null

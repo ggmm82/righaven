@@ -1,0 +1,34 @@
+direction: right
+
+title: {
+  label: "RigHaven — C4 System Context (Community Self-Hosted & Cloud Portal)"
+  near: top-center
+  shape: text
+}
+
+user: "Developer / Team Member" {
+  shape: person
+}
+
+creator: "Community Pack Creator" {
+  shape: person
+}
+
+righaven: "RigHaven Platform\n(Agent Harness + On-Demand CLI Hub)" {
+  style.fill: "#0f172a"
+  style.font-color: "#f8fafc"
+}
+
+providers: "External LLM & Identity Providers" {
+  codex: "OpenAI Codex (app-server)"
+  antigravity: "Google Antigravity CLI (agy IPC)"
+  deepseek: "DeepSeek API (HTTPS REST)"
+  oauth: "GitHub & Google OAuth2 (Cloud Auth)"
+}
+
+user -> righaven: "Submits briefs, answers ask_clarification, reviews artifacts (EN / IT)"
+creator -> righaven: "Publishes & activates Environment Packs, CLIs, and Skills (righaven-pack.json)"
+righaven -> providers.codex: "Delegates & coordinates via app-server"
+righaven -> providers.antigravity: "Executes via local IPC pipe"
+righaven -> providers.deepseek: "Streams completions over HTTPS"
+righaven -> providers.oauth: "Authenticates multi-tenant Cloud users"

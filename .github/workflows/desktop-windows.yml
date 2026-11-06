@@ -1,0 +1,227 @@
+name: Desktop portable apps
+# Builds RigHaven-<version>-windows-x64-portable.zip (the verified images in a dedicated
+# WSL 2 distribution managed by RigHaven.exe) and RigHaven-<version>-linux-x64-portable.tar.gz
+# (the same Compose run by the Docker engine of the PC) from a sealed release.
+on:
+  workflow_call:
+    inputs:
+      tag:
+        type: string
+        required: true
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag that already has compose.hostinger.yaml (for example v0.7.5)
+        required: true
+permissions:
+  contents: read
+concurrency:
+  group: windows-portable-${{ inputs.tag }}
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    outputs:
+      name: ${{ steps.files.outputs.name }}
+    env:
+      TAG: ${{ inputs.tag }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install PyYAML==6.0.3
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.24.x'
+          cache-dependency-path: desktop/windows/launcher/go.mod
+      - name: Launcher tests
+        working-directory: desktop/windows/launcher
+        run: |
+          test -z "$(gofmt -l .)"
+          go vet ./...
+          GOOS=windows GOARCH=amd64 go vet ./...
+          go test ./...
+      - name: Download and check the sealed release
+        run: |
+          gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --dir reports/release \
+            --pattern compose.hostinger.yaml --pattern runtime-manifest.json
+          python scripts/prepare_desktop.py --release reports/release --output dist/RigHaven/app --repository "$GITHUB_REPOSITORY"
+      - id: files
+        name: Name the package after the release version
+        run: |
+          version=$(python -c "import json;print(json.load(open('dist/RigHaven/app/release.json'))['version'])")
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+          echo "name=RigHaven-$version-windows-x64-portable" >> "$GITHUB_OUTPUT"
+      - name: Icon and version resource
+        working-directory: desktop/windows/launcher/winres
+        run: |
+          sudo apt-get install -y --no-install-recommends binutils-mingw-w64-x86-64 gcc-mingw-w64-x86-64 >/dev/null
+          IFS=. read -r major minor patch <<< "${VERSION%%-*}"
+          sed -e "s/@VERSION@/$VERSION/g" -e "s/@MAJOR@/$major/" -e "s/@MINOR@/$minor/" -e "s/@PATCH@/$patch/" righaven.rc.in > righaven.rc
+          x86_64-w64-mingw32-windres righaven.rc -O coff -o ../rsrc_windows_amd64.syso
+      - name: Build RigHaven.exe
+        working-directory: desktop/windows/launcher
+        env:
+          CGO_ENABLED: '0'
+          GOOS: windows
+          GOARCH: amd64
+        run: go build -trimpath -ldflags "-s -w -X main.launcherVersion=$VERSION" -o "$GITHUB_WORKSPACE/dist/RigHaven/RigHaven.exe" .
+      - name: Build the WSL distribution
+        run: |
+          docker build --pull -t righaven-wsl desktop/windows/rootfs
+          container=$(docker create righaven-wsl)
+          docker export "$container" -o dist/RigHaven/app/rootfs.tar
+          docker rm "$container"
+          mkdir -p dist/RigHaven/app/bin
+          cp desktop/windows/rootfs/bin/righaven-* dist/RigHaven/app/bin/
+          cp desktop/windows/README-portable.txt dist/RigHaven/README.txt
+          cp LICENSE dist/RigHaven/LICENSE.txt
+      - name: Start RigHaven in the distribution exactly as Windows does
+        timeout-minutes: 20
+        run: |
+          docker import dist/RigHaven/app/rootfs.tar righaven-wsl:smoke
+          docker run -d --name rh-wsl --privileged -v rh-wsl-docker:/var/lib/docker righaven-wsl:smoke /usr/local/bin/righaven-hold
+          cd dist/RigHaven/app
+          echo 'C:\RigHaven' > ../home.txt
+          tar -cf - compose.yaml Caddyfile release.json -C .. home.txt | docker exec -i rh-wsl righaven-install 2026 en auto
+          # "auto" offers the serial ports present: none on the runner.
+          docker exec rh-wsl grep -qx 'RIGHAVEN_DEVICES=' /opt/righaven/.env
+          rm ../home.txt
+          docker exec rh-wsl righaven-selftest
+          docker exec rh-wsl righaven-start
+          docker exec rh-wsl wget -qO- http://127.0.0.1:2026/health/ready
+          docker exec rh-wsl sh -c 'wget -qO- http://127.0.0.1:2026/ | grep -q "<title>RigHaven"'
+          # The relay used by RigHaven.exe reaches the proxy on the Docker network.
+          docker exec rh-wsl sh -c 'righaven-proxy-address | grep -Eq "^[0-9.]+:2026$"'
+          docker exec rh-wsl sh -c 'printf "GET /health/ready HTTP/1.0\r\nHost: 127.0.0.1\r\n\r\n" | righaven-relay 2026 | head -1 | grep -q " 200"'
+          docker exec rh-wsl righaven-probe 2026
+          # A newly attached USB port is offered by recreating the runtime and the gateway.
+          docker exec rh-wsl righaven-refresh
+          docker exec rh-wsl wget -qO- http://127.0.0.1:2026/health/ready
+          docker exec rh-wsl righaven-status
+          docker exec rh-wsl righaven-stop
+          docker exec rh-wsl sh -c '! docker info >/dev/null 2>&1'
+      - name: Diagnostics
+        if: failure()
+        run: docker exec rh-wsl sh -c 'tail -n 80 /var/log/dockerd.log; . /usr/local/bin/righaven-common; $COMPOSE ps; $COMPOSE logs --tail 80' || true
+      - name: Package
+        run: |
+          mv dist/RigHaven "dist/${{ steps.files.outputs.name }}"
+          cd dist
+          zip -q -r -9 "${{ steps.files.outputs.name }}.zip" "${{ steps.files.outputs.name }}"
+          sha256sum "${{ steps.files.outputs.name }}.zip" > "${{ steps.files.outputs.name }}.zip.sha256"
+          ls -la
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-portable
+          path: |
+            dist/*.zip
+            dist/*.zip.sha256
+          retention-days: 7
+  windows:
+    needs: build
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.24.x'
+          cache-dependency-path: desktop/windows/launcher/go.mod
+      - name: Launcher tests on Windows
+        working-directory: desktop/windows/launcher
+        run: go test ./...
+      - uses: actions/download-artifact@v4
+        with:
+          name: windows-portable
+          path: dist
+      - name: The packaged executable runs and checks its own files
+        shell: pwsh
+        run: |
+          $name = "${{ needs.build.outputs.name }}"
+          Expand-Archive "dist/$name.zip" -DestinationPath portable
+          $exe = "portable/$name/RigHaven.exe"
+          & $exe version
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+          $info = (Get-Item $exe).VersionInfo
+          Write-Output "ProductVersion: $($info.ProductVersion) · $($info.FileDescription)"
+          if (-not $info.ProductVersion -or $info.FileDescription -ne 'RigHaven') { throw 'Icon and version resource missing from RigHaven.exe' }
+          $report = & $exe doctor | Out-String
+          Write-Output $report
+          if ($report -notmatch 'files:\s+ok') { throw 'Packaged files do not match release.json' }
+  linux:
+    runs-on: ubuntu-24.04
+    env:
+      TAG: ${{ inputs.tag }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install PyYAML==6.0.3
+      - name: Launcher checks
+        run: |
+          sh -n desktop/linux/righaven
+          shellcheck -s sh -S warning desktop/linux/righaven
+      - name: Download and check the sealed release
+        run: |
+          gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --dir reports/release \
+            --pattern compose.hostinger.yaml --pattern runtime-manifest.json
+          python scripts/prepare_desktop.py --release reports/release --output dist/RigHaven/app --repository "$GITHUB_REPOSITORY"
+          version=$(python -c "import json;print(json.load(open('dist/RigHaven/app/release.json'))['version'])")
+          echo "NAME=RigHaven-$version-linux-x64-portable" >> "$GITHUB_ENV"
+          install -m 755 desktop/linux/righaven dist/RigHaven/righaven
+          cp desktop/linux/README-portable.txt dist/RigHaven/README.txt
+          cp LICENSE dist/RigHaven/LICENSE.txt
+      - name: Start RigHaven with the Docker engine of the runner, as on a PC
+        timeout-minutes: 20
+        working-directory: dist/RigHaven
+        run: |
+          ./righaven version
+          ./righaven doctor | tee doctor.txt
+          grep -q 'files: ok' doctor.txt && rm doctor.txt
+          ./righaven start --no-browser
+          curl -fsS http://127.0.0.1:2026/health/ready
+          curl -fsS http://127.0.0.1:2026/ | grep -q '<title>RigHaven'
+          # The installable app: manifest and icons are served.
+          curl -fsS http://127.0.0.1:2026/manifest.webmanifest | grep -q '"display":"standalone"'
+          curl -fsS -o /dev/null http://127.0.0.1:2026/rh-app/icon-192.png
+          ./righaven start --no-browser | grep -q 'already running'
+          ./righaven status
+          ./righaven stop
+          ! curl -fsS -m 5 http://127.0.0.1:2026/health/ready
+          # Only the files of the release are packaged, never the data of the smoke test.
+          rm -rf data
+      - name: Diagnostics
+        if: failure()
+        working-directory: dist/RigHaven
+        run: ./righaven doctor || true; docker compose ls; docker ps -a
+      - name: Package
+        run: |
+          mv dist/RigHaven "dist/$NAME"
+          tar -C dist -czf "dist/$NAME.tar.gz" "$NAME"
+          (cd dist && sha256sum "$NAME.tar.gz" > "$NAME.tar.gz.sha256")
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-portable
+          path: |
+            dist/*.tar.gz
+            dist/*.tar.gz.sha256
+          retention-days: 7
+  publish:
+    needs: [build, windows, linux]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: '*-portable'
+          merge-multiple: true
+          path: dist
+      - name: Attach the portable apps to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "${{ inputs.tag }}" dist/*.zip dist/*.zip.sha256 dist/*.tar.gz dist/*.tar.gz.sha256 --repo "$GITHUB_REPOSITORY" --clobber

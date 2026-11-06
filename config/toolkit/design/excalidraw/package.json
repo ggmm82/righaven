@@ -1,0 +1,12 @@
+{
+  "name": "skill-excalidraw",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "@excalidraw/excalidraw": "0.18.1",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "esbuild": "0.25.12",
+    "playwright-core": "1.64.1"
+  }
+}

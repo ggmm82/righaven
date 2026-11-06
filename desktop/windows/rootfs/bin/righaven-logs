@@ -1,0 +1,5 @@
+#!/bin/sh
+# Follow the logs of one service (gateway by default).
+set -eu
+. /usr/local/bin/righaven-common
+$COMPOSE logs --follow --tail 200 "${1:-gateway}"

@@ -1,0 +1,8 @@
+#!/bin/sh
+# Shared settings of the RigHaven portable distribution.
+APP=/opt/righaven
+COMPOSE="docker compose --ansi never --progress plain --project-name righaven --project-directory $APP --env-file $APP/.env -f $APP/compose.yaml"
+[ -f "$APP/local.yaml" ] && COMPOSE="$COMPOSE -f $APP/local.yaml"
+# The optional Matter controller (RigHaven.exe matter enable).
+grep -qx 'RIGHAVEN_MATTER=1' "$APP/.env" 2>/dev/null && COMPOSE="$COMPOSE --profile matter"
+say() { printf '%s\n' "$*"; }

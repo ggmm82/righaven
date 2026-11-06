@@ -1,0 +1,23 @@
+#!/bin/sh
+# Start the Docker engine of the distribution once; WSL has no init system here.
+set -eu
+if docker info >/dev/null 2>&1; then exit 0; fi
+grep -q ' /sys/fs/cgroup ' /proc/mounts || mount -t cgroup2 none /sys/fs/cgroup
+# cgroup v2 (WSL with systemd, or the CI runner): containers can be created only in leaf cgroups,
+# so move the processes of the root into a child and delegate the controllers, as docker:dind does.
+if [ -f /sys/fs/cgroup/cgroup.controllers ]; then
+  mkdir -p /sys/fs/cgroup/init
+  xargs -rn1 < /sys/fs/cgroup/cgroup.procs > /sys/fs/cgroup/init/cgroup.procs 2>/dev/null || :
+  sed -e 's/ / +/g' -e 's/^/+/' < /sys/fs/cgroup/cgroup.controllers > /sys/fs/cgroup/cgroup.subtree_control 2>/dev/null || :
+fi
+mount --make-rshared / 2>/dev/null || true
+rm -f /var/run/docker.pid
+nohup dockerd --host=unix:///var/run/docker.sock >>/var/log/dockerd.log 2>&1 &
+i=0
+while [ "$i" -lt 90 ]; do
+  docker info >/dev/null 2>&1 && exit 0
+  i=$((i + 1)); sleep 1
+done
+echo "Docker engine did not start; last log lines:" >&2
+tail -n 30 /var/log/dockerd.log >&2
+exit 1

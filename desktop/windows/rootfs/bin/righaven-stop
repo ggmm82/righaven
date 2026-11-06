@@ -1,0 +1,13 @@
+#!/bin/sh
+# Stop RigHaven and the engine cleanly; data stays in the Docker volumes.
+set -u
+. /usr/local/bin/righaven-common
+if docker info >/dev/null 2>&1; then
+  [ -s "$APP/compose.yaml" ] && $COMPOSE stop --timeout 30
+  pid=$(cat /var/run/docker.pid 2>/dev/null || true)
+  if [ -n "$pid" ]; then
+    kill "$pid" 2>/dev/null || true
+    i=0; while kill -0 "$pid" 2>/dev/null && [ "$i" -lt 30 ]; do i=$((i + 1)); sleep 1; done
+  fi
+fi
+exit 0

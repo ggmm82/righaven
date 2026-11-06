@@ -1,0 +1,75 @@
+{
+  "meta": {
+    "language": "en",
+    "label": "English",
+    "brand": "RigHaven",
+    "tagline": "The Evolving Agent Harness & Open-Source CLI Environment Integrator"
+  },
+  "navbar": {
+    "dashboard": "Harness Workspace",
+    "environments": "Environments & Rigs",
+    "gallery": "Community Gallery",
+    "cloud_portal": "Cloud Portal",
+    "new_chat": "New Session",
+    "language_selector": "Language",
+    "edition_community": "Community Edition (Self-Hosted)",
+    "edition_cloud": "Cloud Portal (Multi-Tenant SaaS)"
+  },
+  "harness": {
+    "title": "RigHaven Harness Control",
+    "subtitle": "Configure AI providers, multi-agent roles, and shared execution budgets.",
+    "coordinator_label": "Coordinator",
+    "squad_label": "Specialist Squad",
+    "status_ready": "Ready",
+    "status_working": "Working",
+    "status_review": "In Review",
+    "status_clarifying": "Awaiting Clarification",
+    "status_blocked": "Blocked",
+    "status_paused": "Paused",
+    "ask_clarification_prompt": "Please clarify the following project choices before production starts:",
+    "deliver_now": "Deliver Now",
+    "pause_work": "Pause Work",
+    "resume_work": "Resume Work",
+    "reopen_check_passed": "Independent reopen check passed in clean staging directory",
+    "checkpoint_saved": "Incremental checkpoint.json and method.json saved"
+  },
+  "gallery": {
+    "title": "RigHaven Hub · Community Gallery",
+    "subtitle": "Explore, activate on-demand, or publish preconfigured Environment Rigs, Open-Source CLI Tools, and Agent Skills.",
+    "search_placeholder": "Search packs by name, CLI binary, or capability...",
+    "filter_all": "All Packs",
+    "filter_environment": "Environments",
+    "filter_cli_tool": "Open-Source CLI Tools",
+    "filter_skill": "Agent Skills",
+    "activate_button": "Activate in Workspace",
+    "activated_badge": "Active in Workspace",
+    "publish_button": "Publish Pack",
+    "star_button": "Star",
+    "fork_button": "Fork",
+    "reopen_verification": "Reopen Verification Command",
+    "security_policy": "Rootless & Read-Only User Data Policy"
+  },
+  "cloud": {
+    "title": "RigHaven Cloud Portal",
+    "subtitle": "Multi-tenant workspaces, encrypted API key vault, execution quotas, and community creator profile.",
+    "signup_title": "Create Your RigHaven Cloud Account",
+    "login_title": "Sign In to RigHaven Cloud",
+    "oauth_github": "Continue with GitHub",
+    "oauth_google": "Continue with Google",
+    "recover_password": "Forgot Password?",
+    "tenant_workspace": "Isolated Tenant Workspace",
+    "vault_title": "Encrypted LLM API Key Vault",
+    "quotas_title": "Resource Quotas & Usage",
+    "sandbox_minutes": "Sandbox Execution Minutes",
+    "storage_quota": "Workspace Storage",
+    "token_budget": "Monthly Token Budget",
+    "creator_profile": "Community Creator Profile"
+  },
+  "notifications": {
+    "pack_activated": "Pack '{id}' activated in workspace and registered for harness_plan injection.",
+    "pack_published": "Pack '{id}' validated against righaven-pack.json schema and published to Gallery.",
+    "auth_Required": "Authentication is required to access this multi-tenant Cloud resource.",
+    "quota_exceeded": "Workspace resource quota exceeded. Upgrade your plan or switch to Self-Hosted Community Edition.",
+    "clarification_needed": "Before launching specialist sandboxes, please answer the open outcome questions."
+  }
+}

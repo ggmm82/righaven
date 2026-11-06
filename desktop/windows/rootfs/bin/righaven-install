@@ -1,0 +1,54 @@
+#!/bin/sh
+# Receive compose.yaml, Caddyfile, release.json and home.txt as a tar on stdin.
+# Usage: righaven-install PORT LOCALE [DEVICES] [HOST] [PUBLIC_PORT] [NETWORKS] [MATTER]
+# PORT is the proxy port inside the distribution; HOST:PUBLIC_PORT is the address of the browser.
+set -eu
+. /usr/local/bin/righaven-common
+port=${1:?port}; locale=${2:-en}; devices=${3:-}; host=${4:-127.0.0.1}; public_port=${5:-$port}; networks=${6:-}; matter=${7:-0}
+case "$port" in ''|*[!0-9]*) echo "Invalid port" >&2; exit 2;; esac
+case "$locale" in it|en) ;; *) locale=en;; esac
+case "$devices" in *[!A-Za-z0-9_.:/,-]*) echo "Invalid device list" >&2; exit 2;; esac
+# "auto": every serial port present (USB adapters and boards attached with RigHaven.exe usb).
+if [ "$devices" = auto ]; then
+  devices=$(ls /dev/ttyUSB* /dev/ttyACM* 2>/dev/null | tr '\n' ',' || true)
+  devices=${devices%,}
+fi
+case "$host" in ''|*[!0-9A-Fa-f.:]*) echo "Invalid address" >&2; exit 2;; esac
+case "$public_port" in ''|*[!0-9]*) echo "Invalid port" >&2; exit 2;; esac
+case "$networks" in *[!0-9./,]*) echo "Invalid network list" >&2; exit 2;; esac
+case "$matter" in 0|1) ;; *) echo "Invalid Matter flag" >&2; exit 2;; esac
+matter_url=""; [ "$matter" = 1 ] && matter_url="ws://172.30.42.1:5580/ws"
+case "$host" in *:*) url_host="[$host]";; *) url_host=$host;; esac
+incoming=$(mktemp -d)
+trap 'rm -rf "$incoming"' EXIT
+tar -x -C "$incoming" -f -
+for f in compose.yaml Caddyfile release.json home.txt; do
+  [ -s "$incoming/$f" ] || { echo "Missing $f in the app folder" >&2; exit 2; }
+done
+mkdir -p "$APP" "$APP/discovery" "$APP/host"
+for f in compose.yaml Caddyfile release.json home.txt; do cp "$incoming/$f" "$APP/$f.new" && mv "$APP/$f.new" "$APP/$f"; done
+password=$(sed -n 's/^RIGHAVEN_PASSWORD=//p' "$APP/.env" 2>/dev/null || true)
+[ "${#password}" -ge 32 ] || password=$(head -c 32 /dev/urandom | od -An -tx1 | tr -d ' \n')
+umask 077
+cat > "$APP/.env.new" <<ENV
+RIGHAVEN_PASSWORD=$password
+RIGHAVEN_PORT=$port
+RIGHAVEN_DEFAULT_LOCALE=$locale
+RIGHAVEN_DEVICES=$devices
+RIGHAVEN_LOCAL_NETWORKS=$networks
+RIGHAVEN_MATTER=$matter
+RIGHAVEN_MATTER_URL=$matter_url
+ENV
+mv "$APP/.env.new" "$APP/.env"
+printf '{"devices":"%s"}' "$devices" > "$APP/discovery/devices.json.new" && chmod 644 "$APP/discovery/devices.json.new" && mv "$APP/discovery/devices.json.new" "$APP/discovery/devices.json"
+# The sign-in address must be the address of the browser (127.0.0.1 by default, never "localhost").
+cat > "$APP/local.yaml.new" <<LOCAL
+services:
+  gateway:
+    environment:
+      BETTER_AUTH_URL: http://$url_host:$public_port
+  frontend:
+    environment:
+      BETTER_AUTH_URL: http://$url_host:$public_port
+LOCAL
+mv "$APP/local.yaml.new" "$APP/local.yaml"

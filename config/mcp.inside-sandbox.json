@@ -1,0 +1,110 @@
+{
+  "mcpServers": {
+    "photocraft": {
+      "command": "photocraft-cli",
+      "args": [
+        "mcp",
+        "--automation-read-root",
+        "/mnt/user-data",
+        "--automation-write-root",
+        "/mnt/user-data"
+      ]
+    },
+    "vectorcraft": {
+      "command": "vectorcraft-cli",
+      "args": [
+        "mcp",
+        "--automation-read-root",
+        "/mnt/user-data",
+        "--automation-write-root",
+        "/mnt/user-data"
+      ]
+    },
+    "filmcraft": {
+      "command": "filmcraft-cli",
+      "args": [
+        "mcp"
+      ]
+    },
+    "lightcraft": {
+      "command": "lightcraft-cli",
+      "args": [
+        "mcp"
+      ]
+    },
+    "pdfcraft": {
+      "command": "pdfcraft-cli",
+      "args": [
+        "mcp",
+        "--root",
+        "/mnt/user-data"
+      ]
+    },
+    "effectcraft": {
+      "command": "effectcraft-cli",
+      "args": [
+        "mcp",
+        "--automation-read-root",
+        "/mnt/user-data",
+        "--automation-write-root",
+        "/mnt/user-data"
+      ]
+    },
+    "designcraft": {
+      "command": "designcraft-cli",
+      "args": [
+        "mcp"
+      ]
+    },
+    "gridcraft": {
+      "command": "gridcraft-cli",
+      "args": [
+        "mcp"
+      ]
+    },
+    "wordcraft": {
+      "command": "wordcraft-cli",
+      "args": [
+        "mcp",
+        "--automation-read-root",
+        "/mnt/user-data",
+        "--automation-write-root",
+        "/mnt/user-data"
+      ]
+    },
+    "deckcraft": {
+      "command": "deckcraft-cli",
+      "args": [
+        "mcp"
+      ]
+    },
+    "cadcraft": {
+      "command": "cadcraft-cli",
+      "args": [
+        "mcp"
+      ]
+    },
+    "soundcraft": {
+      "command": "soundcraft-cli",
+      "args": [
+        "mcp",
+        "--automation-read-root",
+        "/mnt/user-data",
+        "--automation-write-root",
+        "/mnt/user-data"
+      ]
+    },
+    "figcraft": {
+      "command": "figcraft-cli",
+      "args": [
+        "mcp"
+      ]
+    },
+    "blender": {
+      "command": "blender-cli",
+      "args": [
+        "mcp"
+      ]
+    }
+  }
+}

@@ -1,0 +1,13 @@
+#!/bin/sh
+# Carry one TCP client to a Windows COM port shared by RigHaven.exe (on stdin/stdout). It listens
+# only on the address RigHaven's containers reach: the gateway of the RigHaven Docker network.
+# Usage: righaven-serial-bridge PORT | --address
+set -eu
+. /usr/local/bin/righaven-common
+address=$(docker network inspect righaven_default -f '{{range .IPAM.Config}}{{.Gateway}} {{end}}' 2>/dev/null | cut -d' ' -f1)
+if [ "${1:-}" = --address ]; then echo "$address"; exit 0; fi
+port=${1:?port}
+case "$port" in ''|*[!0-9]*) exit 2;; esac
+[ "$port" -ge 41000 ] && [ "$port" -le 41999 ] || exit 2
+[ -n "$address" ] || { echo "RigHaven network not found" >&2; exit 1; }
+exec socat "TCP-LISTEN:$port,bind=$address,reuseaddr" STDIO

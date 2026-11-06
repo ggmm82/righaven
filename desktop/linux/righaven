@@ -1,0 +1,435 @@
+#!/bin/sh
+# RigHaven portable for Linux: runs the verified release Compose with the Docker engine of
+# this PC. Everything of this copy stays next to this script (app/ and data/); RigHaven's
+# own data lives in Docker volumes named after the copy (righaven by default).
+set -eu
+
+HOME_DIR=$(CDPATH="" cd -- "$(dirname -- "$(readlink -f -- "$0")")" && pwd)
+APP=$HOME_DIR/app
+DATA=$HOME_DIR/data
+SETTINGS=$DATA/settings
+case "${LC_ALL:-${LC_MESSAGES:-${LANG:-}}}" in it*) LANGUAGE=it;; *) LANGUAGE=en;; esac
+
+m() { if [ "$LANGUAGE" = it ]; then printf '%s\n' "$1"; else printf '%s\n' "$2"; fi; }
+die() { m "$1" "$2" >&2; exit "${3:-1}"; }
+
+setting() { sed -n "s/^$1=//p" "$SETTINGS" 2>/dev/null | tail -n 1; }
+
+load_settings() {
+  PORT=$(setting port); PORT=${PORT:-2026}
+  BIND=$(setting bind); BIND=${BIND:-127.0.0.1}
+  DEVICES=$(setting devices)
+  NAME=$(setting name); NAME=${NAME:-righaven}
+  MATTER=$(setting matter); MATTER=${MATTER:-0}
+}
+
+save_settings() {
+  mkdir -p "$DATA"
+  umask 077
+  printf 'port=%s\nbind=%s\ndevices=%s\nname=%s\nmatter=%s\n' "$PORT" "$BIND" "$DEVICES" "$NAME" "$MATTER" > "$SETTINGS.new"
+  mv "$SETTINGS.new" "$SETTINGS"
+}
+
+validate() {
+  case "$PORT" in ''|*[!0-9]*) die "Porta non valida: $PORT" "Invalid port: $PORT" 2;; esac
+  if [ "$PORT" -lt 1024 ] || [ "$PORT" -gt 65535 ]; then die "Porta non valida: $PORT (1024-65535)" "Invalid port: $PORT (1024-65535)" 2; fi
+  case "$BIND" in ''|*[!0-9A-Fa-f.:]*) die "Indirizzo non valido: $BIND (usa un IP, per esempio 127.0.0.1)" "Invalid address: $BIND (use an IP, for example 127.0.0.1)" 2;; esac
+  case "$DEVICES" in *[!A-Za-z0-9_.:/,-]*) die "Elenco periferiche non valido: $DEVICES" "Invalid device list: $DEVICES" 2;; esac
+  case "$MATTER" in 0|1) ;; *) MATTER=0;; esac
+  case "$NAME" in ''|*[!a-z0-9_-]*) die "Nome non valido: $NAME (minuscole, cifre, - e _)" "Invalid name: $NAME (lowercase, digits, - and _)" 2;; esac
+}
+
+# The address the browser uses: 127.0.0.1 when listening on every address, never "localhost".
+host() {
+  case "$BIND" in 0.0.0.0|::) echo 127.0.0.1;; *:*) echo "[$BIND]";; *) echo "$BIND";; esac
+}
+url() { echo "http://$(host):$PORT"; }
+
+dc() {
+  if [ "$MATTER" = 1 ]; then set -- --profile matter "$@"; fi
+  docker compose --ansi never --progress plain --project-name "$NAME" --project-directory "$APP" \
+    --env-file "$DATA/.env" -f "$APP/compose.yaml" -f "$DATA/local.yaml" "$@"
+}
+
+need_docker() {
+  command -v docker >/dev/null 2>&1 || die \
+    "Docker non è installato. Installa Docker Engine con il plugin Compose (https://docs.docker.com/engine/install/) e riprova." \
+    "Docker is not installed. Install Docker Engine with the Compose plugin (https://docs.docker.com/engine/install/) and try again."
+  if ! out=$(docker info --format '{{.ServerVersion}}' 2>&1); then
+    case "$out" in
+      *"permission denied"*) die \
+        "Questo utente non può usare Docker. Aggiungilo al gruppo docker (sudo usermod -aG docker \$USER, poi esci e rientra) oppure avvia con sudo." \
+        "This user cannot use Docker. Add it to the docker group (sudo usermod -aG docker \$USER, then log out and in) or start with sudo.";;
+      *) die "Il motore Docker non risponde: $out" "The Docker engine does not answer: $out";;
+    esac
+  fi
+  version=$(docker compose version --short 2>/dev/null || true)
+  [ -n "$version" ] || die "Manca il plugin Docker Compose (pacchetto docker-compose-plugin)." "The Docker Compose plugin is missing (package docker-compose-plugin)."
+  major=$(echo "${version#v}" | cut -d. -f1); minor=$(echo "${version#v}" | cut -d. -f2)
+  if [ "$major" -lt 2 ] || { [ "$major" -eq 2 ] && [ "$minor" -lt 20 ]; }; then
+    die "Docker Compose $version è troppo vecchio: serve 2.20 o successivo." "Docker Compose $version is too old: 2.20 or later is required."
+  fi
+}
+
+need_app() {
+  for f in compose.yaml Caddyfile release.json; do
+    [ -s "$APP/$f" ] || die "Manca app/$f: scompatta di nuovo l'archivio di RigHaven." "app/$f is missing: extract the RigHaven archive again." 2
+  done
+}
+
+# Devices offered to connections: "auto" (default) is every serial port present now.
+offered_devices() {
+  case "$DEVICES" in
+    none) ;;
+    ''|auto) ls /dev/ttyUSB* /dev/ttyACM* 2>/dev/null | tr '\n' ',' | sed 's/,$//';;
+    *) echo "$DEVICES";;
+  esac
+}
+
+# Private IPv4 networks of the PC's real adapters (each as a /24) for "Find devices on the network".
+local_networks() {
+  command -v ip >/dev/null 2>&1 || return 0
+  ip -4 -o addr show scope global 2>/dev/null | awk '
+    $2 ~ /^(docker|br-|veth|virbr|lxc|tailscale|zt|wg|tun|vboxnet|vmnet)/ { next }
+    { split($4, cidr, "/"); split(cidr[1], o, ".")
+      if (o[1] == 10 || (o[1] == 172 && o[2] >= 16 && o[2] <= 31) || (o[1] == 192 && o[2] == 168))
+        print o[1] "." o[2] "." o[3] ".0/24" }' | sort -u | tr '\n' ',' | sed 's/,$//'
+}
+
+# Files of this copy: the internal secret is generated once and kept in data/.env (mode 600).
+write_files() {
+  mkdir -p "$DATA" "$DATA/discovery" "$DATA/host"
+  password=$(sed -n 's/^RIGHAVEN_PASSWORD=//p' "$DATA/.env" 2>/dev/null || true)
+  [ "${#password}" -ge 32 ] || password=$(head -c 32 /dev/urandom | od -An -tx1 | tr -d ' \n')
+  umask 077
+  cat > "$DATA/.env.new" <<ENV
+RIGHAVEN_PASSWORD=$password
+RIGHAVEN_PORT=$PORT
+RIGHAVEN_BIND=$(case "$BIND" in *:*) echo "[$BIND]";; *) echo "$BIND";; esac)
+RIGHAVEN_DEFAULT_LOCALE=$LANGUAGE
+RIGHAVEN_DEVICES=$(offered_devices)
+RIGHAVEN_LOCAL_NETWORKS=$(local_networks)
+RIGHAVEN_DISCOVERY_DIR=$DATA/discovery
+RIGHAVEN_HOST_DIR=$DATA/host
+RIGHAVEN_MATTER=$MATTER
+RIGHAVEN_MATTER_URL=$( [ "$MATTER" = 1 ] && echo ws://172.30.42.1:5580/ws)
+RIGHAVEN_DESKTOP=linux
+ENV
+  mv "$DATA/.env.new" "$DATA/.env"
+  cat > "$DATA/local.yaml.new" <<LOCAL
+services:
+  gateway:
+    environment:
+      BETTER_AUTH_URL: $(url)
+  frontend:
+    environment:
+      BETTER_AUTH_URL: $(url)
+LOCAL
+  mv "$DATA/local.yaml.new" "$DATA/local.yaml"
+  printf '{"devices":"%s"}' "$(offered_devices)" > "$DATA/discovery/devices.json.new" && mv "$DATA/discovery/devices.json.new" "$DATA/discovery/devices.json"
+}
+
+port_busy() {
+  command -v ss >/dev/null 2>&1 || return 1
+  ss -Hltn "sport = :$PORT" 2>/dev/null | grep -q .
+}
+
+ready() {
+  if command -v curl >/dev/null 2>&1; then curl -fsS -m 10 "$(url)/health/ready" >/dev/null 2>&1
+  elif command -v wget >/dev/null 2>&1; then wget -q -O /dev/null -T 10 "$(url)/health/ready"
+  else return 0; fi
+}
+
+running() { dc ps --status running --services 2>/dev/null | grep -qx proxy; }
+
+open_browser() {
+  [ "$NO_BROWSER" = 1 ] && return 0
+  [ -n "${DISPLAY:-}${WAYLAND_DISPLAY:-}" ] || return 0
+  command -v xdg-open >/dev/null 2>&1 && (xdg-open "$(url)" >/dev/null 2>&1 &) || true
+}
+
+start() {
+  need_app; need_docker
+  case "$BIND" in 127.*|::1) ;; *) m "Attenzione: RigHaven sarà raggiungibile da altri dispositivi su $BIND:$PORT." "Warning: RigHaven will be reachable from other devices on $BIND:$PORT.";; esac
+  for device in $(offered_devices | tr ',' ' '); do
+    path=${device%%:*}
+    [ -e "$path" ] || m "Periferica non trovata: $path (collegala prima di avviare RigHaven)." "Device not found: $path (plug it in before starting RigHaven)."
+  done
+  write_files
+  if running && ready; then
+    m "RigHaven è già avviato: $(url)" "RigHaven is already running: $(url)"; open_browser; return 0
+  fi
+  if ! running && port_busy; then
+    die "La porta $PORT è già usata da un altro programma: avvia con --port 2027." "Port $PORT is already used by another program: start with --port 2027."
+  fi
+  # Download only the images that are missing (first start or a new version), one by one.
+  images=$(dc config --images | sort -u)
+  missing=""
+  for image in $images; do docker image inspect "$image" >/dev/null 2>&1 || missing="$missing $image"; done
+  total=$(echo $missing | wc -w)
+  if [ "$total" -gt 0 ]; then
+    m "Scarico le immagini verificate ($total, solo la prima volta o dopo un aggiornamento)…" "Downloading the verified images ($total, only the first time or after an update)…"
+    n=0
+    for image in $missing; do
+      n=$((n + 1)); name=${image%%@*}; name=${name##*/}; name=${name%%:*}
+      printf '  [%s/%s] %s…\n' "$n" "$total" "$name"
+      docker pull --quiet "$image" >/dev/null
+    done
+  fi
+  # Copies started before the fixed RigHaven network are recreated once (data stays in the volumes).
+  subnet=$(docker network inspect "${NAME}_default" -f '{{range .IPAM.Config}}{{.Subnet}}{{end}}' 2>/dev/null || true)
+  if [ -n "$subnet" ] && [ "$subnet" != 172.30.42.0/24 ]; then
+    dc down --remove-orphans >/dev/null 2>&1 || true
+    docker network rm "${NAME}_default" >/dev/null 2>&1 || true
+  fi
+  m "Avvio i servizi…" "Starting the services…"
+  if ! dc --progress quiet up -d --wait --wait-timeout 900; then
+    dc ps >&2 || true
+    dc logs --tail 60 gateway >&2 || true
+    die "Avvio non riuscito: vedi i messaggi sopra (righaven logs per i dettagli)." "Start failed: see the messages above (righaven logs for details)."
+  fi
+  i=0; until ready; do
+    i=$((i + 1)); [ "$i" -lt 45 ] || die "I servizi sono avviati ma $(url) non risponde: righaven doctor." "The services are running but $(url) does not answer: righaven doctor."
+    sleep 2
+  done
+  # Remove only the images of earlier RigHaven versions of this copy, never other images of the PC.
+  if [ -s "$DATA/images" ]; then
+    for old in $(cat "$DATA/images"); do
+      echo "$images" | grep -qxF "$old" || docker image rm "$old" >/dev/null 2>&1 || true
+    done
+  fi
+  echo "$images" > "$DATA/images"
+  start_agent
+  m "RigHaven è pronto: $(url)" "RigHaven is ready: $(url)"
+  m "I servizi restano attivi in background; per fermarli: $0 stop" "The services keep running in the background; to stop them: $0 stop"
+  open_browser
+}
+
+stop() {
+  need_app; need_docker
+  [ -s "$DATA/.env" ] || { m "RigHaven non è mai stato avviato da questa cartella." "RigHaven was never started from this folder."; return 0; }
+  stop_agent
+  dc stop --timeout 30
+  m "RigHaven è fermo; i dati restano nei volumi Docker del progetto $NAME." "RigHaven is stopped; the data stays in the Docker volumes of project $NAME."
+}
+
+status() {
+  need_app; need_docker
+  sed -n 's/^  "version": "\(.*\)",$/version \1/p' "$APP/release.json"
+  [ -s "$DATA/.env" ] || { m "mai avviato" "never started"; return 0; }
+  dc ps --format 'table {{.Service}}\t{{.Status}}'
+  if running && ready; then echo "$(url) ok"; fi
+}
+
+files_ok() {
+  for f in compose.yaml Caddyfile; do
+    expected=$(sed -n "s/^    \"$f\": \"\([0-9a-f]*\)\".*/\1/p" "$APP/release.json")
+    actual=$(sha256sum "$APP/$f" | cut -d' ' -f1)
+    [ -n "$expected" ] && [ "$expected" = "$actual" ] || { echo "$f"; return 1; }
+  done
+}
+
+doctor() {
+  need_app
+  sed -n 's/^  "version": "\(.*\)",$/version: \1/p' "$APP/release.json"
+  if changed=$(files_ok); then echo "files: ok"; else echo "files: CHANGED $changed"; fi
+  echo "folder: $HOME_DIR"
+  echo "project: $NAME · address: $(url) · bind: $BIND"
+  echo "devices: ${DEVICES:-auto} → $(offered_devices)"
+  echo "matter: $( [ "$MATTER" = 1 ] && echo on || echo off)"
+  need_docker
+  echo "docker: $(docker info --format '{{.ServerVersion}} · {{.OperatingSystem}} · cgroup v{{.CgroupVersion}} · {{.Driver}}')"
+  echo "compose: $(docker compose version --short)"
+  case "$(docker info --format '{{.SecurityOptions}}')" in *rootless*) m "Docker rootless: il runtime privato dei ruoli richiede un motore Docker con privilegi." "Rootless Docker: the private runtime of the roles needs a Docker engine with privileges.";; esac
+  if [ -s "$DATA/.env" ]; then
+    dc ps --format 'table {{.Service}}\t{{.Status}}\t{{.Ports}}' || true
+    if ready; then echo "$(url)/health/ready: ok"; else echo "$(url)/health/ready: NOT READY"; port_busy && ! running && echo "port $PORT: used by another program"; fi
+  fi
+}
+
+remove() {
+  need_app; need_docker
+  m "Elimina i contenitori e TUTTI i dati di RigHaven del progetto $NAME (account, progetti, file)." "Deletes the containers and ALL RigHaven data of project $NAME (accounts, projects, files)."
+  if [ "$YES" != 1 ]; then
+    word=$(m ELIMINA DELETE)
+    m "Per confermare scrivi $word:" "To confirm type $word:"
+    read -r answer || answer=""
+    [ "$answer" = "$word" ] || { m "Annullato." "Cancelled."; return 0; }
+  fi
+  [ -s "$DATA/.env" ] && dc down --volumes --remove-orphans --timeout 30 || true
+  if [ -s "$DATA/images" ]; then for image in $(cat "$DATA/images"); do docker image rm "$image" >/dev/null 2>&1 || true; done; fi
+  rm -f "$DATA/.env" "$DATA/local.yaml" "$DATA/images"
+  m "Eliminato. Le impostazioni restano in data/settings." "Deleted. The settings stay in data/settings."
+}
+
+# Bluetooth devices near this PC (bluetoothctl, from BlueZ), shown in Connections → Find devices.
+# Nothing is paired or written to any device.
+bluetooth() {
+  command -v bluetoothctl >/dev/null 2>&1 || die "Serve bluetoothctl (pacchetto bluez) e il Bluetooth acceso." "bluetoothctl (package bluez) and Bluetooth turned on are required."
+  m "Cerco dispositivi Bluetooth vicini (circa 15 secondi; nulla viene associato o modificato)…" "Searching for nearby Bluetooth devices (about 15 seconds; nothing is paired or changed)…"
+  heard=$(mktemp)
+  # Sensors broadcast readings as service data: keep "ADDRESS UUID HEX" for each one heard.
+  bluetoothctl --timeout 15 scan on 2>/dev/null | tr -d '\r' | sed 's/\x1b\[[0-9;]*m//g' | awk '
+    /ServiceData Key:/ { for (i = 1; i <= NF; i++) if ($i == "Device") device = $(i + 1); key = $NF; collecting = 0; next }
+    /ServiceData Value:/ { collecting = 1; hex = ""; next }
+    collecting && /^[ \t]+[0-9a-f][0-9a-f] / { for (i = 1; i <= NF && $i ~ /^[0-9a-f][0-9a-f]$/; i++) hex = hex $i; next }
+    collecting { if (hex != "") print device, key, hex; collecting = 0 }
+    END { if (collecting && hex != "") print device, key, hex }' > "$heard" || true
+  paired=$( (bluetoothctl devices Paired 2>/dev/null || bluetoothctl paired-devices 2>/dev/null) | awk '$1 == "Device" {print $2}')
+  mkdir -p "$DATA/discovery"
+  {
+    at=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+    printf '{"scanned_at":"%s","devices":[' "$at"
+    first=1
+    bluetoothctl devices 2>/dev/null | while read -r word address name; do
+      [ "$word" = Device ] || continue
+      case "$address" in *[!0-9A-Fa-f:]*) continue;; esac
+      state=false; echo "$paired" | grep -qx "$address" && state=true
+      clean=$(printf '%s' "$name" | tr -d '\000-\037' | sed 's/\\/\\\\/g; s/"/\\"/g')
+      [ "$first" = 1 ] || printf ','
+      first=0
+      service=$(awk -v a="$address" '$1 == a && $3 ~ /^[0-9a-f]+$/ { k = $2; sub(/^0000/, "", k); k = substr(k, 1, 4); last[k] = $3 }
+        END { sep = ""; for (k in last) { printf "%s\"%s\":\"%s\"", sep, k, last[k]; sep = "," } }' "$heard")
+      if [ -n "$service" ]; then
+        printf '{"name":"%s","address":"%s","kind":"ble","paired":%s,"service_data":{%s}}' "$clean" "$address" "$state" "$service"
+        printf '{"at":"%s","address":"%s","name":"%s","service_data":{%s}}\n' "$at" "$address" "$clean" "$service" >> "$DATA/discovery/ble-history.jsonl"
+      else
+        printf '{"name":"%s","address":"%s","kind":"bluetooth","paired":%s}' "$clean" "$address" "$state"
+      fi
+      printf '  %-28s %-17s %s\n' "$name" "$address" "$( [ "$state" = true ] && m associato paired || m vicino nearby)" >&2
+    done
+    printf ']}'
+  } > "$DATA/discovery/bluetooth.json.new"
+  mv "$DATA/discovery/bluetooth.json.new" "$DATA/discovery/bluetooth.json"
+  rm -f "$heard"
+  if [ -f "$DATA/discovery/ble-history.jsonl" ]; then
+    tail -n 50000 "$DATA/discovery/ble-history.jsonl" > "$DATA/discovery/ble-history.jsonl.new" && mv "$DATA/discovery/ble-history.jsonl.new" "$DATA/discovery/ble-history.jsonl"
+  fi
+  m "Elenco passato a RigHaven: lo vedi in Connessioni → Trova dispositivi." "List passed to RigHaven: see it in Connections → Find devices."
+}
+
+# Wi-Fi networks near this PC (NetworkManager), including the setup networks of devices not set
+# up yet. Nothing connects to any network.
+wifi() {
+  command -v nmcli >/dev/null 2>&1 || die "Serve nmcli (NetworkManager) e una scheda Wi-Fi." "nmcli (NetworkManager) and a Wi-Fi adapter are required."
+  mkdir -p "$DATA/discovery"
+  {
+    printf '{"scanned_at":"%s","networks":[' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+    nmcli -t -f SSID,BSSID,SIGNAL,SECURITY dev wifi list --rescan yes 2>/dev/null | sed 's/\\:/%3A/g' | awk -F: '
+      { ssid = $1; gsub(/%3A/, ":", ssid); gsub(/[\\"\001-\037]/, "", ssid); bssid = $2; gsub(/%3A/, ":", bssid)
+        open = ($4 == "" || $4 == "--") ? "true" : "false"; signal = ($3 ~ /^[0-9]+$/) ? $3 : 0
+        printf "%s{\"ssid\":\"%s\",\"bssid\":\"%s\",\"signal\":%d,\"open\":%s}", (n++ ? "," : ""), ssid, tolower(bssid), signal, open }'
+    printf ']}'
+  } > "$DATA/discovery/wifi.json.new"
+  mv "$DATA/discovery/wifi.json.new" "$DATA/discovery/wifi.json"
+  m "Reti Wi-Fi passate a RigHaven: le vedi in Connessioni → Trova dispositivi." "Wi-Fi networks passed to RigHaven: see them in Connections → Find devices."
+}
+
+# Agent: carries out the actions asked from the RigHaven page (Connections) on this PC while
+# RigHaven runs: Bluetooth search, Matter on/off, offering newly plugged serial ports.
+HOST_ACTIONS='"bluetooth-scan","wifi-scan","matter-enable","matter-disable","refresh-devices"'
+
+agent_result() {
+  printf '%s' "$2" > "$DATA/host/results/$1.json.new" && mv "$DATA/host/results/$1.json.new" "$DATA/host/results/$1.json"
+  rm -f "$DATA/host/running/$1.json"
+}
+
+agent_run() {
+  id=$1; action=$2
+  case "$action" in
+    bluetooth-scan)
+      if (bluetooth) >"$DATA/host/last.log" 2>&1; then agent_result "$id" '{"ok":true}'
+      else agent_result "$id" "{\"error\":\"$(tail -n 1 "$DATA/host/last.log" | tr -d '"\\' | cut -c1-300)\"}"; fi;;
+    wifi-scan)
+      if (wifi) >"$DATA/host/last.log" 2>&1; then agent_result "$id" '{"ok":true}'
+      else agent_result "$id" "{\"error\":\"$(tail -n 1 "$DATA/host/last.log" | tr -d '"\\' | cut -c1-300)\"}"; fi;;
+    matter-enable|matter-disable)
+      if [ "$action" = matter-enable ]; then MATTER=1; else MATTER=0; fi
+      save_settings; write_files
+      if [ "$MATTER" = 0 ]; then dc stop matter >/dev/null 2>&1 || true; fi
+      if dc --progress quiet up -d --wait --wait-timeout 600 >"$DATA/host/last.log" 2>&1; then agent_result "$id" '{"ok":true}'
+      else agent_result "$id" '{"error":"RigHaven did not restart: see ./righaven logs"}'; fi;;
+    refresh-devices)
+      write_files
+      if dc --progress quiet up -d --wait --wait-timeout 300 --force-recreate --no-deps runtime-docker >"$DATA/host/last.log" 2>&1
+      then agent_result "$id" "{\"ok\":true,\"ports\":\"$(offered_devices)\"}"
+      else agent_result "$id" '{"error":"Refresh failed: see ./righaven logs"}'; fi;;
+    *) agent_result "$id" '{"error":"unknown action"}';;
+  esac
+}
+
+agent() {
+  base="$DATA/host"
+  mkdir -p "$base/requests" "$base/running" "$base/results"
+  echo $$ > "$base/agent.pid"
+  while :; do
+    printf '{"at":%s,"platform":"linux","actions":[%s],"matter":%s}' "$(date +%s)" "$HOST_ACTIONS" \
+      "$( [ "$MATTER" = 1 ] && echo true || echo false)" > "$base/heartbeat.json.new" && mv "$base/heartbeat.json.new" "$base/heartbeat.json"
+    for request in "$base"/requests/*.json; do
+      [ -f "$request" ] || continue
+      id=$(basename "$request" .json)
+      case "$id" in *[!0-9a-f]*) rm -f "$request"; continue;; esac
+      action=$(sed -n 's/.*"action": *"\([a-z-]*\)".*/\1/p' "$request")
+      mv "$request" "$base/running/$id.json"
+      agent_run "$id" "$action"
+    done
+    find "$base/results" -name '*.json' -mmin +1440 -delete 2>/dev/null || true
+    sleep 2
+  done
+}
+
+start_agent() {
+  stop_agent
+  nohup sh "$HOME_DIR/righaven" agent >/dev/null 2>&1 &
+}
+
+stop_agent() {
+  pid=$(cat "$DATA/host/agent.pid" 2>/dev/null || true)
+  case "$pid" in ''|*[!0-9]*) ;; *) kill "$pid" 2>/dev/null || true;; esac
+  rm -f "$DATA/host/agent.pid"
+}
+
+usage() {
+  m "Uso: righaven [start|stop|status|logs [servizio]|doctor|bluetooth|remove|version] [--port N] [--bind IP] [--devices /dev/ttyUSB0,...|none] [--name nome] [--matter|--no-matter] [--no-browser] [--yes]" \
+    "Usage: righaven [start|stop|status|logs [service]|doctor|bluetooth|remove|version] [--port N] [--bind IP] [--devices /dev/ttyUSB0,...|none] [--name name] [--matter|--no-matter] [--no-browser] [--yes]"
+}
+
+load_settings
+COMMAND=start; SERVICE=gateway; NO_BROWSER=0; YES=0; CHANGED=0
+while [ $# -gt 0 ]; do
+  case "$1" in
+    start|stop|status|logs|doctor|remove|version|help|bluetooth|wifi|agent) COMMAND=$1;;
+    --port) PORT=${2:?}; CHANGED=1; shift;;
+    --port=*) PORT=${1#*=}; CHANGED=1;;
+    --bind) BIND=${2:?}; CHANGED=1; shift;;
+    --bind=*) BIND=${1#*=}; CHANGED=1;;
+    --devices) DEVICES=${2:?}; CHANGED=1; shift;;
+    --devices=*) DEVICES=${1#*=}; CHANGED=1;;
+    --name) NAME=${2:?}; CHANGED=1; shift;;
+    --name=*) NAME=${1#*=}; CHANGED=1;;
+    --matter) MATTER=1; CHANGED=1;;
+    --no-matter) MATTER=0; CHANGED=1;;
+    --no-browser) NO_BROWSER=1;;
+    --yes|-y) YES=1;;
+    -h|--help) COMMAND=help;;
+    -*) usage >&2; exit 2;;
+    *) if [ "$COMMAND" = logs ]; then SERVICE=$1; else usage >&2; exit 2; fi;;
+  esac
+  shift
+done
+validate
+[ "$CHANGED" = 1 ] && save_settings
+
+case "$COMMAND" in
+  start) start;;
+  stop) stop;;
+  status) status;;
+  logs) need_app; need_docker; dc logs --follow --tail 200 "$SERVICE";;
+  doctor) doctor;;
+  bluetooth) bluetooth;;
+  wifi) wifi;;
+  agent) need_docker; agent;;
+  remove) remove;;
+  version) sed -n 's/^  "version": "\(.*\)",$/RigHaven \1 (linux)/p' "$APP/release.json";;
+  help) usage;;
+esac

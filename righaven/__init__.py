@@ -1,0 +1,1 @@
+"""RigHaven integration for RigHaven."""

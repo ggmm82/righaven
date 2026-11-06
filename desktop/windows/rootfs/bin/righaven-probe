@@ -1,0 +1,11 @@
+#!/bin/sh
+# Diagnosis: the proxy as the relay reaches it, the published port and the listening sockets.
+port=${1:-2026}
+target=$(/usr/local/bin/righaven-proxy-address 2>/dev/null || true)
+echo "proxy on the Docker network: ${target:-not found}"
+[ -n "$target" ] && wget -q -O - -T 5 "http://$target/health/ready" && echo " (ok)"
+echo "published port 127.0.0.1:$port:"
+wget -q -O - -T 5 "http://127.0.0.1:$port/health/ready" && echo " (ok)"
+docker ps --format '{{.Names}} {{.Ports}}' 2>&1 | grep proxy
+netstat -ltn 2>/dev/null | grep ":$port " || echo "nothing listens on :$port"
+[ -n "$target" ] && wget -q -O /dev/null -T 5 "http://$target/health/ready"

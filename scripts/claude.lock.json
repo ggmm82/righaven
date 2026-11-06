@@ -1,0 +1,18 @@
+{
+  "version": "2.1.312",
+  "repository": "https://github.com/anthropics/claude-code",
+  "platforms": {
+    "amd64": {
+      "url": "https://registry.npmjs.org/@anthropic-ai/claude-code-linux-x64/-/claude-code-linux-x64-2.1.312.tgz",
+      "sha256": "f1c3d923ff3ac7e7080b8b9c638833dde72feab15e46940a65a0122d728c6bfd",
+      "size_bytes": 132751486,
+      "member": "package/claude"
+    },
+    "arm64": {
+      "url": "https://registry.npmjs.org/@anthropic-ai/claude-code-linux-arm64/-/claude-code-linux-arm64-2.1.312.tgz",
+      "sha256": "3aa8e624d35e8a77a851e7009b83ae95d3168f24f1afdb0a1ed580a2313d9e5c",
+      "size_bytes": 133294185,
+      "member": "package/claude"
+    }
+  }
+}

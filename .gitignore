@@ -1,0 +1,14 @@
+.env
+/data/
+/runtime/
+__pycache__/
+*.pyc
+reports/
+.venv/
+.pytest_cache/
+*.zip
+pip-metadata-*/
+pip-unpack-*/
+
+# Local smoke-test logs are not release inputs.
+/logs/

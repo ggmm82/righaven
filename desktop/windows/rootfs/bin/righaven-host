@@ -1,0 +1,33 @@
+#!/bin/sh
+# Requests from the RigHaven page for the launcher on the PC, and their results.
+#   righaven-host poll PLATFORM ACTIONS MATTER  heartbeat; prints pending requests (one JSON per line)
+#   righaven-host result ID                     stores the result (JSON on stdin)
+set -eu
+. /usr/local/bin/righaven-common
+base="$APP/host"
+mkdir -p "$base/requests" "$base/running" "$base/results"
+case "${1:-}" in
+  poll)
+    platform=${2:-windows}; actions=${3:-}; matter=${4:-false}
+    case "$platform$actions$matter" in *[!a-z0-9,-]*) exit 2;; esac
+    list=$(printf '%s' "$actions" | sed 's/[^,][^,]*/"&"/g')
+    printf '{"at":%s,"platform":"%s","actions":[%s],"matter":%s}' "$(date +%s)" "$platform" "$list" "$matter" > "$base/heartbeat.json.new"
+    mv "$base/heartbeat.json.new" "$base/heartbeat.json"
+    for request in "$base"/requests/*.json; do
+      [ -f "$request" ] || continue
+      name=$(basename "$request")
+      mv "$request" "$base/running/$name"
+      head -c 4096 "$base/running/$name"; echo
+    done
+    # Results older than a day are removed.
+    find "$base/results" "$base/running" -name '*.json' -mmin +1440 -delete 2>/dev/null || true
+    ;;
+  result)
+    id=${2:-}
+    case "$id" in ''|*[!0-9a-f]*) exit 2;; esac
+    head -c 2000000 > "$base/results/$id.json.new"
+    mv "$base/results/$id.json.new" "$base/results/$id.json"
+    rm -f "$base/running/$id.json"
+    ;;
+  *) echo "Usage: righaven-host poll|result" >&2; exit 2;;
+esac

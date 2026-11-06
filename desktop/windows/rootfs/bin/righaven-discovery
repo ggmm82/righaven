@@ -1,0 +1,25 @@
+#!/bin/sh
+# Store a discovery report from RigHaven.exe (JSON on stdin) where the gateway reads it.
+# Usage: righaven-discovery bluetooth
+set -eu
+. /usr/local/bin/righaven-common
+case "${1:-}" in bluetooth|serial|ble-history|wifi|capture) ;; *) echo "Unknown discovery report" >&2; exit 2;; esac
+mkdir -p "$APP/discovery"
+if [ "$1" = capture ]; then
+  # The last traffic recording (pcapng), at most 256 MiB, for download from the page.
+  head -c 268435456 > "$APP/discovery/capture.pcapng.new"
+  chmod 644 "$APP/discovery/capture.pcapng.new"
+  mv "$APP/discovery/capture.pcapng.new" "$APP/discovery/capture.pcapng"
+  exit 0
+fi
+if [ "$1" = ble-history ]; then
+  # Sensor readings are appended; the history keeps the latest 50000 lines.
+  head -c 1048576 >> "$APP/discovery/ble-history.jsonl"
+  tail -n 50000 "$APP/discovery/ble-history.jsonl" > "$APP/discovery/ble-history.jsonl.new"
+  chmod 644 "$APP/discovery/ble-history.jsonl.new"
+  mv "$APP/discovery/ble-history.jsonl.new" "$APP/discovery/ble-history.jsonl"
+  exit 0
+fi
+head -c 1048576 > "$APP/discovery/$1.json.new"
+chmod 644 "$APP/discovery/$1.json.new"
+mv "$APP/discovery/$1.json.new" "$APP/discovery/$1.json"

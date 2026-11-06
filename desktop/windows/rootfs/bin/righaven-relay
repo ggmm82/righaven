@@ -1,0 +1,10 @@
+#!/bin/sh
+# Carry one connection from RigHaven.exe to the RigHaven proxy at its address on the Docker
+# network: ports published on 127.0.0.1 depend on NAT rules that some WSL kernels do not
+# apply. The port published on 127.0.0.1 remains the fallback.
+port=${1:-2026}
+case "$port" in ''|*[!0-9]*) exit 2;; esac
+target=$(/usr/local/bin/righaven-proxy-address 2>/dev/null || true)
+case "$target" in *[!0-9.:]*|'') target="127.0.0.1:$port";; esac
+if command -v socat >/dev/null 2>&1; then exec socat - "TCP:$target"; fi
+exec nc "${target%:*}" "${target##*:}"

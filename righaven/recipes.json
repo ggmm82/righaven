@@ -1,0 +1,1055 @@
+{
+  "schema_version": 1,
+  "recipes": [
+    {
+      "id": "data-pipeline",
+      "skill": "skill-data-pipeline",
+      "environment": "pipeline-dati",
+      "tools": [
+        "sqlglot",
+        "duckdb",
+        "tbls",
+        "faker",
+        "dlt",
+        "sqlmesh",
+        "supercronic",
+        "hadolint",
+        "shellcheck",
+        "actionlint",
+        "gitleaks"
+      ],
+      "keywords": [
+        "database",
+        "schema",
+        "catalogo",
+        "catalog",
+        "data dictionary",
+        "dizionario dati",
+        "ddl",
+        "etl",
+        "elt",
+        "pipeline",
+        "data warehouse",
+        "warehouse",
+        "replica",
+        "dati di test",
+        "test data",
+        "stub",
+        "power bi",
+        "fabric",
+        "bi",
+        "ingestion",
+        "acquisizione"
+      ],
+      "it": {
+        "title": "Pipeline dati end-to-end",
+        "summary": "Dai documenti a un laboratorio dati, pipeline periodiche, report BI e pacchetto distribuibile verificato.",
+        "when": "Hai la documentazione o un'analisi di un database e vuoi descriverlo, provarlo in locale senza dati reali e impostare acquisizione, trasformazioni e reportistica.",
+        "attach_required": [
+          "Almeno una descrizione dello schema: script DDL (anche solo schema, senza dati), un documento di analisi (PDF, Word, Excel) oppure file di esempio JSON, XML, Parquet o CSV"
+        ],
+        "attach_optional": [
+          "Dizionario dati o glossario con il significato di tabelle e colonne",
+          "Elenco delle tabelle prioritarie",
+          "Esempi dei report o degli indicatori che la BI deve mostrare",
+          "Vincoli di orario o di frequenza (per esempio: aggiornamento ogni notte)"
+        ],
+        "attach_never": [
+          "Credenziali o password di produzione: se serve leggere un database vivo ti chiederò un account in sola lettura da fornire come file privato"
+        ],
+        "questions": [
+          "Su quale database gira la sorgente (PostgreSQL, SQL Server, MySQL/MariaDB, Oracle, solo file)?",
+          "Dove arrivano i dati in produzione (PostgreSQL, SQL Server, Microsoft Fabric)?",
+          "Quale strumento BI usate (Power BI, Metabase, Superset, altro)?",
+          "Ogni quanto vanno acquisiti e trasformati i dati?",
+          "Quante righe per tabella servono nei lotti di prova?"
+        ],
+        "outputs": [
+          "Catalogo dei dati: una pagina per tabella, diagramma delle relazioni, dati personali evidenziati",
+          "Modello dello schema riutilizzabile e script di creazione per ogni database",
+          "Replica locale vuota e dati di prova sintetici in più lotti, coerenti tra loro",
+          "Pacchetto di produzione: acquisizione, trasformazioni, tabelle per la BI, pianificazione, container e guida al rilascio",
+          "Rapporto di verifica: cosa è stato provato, con quali risultati, e cosa resta da provare sui sistemi reali"
+        ],
+        "phases": [
+          {
+            "title": "Comprensione e catalogo",
+            "detail": "Schema documentato, provenienza, descrizioni e domande aperte",
+            "checkpoint": true
+          },
+          {
+            "title": "Progettazione",
+            "detail": "Architettura, indicatori di business, frequenze e regole di acquisizione concordati",
+            "checkpoint": true
+          },
+          {
+            "title": "Laboratorio",
+            "detail": "Database vuoto, servizi e compatibilità con il motore sorgente dichiarata",
+            "checkpoint": false
+          },
+          {
+            "title": "Dati di prova",
+            "detail": "Lotti ripetibili, modifiche, cancellazioni, vincoli e anomalie",
+            "checkpoint": false
+          },
+          {
+            "title": "Pipeline verificata",
+            "detail": "Acquisizioni ripetute, trasformazioni, riconciliazione e recupero degli errori",
+            "checkpoint": true
+          },
+          {
+            "title": "Reportistica",
+            "detail": "Report realmente consultabili, modificabili e con gli indicatori concordati",
+            "checkpoint": true
+          },
+          {
+            "title": "Pacchetto distribuibile",
+            "detail": "Avvio pulito, secondo ciclo, riavvio e guida al rilascio verificati",
+            "checkpoint": true
+          }
+        ],
+        "prerequisites": [
+          "Niente da installare: gli strumenti vengono preparati automaticamente alla prima fase (la prima volta richiede alcuni minuti)",
+          "Per andare in produzione dopo la consegna: un server con Docker oppure un workspace Microsoft Fabric, e un account in sola lettura sulla sorgente"
+        ],
+        "starter": ""
+      },
+      "en": {
+        "title": "End-to-end data pipeline",
+        "summary": "From documents to a data lab, periodic pipelines, BI reports and a verified deployable package.",
+        "when": "You have the documentation or an analysis of a database and want to describe it, try it locally without real data and set up acquisition, transformations and reporting.",
+        "attach_required": [
+          "At least one description of the schema: DDL scripts (schema only, no data), an analysis document (PDF, Word, Excel) or sample JSON, XML, Parquet or CSV files"
+        ],
+        "attach_optional": [
+          "Data dictionary or glossary with the meaning of tables and columns",
+          "List of priority tables",
+          "Examples of the reports or indicators the BI must show",
+          "Time or frequency constraints (for example: refresh every night)"
+        ],
+        "attach_never": [
+          "Production credentials or passwords: if a live database must be read I will ask for a read-only account supplied as a private file"
+        ],
+        "questions": [
+          "Which database does the source run on (PostgreSQL, SQL Server, MySQL/MariaDB, Oracle, files only)?",
+          "Where does the data land in production (PostgreSQL, SQL Server, Microsoft Fabric)?",
+          "Which BI tool do you use (Power BI, Metabase, Superset, other)?",
+          "How often must data be acquired and transformed?",
+          "How many rows per table do the test batches need?"
+        ],
+        "outputs": [
+          "Data catalog: one page per table, relationship diagram, personal data highlighted",
+          "Reusable schema model and creation scripts for each database",
+          "Empty local replica and synthetic test data in several consistent batches",
+          "Production package: acquisition, transformations, BI tables, scheduling, container and release guide",
+          "Verification report: what was tested, with which results, and what remains to be tested on the real systems"
+        ],
+        "phases": [
+          {
+            "title": "Understanding and catalog",
+            "detail": "Documented schema, provenance, descriptions and unresolved questions",
+            "checkpoint": true
+          },
+          {
+            "title": "Design",
+            "detail": "Agreed architecture, KPIs, schedules and extraction semantics",
+            "checkpoint": true
+          },
+          {
+            "title": "Laboratory",
+            "detail": "Empty database, services and explicit source-engine compatibility",
+            "checkpoint": false
+          },
+          {
+            "title": "Test scenarios",
+            "detail": "Deterministic batches, updates, deletes, constraints and anomalies",
+            "checkpoint": false
+          },
+          {
+            "title": "Verified pipeline",
+            "detail": "Repeated ingestion, transformations, reconciliation and recovery",
+            "checkpoint": true
+          },
+          {
+            "title": "Business intelligence",
+            "detail": "Actual editable reports with agreed business measures",
+            "checkpoint": true
+          },
+          {
+            "title": "Deployable package",
+            "detail": "Clean-start, second-run, restart evidence and deployment runbook",
+            "checkpoint": true
+          }
+        ],
+        "prerequisites": [
+          "Nothing to install: tools are prepared automatically at the first phase (a few minutes the first time)",
+          "To go to production after delivery: a server with Docker or a Microsoft Fabric workspace, and a read-only account on the source"
+        ],
+        "starter": ""
+      },
+      "workflow": {
+        "version": 1,
+        "stages": [
+          {
+            "id": "understand",
+            "title": {
+              "it": "Comprensione e catalogo",
+              "en": "Understanding and catalog"
+            },
+            "outcome": {
+              "it": "Schema documentato, provenienza, descrizioni e domande aperte",
+              "en": "Documented schema, provenance, descriptions and unresolved questions"
+            },
+            "depends_on": []
+          },
+          {
+            "id": "design",
+            "title": {
+              "it": "Progettazione",
+              "en": "Design"
+            },
+            "outcome": {
+              "it": "Architettura, indicatori di business, frequenze e regole di acquisizione concordati",
+              "en": "Agreed architecture, KPIs, schedules and extraction semantics"
+            },
+            "depends_on": [
+              "understand"
+            ]
+          },
+          {
+            "id": "lab",
+            "title": {
+              "it": "Laboratorio",
+              "en": "Laboratory"
+            },
+            "outcome": {
+              "it": "Database vuoto, servizi e compatibilità con il motore sorgente dichiarata",
+              "en": "Empty database, services and explicit source-engine compatibility"
+            },
+            "depends_on": [
+              "design"
+            ],
+            "gate": false
+          },
+          {
+            "id": "data",
+            "title": {
+              "it": "Dati di prova",
+              "en": "Test scenarios"
+            },
+            "outcome": {
+              "it": "Lotti ripetibili, modifiche, cancellazioni, vincoli e anomalie",
+              "en": "Deterministic batches, updates, deletes, constraints and anomalies"
+            },
+            "depends_on": [
+              "lab"
+            ],
+            "gate": false
+          },
+          {
+            "id": "pipeline",
+            "title": {
+              "it": "Pipeline verificata",
+              "en": "Verified pipeline"
+            },
+            "outcome": {
+              "it": "Acquisizioni ripetute, trasformazioni, riconciliazione e recupero degli errori",
+              "en": "Repeated ingestion, transformations, reconciliation and recovery"
+            },
+            "depends_on": [
+              "data"
+            ]
+          },
+          {
+            "id": "bi",
+            "title": {
+              "it": "Reportistica",
+              "en": "Business intelligence"
+            },
+            "outcome": {
+              "it": "Report realmente consultabili, modificabili e con gli indicatori concordati",
+              "en": "Actual editable reports with agreed business measures"
+            },
+            "depends_on": [
+              "pipeline"
+            ]
+          },
+          {
+            "id": "package",
+            "title": {
+              "it": "Pacchetto distribuibile",
+              "en": "Deployable package"
+            },
+            "outcome": {
+              "it": "Avvio pulito, secondo ciclo, riavvio e guida al rilascio verificati",
+              "en": "Clean-start, second-run, restart evidence and deployment runbook"
+            },
+            "depends_on": [
+              "bi"
+            ]
+          }
+        ],
+        "policy": {
+          "id": "recipe_data_pipeline",
+          "title": "Pipeline dati: consegna verificata",
+          "version": 1,
+          "summary": "Per le consegne della ricetta pipeline dati: catalogo descritto, replica vuota verificata, dati di prova coerenti, catena locale provata e pacchetto di produzione senza segreti.",
+          "mandatory": false,
+          "rules": [
+            "Distingui struttura osservata nel database, struttura documentata e ipotesi: le relazioni non dichiarate restano documentate, non vincoli.",
+            "Non collegarti a sistemi di produzione senza un account in sola lettura autorizzato dall’utente; nessuna credenziale in modelli, pacchetti, log o lezioni.",
+            "Le colonne con dati personali sono marcate pii e nei dati di prova sono sempre sintetiche.",
+            "Dichiara ciò che il motore di destinazione non applica (per esempio le chiavi su Fabric) e coprilo con audit SQLMesh.",
+            "Consegna i passi di rilascio non eseguiti: lock con hash, digest dell’immagine, credenziali, primo deploy, collegamento dello strumento BI."
+          ],
+          "handoff_checks": [
+            {
+              "id": "model_reviewed",
+              "requirement": "Il modello copre tutte le tabelle documentate e le segnalazioni di issues.md sono risolte o accettate.",
+              "critical": true
+            },
+            {
+              "id": "replica_verified",
+              "requirement": "La replica vuota corrisponde al modello: tabelle, colonne e chiavi primarie senza discrepanze.",
+              "critical": true
+            },
+            {
+              "id": "local_chain_tested",
+              "requirement": "Dati di prova in almeno due lotti senza righe orfane, acquisizione locale e piano SQLMesh applicato con audit.",
+              "critical": true
+            }
+          ],
+          "final_checks": [
+            {
+              "id": "catalog_described",
+              "requirement": "Il catalogo descrive ogni tabella e le colonne rilevanti, con dati personali marcati e diagramma ER.",
+              "critical": true,
+              "method": "content"
+            },
+            {
+              "id": "mart_reconciled",
+              "requirement": "Almeno un totale di un mart è riconciliato con la sorgente di prova, con il valore riportato.",
+              "critical": true,
+              "method": "functional"
+            },
+            {
+              "id": "schedule_valid",
+              "requirement": "Il crontab è valido e i job non si sovrappongono; Dockerfile, script e CI superano i linter o le eccezioni sono motivate.",
+              "critical": true,
+              "method": "technical"
+            },
+            {
+              "id": "package_without_secrets",
+              "requirement": "Il pacchetto di produzione non contiene segreti.",
+              "critical": true,
+              "method": "technical",
+              "probe": "no_secrets"
+            },
+            {
+              "id": "limits_declared",
+              "requirement": "Il runbook elenca i controlli non eseguiti: sistemi reali, volumi, tempi, report BI.",
+              "critical": true,
+              "method": "content"
+            },
+            {
+              "id": "bi_delivered",
+              "requirement": "Actual business report and editable sources open on the synthetic warehouse and reconcile agreed KPIs. BI-ready tables alone do not pass.",
+              "critical": true,
+              "method": "functional"
+            },
+            {
+              "id": "export_started",
+              "requirement": "The exact exported package is built and started independently of RigHaven; a second cycle and restart pass. Preserve command logs and artifact hashes.",
+              "critical": true,
+              "method": "functional"
+            }
+          ],
+          "depends_on": [
+            "quality_standard"
+          ],
+          "applies_to": [
+            "delivery"
+          ]
+        },
+        "guidance": "A DuckDB simulation is not a faithful source-engine replica. Deliver actual BI reports, not just BI tables. The package must run outside RigHaven and pass its own clean-start, second-run and restart tests. Never declare production tested without an authorized target verification."
+      }
+    },
+    {
+      "id": "device-monitoring",
+      "skill": "skill-iot",
+      "skills": [
+        "skill-iot"
+      ],
+      "environment": "iot-embedded",
+      "tools": [
+        "iot",
+        "duckdb",
+        "jupyter",
+        "quarto"
+      ],
+      "keywords": [
+        "iot",
+        "sensori",
+        "sensor",
+        "dispositivi",
+        "device",
+        "mqtt",
+        "modbus",
+        "plc",
+        "telemetria",
+        "telemetry",
+        "monitoraggio",
+        "monitoring",
+        "seriale",
+        "serial",
+        "esp32",
+        "arduino",
+        "firmware",
+        "domotica",
+        "energia",
+        "allarmi",
+        "alert",
+        "android tv",
+        "adb",
+        "obd",
+        "auto",
+        "car",
+        "veicolo",
+        "diagnostica",
+        "elm327"
+      ],
+      "it": {
+        "title": "Monitoraggio dispositivi",
+        "summary": "Leggi sensori e macchine in sicurezza, capisci i dati, imposta soglie e avvisi e, solo se vuoi, intervieni sui dispositivi.",
+        "when": "Hai sensori, PLC, schede ESP o un broker MQTT e vuoi osservarli, capire cosa succede e decidere soglie o interventi.",
+        "attach_required": [
+          "Elenco dei dispositivi da osservare e cosa misurano (anche un foglio o una foto della targhetta)"
+        ],
+        "attach_optional": [
+          "Mappa dei registri Modbus o dei topic MQTT",
+          "Manuali o schede tecniche",
+          "Valori di riferimento o soglie che usate oggi",
+          "Firmware da caricare (.bin) se serve aggiornare una scheda"
+        ],
+        "attach_never": [
+          "Password di dispositivi o broker: si inseriscono in Connessioni, non nella chat"
+        ],
+        "questions": [
+          "Quali decisioni devono uscire dal monitoraggio (avvisi, manutenzione, risparmio)?",
+          "Per quanto tempo vanno osservati i dispositivi?",
+          "Qualcuno deve ricevere gli avvisi? Con quale urgenza?"
+        ],
+        "outputs": [
+          "Campioni di telemetria con riepilogo di qualità (buchi, frequenze, valori)",
+          "Analisi con soglie e regole di avviso provate sui dati",
+          "Cruscotto e report modificabili",
+          "Registro di ogni scrittura o aggiornamento firmware, se autorizzati"
+        ],
+        "phases": [
+          {
+            "title": "Collegamento e campione",
+            "detail": "Dispositivi collegati come connessioni dell’incarico e un primo campione letto senza scrivere",
+            "checkpoint": true
+          },
+          {
+            "title": "Analisi dei dati",
+            "detail": "Qualità del segnale, buchi, valori tipici e anomalie sul campione esteso",
+            "checkpoint": false
+          },
+          {
+            "title": "Regole e soglie",
+            "detail": "Soglie e regole di avviso provate sui dati raccolti, con falsi allarmi stimati",
+            "checkpoint": true
+          },
+          {
+            "title": "Cruscotto e report",
+            "detail": "Cruscotto e report modificabili che si riaprono sui dati raccolti",
+            "checkpoint": true
+          },
+          {
+            "title": "Interventi sul dispositivo",
+            "detail": "Comandi o firmware applicati solo con il tuo consenso, con verifica dell’effetto",
+            "checkpoint": true
+          }
+        ],
+        "prerequisites": [
+          "Una connessione Dispositivo per ogni sensore, broker o porta seriale, in Connessioni",
+          "Per ogni scrittura (comando, firmware, app, riavvio) ti chiederò l’approvazione di quella singola modifica nella scheda dell’incarico"
+        ],
+        "starter": ""
+      },
+      "en": {
+        "title": "Device monitoring",
+        "summary": "Read sensors and machines safely, understand the data, set thresholds and alerts and, only if you want, act on the devices.",
+        "when": "You have sensors, PLCs, ESP boards or an MQTT broker and want to observe them, understand what happens and decide thresholds or interventions.",
+        "attach_required": [
+          "List of the devices to observe and what they measure (a sheet or a photo of the label is fine)"
+        ],
+        "attach_optional": [
+          "Modbus register map or MQTT topics",
+          "Manuals or data sheets",
+          "Reference values or thresholds you use today",
+          "Firmware to load (.bin) if a board must be updated"
+        ],
+        "attach_never": [
+          "Device or broker passwords: enter them in Connections, not in the chat"
+        ],
+        "questions": [
+          "Which decisions must come out of the monitoring (alerts, maintenance, savings)?",
+          "For how long should the devices be observed?",
+          "Should someone receive alerts? How urgently?"
+        ],
+        "outputs": [
+          "Telemetry samples with a quality summary (gaps, rates, values)",
+          "Analysis with thresholds and alert rules tested on the data",
+          "Editable dashboard and report",
+          "Log of every write or firmware update, if allowed"
+        ],
+        "phases": [
+          {
+            "title": "Connection and sample",
+            "detail": "Devices attached as task connections and a first sample read without writing",
+            "checkpoint": true
+          },
+          {
+            "title": "Data analysis",
+            "detail": "Signal quality, gaps, typical values and anomalies on the extended capture",
+            "checkpoint": false
+          },
+          {
+            "title": "Rules and thresholds",
+            "detail": "Thresholds and alert rules tested on the captured data, with estimated false alarms",
+            "checkpoint": true
+          },
+          {
+            "title": "Dashboard and report",
+            "detail": "Editable dashboard and report that reopen on the captured data",
+            "checkpoint": true
+          },
+          {
+            "title": "Device changes",
+            "detail": "Commands or firmware applied only with your consent, with the effect verified",
+            "checkpoint": true
+          }
+        ],
+        "prerequisites": [
+          "One Device connection per sensor, broker or serial port, in Connections",
+          "For each write (command, firmware, app, reboot) I ask your approval of that single change in the task card"
+        ],
+        "starter": ""
+      },
+      "workflow": {
+        "version": 1,
+        "stages": [
+          {
+            "id": "connect",
+            "title": {
+              "it": "Collegamento e campione",
+              "en": "Connection and sample"
+            },
+            "outcome": {
+              "it": "Dispositivi collegati come connessioni dell’incarico e un primo campione letto senza scrivere",
+              "en": "Devices attached as task connections and a first sample read without writing"
+            },
+            "depends_on": []
+          },
+          {
+            "id": "analyse",
+            "title": {
+              "it": "Analisi dei dati",
+              "en": "Data analysis"
+            },
+            "outcome": {
+              "it": "Qualità del segnale, buchi, valori tipici e anomalie sul campione esteso",
+              "en": "Signal quality, gaps, typical values and anomalies on the extended capture"
+            },
+            "depends_on": [
+              "connect"
+            ],
+            "gate": false
+          },
+          {
+            "id": "rules",
+            "title": {
+              "it": "Regole e soglie",
+              "en": "Rules and thresholds"
+            },
+            "outcome": {
+              "it": "Soglie e regole di avviso provate sui dati raccolti, con falsi allarmi stimati",
+              "en": "Thresholds and alert rules tested on the captured data, with estimated false alarms"
+            },
+            "depends_on": [
+              "analyse"
+            ]
+          },
+          {
+            "id": "report",
+            "title": {
+              "it": "Cruscotto e report",
+              "en": "Dashboard and report"
+            },
+            "outcome": {
+              "it": "Cruscotto e report modificabili che si riaprono sui dati raccolti",
+              "en": "Editable dashboard and report that reopen on the captured data"
+            },
+            "depends_on": [
+              "rules"
+            ]
+          },
+          {
+            "id": "act",
+            "title": {
+              "it": "Interventi sul dispositivo",
+              "en": "Device changes"
+            },
+            "outcome": {
+              "it": "Comandi o firmware applicati solo con il tuo consenso, con verifica dell’effetto",
+              "en": "Commands or firmware applied only with your consent, with the effect verified"
+            },
+            "depends_on": [
+              "report"
+            ]
+          }
+        ],
+        "guidance": "Capture before acting. Reading needs no approval; every write (command, firmware, app, reboot, clearing OBD codes) needs the owner approval of that exact change: ask with harness_device_change, end the turn, then run it once exactly as approved and verify the effect. Never put device credentials in files.",
+        "policy": null
+      }
+    },
+    {
+      "id": "iot-urban-simulation",
+      "skill": "skill-iot",
+      "skills": [
+        "skill-iot"
+      ],
+      "environment": "iot-embedded",
+      "tools": [
+        "iot",
+        "duckdb",
+        "jupyter",
+        "quarto"
+      ],
+      "keywords": [
+        "simulazione",
+        "simulation",
+        "smart city",
+        "città",
+        "urbano",
+        "urban",
+        "autobus",
+        "bus",
+        "traffico",
+        "traffic",
+        "raccolta differenziata",
+        "rifiuti",
+        "waste",
+        "parcheggi",
+        "parking",
+        "ipotesi",
+        "hypothesis",
+        "scenario",
+        "iot",
+        "sensori"
+      ],
+      "it": {
+        "title": "Simulazione IoT urbana",
+        "summary": "Prova ipotesi su servizi urbani (autobus, rifiuti, parcheggi, edifici) con sensori simulati prima di installarli.",
+        "when": "Vuoi capire se una rete di sensori o una modifica al servizio darebbe i risultati attesi, senza avere ancora l’hardware.",
+        "attach_required": [
+          "La domanda da verificare e il contesto (area, servizio, periodo)"
+        ],
+        "attach_optional": [
+          "Dati reali anche parziali (conteggi, orari, segnalazioni) per calibrare",
+          "Mappe o elenchi di fermate, cassonetti, parcheggi",
+          "Vincoli di budget o di numero di sensori"
+        ],
+        "attach_never": [
+          "Dati personali dei cittadini: servono solo conteggi aggregati"
+        ],
+        "questions": [
+          "Quale decisione deve supportare la simulazione?",
+          "Quali indicatori dicono che l’ipotesi è vera (per esempio: nessuna fermata oltre 60 passeggeri)?",
+          "Su quale periodo e con quale dettaglio orario?"
+        ],
+        "outputs": [
+          "Scenario modificabile con le ipotesi dichiarate",
+          "Telemetria simulata di base e alternative, riproducibile",
+          "Confronto con indicatori e sensibilità",
+          "Rapporto con conclusioni, limiti e piano di misure reali"
+        ],
+        "phases": [
+          {
+            "title": "Ipotesi e indicatori",
+            "detail": "Domande, ipotesi verificabili e indicatori di successo concordati",
+            "checkpoint": true
+          },
+          {
+            "title": "Scenario e calibrazione",
+            "detail": "Scenario di base con dispositivi, profili orari, guasti ed eventi, e le fonti dei parametri",
+            "checkpoint": true
+          },
+          {
+            "title": "Simulazione",
+            "detail": "Telemetria sintetica dello scenario di base e delle alternative, riproducibile con lo stesso seme",
+            "checkpoint": false
+          },
+          {
+            "title": "Confronto e verifica",
+            "detail": "Ipotesi confermate o smentite con i numeri, e sensibilità ai parametri incerti",
+            "checkpoint": true
+          },
+          {
+            "title": "Rapporto e prossimi passi",
+            "detail": "Rapporto con conclusioni, limiti e piano di misure reali per calibrare",
+            "checkpoint": true
+          }
+        ],
+        "prerequisites": [
+          "Niente da installare: gli strumenti vengono preparati alla prima fase",
+          "Nessun dispositivo necessario: le connessioni servono solo se vuoi calibrare con dati reali"
+        ],
+        "starter": ""
+      },
+      "en": {
+        "title": "Urban IoT simulation",
+        "summary": "Test hypotheses on urban services (buses, waste, parking, buildings) with simulated sensors before installing them.",
+        "when": "You want to know whether a sensor network or a service change would give the expected results, before having the hardware.",
+        "attach_required": [
+          "The question to test and its context (area, service, period)"
+        ],
+        "attach_optional": [
+          "Real data, even partial (counts, timetables, reports) to calibrate",
+          "Maps or lists of stops, bins, parking spaces",
+          "Budget or sensor-count limits"
+        ],
+        "attach_never": [
+          "Personal data of citizens: only aggregated counts are needed"
+        ],
+        "questions": [
+          "Which decision should the simulation support?",
+          "Which indicators say the hypothesis holds (for example: no stop above 60 passengers)?",
+          "Over which period and with which hourly detail?"
+        ],
+        "outputs": [
+          "Editable scenario with declared assumptions",
+          "Reproducible simulated telemetry for the baseline and the alternatives",
+          "Comparison with indicators and sensitivity",
+          "Report with conclusions, limits and a plan of real measurements"
+        ],
+        "phases": [
+          {
+            "title": "Hypotheses and indicators",
+            "detail": "Agreed questions, testable hypotheses and success indicators",
+            "checkpoint": true
+          },
+          {
+            "title": "Scenario and calibration",
+            "detail": "Baseline scenario with devices, hourly profiles, failures and events, and where each parameter comes from",
+            "checkpoint": true
+          },
+          {
+            "title": "Simulation",
+            "detail": "Synthetic telemetry of the baseline and the alternatives, reproducible with the same seed",
+            "checkpoint": false
+          },
+          {
+            "title": "Comparison and verification",
+            "detail": "Hypotheses confirmed or rejected with numbers, and sensitivity to uncertain parameters",
+            "checkpoint": true
+          },
+          {
+            "title": "Report and next steps",
+            "detail": "Report with conclusions, limits and a plan of real measurements to calibrate",
+            "checkpoint": true
+          }
+        ],
+        "prerequisites": [
+          "Nothing to install: tools are prepared at the first phase",
+          "No device needed: connections only if you want to calibrate with real data"
+        ],
+        "starter": ""
+      },
+      "workflow": {
+        "version": 1,
+        "stages": [
+          {
+            "id": "hypotheses",
+            "title": {
+              "it": "Ipotesi e indicatori",
+              "en": "Hypotheses and indicators"
+            },
+            "outcome": {
+              "it": "Domande, ipotesi verificabili e indicatori di successo concordati",
+              "en": "Agreed questions, testable hypotheses and success indicators"
+            },
+            "depends_on": []
+          },
+          {
+            "id": "scenario",
+            "title": {
+              "it": "Scenario e calibrazione",
+              "en": "Scenario and calibration"
+            },
+            "outcome": {
+              "it": "Scenario di base con dispositivi, profili orari, guasti ed eventi, e le fonti dei parametri",
+              "en": "Baseline scenario with devices, hourly profiles, failures and events, and where each parameter comes from"
+            },
+            "depends_on": [
+              "hypotheses"
+            ]
+          },
+          {
+            "id": "simulate",
+            "title": {
+              "it": "Simulazione",
+              "en": "Simulation"
+            },
+            "outcome": {
+              "it": "Telemetria sintetica dello scenario di base e delle alternative, riproducibile con lo stesso seme",
+              "en": "Synthetic telemetry of the baseline and the alternatives, reproducible with the same seed"
+            },
+            "depends_on": [
+              "scenario"
+            ],
+            "gate": false
+          },
+          {
+            "id": "compare",
+            "title": {
+              "it": "Confronto e verifica",
+              "en": "Comparison and verification"
+            },
+            "outcome": {
+              "it": "Ipotesi confermate o smentite con i numeri, e sensibilità ai parametri incerti",
+              "en": "Hypotheses confirmed or rejected with numbers, and sensitivity to uncertain parameters"
+            },
+            "depends_on": [
+              "simulate"
+            ]
+          },
+          {
+            "id": "report",
+            "title": {
+              "it": "Rapporto e prossimi passi",
+              "en": "Report and next steps"
+            },
+            "outcome": {
+              "it": "Rapporto con conclusioni, limiti e piano di misure reali per calibrare",
+              "en": "Report with conclusions, limits and a plan of real measurements to calibrate"
+            },
+            "depends_on": [
+              "compare"
+            ]
+          }
+        ],
+        "guidance": "Simulated telemetry tests the analysis and the hypotheses, not reality. Keep the scenario JSON as a source, use the same seed for baseline and alternatives, and list the parameters to calibrate with real measurements.",
+        "policy": null
+      }
+    },
+    {
+      "id": "network-assessment",
+      "skill": "skill-netscan",
+      "skills": [
+        "skill-netscan"
+      ],
+      "environment": "network-security",
+      "tools": [
+        "netscan",
+        "zap",
+        "duckdb",
+        "quarto"
+      ],
+      "keywords": [
+        "rete",
+        "network",
+        "sicurezza",
+        "security",
+        "vulnerabilità",
+        "vulnerability",
+        "nmap",
+        "porte",
+        "ports",
+        "inventario",
+        "inventory",
+        "mappa",
+        "map",
+        "tls",
+        "audit",
+        "scansione",
+        "scan",
+        "pentest"
+      ],
+      "it": {
+        "title": "Valutazione di sicurezza della rete",
+        "summary": "Mappa la tua rete, scopri cosa è esposto e trova vulnerabilità note con verifiche non intrusive che approvi tu una per una.",
+        "when": "Vuoi sapere quali dispositivi e servizi ci sono nella tua rete di casa o d’ufficio e se espongono problemi noti.",
+        "attach_required": [
+          "Le reti da verificare (per esempio 192.168.1.0/24) e la conferma che sono tue o che hai l’autorizzazione scritta"
+        ],
+        "attach_optional": [
+          "Elenco dei dispositivi che ti aspetti di trovare",
+          "Indirizzi da escludere (per esempio apparecchi medicali o macchine di produzione)",
+          "Orari in cui le verifiche non devono disturbare"
+        ],
+        "attach_never": [
+          "Password di dispositivi o servizi: non servono per queste verifiche",
+          "Reti di terzi senza autorizzazione scritta"
+        ],
+        "questions": [
+          "Quali dispositivi o servizi sono più importanti da proteggere?",
+          "Ci sono apparecchi delicati da escludere?",
+          "Le verifiche possono girare in orario di lavoro?"
+        ],
+        "outputs": [
+          "Inventario degli host e dei servizi con la mappa della rete",
+          "Elenco dei servizi esposti da rivedere",
+          "Vulnerabilità e debolezze TLS trovate, con prove e gravità",
+          "Rapporto con correzioni e piano di nuova verifica"
+        ],
+        "phases": [
+          {
+            "title": "Perimetro e autorizzazione",
+            "detail": "Reti da verificare, esclusioni, finestre orarie e conferma che sono tue o autorizzate per iscritto",
+            "checkpoint": true
+          },
+          {
+            "title": "Inventario e mappa",
+            "detail": "Host attivi, porte aperte, servizi e mappa della rete, con i servizi da guardare per primi",
+            "checkpoint": true
+          },
+          {
+            "title": "Verifica delle vulnerabilità",
+            "detail": "Scansioni non intrusive approvate da te una per una, con risultati e prove",
+            "checkpoint": false
+          },
+          {
+            "title": "Rapporto e correzioni",
+            "detail": "Rischi per priorità, correzioni concrete e piano di verifica dopo le correzioni",
+            "checkpoint": true
+          }
+        ],
+        "prerequisites": [
+          "Una connessione Rete in Connessioni con gli intervalli da verificare e la conferma di autorizzazione",
+          "Per le verifiche di vulnerabilità: consenti le scansioni attive sulla connessione e approva ogni scansione nella scheda dell’incarico"
+        ],
+        "starter": ""
+      },
+      "en": {
+        "title": "Network security assessment",
+        "summary": "Map your network, find out what is exposed and look for known vulnerabilities with non-intrusive checks you approve one by one.",
+        "when": "You want to know which devices and services are on your home or office network and whether they expose known problems.",
+        "attach_required": [
+          "The networks to check (for example 192.168.1.0/24) and confirmation that they are yours or that you have written authorization"
+        ],
+        "attach_optional": [
+          "List of the devices you expect to find",
+          "Addresses to exclude (for example medical devices or production machines)",
+          "Hours when checks must not disturb"
+        ],
+        "attach_never": [
+          "Device or service passwords: these checks do not need them",
+          "Third-party networks without written authorization"
+        ],
+        "questions": [
+          "Which devices or services matter most?",
+          "Are there delicate devices to exclude?",
+          "May the checks run during working hours?"
+        ],
+        "outputs": [
+          "Inventory of hosts and services with the network map",
+          "List of exposed services to review",
+          "Vulnerabilities and TLS weaknesses found, with evidence and severity",
+          "Report with fixes and a re-check plan"
+        ],
+        "phases": [
+          {
+            "title": "Scope and authorization",
+            "detail": "Networks to check, exclusions, time windows and confirmation that they are yours or authorized in writing",
+            "checkpoint": true
+          },
+          {
+            "title": "Inventory and map",
+            "detail": "Active hosts, open ports, services and the network map, with the services to look at first",
+            "checkpoint": true
+          },
+          {
+            "title": "Vulnerability assessment",
+            "detail": "Non-intrusive scans you approve one by one, with results and evidence",
+            "checkpoint": false
+          },
+          {
+            "title": "Report and fixes",
+            "detail": "Risks by priority, concrete fixes and a plan to re-check after fixing",
+            "checkpoint": true
+          }
+        ],
+        "prerequisites": [
+          "A Network connection in Connections with the ranges to check and the authorization confirmation",
+          "For vulnerability checks: allow active scans on the connection and approve each scan in the task card"
+        ],
+        "starter": ""
+      },
+      "workflow": {
+        "version": 1,
+        "stages": [
+          {
+            "id": "scope",
+            "title": {
+              "it": "Perimetro e autorizzazione",
+              "en": "Scope and authorization"
+            },
+            "outcome": {
+              "it": "Reti da verificare, esclusioni, finestre orarie e conferma che sono tue o autorizzate per iscritto",
+              "en": "Networks to check, exclusions, time windows and confirmation that they are yours or authorized in writing"
+            },
+            "depends_on": []
+          },
+          {
+            "id": "inventory",
+            "title": {
+              "it": "Inventario e mappa",
+              "en": "Inventory and map"
+            },
+            "outcome": {
+              "it": "Host attivi, porte aperte, servizi e mappa della rete, con i servizi da guardare per primi",
+              "en": "Active hosts, open ports, services and the network map, with the services to look at first"
+            },
+            "depends_on": [
+              "scope"
+            ]
+          },
+          {
+            "id": "assessment",
+            "title": {
+              "it": "Verifica delle vulnerabilità",
+              "en": "Vulnerability assessment"
+            },
+            "outcome": {
+              "it": "Scansioni non intrusive approvate da te una per una, con risultati e prove",
+              "en": "Non-intrusive scans you approve one by one, with results and evidence"
+            },
+            "depends_on": [
+              "inventory"
+            ],
+            "gate": false
+          },
+          {
+            "id": "report",
+            "title": {
+              "it": "Rapporto e correzioni",
+              "en": "Report and fixes"
+            },
+            "outcome": {
+              "it": "Rischi per priorità, correzioni concrete e piano di verifica dopo le correzioni",
+              "en": "Risks by priority, concrete fixes and a plan to re-check after fixing"
+            },
+            "depends_on": [
+              "assessment"
+            ]
+          }
+        ],
+        "policy": null,
+        "guidance": "Scan only the networks of the task connection. Mapping needs no approval; every vulnerability scan needs the owner approval of its exact targets and profile: ask with harness_device_change (action scan), end the turn, then run it once. Never exploit, brute force or disrupt services."
+      }
+    }
+  ]
+}

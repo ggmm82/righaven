@@ -1,0 +1,67 @@
+name: Verify integrated editors
+on:
+  pull_request:
+    paths:
+      - 'righaven/editor*'
+      - 'righaven/project_files.py'
+      - 'frontend/editor*'
+      - 'frontend/project-files.tsx'
+      - 'frontend/delegate-progress.tsx'
+      - 'scripts/check_editor*'
+      - 'scripts/check_build_ui.py'
+      - 'core/frontend/src/app/workspace/page.tsx'
+      - '.github/workflows/verify-editors.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: editors-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  notebook-service:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install uv==0.11.1
+      - name: Install the native Gateway SDK used by the proxy
+        env:
+          UV_PROJECT_ENVIRONMENT: /tmp/rh-editor-sdk
+        run: uv sync --project core/backend --locked --no-default-groups --group extensions --extra redis
+      - run: uv pip install --python /tmp/rh-editor-sdk/bin/python playwright==1.64.1
+      - run: /tmp/rh-editor-sdk/bin/python -m playwright install --with-deps chromium
+      - run: docker pull python:3.12-slim-bookworm
+      - name: Actual notebook HTTP, save, kernel WebSocket and cleanup
+        env:
+          PYTHONPATH: .:core/backend
+        run: /tmp/rh-editor-sdk/bin/python scripts/check_editor_service.py
+  browser-editors:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: pip install -r requirements-dev.txt playwright==1.64.1
+      - run: python -m playwright install --with-deps chromium
+      - run: python scripts/check_editor_bridge.py
+      - run: npm install --prefix /tmp/rh-editor-ui --no-audit --no-fund react@19.2.4 react-dom@19.2.4 esbuild@0.25.12 @uiw/react-codemirror@4.25.4 lucide-react@0.562.0
+      - run: python scripts/check_build_ui.py --node-modules /tmp/rh-editor-ui/node_modules
+      - name: Real workspace, draft conflicts and upstream WordCraft/PhotoCraft round trips
+        env:
+          PYTHONPATH: .
+        run: python scripts/check_editor_ui.py --node-modules /tmp/rh-editor-ui/node_modules --craft
+      - name: Capture failed native editor checks
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: editor-browser-diagnostics
+          path: /tmp/righaven-editor-*.png
+          if-no-files-found: ignore

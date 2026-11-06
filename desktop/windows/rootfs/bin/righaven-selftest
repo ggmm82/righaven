@@ -1,0 +1,17 @@
+#!/bin/sh
+# --static: files and tools are in place (image build). Without it: also start the engine
+# and validate the installed Compose (CI smoke test, run in a privileged container).
+set -eu
+for tool in docker dockerd tar od mount socat; do command -v "$tool" >/dev/null || { echo "missing $tool" >&2; exit 1; }; done
+docker compose version >/dev/null
+for script in common dockerd install start stop status logs home hold relay probe proxy-address refresh discovery serial-bridge host; do [ -x "/usr/local/bin/righaven-$script" ]; done
+grep -q 'appendWindowsPath = false' /etc/wsl.conf
+[ "${1:-}" = --static ] && { echo "static ok"; exit 0; }
+. /usr/local/bin/righaven-common
+righaven-dockerd
+$COMPOSE config --quiet
+image=$(sed -n 's/^    image: \(docker:.*-dind@.*\)$/\1/p' "$APP/compose.yaml" | head -1)
+# The nested runtime of the release must start inside this engine, as on the server.
+docker run --rm --privileged --entrypoint sh "$image" -c \
+  'dockerd --host=unix:///tmp/rt.sock >/tmp/rt.log 2>&1 & for i in $(seq 1 60); do DOCKER_HOST=unix:///tmp/rt.sock docker info >/dev/null 2>&1 && exit 0; sleep 1; done; tail -n 20 /tmp/rt.log; exit 1'
+echo "runtime ok"

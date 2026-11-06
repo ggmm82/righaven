@@ -1,0 +1,4 @@
+#!/bin/sh
+# Address of the RigHaven proxy on the Docker network, as ip:2026 (empty when not running).
+address=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}} {{end}}' righaven-proxy-1 2>/dev/null | cut -d' ' -f1)
+[ -n "$address" ] && echo "$address:2026"

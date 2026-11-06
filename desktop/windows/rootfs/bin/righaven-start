@@ -1,0 +1,37 @@
+#!/bin/sh
+# Start the engine, download the release images when missing, start RigHaven and wait until it is ready.
+set -eu
+. /usr/local/bin/righaven-common
+[ -s "$APP/compose.yaml" ] || { echo "RigHaven is not installed in this distribution" >&2; exit 2; }
+righaven-dockerd
+# Download only the images that are missing (first start, or a new version), one by one.
+missing=""
+for image in $($COMPOSE config --images | sort -u); do
+  docker image inspect "$image" >/dev/null 2>&1 || missing="$missing $image"
+done
+total=$(echo $missing | wc -w)
+if [ "$total" -gt 0 ]; then
+  say "@@step images $total"
+  n=0
+  for image in $missing; do
+    n=$((n + 1))
+    name=${image%%@*}; name=${name##*/}; name=${name%%:*}
+    say "@@pull $n $total $name"
+    docker pull --quiet "$image" >/dev/null
+  done
+fi
+say "@@step start"
+# Installations created before the fixed RigHaven network are recreated once (data stays in volumes).
+subnet=$(docker network inspect righaven_default -f '{{range .IPAM.Config}}{{.Subnet}}{{end}}' 2>/dev/null || true)
+if [ -n "$subnet" ] && [ "$subnet" != 172.30.42.0/24 ]; then
+  $COMPOSE down --remove-orphans >/dev/null 2>&1 || true
+  docker network rm righaven_default >/dev/null 2>&1 || true
+fi
+if ! $COMPOSE up -d --wait --wait-timeout 900; then
+  $COMPOSE ps >&2 || true
+  $COMPOSE logs --tail 60 gateway >&2 || true
+  exit 1
+fi
+# Images of earlier versions are no longer used by any container: free the space.
+docker image prune --all --force >/dev/null 2>&1 || true
+say "@@ready"

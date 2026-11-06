@@ -1,0 +1,3 @@
+#!/bin/sh
+# Print the Windows folder of the portable copy that owns this distribution.
+cat /opt/righaven/home.txt 2>/dev/null || true

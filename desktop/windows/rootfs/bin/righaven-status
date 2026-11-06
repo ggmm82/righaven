@@ -1,0 +1,6 @@
+#!/bin/sh
+# Print the installed release and the state of each service.
+set -u
+. /usr/local/bin/righaven-common
+sed -n 's/^  "version": "\(.*\)",$/version \1/p' "$APP/release.json" 2>/dev/null
+if docker info >/dev/null 2>&1; then $COMPOSE ps --format 'table {{.Service}}\t{{.Status}}'; else say "engine stopped"; fi
