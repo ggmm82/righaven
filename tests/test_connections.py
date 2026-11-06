@@ -499,14 +499,20 @@ class ConnectionTests(unittest.TestCase):
     def test_devices_next_to_an_agent_reach_workers_through_a_tunnel(self):
         from righaven import agents
         with patch.object(agents, 'owned', side_effect=lambda user, agent: {'id': agent} if user == 'alice' else (_ for _ in ()).throw(ValueError('Agente non trovato'))):
-            com = connections.save('alice', {'id': 'obd', 'kind': 'device', 'name': 'OBD', 'transport': 'agent', 'agent': 'ag_0123456789ab', 'device': 'com5', 'baud': 38400})
-            home = connections.save('alice', {'id': 'presa', 'kind': 'device', 'name': 'Presa', 'transport': 'agent', 'agent': 'ag_0123456789ab',
+            com = connections.save('alice', {'id': 'obd', 'kind': 'device', 'name': 'OBD', 'transport': 'serial', 'agent': 'ag_0123456789ab', 'device': 'com5', 'baud': 38400})
+            home = connections.save('alice', {'id': 'presa', 'kind': 'device', 'name': 'Presa', 'transport': 'network', 'agent': 'ag_0123456789ab',
                                               'host': '192.168.1.44', 'protocol': 'http'})
+            named = connections.save('alice', {'id': 'plc', 'kind': 'device', 'name': 'PLC', 'transport': 'network', 'agent': 'ag_0123456789ab',
+                                               'host': 'plc01.fabbrica.local', 'protocol': 'modbus-tcp'})
             with self.assertRaises(ValueError):
-                connections.save('bob', {'id': 'x', 'kind': 'device', 'name': 'X', 'transport': 'agent', 'agent': 'ag_0123456789ab', 'device': 'COM5'})
-            with self.assertRaises(ValueError):
-                connections.save('alice', {'id': 'y', 'kind': 'device', 'name': 'Y', 'transport': 'agent', 'agent': 'ag_0123456789ab', 'host': '8.8.8.8', 'protocol': 'http'})
-        self.assertEqual((com['device'], home['port']), ('COM5', 80))
+                connections.save('bob', {'id': 'x', 'kind': 'device', 'name': 'X', 'transport': 'serial', 'agent': 'ag_0123456789ab', 'device': 'COM5'})
+            for wrong in ({'transport': 'network', 'host': '8.8.8.8', 'protocol': 'http'}, {'transport': 'local', 'device': '/dev/ttyUSB0'},
+                          {'transport': 'serial', 'device': '/dev/ttyUSB0'}, {'transport': 'network', 'host': '192.168.1.5', 'protocol': 'matter', 'node_id': 3}):
+                with self.assertRaises(ValueError):
+                    connections.save('alice', {'id': 'y', 'kind': 'device', 'name': 'Y', 'agent': 'ag_0123456789ab', **wrong})
+        self.assertEqual((com['device'], home['port'], named['port']), ('COM5', 80, 502))
+        self.assertEqual({(r['id'], r['location'], r['pc']) for r in (com, home, named)},
+                         {('obd', 'on_premise', 'ag_0123456789ab'), ('presa', 'on_premise', 'ag_0123456789ab'), ('plc', 'on_premise', 'ag_0123456789ab')})
         record = connections._read('alice', 'obd')
         with patch('righaven.agent_hub.tunnel', return_value=('172.18.0.5', 42000)) as tunnel:
             serial = connections.through_agent(record)
@@ -515,6 +521,20 @@ class ConnectionTests(unittest.TestCase):
         tunnel.assert_any_call('ag_0123456789ab', 'tcp:192.168.1.44:80')
         self.assertEqual(connections.device_file(serial)['url'], 'socket://172.18.0.5:42000')
         self.assertEqual(connections.device_file(network)['url'], 'http://172.18.0.5:42000/')
+
+    def test_every_connection_says_whether_it_is_cloud_or_on_premise(self):
+        place = lambda record: connections.location({'kind': 'postgres', **record})
+        self.assertEqual(place({'host': 'db.example.org'}), ('cloud', ''))
+        self.assertEqual(place({'host': 'vendite.database.windows.net', 'kind': 'sqlserver'}), ('cloud', ''))
+        for host in ('192.168.1.20', '10.0.0.4', 'sql01', 'sql01.office.local', 'nas.lan', 'printer.home.arpa'):
+            self.assertEqual(place({'host': host}), ('on_premise', ''), host)
+        self.assertEqual(place({'host': 'sql01.office.local', 'agent': 'ag_0123456789ab'}), ('on_premise', 'ag_0123456789ab'))
+        self.assertEqual(place({'kind': 'entra'}), ('cloud', ''))
+        self.assertEqual(place({'kind': 'device', 'transport': 'local', 'device': '/dev/ttyUSB0'}), ('on_premise', ''))
+        self.assertEqual(place({'kind': 'device', 'transport': 'network', 'host': 'broker.hivemq.com'}), ('cloud', ''))
+        self.assertEqual(place({'kind': 'network', 'ranges': ['192.168.1.0/24']}), ('on_premise', ''))
+        self.assertEqual(place({'kind': 'network', 'ranges': ['8.8.8.0/24']}), ('cloud', ''))
+
     def test_on_premise_databases_go_through_the_owners_agent(self):
         from righaven import agents
         owned = patch.object(agents, 'owned', side_effect=lambda user, agent: {'id': agent} if user == 'alice' else (_ for _ in ()).throw(ValueError('Agente non trovato')))

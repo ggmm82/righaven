@@ -8,7 +8,11 @@ import {useI18n} from "@/core/i18n/hooks";
 
 type ProviderAccess={id:string;name:string;scope:string;status:string;manage_url:string};
 type Kind="postgres"|"sqlserver"|"mysql"|"oracle"|"entra"|"device"|"network";
-type Transport="network"|"serial"|"local"|"bluetooth"|"agent";
+type Transport="network"|"serial"|"local"|"bluetooth";
+/** Where a service lives: "cloud" (the internet), "server" (the network or the machine of this server), or the ID of an agent of this user (on premise, through that PC). */
+type Place=string;
+const agentOf=(place:Place)=>place==="cloud"||place==="server"?"":place;
+const placeOf=(r:Connection):Place=>r.agent??(r.location==="on_premise"?"server":"cloud");
 type Agent={id:string;name:string;platform?:string;version?:string;last_seen?:string|null;online:boolean;networks?:string[]};
 /** The PC the device sections act on: "" for the PC of this server (administrators), or an agent of this user. */
 const PcContext=createContext("");
@@ -17,19 +21,19 @@ type Test={ok:boolean;detail:string;at:string};
 type Connection={id:string;kind:Kind;name:string;description?:string;host?:string;port?:number;database?:string;username?:string;tls?:boolean;read_only?:boolean;
  authentication?:"password"|"entra"|"microsoft";entra_connection?:string;tenant_id?:string;client_id?:string;cloud?:string;has_secret:boolean;tools:string[];last_test?:Test;updated_at?:string;
  mode?:"user"|"application";signed_in?:boolean;account?:string;write_enabled?:boolean;write_schema?:string;
- transport?:Transport;protocol?:string;device?:string;topic?:string;path?:string;unit?:number;baud?:number;ranges?:string[];exclude?:string[];address?:string;agent?:string};
+ transport?:Transport;protocol?:string;device?:string;topic?:string;path?:string;unit?:number;baud?:number;ranges?:string[];exclude?:string[];address?:string;agent?:string;location?:"cloud"|"on_premise";pc?:string};
 type SignIn={id:string;user_code:string;verification_uri:string;interval:number;status:string;detail?:string};
 type Form={id:string;kind:Kind;name:string;description:string;host:string;port:string;database:string;username:string;password:string;tls:boolean;read_only:boolean;
  authentication:"password"|"entra"|"microsoft";entra_connection:string;tenant_id:string;client_id:string;client_secret:string;cloud:string;mode:"user"|"application";access:"read"|"write";write_schema:string;
- transport:Transport;protocol:string;device:string;topic:string;path:string;unit:string;baud:string;ranges:string;exclude:string;authorized:boolean;version:string;node_id:string;address:string;agent:string;via:"com"|"network"};
+ transport:Transport;protocol:string;device:string;topic:string;path:string;unit:string;baud:string;ranges:string;exclude:string;authorized:boolean;version:string;node_id:string;address:string;place:Place};
 
 const PORTS:Record<Kind,string>={postgres:"5432",sqlserver:"1433",mysql:"3306",oracle:"1521",entra:"",device:"",network:""};
 const DEVICE_PORTS:Record<string,string>={mqtt:"1883",mqtts:"8883","modbus-tcp":"502",http:"80",https:"443",adb:"5555",tuya:"6668",tcp:""};
 const LABELS:Record<Kind,string>={postgres:"PostgreSQL",sqlserver:"SQL Server / Azure SQL / Fabric",mysql:"MySQL / MariaDB",oracle:"Oracle",entra:"Microsoft Entra ID",device:"IoT",network:"Network"};
 const DEFAULT_CLIENT="04b07795-8ddb-461a-bbee-02f9e1bf7b46";
-const blank=(kind:Kind):Form=>({id:"",kind,name:"",description:"",host:"",port:PORTS[kind],database:"",username:"",password:"",tls:true,read_only:false,
+const blank=(kind:Kind,place:Place="cloud"):Form=>({id:"",kind,name:"",description:"",host:"",port:PORTS[kind],database:"",username:"",password:"",tls:true,read_only:false,
  authentication:kind==="sqlserver"?"microsoft":"password",entra_connection:"",tenant_id:"",client_id:"",client_secret:"",cloud:"public",mode:"user",access:"read",write_schema:"",
- transport:"network",protocol:"mqtt",device:"",topic:"#",path:"/",unit:"1",baud:"115200",ranges:"",exclude:"",authorized:false,version:"3.3",node_id:"",address:"",agent:"",via:"network"});
+ transport:"network",protocol:"mqtt",device:"",topic:"#",path:"/",unit:"1",baud:"115200",ranges:"",exclude:"",authorized:false,version:"3.3",node_id:"",address:"",place});
 const slug=(text:string)=>text.normalize("NFD").replace(/\p{M}/gu,"").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"").replace(/^([^a-z])/,"c-$1").slice(0,40);
 
 /** Personal database, Microsoft cloud and device connections; secrets are encrypted and never shown again. */
@@ -44,19 +48,27 @@ export default function ConnectionsPage(){
   return()=>{live=false;};},[base,reload]);
  const [providers,setProviders]=useState<ProviderAccess[]>([]),[devices,setDevices]=useState<string[]>([]),[hostEpoch,setHostEpoch]=useState(0);
  const [agents,setAgents]=useState<Agent[]>([]),[pc,setPcState]=useState(()=>{try{return localStorage.getItem("righaven.pc")??"";}catch{return "";}});
+ const [newPlace,setNewPlace]=useState<Place>("");
+ const placeLabel=(place:Place)=>place==="cloud"?t("Cloud (internet)","Cloud (internet)"):place==="server"?t("On premise · rete o macchina di questo server","On premise · network or machine of this server")
+  :t("On premise · tramite ","On premise · through ")+(agents.find(a=>a.id===place)?.name??place);
+ const places:Place[]=["cloud","server",...agents.map(a=>a.id)];
+ // What is found near a PC is on premise: next to the PC being worked on (an agent), or next to this server.
+ const found=(value:Form)=>{setEditing(null);setNotice("");
+  const nearAgent=pc&&value.protocol!=="matter"&&value.transport!=="local"&&!(value.transport==="serial"&&value.host);
+  setForm({...value,place:value.place!=="cloud"?value.place:nearAgent?pc:"server"});};
  const setPc=(value:string)=>{setPcState(value);try{localStorage.setItem("righaven.pc",value);}catch{/* the choice is only remembered when the browser allows it */}};
  const kindLabel=(k:Kind)=>k==="device"?t("Dispositivo (rete, seriale, USB)","Device (network, serial, USB)"):k==="network"?t("Rete da mappare","Network to map"):LABELS[k];
  useEffect(()=>{let live=true;void fetch(`${getBackendBaseURL()}/api/harness/access-catalog`).then(async r=>{if(!r.ok)throw Error(String(r.status));return r.json() as Promise<{providers:ProviderAccess[]}>;}).then(v=>{if(live)setProviders(v.providers);}).catch(()=>undefined);return()=>{live=false;};},[]);
  const entras=(rows??[]).filter(r=>r.kind==="entra");
  function edit(row:Connection){setEditing(row.id);setNotice("");setError("");
   setForm({...blank(row.kind),...Object.fromEntries(Object.entries(row).filter(([,v])=>typeof v==="string"||typeof v==="boolean")),port:String(row.port??PORTS[row.kind]),password:"",client_secret:"",access:row.write_enabled?"write":"read",write_schema:row.write_schema??"",
-   unit:String(row.unit??1),baud:String(row.baud??115200),via:row.transport==="agent"&&row.device?"com":"network",ranges:(row.ranges??[]).join(", "),exclude:(row.exclude??[]).join(", "),authorized:row.kind==="network"} as Form);}
+   unit:String(row.unit??1),baud:String(row.baud??115200),place:row.agent??(row.location==="on_premise"?"server":"cloud"),ranges:(row.ranges??[]).join(", "),exclude:(row.exclude??[]).join(", "),authorized:row.kind==="network"} as Form);}
  async function save(){if(!form)return;setBusy("save");setError("");setNotice("");
   const body:Record<string,unknown>={kind:form.kind,name:form.name,description:form.description};
   if(!editing)body.id=slug(form.id)||slug(form.name);
   if(form.kind==="network")Object.assign(body,{ranges:form.ranges.split(/[\s,;]+/).filter(Boolean),exclude:form.exclude.split(/[\s,;]+/).filter(Boolean),authorized:form.authorized,access:form.access});
-  else if(form.kind==="device")Object.assign(body,{transport:form.transport,access:form.access,...(form.transport==="agent"?{agent:form.agent}:{}),
-   ...(form.transport==="agent"&&form.via==="com"?{device:form.device,baud:Number(form.baud)}
+  else if(form.kind==="device")Object.assign(body,{transport:form.transport,access:form.access,agent:agentOf(form.place),
+   ...(form.transport==="serial"&&agentOf(form.place)?{device:form.device,baud:Number(form.baud)}
     :form.transport==="bluetooth"?{address:form.address}
     :form.transport==="local"?{device:form.device,baud:Number(form.baud)}
     :form.transport==="serial"?{host:form.host,port:Number(form.port),baud:Number(form.baud),protocol:form.protocol==="socket"?"socket":"rfc2217"}
@@ -64,7 +76,7 @@ export default function ConnectionsPage(){
       ...(form.protocol==="mqtt"?{topic:form.topic}:form.protocol==="http"?{path:form.path}:form.protocol==="modbus-tcp"?{unit:Number(form.unit)}:form.protocol==="tuya"?{version:form.version}:form.protocol==="matter"?{node_id:Number(form.node_id)}:{})})});
   else if(form.kind==="entra")Object.assign(body,{mode:form.mode,tenant_id:form.tenant_id,client_id:form.mode==="user"&&form.client_id===DEFAULT_CLIENT?"":form.client_id,cloud:form.cloud,...(form.mode==="application"&&form.client_secret?{client_secret:form.client_secret}:{})});
   else Object.assign(body,{host:form.host,port:Number(form.port),database:form.database,tls:form.tls,read_only:form.read_only,access:form.access,write_schema:form.access==="write"?form.write_schema:"",
-   agent:form.agent,authentication:form.kind==="sqlserver"?(form.agent?"password":form.authentication):"password",
+   agent:agentOf(form.place),authentication:form.kind==="sqlserver"?(agentOf(form.place)?"password":form.authentication):"password",
    ...(form.authentication==="entra"&&form.kind==="sqlserver"?{entra_connection:form.entra_connection}
     :form.authentication==="microsoft"&&form.kind==="sqlserver"?{username:form.username,tenant_id:form.tenant_id}
     :{username:form.username,...(form.password?{password:form.password}:{})})});
@@ -100,8 +112,8 @@ export default function ConnectionsPage(){
  return <div className="mx-auto w-full max-w-5xl space-y-6 p-6">
   <header className="space-y-2"><h1 className="text-2xl font-semibold">{t("Connessioni e accessi","Connections & access")}</h1>
    <p className="text-muted-foreground text-sm">{t(
-    "Registra qui i database e gli account Microsoft che i lavori possono usare. Le password e i segreti sono cifrati, non vengono più mostrati e non arrivano mai al coordinatore. Sei tu a decidere l’accesso: in un lavoro scegli le connessioni dal pannello del progetto («Connessioni del lavoro»); solo i ruoli che dichiarano gli ID autorizzati le ricevono e le perdono quando finiscono.",
-    "Register here the databases and Microsoft accounts that tasks may use. Passwords and secrets are encrypted, never shown again and never reach the coordinator. Access is your choice: in a task you pick the connections from the project panel (“Task connections”); only roles declaring the authorized IDs receive them, and lose them when they end.")}</p>
+    "Ogni connessione è una connessione a un servizio: un database, un account Microsoft, un servizio o un dispositivo in rete, una porta seriale o USB, un dispositivo Bluetooth. Per ognuna dici dove si trova: in cloud oppure on premise, vicino a questo server o tramite un tuo PC con RigHaven Agent. Le password e i segreti sono cifrati, non vengono più mostrati e non arrivano mai al coordinatore. Sei tu a decidere l’accesso: in un lavoro scegli le connessioni dal pannello del progetto («Connessioni del lavoro»); solo i ruoli che dichiarano gli ID autorizzati le ricevono e le perdono quando finiscono.",
+    "Every connection is a connection to a service: a database, a Microsoft account, a service or device on the network, a serial or USB port, a Bluetooth device. For each you say where it is: in the cloud or on premise, next to this server or through one of your PCs with RigHaven Agent. Passwords and secrets are encrypted, never shown again and never reach the coordinator. Access is your choice: in a task you pick the connections from the project panel (“Task connections”); only roles declaring the authorized IDs receive them, and lose them when they end.")}</p>
    <p className="text-muted-foreground text-sm">{t(
     "Usa account in sola lettura: gli strumenti RigHaven eseguono solo letture e rifiutano i database non dichiarati in sola lettura. Per Azure SQL e Microsoft Fabric aggiungi prima il tuo account Microsoft (accesso con autenticazione a più fattori, consigliato) oppure un’applicazione Entra ID, poi una connessione SQL Server che lo usa.",
     "Use read-only accounts: RigHaven tools only read and refuse databases not declared read-only. For Azure SQL and Microsoft Fabric first add your Microsoft account (sign-in with multi-factor authentication, recommended) or an Entra ID application, then a SQL Server connection that uses it.")}</p>
@@ -113,19 +125,36 @@ export default function ConnectionsPage(){
   <p className="text-sm">{t("Database e identità esterne sono facoltativi. Per analizzare documenti e creare il laboratorio sintetico non devi configurarli.","External databases and identities are optional. You do not need to configure them to analyze documents and build the synthetic laboratory.")}</p>
   {!form&&<AgentsPanel t={t} pc={pc} setPc={setPc} onAgents={setAgents}/>}
   <PcContext.Provider value={pc}>
-  {!form&&<PcDevices key={"p"+pc} t={t} onChanged={()=>{setHostEpoch(n=>n+1);setReload(n=>n+1);}} onCreate={value=>{setEditing(null);setNotice("");setForm(value);}}/>}
-  {!form&&<DeviceDiscovery key={"d"+hostEpoch+pc} base={base} t={t} onCreate={value=>{setEditing(null);setNotice("");setForm(value);}}/>}
-  {!form&&!pc&&<MatterDevices key={"m"+hostEpoch} t={t} onCreate={value=>{setEditing(null);setNotice("");setForm(value);}}/>}
+  {!form&&<PcDevices key={"p"+pc} t={t} onChanged={()=>{setHostEpoch(n=>n+1);setReload(n=>n+1);}} onCreate={found}/>}
+  {!form&&<DeviceDiscovery key={"d"+hostEpoch+pc} base={base} t={t} onCreate={found}/>}
+  {!form&&!pc&&<MatterDevices key={"m"+hostEpoch} t={t} onCreate={found}/>}
   </PcContext.Provider>
-  {!form&&<div className="flex flex-wrap gap-2">{(["postgres","sqlserver","mysql","oracle","entra","device","network"] as Kind[]).map(k=><button key={k} className="rounded border px-3 py-2 text-sm" data-testid={"new-"+k} onClick={()=>{setEditing(null);setForm(blank(k));}}>{t("Nuova: ","New: ")}{kindLabel(k)}</button>)}</div>}
+  {!form&&(()=>{const place=newPlace||pc||"cloud";const agent=agentOf(place);
+   // Every connection is a connection to a service: where it lives first, then which service.
+   const services:[string,Kind,Transport,string][]=[["postgres","postgres","network",LABELS.postgres],["sqlserver","sqlserver","network",LABELS.sqlserver],["mysql","mysql","network",LABELS.mysql],["oracle","oracle","network",LABELS.oracle],
+    ...(place==="cloud"?[["entra","entra","network",LABELS.entra] as [string,Kind,Transport,string]]:[]),
+    ["device","device","network",t("Servizio di rete (MQTT, HTTP, Modbus, Android, Tuya, TCP)","Network service (MQTT, HTTP, Modbus, Android, Tuya, TCP)")],
+    ...(place==="cloud"?[]:[["serial","device",agent?"serial":"local",agent?t("Porta COM / USB del PC","COM / USB port of the PC"):t("Porta seriale / USB","Serial / USB port")] as [string,Kind,Transport,string],
+     ["bluetooth","device","bluetooth",t("Dispositivo Bluetooth LE","Bluetooth LE device")] as [string,Kind,Transport,string]]),
+    ...(agent?[]:[["network","network","network",t("Rete da mappare","Network to map")] as [string,Kind,Transport,string]])];
+   return <section className="space-y-3 rounded-xl border p-4" data-testid="new-connection">
+    <h2 className="font-semibold">{t("Nuova connessione a un servizio","New connection to a service")}</h2>
+    <label className="block text-sm">{t("Dove si trova il servizio","Where the service is")}<select className={field} aria-label={t("Dove si trova il servizio","Where the service is")} value={place} onChange={e=>setNewPlace(e.target.value)}>
+     {places.map(p=><option key={p} value={p}>{placeLabel(p)}</option>)}</select></label>
+    <p className="text-muted-foreground text-xs">{place==="cloud"?t("Servizi su internet: RigHaven li raggiunge da questo server.","Services on the internet: RigHaven reaches them from this server.")
+     :place==="server"?t("Servizi nella rete o sulla macchina dove gira questo server (sul PC con RigHaven portabile: la tua rete di casa o d’ufficio).","Services in the network or on the machine this server runs on (on the PC with portable RigHaven: your home or office network).")
+     :t("Servizi della rete di quel PC (ufficio o casa), le sue porte COM/USB e il suo Bluetooth: RigHaven Agent li porta a questo server con un tunnel cifrato, senza aprire porte.","Services of that PC's network (office or home), its COM/USB ports and its Bluetooth: RigHaven Agent carries them to this server through an encrypted tunnel, with no port to open.")}</p>
+    <div className="flex flex-wrap gap-2">{services.map(([id,kind,transport,label])=><button key={id} className="rounded border px-3 py-2 text-sm" data-testid={"new-"+id}
+     onClick={()=>{setEditing(null);setForm({...blank(kind,place),transport,...(agent&&kind==="sqlserver"?{authentication:"password" as const}:{})});}}>{t("Nuova: ","New: ")}{label}</button>)}</div>
+   </section>;})()}
   {form&&<section className="space-y-3 rounded-lg border p-4" data-testid="connection-form">
-   <h2 className="font-semibold">{editing?t("Modifica ","Edit ")+editing:t("Nuova connessione ","New connection ")}· {kindLabel(form.kind)}</h2>
+   <h2 className="font-semibold">{editing?t("Modifica ","Edit ")+editing:t("Nuova connessione ","New connection ")}· {kindLabel(form.kind)} · {placeLabel(form.place)}</h2>
    <div className="grid gap-3 md:grid-cols-2">
     {input("name",t("Nome","Name"),{placeholder:t("es. ERP vendite (lettura)","e.g. Sales ERP (read)")})}
     {!editing&&<div>{input("id",t("ID (facoltativo)","ID (optional)"),{placeholder:slug(form.name)||"erp-vendite"})}
      <p className="text-muted-foreground mt-1 text-xs" data-testid="connection-id-hint">{t("Sarà salvato come","Saved as")} <code>{slug(form.id)||slug(form.name)||"…"}</code>{t(": lettere minuscole, cifre e trattini.",": lowercase letters, digits and hyphens.")}</p></div>}
     {input("description",t("Descrizione","Description"))}
-    {form.kind==="network"?<NetworkFields form={form} setForm={setForm} t={t} input={input}/>:form.kind==="device"?<DeviceFields form={form} setForm={setForm} devices={devices} agents={agents} editing={Boolean(editing)} t={t} input={input}/>:form.kind==="entra"?<>
+    {form.kind==="network"?<NetworkFields form={form} setForm={setForm} t={t} input={input}/>:form.kind==="device"?<><PlaceField form={form} setForm={setForm} places={places} placeLabel={placeLabel} t={t}/><DeviceFields form={form} setForm={setForm} devices={devices} editing={Boolean(editing)} t={t} input={input}/></>:form.kind==="entra"?<>
      <label className="block text-sm md:col-span-2">{t("Tipo di accesso","Access type")}<select className={field} aria-label={t("Tipo di accesso","Access type")} value={form.mode} onChange={e=>setForm(f=>f&&{...f,mode:e.target.value as "user"|"application"})}>
       <option value="user">{t("Il mio account Microsoft (OAuth2, con MFA) · consigliato","My Microsoft account (OAuth2, with MFA) · recommended")}</option>
       <option value="application">{t("Applicazione Entra ID (service principal, segreto client)","Entra ID application (service principal, client secret)")}</option></select></label>
@@ -141,12 +170,8 @@ export default function ConnectionsPage(){
      <label className="block text-sm">{t("Cloud","Cloud")}<select className={field} value={form.cloud} onChange={e=>setForm(f=>f&&{...f,cloud:e.target.value})}>
       <option value="public">{t("Globale","Global")}</option><option value="usgov">US Government</option><option value="china">{t("Cina (21Vianet)","China (21Vianet)")}</option></select></label>
     </>:<>
-     <label className="block text-sm md:col-span-2">{t("Raggiungibile da","Reached from")}<select className={field} aria-label={t("Raggiungibile da","Reached from")} value={form.agent} onChange={e=>{const agent=e.target.value;setForm(f=>f&&{...f,agent,...(agent?{authentication:"password" as const}:{})});}}>
-      <option value="">{t("Questo server (cloud o indirizzo raggiungibile da qui)","This server (cloud or an address reachable from here)")}</option>
-      {agents.map(a=><option key={a.id} value={a.id}>{t("On premise, tramite ","On premise, through ")}{a.name}{a.online?"":t(" (scollegato)"," (offline)")}</option>)}</select>
-      {form.agent?<span className="text-muted-foreground text-xs">{t("Il database è nella rete del PC scelto (ufficio o casa): indica il suo indirizzo come lo vede quel PC, un IP privato o un nome interno (per esempio sql01.azienda.local). RigHaven Agent lo porta a questo server con un tunnel cifrato, solo mentre un incarico lo usa: nessuna porta da aprire.","The database is in the network of the chosen PC (office or home): give its address as that PC sees it, a private IP or an internal name (for example sql01.company.local). RigHaven Agent carries it to this server through an encrypted tunnel, only while a task uses it: no port to open.")}</span>
-       :agents.length===0?<span className="text-muted-foreground text-xs">{t("Per un database on premise collega prima un PC della sua rete in «PC collegati (RigHaven Agent)».","For an on-premise database first connect a PC of its network in “Connected PCs (RigHaven Agent)”.")}</span>:null}</label>
-     {form.kind==="sqlserver"&&!form.agent&&<label className="block text-sm md:col-span-2">{t("Autenticazione","Authentication")}<select className={field} aria-label={t("Autenticazione","Authentication")} value={form.authentication} onChange={e=>setForm(f=>f&&{...f,authentication:e.target.value as "password"|"entra"|"microsoft"})}>
+     <PlaceField form={form} setForm={setForm} places={places} placeLabel={placeLabel} t={t}/>
+     {form.kind==="sqlserver"&&!agentOf(form.place)&&<label className="block text-sm md:col-span-2">{t("Autenticazione","Authentication")}<select className={field} aria-label={t("Autenticazione","Authentication")} value={form.authentication} onChange={e=>setForm(f=>f&&{...f,authentication:e.target.value as "password"|"entra"|"microsoft"})}>
       <option value="microsoft">{t("Il mio account Microsoft (Azure SQL, Fabric · con MFA)","My Microsoft account (Azure SQL, Fabric · with MFA)")}</option>
       <option value="password">{t("Utente e password SQL","SQL user and password")}</option>
       <option value="entra">{t("Applicazione o account Entra ID già registrato","Entra ID application or account already registered")}</option></select></label>}
@@ -175,10 +200,12 @@ export default function ConnectionsPage(){
   </section>}
   {rows===null&&!error&&<p className="text-sm">{t("Caricamento…","Loading…")}</p>}
   {rows?.length===0&&!form&&<p className="text-sm">{t("Nessuna connessione registrata.","No connections registered.")}</p>}
-  <ul className="space-y-3">{rows?.map(r=><li key={r.id} className="rounded-lg border p-4 text-sm" data-testid={"connection-"+r.id}>
+  {places.filter(g=>(rows??[]).some(r=>placeOf(r)===g)).concat([...new Set((rows??[]).map(placeOf))].filter(g=>!places.includes(g))).map(g=><section key={g} className="space-y-2" data-testid={"connections-"+g}>
+  <h3 className="text-sm font-semibold">{placeLabel(g)}</h3>
+  <ul className="space-y-3">{(rows??[]).filter(r=>placeOf(r)===g).map(r=><li key={r.id} className="rounded-lg border p-4 text-sm" data-testid={"connection-"+r.id}>
    <div className="flex flex-wrap items-start justify-between gap-2">
     <div className="min-w-0 break-words [overflow-wrap:anywhere]"><p className="font-semibold">{r.name} <span className="text-muted-foreground font-normal">· {kindLabel(r.kind)} · {r.id}</span></p>
-     <p className="text-muted-foreground">{r.kind==="network"?t("Reti: ","Networks: ")+(r.ranges??[]).join(", ")+((r.exclude??[]).length?t(" · escluse: "," · excluded: ")+(r.exclude??[]).join(", "):""):r.kind==="device"?deviceSummary(r,t):r.kind==="entra"?(r.mode==="user"?(r.signed_in?t("Account ","Account ")+(r.account??""):t("Accesso Microsoft da completare","Microsoft sign-in to complete"))+" · "+t("tenant ","tenant ")+r.tenant_id:t("Applicazione · tenant ","Application · tenant ")+r.tenant_id+" · "+t("app ","app ")+r.client_id):(r.host??"")+":"+String(r.port??"")+" / "+(r.database??"")+(r.authentication==="entra"?" · Entra ID ("+(r.entra_connection??"")+")":" · "+(r.username??""))+(r.authentication==="microsoft"?" · "+(r.signed_in?t("accesso Microsoft attivo","Microsoft signed in"):t("accesso Microsoft da completare","Microsoft sign-in to complete")):"")+(r.agent?t(" · on premise, tramite "," · on premise, through ")+(agents.find(a=>a.id===r.agent)?.name??r.agent):"")}</p>
+     <p className="text-muted-foreground">{r.kind==="network"?t("Reti: ","Networks: ")+(r.ranges??[]).join(", ")+((r.exclude??[]).length?t(" · escluse: "," · excluded: ")+(r.exclude??[]).join(", "):""):r.kind==="device"?deviceSummary(r,t):r.kind==="entra"?(r.mode==="user"?(r.signed_in?t("Account ","Account ")+(r.account??""):t("Accesso Microsoft da completare","Microsoft sign-in to complete"))+" · "+t("tenant ","tenant ")+r.tenant_id:t("Applicazione · tenant ","Application · tenant ")+r.tenant_id+" · "+t("app ","app ")+r.client_id):(r.host??"")+":"+String(r.port??"")+" / "+(r.database??"")+(r.authentication==="entra"?" · Entra ID ("+(r.entra_connection??"")+")":" · "+(r.username??""))+(r.authentication==="microsoft"?" · "+(r.signed_in?t("accesso Microsoft attivo","Microsoft signed in"):t("accesso Microsoft da completare","Microsoft sign-in to complete")):"")}</p>
      {r.kind==="device"&&<p>{r.write_enabled?t("Scrittura e firmware consentiti se li abiliti nell’incarico; altrimenti sola lettura","Writing and firmware allowed when you enable them in the task; otherwise read-only"):t("Sola lettura: gli incarichi possono solo leggere","Read-only: tasks can only read")}</p>}
      {r.kind==="network"&&<p>{r.write_enabled?t("Mappatura e, con la tua approvazione per ogni scansione, ricerca di vulnerabilità","Mapping and, with your approval of each scan, vulnerability checks"):t("Solo mappatura: host, porte e servizi","Mapping only: hosts, ports and services")}</p>}
      {r.kind!=="entra"&&r.kind!=="device"&&r.kind!=="network"&&<p className={r.read_only||r.write_enabled?"":"text-destructive"}>{r.write_enabled?t(`Scrittura consentita nello schema ${r.write_schema??""}, se la abiliti nell’incarico`,`Writing allowed in schema ${r.write_schema??""}, when you enable it in the task`):r.read_only?t("Sola lettura dichiarata","Read-only declared"):t("Non dichiarata in sola lettura: gli strumenti la rifiutano","Not declared read-only: tools refuse it")}</p>}
@@ -211,7 +238,7 @@ export default function ConnectionsPage(){
      :<ul className="space-y-1">{catalog.rows.map(d=><li key={d.name} className="flex flex-wrap items-center justify-between gap-2"><span><strong>{d.name}</strong> <span className="text-muted-foreground text-xs">{d.detail}</span></span>
        <button className="rounded border px-2 py-1 text-xs" disabled={r.database===d.name} onClick={()=>void selectDatabase(r,d.name)}>{r.database===d.name?t("In uso","In use"):t("Usa questo database","Use this database")}</button></li>)}</ul>}
    </div>}
-  </li>)}</ul>
+  </li>)}</ul></section>)}
   <p className="text-muted-foreground text-xs">{t(
    "La prova verifica che il server sia raggiungibile da RigHaven e, per Microsoft Entra ID, che l’account o l’applicazione ottenga un token; utente e password dei database si verificano al primo utilizzo in un incarico. I token del tuo account valgono circa un’ora e vengono emessi all’avvio di ogni incarico. Se i lavori usano l’uscita di rete limitata (allowlist), i database non sono raggiungibili dagli incarichi.",
    "The test checks that RigHaven can reach the server and, for Microsoft Entra ID, that the account or application obtains a token; database users and passwords are verified at first use in an assignment. Tokens of your account last about one hour and are issued when each assignment starts. If tasks use restricted network egress (allowlist), databases are not reachable from assignments.")}</p>
@@ -222,45 +249,55 @@ type Translate=(a:string,b:string)=>string;
 type FieldInput=(key:keyof Form,label:string,props?:Record<string,unknown>)=>ReactNode;
 
 function deviceSummary(r:Connection,t:Translate){
- if(r.transport==="agent")return t("Tramite RigHaven Agent: ","Through RigHaven Agent: ")+(r.device?r.device+(r.baud?" · "+String(r.baud)+" baud":""):(r.protocol??"").toUpperCase()+" · "+(r.host??"")+":"+String(r.port??""));
- if(r.transport==="bluetooth")return t("Bluetooth LE tramite il PC: ","Bluetooth LE through the PC: ")+(r.address??"");
+ if(r.transport==="serial"&&r.agent)return t("Porta COM del PC: ","COM port of the PC: ")+(r.device??"")+(r.baud?" · "+String(r.baud)+" baud":"");
+ if(r.transport==="bluetooth")return t("Bluetooth LE: ","Bluetooth LE: ")+(r.address??"");
  if(r.transport==="local")return t("Collegato a questa macchina: ","Attached to this machine: ")+(r.device??"")+(r.baud?" · "+String(r.baud)+" baud":"");
  if(r.transport==="serial")return t("Seriale in rete (RFC 2217): ","Serial over the network (RFC 2217): ")+(r.host??"")+":"+String(r.port??"")+" · "+String(r.baud??"")+" baud";
  return (r.protocol??"").toUpperCase()+" · "+(r.host??"")+":"+String(r.port??"")+(r.topic?" · topic "+r.topic:"")+(r.path&&r.path!=="/"?" · "+r.path:"")+(r.username?" · "+r.username:"");
 }
 
+/** Where the service lives: cloud, the network or machine of this server, or on premise through one of the owner's PCs. */
+function PlaceField({form,setForm,places,placeLabel,t}:{form:Form;setForm:Dispatch<SetStateAction<Form|null>>;places:Place[];placeLabel:(p:Place)=>string;t:Translate}){
+ const field="mt-1 w-full rounded border bg-transparent px-2 py-1";
+ const allowed=places.filter(p=>form.kind==="network"?!agentOf(p):form.kind==="device"&&form.transport==="local"?p==="server":form.kind==="device"&&form.transport==="bluetooth"?p!=="cloud":true);
+ function choose(place:Place){const agent=agentOf(place);setForm(f=>f&&{...f,place,
+  ...(agent&&f.kind==="sqlserver"?{authentication:"password" as const}:{}),
+  ...(agent&&f.transport==="local"?{transport:"serial" as const,device:""}:{}),
+  ...(agent&&f.protocol==="matter"?{protocol:"mqtt"}:{}),
+  ...(!agent&&f.transport==="serial"&&f.device.startsWith("COM")?{device:""}:{})});}
+ return <label className="block text-sm md:col-span-2">{t("Dove si trova il servizio","Where the service is")}<select className={field} aria-label={t("Dove si trova il servizio","Where the service is")} value={form.place} onChange={e=>choose(e.target.value)}>
+  {(allowed.includes(form.place)?allowed:[form.place,...allowed]).map(p=><option key={p} value={p}>{placeLabel(p)}</option>)}</select>
+  {agentOf(form.place)&&form.kind!=="device"&&<span className="text-muted-foreground text-xs">{t("Il servizio è nella rete di quel PC (ufficio o casa): indica il suo indirizzo come lo vede quel PC, un IP privato o un nome interno (per esempio sql01.azienda.local). RigHaven Agent lo porta a questo server con un tunnel cifrato, solo mentre un incarico lo usa: nessuna porta da aprire.","The service is in that PC's network (office or home): give its address as that PC sees it, a private IP or an internal name (for example sql01.company.local). RigHaven Agent carries it to this server through an encrypted tunnel, only while a task uses it: no port to open.")}</span>}
+  {places.length===2&&form.kind!=="network"&&<span className="text-muted-foreground block text-xs">{t("Per un servizio on premise di un’altra rete collega prima un PC di quella rete in «PC collegati (RigHaven Agent)».","For an on-premise service of another network first connect a PC of that network in “Connected PCs (RigHaven Agent)”.")}</span>}</label>;
+}
+
 /** A device or interface: on the network (MQTT, Modbus TCP, HTTP, TCP), a serial port shared over RFC 2217, or attached to this machine. */
-function DeviceFields({form,setForm,devices,agents,editing,t,input}:{form:Form;setForm:Dispatch<SetStateAction<Form|null>>;devices:string[];agents:Agent[];editing:boolean;t:Translate;input:FieldInput}){
+function DeviceFields({form,setForm,devices,editing,t,input}:{form:Form;setForm:Dispatch<SetStateAction<Form|null>>;devices:string[];editing:boolean;t:Translate;input:FieldInput}){
+ const agent=agentOf(form.place);
  const field="mt-1 w-full rounded border bg-transparent px-2 py-1";
  const set=(patch:Partial<Form>)=>setForm(f=>f&&{...f,...patch});
  const bauds=["1200","2400","4800","9600","19200","38400","57600","115200","230400","460800","921600"];
  return <>
   <label className="block text-sm md:col-span-2">{t("Come è collegato","How it is connected")}<select className={field} aria-label={t("Collegamento del dispositivo","Device transport")} value={form.transport} onChange={e=>set({transport:e.target.value as Transport,port:""})}>
    <option value="network">{t("In rete: MQTT, Modbus TCP, HTTP o TCP","On the network: MQTT, Modbus TCP, HTTP or TCP")}</option>
-   <option value="serial">{t("Porta seriale condivisa in rete (RFC 2217, per esempio ser2net o ESP-Link)","Serial port shared on the network (RFC 2217, for example ser2net or ESP-Link)")}</option>
-   <option value="local">{t("Collegato a questa macchina (USB, seriale)","Attached to this machine (USB, serial)")}</option>
-   <option value="bluetooth">{t("Bluetooth LE, tramite il Bluetooth del PC","Bluetooth LE, through the PC's Bluetooth")}</option>
-   <option value="agent">{t("Vicino a un mio PC con RigHaven Agent (porta COM o rete di casa)","Next to one of my PCs with RigHaven Agent (COM port or home network)")}</option></select></label>
-  {form.transport==="agent"&&<>
-   <label className="block text-sm">{t("PC con RigHaven Agent","PC with RigHaven Agent")}<select className={field} aria-label={t("PC con RigHaven Agent","PC with RigHaven Agent")} value={form.agent} onChange={e=>set({agent:e.target.value})}>
-    <option value="">{t("Scegli…","Choose…")}</option>{agents.map(a=><option key={a.id} value={a.id}>{a.name}{a.online?"":t(" (scollegato)"," (offline)")}</option>)}</select></label>
-   <label className="block text-sm">{t("Che cosa","What")}<select className={field} aria-label={t("Tipo di collegamento tramite agente","Kind of agent connection")} value={form.via} onChange={e=>set({via:e.target.value as "com"|"network"})}>
-    <option value="network">{t("Dispositivo nella rete di casa del PC","Device in the PC's home network")}</option><option value="com">{t("Porta COM del PC (scheda USB, adattatore Bluetooth)","COM port of the PC (USB board, Bluetooth adapter)")}</option></select></label>
-   {form.via==="com"&&<label className="block text-sm">{t("Porta COM","COM port")}<input className={field} aria-label={t("Porta COM","COM port")} placeholder="COM5" value={form.device} onChange={e=>set({device:e.target.value.toUpperCase()})}/></label>}
-   <p className="text-muted-foreground text-xs md:col-span-2">{t("RigHaven Agent porta il dispositivo a questo server con un tunnel cifrato, solo quando un incarico lo usa. Le scritture restano approvate da te, una per una.","RigHaven Agent carries the device to this server through an encrypted tunnel, only while a task uses it. Writes are still approved by you, one by one.")}</p></>}
+   <option value="serial">{agent?t("Porta COM del PC (scheda USB, adattatore seriale o Bluetooth)","COM port of the PC (USB board, serial or Bluetooth adapter)"):t("Porta seriale condivisa in rete (RFC 2217, per esempio ser2net o ESP-Link)","Serial port shared on the network (RFC 2217, for example ser2net or ESP-Link)")}</option>
+   {form.place==="server"&&<option value="local">{t("Collegato a questa macchina (USB, seriale)","Attached to this machine (USB, serial)")}</option>}
+   {form.place!=="cloud"&&<option value="bluetooth">{t("Bluetooth LE, tramite il Bluetooth del PC","Bluetooth LE, through the PC's Bluetooth")}</option>}</select></label>
+  {agent&&<p className="text-muted-foreground text-xs md:col-span-2">{t("RigHaven Agent porta il servizio a questo server con un tunnel cifrato, solo quando un incarico lo usa. Le scritture restano approvate da te, una per una.","RigHaven Agent carries the service to this server through an encrypted tunnel, only while a task uses it. Writes are still approved by you, one by one.")}</p>}
+  {agent&&form.transport==="serial"&&<label className="block text-sm">{t("Porta COM","COM port")}<input className={field} aria-label={t("Porta COM","COM port")} placeholder="COM5" value={form.device} onChange={e=>set({device:e.target.value.toUpperCase()})}/></label>}
   {form.transport==="bluetooth"&&<label className="block text-sm md:col-span-2">{t("Indirizzo Bluetooth","Bluetooth address")}<input className={field} aria-label={t("Indirizzo Bluetooth","Bluetooth address")} placeholder="38:A5:C9:3C:2E:9F" value={form.address} onChange={e=>set({address:e.target.value})}/>
    <span className="text-muted-foreground block text-xs">{t("Dalla ricerca Bluetooth qui sopra. Leggere il dispositivo è libero; ogni scrittura la approvi tu, una per una.","From the Bluetooth search above. Reading the device is free; you approve each write, one by one.")}</span></label>}
-  {(form.transport==="network"||(form.transport==="agent"&&form.via==="network"))&&<>
+  {form.transport==="network"&&<>
    <label className="block text-sm">{t("Protocollo","Protocol")}<select className={field} aria-label={t("Protocollo","Protocol")} value={form.protocol} onChange={e=>set({protocol:e.target.value,port:""})}>
     <option value="mqtt">MQTT</option><option value="modbus-tcp">Modbus TCP</option><option value="http">HTTP</option>
     <option value="adb">{t("Android / Android TV (debug ADB in rete)","Android / Android TV (network ADB debugging)")}</option>
     <option value="tuya">{t("Tuya / Smart Life (protocollo locale)","Tuya / Smart Life (local protocol)")}</option>
-    <option value="matter">{t("Matter (controller di RigHaven)","Matter (RigHaven controller)")}</option>
+    {!agent&&<option value="matter">{t("Matter (controller di RigHaven)","Matter (RigHaven controller)")}</option>}
     <option value="tcp">{t("TCP (righe di testo, adattatori OBD Wi-Fi)","TCP (text lines, Wi-Fi OBD adapters)")}</option></select></label>
    {form.protocol==="matter"&&<p className="text-muted-foreground text-xs md:col-span-2" data-testid="matter-hint">{form.node_id?t("Dispositivo Matter, nodo ","Matter device, node ")+form.node_id+t(", tramite il controller Matter di RigHaven. Ogni comando ti verrà chiesto nella scheda dell’incarico.",", through the RigHaven Matter controller. Every command is asked to you in the task card."):t("Crea la connessione dall’elenco «Dispositivi Matter» qui sopra.","Create the connection from the “Matter devices” list above.")}</p>}
    {form.protocol==="tuya"&&<p className="text-muted-foreground text-xs md:col-span-2" data-testid="tuya-hint">{t("Servono l’ID del dispositivo (app Smart Life → dispositivo → matita → Informazioni dispositivo → ID virtuale) e la sua local key, che si legge dal tuo account sulla piattaforma per sviluppatori Tuya (iot.tuya.com) dopo aver collegato l’app, oppure con lo strumento tinytuya wizard. Nulla passa dal cloud Tuya durante l’uso. Ogni comando (per esempio accendi o spegni) ti verrà chiesto nella scheda dell’incarico.","You need the device ID (Smart Life app → device → pencil → Device information → Virtual ID) and its local key, read from your account on the Tuya developer platform (iot.tuya.com) after linking the app, or with the tinytuya wizard tool. Nothing goes through the Tuya cloud during use. Every command (for example switch on or off) is asked to you in the task card.")}</p>}
    {form.protocol==="adb"&&<p className="text-muted-foreground text-xs md:col-span-2">{t("Sulla TV attiva Opzioni sviluppatore → Debug di rete (o Debug wireless) e annota l’indirizzo. Al primo uso la TV chiede di autorizzare RigHaven: scegli «Consenti sempre». Ogni installazione, rimozione, riavvio o aggiornamento ti verrà chiesto nella scheda dell’incarico.","On the TV enable Developer options → Network debugging (or Wireless debugging) and note the address. On first use the TV asks to authorize RigHaven: choose “Always allow”. Every install, removal, reboot or update is asked to you in the task card.")}</p>}
-   {input("host",t("Indirizzo (host o IP)","Address (host or IP)"),{placeholder:"broker.local · 192.168.1.40"})}
+   {input("host",agent?t("Indirizzo come lo vede quel PC (IP privato o nome interno)","Address as that PC sees it (private IP or internal name)"):t("Indirizzo (host o IP)","Address (host or IP)"),{placeholder:agent?"192.168.1.40 · plc01.azienda.local":"broker.local · 192.168.1.40"})}
    {input("port",t("Porta","Port"),{placeholder:DEVICE_PORTS[form.protocol==="mqtt"&&form.tls?"mqtts":form.protocol==="http"&&form.tls?"https":form.protocol]??"",inputMode:"numeric"})}
    {form.protocol==="mqtt"&&input("topic",t("Topic da leggere","Topic to read"),{placeholder:"city/+/bus/#"})}
    {form.protocol==="http"&&input("path",t("Percorso","Path"),{placeholder:"/api/status"})}
@@ -272,7 +309,7 @@ function DeviceFields({form,setForm,devices,agents,editing,t,input}:{form:Form;s
    {form.protocol!=="adb"&&form.protocol!=="tcp"&&form.protocol!=="tuya"&&<>{input("username",t("Utente (facoltativo)","User (optional)"))}
    {input("password",t("Password (facoltativa)","Password (optional)")+(editing?t(" (vuota = invariata)"," (empty = unchanged)"):""),{type:"password",autoComplete:"new-password"})}</>}
    {form.protocol!=="modbus-tcp"&&form.protocol!=="tcp"&&form.protocol!=="adb"&&form.protocol!=="tuya"&&<label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={form.tls} onChange={e=>set({tls:e.target.checked,port:""})}/>{t("Connessione cifrata (TLS)","Encrypted connection (TLS)")}</label>}</>}
-  {form.transport==="serial"&&<>
+  {form.transport==="serial"&&!agent&&<>
    <label className="block text-sm md:col-span-2">{t("Tipo di server","Server type")}<select className={field} aria-label={t("Tipo di server seriale","Serial server type")} value={form.protocol==="socket"?"socket":"rfc2217"} onChange={e=>set({protocol:e.target.value})}>
     <option value="rfc2217">{t("RFC 2217 (ser2net, Raspberry Pi)","RFC 2217 (ser2net, Raspberry Pi)")}</option>
     <option value="socket">{t("TCP grezzo (porta COM condivisa dal PC)","Raw TCP (COM port shared by the PC)")}</option></select></label>
@@ -281,7 +318,7 @@ function DeviceFields({form,setForm,devices,agents,editing,t,input}:{form:Form;s
   {form.transport==="local"&&(devices.length?<label className="block text-sm">{t("Dispositivo","Device")}<select className={field} aria-label={t("Dispositivo","Device")} value={form.device} onChange={e=>set({device:e.target.value})}>
     <option value="">{t("Scegli…","Choose…")}</option>{devices.map(d=><option key={d} value={d}>{d}</option>)}</select></label>
    :<p className="text-muted-foreground text-xs md:col-span-2" data-testid="no-local-devices">{t("Nessuna porta seriale disponibile, quindi questa connessione non si può ancora salvare. Collega la periferica dal riquadro «Periferiche del PC» qui sopra (pulsante «Mostra periferiche USB»), poi riapri questo modulo. Per un dispositivo Wi-Fi scegli invece «In rete».","No serial port available, so this connection cannot be saved yet. Attach the peripheral from the “PC peripherals” panel above (“Show USB peripherals”), then reopen this form. For a Wi-Fi device choose “On the network” instead.")}</p>)}
-  {(form.transport==="serial"||form.transport==="local"||(form.transport==="agent"&&form.via==="com"))&&<label className="block text-sm">{t("Velocità (baud)","Speed (baud)")}<select className={field} aria-label={t("Velocità (baud)","Speed (baud)")} value={form.baud} onChange={e=>set({baud:e.target.value})}>{bauds.map(b=><option key={b} value={b}>{b}</option>)}</select></label>}
+  {(form.transport==="serial"||form.transport==="local")&&<label className="block text-sm">{t("Velocità (baud)","Speed (baud)")}<select className={field} aria-label={t("Velocità (baud)","Speed (baud)")} value={form.baud} onChange={e=>set({baud:e.target.value})}>{bauds.map(b=><option key={b} value={b}>{b}</option>)}</select></label>}
   <label className="block text-sm md:col-span-2">{t("Uso","Use")}<select className={field} aria-label={t("Uso della connessione","Connection use")} value={form.access} onChange={e=>set({access:e.target.value as "read"|"write"})}>
    <option value="read">{t("Solo lettura: osservare e registrare","Read-only: observe and record")}</option>
    <option value="write">{t("Anche scritture (comandi, firmware, app), ognuna approvata da te","Also writes (commands, firmware, apps), each approved by you")}</option></select></label>
@@ -471,7 +508,7 @@ function DeviceDiscovery({base,t,onCreate}:{base:string;t:(a:string,b:string)=>s
    const num=(a:string)=>a.split(".").reduce((x,y)=>x*256+Number(y),0);
    setFound(merged.sort((a,b)=>num(a.address)-num(b.address)));}
   catch(e){setError(e instanceof Error?e.message:String(e));}finally{setBusy(false);}}
- const create=(d:Found)=>onCreate({...blank("device"),name:d.label.slice(0,80),description:d.name?d.name.slice(0,400):"",transport:agent?"agent":"network",agent,via:"network",host:d.address,
+ const create=(d:Found)=>onCreate({...blank("device"),name:d.label.slice(0,80),description:d.name?d.name.slice(0,400):"",transport:"network",place:agent||"server",host:d.address,
   protocol:d.suggestion.protocol,port:String(d.suggestion.port),topic:"#",path:"/"});
  const hints:Record<string,[string,string]>={
   obd:["Adattatore OBD-II: associalo in Windows, poi condividi la sua porta COM da «Periferiche del PC» e crea la connessione da «Porte seriali condivise».","OBD-II adapter: pair it in Windows, then share its COM port from “PC peripherals” and create the connection from “Serial ports shared”."],
@@ -679,7 +716,7 @@ function PcDevices({t,onChanged,onCreate}:{t:(a:string,b:string)=>string;onChang
  const [ports,setPorts]=useState<Record<string,string[]>>({}),[open,setOpen]=useState("");
  const [all,setAll]=useState<{class:string;name:string;bus:string;ok:boolean;vidpid?:string;busid?:string}[]|null>(null);
  async function createShared(name:string){
-  if(host.agent){onCreate({...blank("device"),name,transport:"agent",agent:host.agent,via:"com",device:name,baud:"38400"});return;}
+  if(host.agent){onCreate({...blank("device",host.agent),name,transport:"serial",device:name,baud:"38400"});return;}
   const info=await (await fetch(getBackendBaseURL()+"/api/harness/connections/discovery")).json() as DiscoveryInfo;
   const shared=(info.serial??[]).find(p=>p.name===name);
   if(!shared){setError(t("La porta è condivisa ma RigHaven non la vede ancora: riprova tra qualche secondo.","The port is shared but RigHaven does not see it yet: try again in a few seconds."));return;}

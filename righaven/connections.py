@@ -39,7 +39,7 @@ FABRIC_SCOPE = 'https://api.fabric.microsoft.com/.default'
 ENTRA_MODES = ('user', 'application')
 MAX_CONNECTIONS = 50
 # Devices and interfaces: a role reaches them only through a task connection, inside its container.
-TRANSPORTS = ('network', 'serial', 'local', 'bluetooth', 'agent')
+TRANSPORTS = ('network', 'serial', 'local', 'bluetooth')
 AGENT_ID = re.compile(r'ag_[0-9a-f]{12}\Z')
 COM_PORT = re.compile(r'COM[0-9]{1,3}\Z')
 BLE_ADDRESS = re.compile(r'[0-9A-F]{2}(:[0-9A-F]{2}){5}\Z')
@@ -103,6 +103,7 @@ def public_view(record):
     if record['kind'] == 'entra' or record.get('authentication') == 'microsoft':
         value['signed_in'] = bool(record.get('refresh_token'))
     value['tools'] = usable_tools(record)
+    value['location'], value['pc'] = location(record)
     return value
 
 
@@ -193,12 +194,7 @@ def validate(body, previous=None):
         record['agent'] = _text(via, 'agente', AGENT_ID, 20)
         if authentication != 'password':
             raise ValueError('Through a RigHaven Agent the database uses user and password')
-        try:
-            literal = ipaddress.ip_address(record['host'])
-        except ValueError:
-            literal = None
-        if literal is not None and (not literal.is_private or literal.is_loopback):
-            raise ValueError('Through a RigHaven Agent: a private address or an internal name of the agent’s network, for example 192.168.1.20 or sql01.office.local')
+        _on_premise_host(record['host'])
     if authentication == 'entra':
         record['entra_connection'] = _text(body.get('entra_connection'), 'connessione Entra', CONNECTION_ID, 40)
         return record
@@ -219,6 +215,45 @@ def validate(body, previous=None):
     if not record['password'] or len(record['password']) > 512:
         raise ValueError('Password obbligatoria')
     return record
+
+
+def _on_premise_host(host):
+    """A host of the agent's network: a private IP, or an internal name the agent resolves (never a public address)."""
+    if not HOST.fullmatch(host or ''):
+        raise ValueError('Through a RigHaven Agent: a private address or an internal name of the agent’s network, for example 192.168.1.20 or sql01.office.local')
+    try:
+        literal = ipaddress.ip_address(host)
+    except ValueError:
+        return
+    if not literal.is_private or literal.is_loopback:
+        raise ValueError('Through a RigHaven Agent: a private address or an internal name of the agent’s network, for example 192.168.1.20 or sql01.office.local')
+
+
+INTERNAL_SUFFIXES = ('.local', '.lan', '.home', '.internal', '.intranet', '.corp', '.home.arpa', '.localdomain')
+
+
+def _internal(host):
+    try:
+        address = ipaddress.ip_address(host)
+        return not address.is_global
+    except ValueError:
+        name = host.lower().rstrip('.')
+        return '.' not in name or name.endswith(INTERNAL_SUFFIXES)
+
+
+def location(record):
+    """Where the service lives: ('on_premise', agent) through an agent, ('on_premise', '') in the network or on the
+    machine of this server, ('cloud', '') on the internet. Derived from the connection, never stored."""
+    if record.get('agent'):
+        return 'on_premise', record['agent']
+    if record['kind'] == 'entra':
+        return 'cloud', ''
+    if record['kind'] == 'device' and record.get('transport') in ('local', 'bluetooth'):
+        return 'on_premise', ''
+    if record['kind'] == 'network':
+        private = all(not ipaddress.ip_network(n, strict=False).is_global for n in record.get('ranges') or [])
+        return ('on_premise' if private and record.get('ranges') else 'cloud'), ''
+    return ('on_premise' if record.get('host') and _internal(record['host']) else 'cloud'), ''
 
 
 def adb_key():
@@ -292,36 +327,35 @@ def _device(body, previous, record):
     """A device or interface: on the network, a serial port shared over RFC 2217, or attached to this machine."""
     transport = body.get('transport') or (previous or {}).get('transport') or 'network'
     if transport not in TRANSPORTS:
-        raise ValueError('Device transport: network, serial, local, bluetooth or agent')
+        raise ValueError('Device transport: network, serial, local or bluetooth')
     access = body.get('access') or 'read'
     if access not in ('read', 'write'):
         raise ValueError('Access: read or write')
     record.update(transport=transport, write_enabled=access == 'write', read_only=access == 'read')
-    if transport == 'agent':
-        # A device next to the owner's RigHaven Agent: a COM port of that PC, or a device of its home network,
-        # carried to this server's workers by a tunnel of the agent.
-        record['agent'] = _text(body.get('agent') or (previous or {}).get('agent'), 'agente', AGENT_ID, 20)
-        if body.get('device'):
-            record['device'] = _text(str(body.get('device')).upper(), 'porta COM', COM_PORT, 6)
+    via = body['agent'] if 'agent' in body else (previous or {}).get('agent')
+    if via:
+        # On premise, next to the owner's RigHaven Agent: a COM port of that PC, a service of its network,
+        # or a Bluetooth LE device it hears; carried to this server's workers by a tunnel of the agent.
+        record['agent'] = _text(via, 'agente', AGENT_ID, 20)
+        if transport == 'local':
+            raise ValueError('Through a RigHaven Agent a USB or serial device is a COM port of the PC')
+        if transport == 'serial':
+            record['device'] = _text(str(body.get('device') or '').upper(), 'porta COM', COM_PORT, 6)
             baud = body.get('baud', 115200)
             if baud not in BAUDS:
                 raise ValueError('Baud rate: ' + ', '.join(map(str, BAUDS)))
             record['baud'] = baud
             return record
-        try:
-            home = ipaddress.ip_address(str(body.get('host') or '').strip())
-        except ValueError:
-            raise ValueError('Indirizzo del dispositivo nella rete di casa dell’agente: un IP privato, per esempio 192.168.1.44') from None
-        if not home.is_private or home.is_loopback:
-            raise ValueError('Indirizzo del dispositivo nella rete di casa dell’agente: un IP privato, per esempio 192.168.1.44')
+        if transport == 'network':
+            _on_premise_host(str(body.get('host') or '').strip())
+            if body.get('protocol') == 'matter':
+                raise ValueError('Matter devices go through the Matter controller of this server')
     if transport == 'bluetooth':
         # A Bluetooth LE device reached through the PC's Bluetooth by the RigHaven launcher.
         address = str(body.get('address') or (previous or {}).get('address') or '').strip().upper().replace('-', ':')
         if not BLE_ADDRESS.fullmatch(address):
             raise ValueError('Indirizzo Bluetooth non valido: usa la forma 38:A5:C9:3C:2E:9F, dalla ricerca Bluetooth')
         record['address'] = address
-        if body.get('agent') or (previous or {}).get('agent'):
-            record['agent'] = _text(body.get('agent') or (previous or {}).get('agent'), 'agente', AGENT_ID, 20)
         return record
     if transport == 'local':
         if not body.get('device'):
@@ -380,7 +414,7 @@ def _device(body, previous, record):
         if baud not in BAUDS:
             raise ValueError('Baud rate: ' + ', '.join(map(str, BAUDS)))
         record['baud'] = baud
-    if transport in ('network', 'agent'):
+    if transport == 'network':
         # Optional broker or device account; empty fields keep the stored password.
         record['username'] = _text(body.get('username'), 'utente', NAME, 128, False)
         record['password'] = body.get('password') or ((previous or {}).get('password') if record['username'] else '') or ''
@@ -493,7 +527,7 @@ def test(user_id, identifier):
                           + (' (AADSTS' + str(codes[0]) + ')' if codes else '')}
         elif record['kind'] == 'network':
             result = {'ok': True, 'detail': ', '.join(record['ranges']) + ': mapped only when a task uses this connection'}
-        elif record.get('agent') and (record['kind'] in DEFAULT_PORTS or (record['kind'] == 'device' and record['transport'] == 'agent')):
+        elif record.get('agent') and (record['kind'] in DEFAULT_PORTS or (record['kind'] == 'device' and record['transport'] != 'bluetooth')):
             result = _test_through_agent(record)
         elif record['kind'] == 'device' and record['transport'] == 'bluetooth':
             from . import host_bridge
@@ -916,18 +950,15 @@ def _file(record, user_id):
 
 
 def through_agent(record):
-    """The record a worker receives for a device or a database reached through an agent: the tunnel's address, same protocol."""
-    from . import agent_hub
-    if record.get('kind') in DEFAULT_PORTS and record.get('agent'):
-        host, port = agent_hub.tunnel(record['agent'], f"tcp:{record['host']}:{record['port']}")
-        return {**record, 'host': host, 'port': port, 'home': record['host']}
-    if record.get('kind') != 'device' or record.get('transport') != 'agent':
+    """The record a worker receives for a service reached through an agent: the tunnel's address, same protocol."""
+    if not record.get('agent') or (record['kind'] == 'device' and record.get('transport') == 'bluetooth') or record['kind'] not in (*DEFAULT_PORTS, 'device'):
         return record
-    if record.get('device'):
+    from . import agent_hub
+    if record['kind'] == 'device' and record['transport'] == 'serial':
         host, port = agent_hub.tunnel(record['agent'], 'com:' + record['device'])
-        return {**record, 'transport': 'serial', 'protocol': 'socket', 'host': host, 'port': port, 'device': ''}
+        return {**record, 'protocol': 'socket', 'host': host, 'port': port, 'device': '', 'home': record['device']}
     host, port = agent_hub.tunnel(record['agent'], f"tcp:{record['host']}:{record['port']}")
-    return {**record, 'transport': 'network', 'host': host, 'port': port, 'home': record['host']}
+    return {**record, 'host': host, 'port': port, 'home': record['host']}
 
 
 def device_file(record):
@@ -987,7 +1018,7 @@ class Delivery:
                     content['approvals'] = deliver(workspace, identifier, Path(destination).name)
                 path.write_text(json.dumps(content))
                 if record.get('home') and record['kind'] in DEFAULT_PORTS:
-                    self.domains.append(record['host'])  # the tunnel of the agent, on this server
+                    self.domains.append(record['host'])  # the tunnel of the agent, on this server (devices add their host below)
                 if writable and record['kind'] not in ('device', 'network'):
                     from .audit_log import append
                     append(workspace, 'Connessioni', 'Accesso in scrittura consegnato a un incarico', 'completed',

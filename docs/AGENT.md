@@ -53,26 +53,28 @@ runs on (administrators only) or one of your agents. With an agent chosen:
 - The chat uses the same PC: the agent named, otherwise the PC of the server when it is there,
   otherwise your agent that is connected.
 
-A device connection **through an agent** is a COM port of that PC or a private address of its home
-network. When a task uses it, the server opens a tunnel: the worker receives an address of the
-server, the agent opens the COM port or the device and carries the bytes. Reading and writing
-follow the usual rules: the connection is read only until you allow writing, and each write is
-approved by you, one by one.
+## Connections to services: cloud or on premise
 
-## Where each connection goes from
+Every connection is a connection to a **service**: a database, a broker or a device on the
+network (MQTT, HTTP, Modbus, Android, Tuya, TCP), a serial or USB port, a Bluetooth LE device, a
+network to map. *New connection to a service* asks first **where the service is**, then which
+service; the list of connections is grouped the same way.
 
-Every connection goes **from the server** unless it says otherwise: cloud databases (Azure SQL,
-Fabric, a managed Postgres), devices and services with an address the server reaches. Nothing to
-choose for them.
+| Where the service is | What RigHaven does | Services |
+|---|---|---|
+| **Cloud (internet)** | reaches it from the server | databases (Azure SQL, Fabric, managed Postgres…), Microsoft Entra ID, network services with a public address, networks to map |
+| **On premise · network or machine of this server** | reaches it from the server's own network or machine (on the PC with portable RigHaven: the home or office network) | databases and network services with a private address, serial ports (attached or shared over RFC 2217), Bluetooth LE through the launcher, networks to map, Matter |
+| **On premise · through «PC»** | reaches it through that PC's RigHaven Agent, with a tunnel | databases and network services of that PC's network (a private IP or an internal name such as `sql01.office.local`, as that PC sees it), its COM/USB ports, its Bluetooth LE |
 
-A connection says **through which PC** only when the server cannot see what it reaches:
+The place is part of the connection: change it in the form and the fields follow (a COM port
+through an agent, a serial server from the server; user and password for a database through an
+agent). What *Find devices*, *PC peripherals* and *Matter devices* find is on premise: *Create
+connection* proposes the PC being worked on, or this server.
 
-| Connection | Through an agent |
-|---|---|
-| Postgres, SQL Server, MySQL, Oracle of the office or home network | *Reached from → On premise, through «PC»*; the host is a private IP or an internal name (`sql01.office.local`) as that PC sees it; user and password authentication |
-| Device of the home network | *Next to one of my PCs → Home network*; a private IP |
-| USB board, serial adapter | *Next to one of my PCs → COM port* |
-| Bluetooth LE device | the PC chosen in *Act on the PC* when it is created |
+When a task uses a connection through an agent, the server opens a tunnel: the worker receives an
+address of the server, the agent opens the COM port or the host and carries the bytes. Reading
+and writing follow the usual rules: the connection is read only until you allow writing, and each
+write is approved by you, one by one.
 
 **Test** of a connection through an agent runs on that PC: the PC resolves the name and opens the
 port, so the result is what the tasks will find. When a task uses the connection, the server opens

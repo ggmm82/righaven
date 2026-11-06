@@ -219,7 +219,6 @@
   "Device change not found: ": null,
   "Device change: ": null,
   "Device protocol: ": null,
-  "Device transport: network, serial, local, bluetooth or agent": null,
   "Dimensioni PNG non valide": "Invalid PNG dimensions",
   "Dimensioni del terminale non valide": "Invalid terminal size",
   "Dipendenza esterna al pacchetto/workspace: ": "Dependency outside the package/workspace: ",
@@ -400,7 +399,6 @@
   "Indice esperienza non valido": "Invalid experience index",
   "Indice lezioni non valido": "Invalid lesson index",
   "Indirizzo Bluetooth non valido: usa la forma 38:A5:C9:3C:2E:9F, dalla ricerca Bluetooth": "Invalid Bluetooth address: use the form 38:A5:C9:3C:2E:9F, from the Bluetooth search",
-  "Indirizzo del dispositivo nella rete di casa dell’agente: un IP privato, per esempio 192.168.1.44": "Address of the device in the agent's home network: a private IP, for example 192.168.1.44",
   "Indirizzo non valido: ": "Invalid address: ",
   "Input dichiarato non disponibile": "Declared input unavailable",
   "Input non valido": "Invalid input",
@@ -1202,5 +1200,8 @@
   "tools must be a list of tool identifiers": null,
   "where: all, network, wifi, bluetooth, usb, com o serial": "where: all, network, wifi, bluetooth, usb, com or serial",
   "Through a RigHaven Agent the database uses user and password": null,
-  "Through a RigHaven Agent: a private address or an internal name of the agent’s network, for example 192.168.1.20 or sql01.office.local": null
+  "Through a RigHaven Agent: a private address or an internal name of the agent’s network, for example 192.168.1.20 or sql01.office.local": null,
+  "Device transport: network, serial, local or bluetooth": null,
+  "Matter devices go through the Matter controller of this server": null,
+  "Through a RigHaven Agent a USB or serial device is a COM port of the PC": null
 }

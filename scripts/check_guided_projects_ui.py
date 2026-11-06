@@ -401,8 +401,17 @@ createRoot(document.getElementById('root')!).render(location.pathname.includes('
                 page.get_by_role('button',name='Annulla',exact=True).click()
                 # A device attached to this machine: with no device offered, the form says how to offer one
                 # and cannot be saved; a one-letter or capitalised ID is saved in its normalised form.
-                page.get_by_test_id('new-device').click()
+                # New connection to a service: where it is first. The internet offers no serial or Bluetooth service.
+                chooser=page.get_by_test_id('new-connection')
+                expect(chooser.get_by_label('Dove si trova il servizio',exact=True)).to_have_value('cloud')
+                expect(chooser.get_by_test_id('new-serial')).to_have_count(0)
+                expect(chooser.get_by_test_id('new-entra')).to_have_count(1)
+                chooser.get_by_label('Dove si trova il servizio',exact=True).select_option('server')
+                expect(chooser.get_by_test_id('new-bluetooth')).to_have_count(1)
+                expect(chooser.get_by_test_id('new-entra')).to_have_count(0)
+                chooser.get_by_test_id('new-device').click()
                 form=page.get_by_test_id('connection-form')
+                expect(form.get_by_label('Dove si trova il servizio',exact=True)).to_have_value('server')
                 form.get_by_label('Nome',exact=True).fill('UsbRW')
                 form.get_by_label('ID (facoltativo)',exact=True).fill('A')
                 expect(form.get_by_test_id('connection-id-hint')).to_contain_text('Sarà salvato come a')
@@ -412,7 +421,7 @@ createRoot(document.getElementById('root')!).render(location.pathname.includes('
                 form.get_by_label('Collegamento del dispositivo',exact=True).select_option('network')
                 form.get_by_label('Indirizzo (host o IP)',exact=True).fill('192.168.1.40')
                 form.get_by_role('button',name='Salva',exact=True).click()
-                expect(page.get_by_test_id('connection-a')).to_contain_text('UsbRW')
+                expect(page.get_by_test_id('connections-server').get_by_test_id('connection-a')).to_contain_text('UsbRW')
                 assert connections.listing('owner')[0]['id']=='a'
                 connections.delete('owner','a')
                 page.reload()
@@ -467,17 +476,23 @@ createRoot(document.getElementById('root')!).render(location.pathname.includes('
                 expect(found).to_contain_text('Termostato · 192.168.50.20')
                 found.locator('li',has_text='Termostato').get_by_role('button',name='Crea connessione',exact=True).click()
                 form=page.get_by_test_id('connection-form')
-                expect(form.get_by_label('Collegamento del dispositivo',exact=True)).to_have_value('agent')  # the PC being worked on
-                expect(form.get_by_label('PC con RigHaven Agent',exact=True)).to_have_value('ag_0123456789ab')
-                expect(form.get_by_label('Indirizzo (host o IP)',exact=True)).to_have_value('192.168.50.20')
+                expect(form.get_by_label('Dove si trova il servizio',exact=True)).to_have_value('ag_0123456789ab')  # the PC being worked on
+                expect(form.get_by_label('Collegamento del dispositivo',exact=True)).to_have_value('network')
+                expect(form.get_by_label('Indirizzo come lo vede quel PC (IP privato o nome interno)',exact=True)).to_have_value('192.168.50.20')
                 form.get_by_role('button',name='Salva',exact=True).click()
-                expect(page.get_by_test_id('connection-termostato')).to_contain_text('Tramite RigHaven Agent: HTTP · 192.168.50.20:80')
+                onsite=page.get_by_test_id('connections-ag_0123456789ab')
+                expect(onsite).to_contain_text('On premise · tramite PC di casa')
+                expect(onsite.get_by_test_id('connection-termostato')).to_contain_text('HTTP · 192.168.50.20:80')
                 saved=connections._read('owner','termostato')
-                assert (saved['transport'],saved['agent'],saved['host']) == ('agent','ag_0123456789ab','192.168.50.20'),saved
+                assert (saved['transport'],saved['agent'],saved['host']) == ('network','ag_0123456789ab','192.168.50.20'),saved
                 # On-premise gateway: a SQL Server of the office network, reached through the same PC.
-                page.get_by_role('button',name='Nuova: SQL Server / Azure SQL / Fabric',exact=True).click()
+                chooser=page.get_by_test_id('new-connection')
+                expect(chooser.get_by_label('Dove si trova il servizio',exact=True)).to_have_value('ag_0123456789ab')
+                expect(chooser.get_by_test_id('new-serial')).to_contain_text('Porta COM / USB del PC')
+                expect(chooser.get_by_test_id('new-network')).to_have_count(0)  # networks to map are scanned from the server
+                chooser.get_by_role('button',name='Nuova: SQL Server / Azure SQL / Fabric',exact=True).click()
                 form=page.get_by_test_id('connection-form')
-                form.get_by_label('Raggiungibile da',exact=True).select_option('ag_0123456789ab')
+                expect(form.get_by_label('Dove si trova il servizio',exact=True)).to_have_value('ag_0123456789ab')
                 expect(form.get_by_label('Autenticazione',exact=True)).to_have_count(0)  # through an agent: user and password
                 form.get_by_label('Nome',exact=True).fill('ERP ufficio')
                 form.get_by_label('Server, URL o stringa di connessione',exact=True).fill('sql01.ufficio.local')
@@ -486,7 +501,7 @@ createRoot(document.getElementById('root')!).render(location.pathname.includes('
                 form.get_by_label('Password',exact=True).fill('segreta-123')
                 form.get_by_label('Confermo che l’account ha solo permessi di lettura').check()
                 form.get_by_role('button',name='Salva',exact=True).click()
-                expect(page.get_by_test_id('connection-erp-ufficio')).to_contain_text('sql01.ufficio.local:1433 / erp · lettore · on premise, tramite PC di casa')
+                expect(onsite.get_by_test_id('connection-erp-ufficio')).to_contain_text('sql01.ufficio.local:1433 / erp · lettore')
                 saved=connections._read('owner','erp-ufficio')
                 assert (saved['agent'],saved['authentication'],saved['host']) == ('ag_0123456789ab','password','sql01.ufficio.local'),saved
                 assert not errors,errors

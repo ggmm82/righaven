@@ -244,7 +244,7 @@ def harness_setup_device(runtime: Runtime, kind: str, target: str, name: str = '
         # Through an agent a USB serial board is a COM port of the PC, carried to the server by a tunnel.
         if kind == 'usb':
             raise ValueError('Tramite RigHaven Agent una scheda USB si usa come porta COM: usa kind com con il nome della porta (per esempio COM5)')
-        body.update(transport='agent', agent=agent, target='com:' + target.strip().upper(), baud=115200)
+        body.update(transport='serial', agent=agent, device=target.strip().upper(), baud=115200)
     elif kind == 'usb':
         answer = host_bridge.run('usb-attach', {'busid': target}, timeout=240)
         ports = [p for p in answer.get('ports') or [] if p in connections.local_devices()]
@@ -258,8 +258,7 @@ def harness_setup_device(runtime: Runtime, kind: str, target: str, name: str = '
         if protocol == 'tuya':
             return json.dumps({'connection': None, 'instruction': 'A Tuya device needs its device ID and local key: ask the owner to create '
                                'the connection in Connections; never ask for the local key in the chat.'}, ensure_ascii=False)
-        body.update(transport='agent', agent=agent, target='tcp:' + target.strip() + ':' + str(port or connections.PROTOCOLS[protocol][0] or 80),
-                    protocol=protocol)
+        body.update(transport='network', agent=agent, host=target.strip(), protocol=protocol, **({'port': port} if port else {}))
     elif kind == 'com':
         host_bridge.run('com-share', {'name': target}, timeout=60)
         shared = next((p for p in device_discovery.serial_ports() if p['name'] == target), None)

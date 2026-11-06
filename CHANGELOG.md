@@ -9,6 +9,10 @@ First stable version.
   devices of the PC and of the home network, network listening and traffic recording at the
   disposal of a RigHaven server (for example on a VPS). Device connections *through an agent*
   reach COM ports and home-network devices with tunnels.
+- **Connections to services, cloud or on premise.** A new connection asks where the service is
+  (cloud, on premise next to this server, on premise through «PC») and then which service:
+  database, network service, serial/USB port, Bluetooth LE, network to map. The list is grouped
+  by place.
 - **On-premise connection gateway.** Postgres, SQL Server, MySQL and Oracle databases of an
   office or home network are reached *through* the agent of a PC of that network: a private
   address or an internal name the PC resolves, a test run from that PC, a tunnel only while a

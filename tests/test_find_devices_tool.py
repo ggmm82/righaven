@@ -124,6 +124,21 @@ class ExploreToolTests(unittest.TestCase):
         remote.assert_called_once_with('ag_0123456789ab', '192.168.50.20')
         run.assert_called_once_with('ble-inspect', {'address': '38:A5:C9:3C:2E:9F'}, timeout=150, agent='ag_0123456789ab')
 
+    def test_the_chat_prepares_on_premise_devices_through_the_named_pc(self):
+        from righaven import connections
+        saved = []
+        with patch('righaven.host_bridge.pick', return_value='ag_0123456789ab') as pick, \
+             patch.object(connections, 'save', side_effect=lambda user, body: saved.append(body) or body), \
+             patch.object(connections, 'listing', return_value=[]):
+            tools.harness_setup_device.func(runtime=None, kind='com', target='com5', pc='PC casa')
+            tools.harness_setup_device.func(runtime=None, kind='network', target='192.168.50.20', protocol='http', agent_network=True, pc='PC casa')
+        pick.assert_called_with('alice', 'PC casa')
+        self.assertEqual({k: saved[0][k] for k in ('transport', 'agent', 'device')}, {'transport': 'serial', 'agent': 'ag_0123456789ab', 'device': 'COM5'})
+        self.assertEqual({k: saved[1][k] for k in ('transport', 'agent', 'host', 'protocol')},
+                         {'transport': 'network', 'agent': 'ag_0123456789ab', 'host': '192.168.50.20', 'protocol': 'http'})
+        for body in saved:  # what the chat prepares is what the page saves
+            connections.validate({**body, 'id': 'x'})
+
     def test_the_chat_explores_like_the_page(self):
         from righaven import device_discovery
         with patch.object(device_discovery, 'explore', return_value={'address': '192.168.1.44', 'ports': [80]}):

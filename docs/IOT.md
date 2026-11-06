@@ -148,8 +148,9 @@ for scripts and for troubleshooting.
 
 When RigHaven runs on a server, the PC with the devices runs **RigHaven Agent** instead of the
 full portable app: the same actions and searches, carried to the server through the agent's
-encrypted channel, and device connections *through an agent* reach COM ports and home-network
-devices with tunnels. See [RigHaven Agent](AGENT.md).
+encrypted channel. Each connection says where its service is: cloud, on premise next to this
+server, or on premise *through «PC»*, reached with the agent's tunnels (COM ports, home-network
+devices, on-premise databases). See [RigHaven Agent](AGENT.md).
 
 ### The same actions everywhere
 
