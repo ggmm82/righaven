@@ -33,6 +33,17 @@ preloaded into every software environment. The data-engineering preset combines
 usql, SchemaCrawler, dlt, SQLMesh and SQLGlot with existing notebook/report tools.
 See DATA-ENGINEERING.md for connection handling and verification limits.
 
+## Version 1.0
+
+RigHaven 1.0 is the first stable version: the Community edition on a server (with its web
+interface) or on one PC (Windows and Linux portable apps), and **RigHaven Agent** for Windows, which
+connects a PC's devices to a RigHaven server. Devices, connections, approvals of every write,
+searches and tunnels are covered by unit, protocol and browser tests; the end-to-end path on a
+real VPS with a real PC, the Windows-only device features (Bluetooth LE, Wi-Fi setup, traffic
+recording) and the firmware setup pages are validated by the owner's acceptance checks, not by
+the CI. Linux and phone agents, Matter through an agent and code signing of the Windows
+executables come after 1.0.
+
 ## Outstanding delivery requirements
 
 - Public directory hosting and publisher-signed distributions. Pinned HTTPS

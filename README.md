@@ -246,6 +246,15 @@ On Linux, `RigHaven-<version>-linux-x64-portable.tar.gz` does the same with the 
 engine already on the PC: extract it and run `./righaven`
 ([Linux portable app](docs/LINUX-PORTABLE.md)).
 
+### RigHaven on a VPS, your PC with RigHaven Agent
+
+RigHaven also runs on a server (a VPS, from the release's `compose.hostinger.yaml`) with its
+own web interface. `RigHaven-Agent-windows-x64.exe` is the small Windows program, with no WSL
+and no Docker, that puts your PC's Bluetooth, Wi-Fi, COM ports and home network at the server's
+disposal: pair it once with a code from **Connections**, and the server's searches, explorations
+and device connections reach your devices through it. The PC connects to the server, no router
+port is opened. See [RigHaven Agent](docs/AGENT.md).
+
 **On the phone.** RigHaven can be installed as an app from the browser ("Add to Home
 screen" or "Install app") and the project card collapses to one line, so the chat and
 the team's questions stay visible: [phones and the installable app](docs/MOBILE.md).
@@ -426,6 +435,7 @@ surfaces still need localization. See [workspace guide](docs/WORKSPACE.md),
 | [Model providers](docs/MODEL-PROVIDERS.md) | Codex, Claude Code, Antigravity and OpenAI-compatible APIs: capabilities and limits |
 | [Windows portable app](docs/WINDOWS-PORTABLE.md) | Run RigHaven on one Windows PC in WSL 2 with the same isolation, commands and build |
 | [Linux portable app](docs/LINUX-PORTABLE.md) | Run RigHaven on one Linux PC with its Docker engine |
+| [RigHaven Agent](docs/AGENT.md) | Put a Windows PC's Bluetooth, Wi-Fi, COM ports and home network at the disposal of a RigHaven server |
 | [Phones and the installable app](docs/MOBILE.md) | Install RigHaven as an app, use it from a phone, reach a PC copy on the network |
 | [Environments](docs/OPTIONAL-ENVIRONMENTS.md) | Catalog, preparation, profile reuse and machine usage |
 | [Technical report](docs/technical-report.typ) | Typst source of the architecture report |
