@@ -14,6 +14,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"sort"
 	"strconv"
 	"strings"
@@ -35,6 +36,8 @@ type agentConfig struct {
 	Token  string `json:"token"` // protected with Windows DPAPI for this user
 	Agent  string `json:"agent"`
 	Name   string `json:"name"`
+	// Node: this machine also runs sandboxes of on-premise environments (agent node on).
+	Node *nodeConfig `json:"node,omitempty"`
 }
 
 var (
@@ -100,7 +103,7 @@ func agentLink(a *App, server, code string) (agentConfig, error) {
 	if !codePattern.MatchString(code) {
 		return agentConfig{}, errors.New(a.T("agent_code"))
 	}
-	body, _ := json.Marshal(map[string]string{"code": code, "platform": "windows", "version": launcherVersion})
+	body, _ := json.Marshal(map[string]string{"code": code, "platform": runtime.GOOS, "version": launcherVersion})
 	response, err := httpClient.Post(server+"/api/webhooks/righaven-agent/pair", "application/json", bytes.NewReader(body))
 	if err != nil {
 		return agentConfig{}, fmt.Errorf(a.T("agent_unreachable"), server, err)
@@ -155,6 +158,8 @@ func agentCommand(a *App, args []string, out io.Writer, in io.Reader) error {
 			}
 			fmt.Fprintln(out, map[bool]string{true: a.T("agent_autostart_on"), false: a.T("agent_autostart_off")}[on])
 			return nil
+		case "node":
+			return nodeCommand(a, args[1:], out)
 		case "run":
 			config, err := loadAgentConfig()
 			if err != nil {
@@ -230,6 +235,9 @@ func runAgent(a *App, config agentConfig, out io.Writer, stop <-chan struct{}) e
 var errAgentRevoked = errors.New("revoked")
 
 func (s *agentSession) send(value any) error {
+	if s.conn == nil { // a run of a compute node can outlive the channel it came from
+		return errors.New("not connected")
+	}
 	data, _ := json.Marshal(value)
 	return s.conn.WriteText(data)
 }
@@ -240,8 +248,19 @@ func (s *agentSession) serve(stop <-chan struct{}) error {
 		value.(io.Closer).Close()
 		return true
 	})
-	if err := s.send(map[string]any{"type": "hello", "platform": "windows", "version": launcherVersion, "actions": agentActions, "networks": localNetworks()}); err != nil {
+	hello := map[string]any{"type": "hello", "platform": runtime.GOOS, "version": launcherVersion, "actions": actionsOfThisPC(), "networks": localNetworks()}
+	if s.config.Node != nil {
+		if offered, err := nodeCapacity(s.config.Node); err == nil {
+			hello["compute"] = offered
+		} else {
+			fmt.Fprintln(s.out, err)
+		}
+	}
+	if err := s.send(hello); err != nil {
 		return err
+	}
+	if s.config.Node != nil {
+		s.resumeRuns()
 	}
 	done := make(chan struct{})
 	defer close(done)
@@ -258,6 +277,12 @@ func (s *agentSession) serve(stop <-chan struct{}) error {
 			case <-ticker.C:
 				if s.send(map[string]string{"type": "ping"}) != nil {
 					return
+				}
+				if s.config.Node != nil {
+					if offered, err := nodeCapacity(s.config.Node); err == nil {
+						offered["type"] = "compute"
+						_ = s.send(offered)
+					}
 				}
 			}
 		}
@@ -290,6 +315,15 @@ func (s *agentSession) serve(stop <-chan struct{}) error {
 			continue
 		}
 		switch message.Type {
+		case "run":
+			if s.config.Node != nil {
+				var job nodeRun
+				if json.Unmarshal(data, &job) == nil {
+					go s.runJob(job)
+				}
+			}
+		case "stop":
+			s.stopJob(message.ID)
 		case "request":
 			go func(id, action string, args map[string]string) {
 				s.work.Lock()
@@ -391,6 +425,14 @@ func homeDial(target string, timeout time.Duration) (net.Conn, error) {
 		last = dialErr
 	}
 	return nil, last
+}
+
+// actionsOfThisPC: the Windows PC offers its devices; a Linux machine its network (and its Docker, as a node).
+func actionsOfThisPC() []string {
+	if runtime.GOOS == "windows" {
+		return agentActions
+	}
+	return []string{"net-scan", "tcp-check"}
 }
 
 // agentHandle carries out one action on this PC, without WSL: the same work as the launcher's

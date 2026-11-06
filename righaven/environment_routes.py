@@ -4,6 +4,7 @@ import json
 import logging
 import subprocess
 import threading
+from typing import Optional
 from fastapi import APIRouter, Request, Response, HTTPException, Query
 from pydantic import BaseModel, Field
 from app.gateway.authz import require_permission
@@ -28,6 +29,8 @@ class Definition(BaseModel):
     mode:str=Field(default='on_demand',pattern='^(on_demand|preload)$')
     ephemeral:bool=False
     tool_versions:dict[str,str]=Field(default_factory=dict,max_length=128)
+    # Where the environment runs: cloud (this server), auto, or the ID of one of the owner's compute nodes.
+    placement:Optional[str]=Field(default=None,max_length=20)
     preload_tools:list[str]|None=Field(default=None,max_length=64)
 
 
@@ -229,7 +232,7 @@ async def write_definition(value,request,create):
         if create:
             agent=await create_agent_endpoint(AgentCreateRequest(name=value.name,**fields),request)
         else:agent=await update_agent(value.name,AgentUpdateRequest(**fields),request)
-        await run_in_threadpool(profiles.set_deployment,user,value.name,value.mode,value.ephemeral,value.preload_tools,value.tool_versions)
+        await run_in_threadpool(profiles.set_deployment,user,value.name,value.mode,value.ephemeral,value.preload_tools,value.tool_versions,value.placement)
         environment_history.record(user,profiles.profile(user,agent))
         if value.mode=='preload' and runtimes.enabled():schedule(user,value.name,reschedule=True,trigger='configuration')
         return await run_in_threadpool(summary,user,agent)

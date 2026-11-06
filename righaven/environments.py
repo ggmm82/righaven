@@ -67,7 +67,9 @@ def preferences(user_id):
     return value if isinstance(value, dict) else {}
 
 
-def set_deployment(user_id, name, mode, ephemeral=False, preload_tools=None, tool_versions=None):
+def set_deployment(user_id, name, mode, ephemeral=False, preload_tools=None, tool_versions=None, placement=None):
+    """placement: where the environment runs, cloud (this server), auto, or a compute node of the owner;
+    None keeps the current one."""
     if not NAME.fullmatch(name) or mode not in MODES or type(ephemeral) is not bool:
         raise ValueError('Configurazione di deploy non valida')
     if mode == 'preload' and ephemeral:
@@ -86,7 +88,11 @@ def set_deployment(user_id, name, mode, ephemeral=False, preload_tools=None, too
         associated=previous.get('editor_for')
         if associated and mode=='preload' and previous.get('mode')!='preload':editors=sorted(set([*editors,associated]))
         if associated and mode!='preload' and previous.get('mode')=='preload':editors=[e for e in editors if e!=associated]
-        value[name] = {**{k:previous[k] for k in ('editor_for','editor_software') if k in previous},**({'source_pack':{**source,'modified':True}} if source else {}), 'mode':mode, 'ephemeral':ephemeral, 'preload_tools':sorted(set(preload_tools)) if preload_tools is not None else None,'tool_versions':versions,'editors':editors}
+        if placement is not None:
+            from .compute_nodes import check_place
+            placement = check_place(user_id, placement)
+        place = placement if placement is not None else previous.get('placement', 'cloud')
+        value[name] = {'placement': place, **{k:previous[k] for k in ('editor_for','editor_software') if k in previous},**({'source_pack':{**source,'modified':True}} if source else {}), 'mode':mode, 'ephemeral':ephemeral, 'preload_tools':sorted(set(preload_tools)) if preload_tools is not None else None,'tool_versions':versions,'editors':editors}
         atomic_json(preferences_path(user_id), value)
     return value[name]
 

@@ -9,6 +9,7 @@ import os
 from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Request, WebSocket
+from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel, Field
 from starlette.concurrency import run_in_threadpool
 from app.gateway.authz import require_permission
@@ -48,7 +49,7 @@ async def listing(request: Request):
     """This user's agents, whether they are connected now, and where to download RigHaven Agent."""
     rows = await run(agents.listing, get_effective_user_id())
     for row in rows:
-        row.update(online=agent_hub.online(row['id']), **{k: v for k, v in agent_hub.state(row['id']).items() if k in ('networks',)})
+        row.update(online=agent_hub.online(row['id']), **{k: v for k, v in agent_hub.state(row['id']).items() if k in ('networks', 'compute')})
     return {'agents': rows, 'download': DOWNLOAD.format(repository=os.getenv('RIGHAVEN_REPOSITORY', 'ggmm82/righaven')),
             'server': agents.public_address(request)}
 
@@ -108,6 +109,94 @@ async def capture(request: Request):
     temporary.replace(folder / 'capture.pcapng')
     agents.log(agent['user'], agent['id'], 'capture-upload', str(size) + ' bytes')
     return {'ok': True, 'size': size}
+
+
+@router.get('/api/harness/compute-nodes')
+@require_permission('agents', 'read')
+async def compute_nodes_listing(request: Request):
+    """The owner's machines that run on-premise environments, with what they offer and run now."""
+    from . import compute_nodes
+    return {'nodes': await run(compute_nodes.listing, get_effective_user_id())}
+
+
+async def _node(request):
+    agent = await run_in_threadpool(agents.authenticate, request.headers.get(HEADER, ''))
+    if agent is None:
+        raise HTTPException(401, 'Agente non autorizzato')
+    return agent
+
+
+@router.get('/api/webhooks/righaven-agent/runs/{name}/bundle')
+async def run_bundle(name: str, request: Request):
+    """The folders a sandbox of this node mounts (project, output, progress, credentials, connections)."""
+    from . import compute_nodes
+    agent = await _node(request)
+    try:
+        path = compute_nodes.bundle(agent['id'], name)
+    except LookupError:
+        raise HTTPException(404, 'Esecuzione non trovata') from None
+    return FileResponse(path, media_type='application/gzip')
+
+
+@router.get('/api/webhooks/righaven-agent/images/{image:path}')
+async def run_image(image: str, request: Request):
+    """An environment image for a run of this node, streamed as docker save writes it."""
+    import subprocess
+    from . import compute_nodes
+    agent = await _node(request)
+    try:
+        compute_nodes.image_for(agent['id'], image)
+    except LookupError:
+        raise HTTPException(404, 'Immagine non richiesta da questa macchina') from None
+    process = subprocess.Popen(['docker', 'save', image], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+
+    def chunks():
+        try:
+            while True:
+                data = process.stdout.read(1 << 20)
+                if not data:
+                    break
+                yield data
+        finally:
+            process.kill()
+            process.wait()
+    agents.log(agent['user'], agent['id'], 'compute-image', image[:80])
+    return StreamingResponse(chunks(), media_type='application/x-tar')
+
+
+async def _receive(request, handler, name):
+    import tempfile
+    from . import compute_nodes
+    agent = await _node(request)
+    with tempfile.TemporaryFile() as stream:
+        size = 0
+        async for chunk in request.stream():
+            size += len(chunk)
+            if size > compute_nodes.MAX_RESULT:
+                raise HTTPException(413, 'Risultato troppo grande')
+            stream.write(chunk)
+        stream.seek(0)
+        try:
+            await run_in_threadpool(handler, agent['id'], name, stream)
+        except LookupError:
+            raise HTTPException(410, 'Esecuzione non più attesa da questo server') from None
+        except (ValueError, OSError) as error:
+            raise HTTPException(400, str(error)) from error
+    return {'ok': True}
+
+
+@router.put('/api/webhooks/righaven-agent/runs/{name}/live')
+async def run_live(name: str, request: Request):
+    """Progress of a running sandbox (status and journal of the job), while it runs."""
+    from . import compute_nodes
+    return await _receive(request, compute_nodes.receive_live, name)
+
+
+@router.put('/api/webhooks/righaven-agent/runs/{name}/result')
+async def run_result(name: str, request: Request):
+    """The end of a sandbox: exit code, output, and the folders it was allowed to write."""
+    from . import compute_nodes
+    return await _receive(request, compute_nodes.receive_result, name)
 
 
 @router.websocket('/api/webhooks/righaven-agent/connect')

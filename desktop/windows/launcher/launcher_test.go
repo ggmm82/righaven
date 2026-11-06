@@ -4,6 +4,7 @@ import (
 	"archive/tar"
 	"bufio"
 	"bytes"
+	"compress/gzip"
 	"context"
 	"crypto/sha1"
 	"encoding/base64"
@@ -20,6 +21,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -1171,7 +1173,7 @@ func TestAgentPairsConnectsAnswersAndCarriesATunnel(t *testing.T) {
 	mux.HandleFunc("/api/webhooks/righaven-agent/pair", func(w http.ResponseWriter, r *http.Request) {
 		var body map[string]string
 		_ = json.NewDecoder(r.Body).Decode(&body)
-		if body["code"] != "ABCDE-FGHJK" || body["platform"] != "windows" {
+		if body["code"] != "ABCDE-FGHJK" || body["platform"] != runtime.GOOS {
 			w.WriteHeader(403)
 			return
 		}
@@ -1212,7 +1214,7 @@ func TestAgentPairsConnectsAnswersAndCarriesATunnel(t *testing.T) {
 	go func() { finished <- runAgent(a, loaded, io.Discard, stop) }()
 	socket := <-sockets
 	hello := socket.readJSON(t)
-	if hello["type"] != "hello" || hello["platform"] != "windows" || !strings.Contains(fmt.Sprint(hello["actions"]), "net-scan") {
+	if hello["type"] != "hello" || hello["platform"] != runtime.GOOS || !strings.Contains(fmt.Sprint(hello["actions"]), "net-scan") {
 		t.Fatalf("%v", hello)
 	}
 	// The server asks a search of the home network.
@@ -1268,5 +1270,228 @@ func TestTunnelsReachOnlyThePrivateNetworkOfThePC(t *testing.T) {
 	_, err := homeDial("sql01.office.local:1433", 300*time.Millisecond)
 	if err == nil || strings.Contains(err.Error(), "not an address") || strings.Contains(err.Error(), "not resolved") {
 		t.Fatalf("an internal name should be dialled, got %v", err)
+	}
+}
+
+// fakeDocker writes a docker command for the node tests: info, images, run (writes into the
+// folder mounted at /out and prints a JSON answer), inspect, rm, stop.
+func fakeDocker(t *testing.T) string {
+	dir := t.TempDir()
+	script := `#!/bin/sh
+case "$1" in
+info) echo "8 17179869184 27.1.1" ;;
+image) exit 0 ;;
+inspect) echo false ;;
+rm|stop) exit 0 ;;
+run)
+  shift
+  while [ $# -gt 0 ]; do
+    if [ "$1" = "--mount" ]; then
+      case "$2" in
+        *dst=/out) out=$(echo "$2" | sed 's/^type=bind,src=//; s/,dst=.*$//') ;;
+        *dst=/progress) progress=$(echo "$2" | sed 's/^type=bind,src=//; s/,dst=.*$//') ;;
+        *dst=/job.json,readonly) job=$(echo "$2" | sed 's/^type=bind,src=//; s/,dst=.*$//') ;;
+      esac
+    fi
+    shift
+  done
+  echo '{"phase":"done"}' > "$progress/status.json"
+  cat "$job" > "$out/report.md"
+  echo '{"ok": true}'
+  ;;
+*) exit 2 ;;
+esac
+`
+	path := filepath.Join(dir, "docker")
+	must(t, os.WriteFile(path, []byte(script), 0o755))
+	return path
+}
+
+func TestNodeRunsASandboxAndSendsBackItsFiles(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("the fake docker is a shell script")
+	}
+	a := portable(t)
+	docker := fakeDocker(t)
+	previousDocker, previousRuns := nodeDockerCmd, nodeRunsDir
+	runs := t.TempDir()
+	nodeDockerCmd, nodeRunsDir = func() []string { return []string{docker} }, func() string { return runs }
+	t.Cleanup(func() { nodeDockerCmd, nodeRunsDir = previousDocker, previousRuns })
+	job := nodeRun{ID: "rh-job-0123456789ab", Image: "righaven-env:abc", Timeout: 60, Mounts: []nodeMount{
+		{Key: "m0", Mode: "ro", Kind: "file", Target: "/job.json"}, {Key: "m1", Mode: "rw", Kind: "dir", Target: "/out"},
+		{Key: "m2", Mode: "live", Kind: "dir", Target: "/progress"}},
+		Args: []string{"run", "--name", "rh-job-0123456789ab", "--init", "--cap-drop=ALL", "--memory=4096m", "--cpus=4", "--network=bridge",
+			"--mount", "type=bind,src={m0},dst=/job.json,readonly", "--mount", "type=bind,src={m1},dst=/out", "--mount", "type=bind,src={m2},dst=/progress",
+			"--env", "A=1", "righaven-env:abc", "python3", "/opt/righaven-worker/run_agent.py", "/job.json"}}
+	var result map[string]any
+	files := map[string]string{}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get(agentHeader) != "rha_test" {
+			w.WriteHeader(401)
+			return
+		}
+		switch r.URL.Path {
+		case "/api/webhooks/righaven-agent/runs/rh-job-0123456789ab/bundle":
+			gz := gzip.NewWriter(w)
+			archive := tar.NewWriter(gz)
+			for name, body := range map[string]string{"m0": `{"task":"ciao"}`, "../evil": "x"} {
+				must(t, archive.WriteHeader(&tar.Header{Name: name, Mode: 0o644, Size: int64(len(body)), Typeflag: tar.TypeReg}))
+				_, _ = archive.Write([]byte(body))
+			}
+			archive.Close()
+			gz.Close()
+		case "/api/webhooks/righaven-agent/runs/rh-job-0123456789ab/live":
+			w.WriteHeader(200)
+		case "/api/webhooks/righaven-agent/runs/rh-job-0123456789ab/result":
+			gz, err := gzip.NewReader(r.Body)
+			must(t, err)
+			archive := tar.NewReader(gz)
+			for {
+				header, err := archive.Next()
+				if err != nil {
+					break
+				}
+				data, _ := io.ReadAll(archive)
+				if header.Name == "result.json" {
+					must(t, json.Unmarshal(data, &result))
+				} else if header.Typeflag == tar.TypeReg {
+					files[header.Name] = string(data)
+				}
+			}
+			w.WriteHeader(200)
+		default:
+			w.WriteHeader(404)
+		}
+	}))
+	defer server.Close()
+	session := &agentSession{a: a, config: agentConfig{Server: server.URL, Token: "rha_test", Node: &nodeConfig{Jobs: 2}}, out: io.Discard,
+		conn: nil}
+	dir := filepath.Join(runs, job.ID)
+	// The bundle with a path outside it is refused: nothing runs.
+	refused := session.executeJob(dir, job)
+	if refused["returncode"] != 125 || !strings.Contains(refused["stderr"].(string), "outside the bundle") {
+		t.Fatalf("a bundle escaping its folder must be refused: %v", refused)
+	}
+	server.Config.Handler = wrapBundle(server.Config.Handler)
+	done := session.executeJob(dir, job)
+	if done["returncode"] != 0 || done["stdout"] != "{\"ok\": true}\n" {
+		t.Fatalf("run: %v", done)
+	}
+	session.uploadResult(dir, job, done)
+	if result["returncode"] != float64(0) || files["m1/report.md"] != `{"task":"ciao"}` || files["m2/status.json"] != "{\"phase\":\"done\"}\n" {
+		t.Fatalf("result sent back: %v %v", result, files)
+	}
+	if _, ok := files["m0"]; ok {
+		t.Fatal("read-only folders are not sent back")
+	}
+	if _, err := os.Stat(dir); !os.IsNotExist(err) {
+		t.Fatal("the run's folder stays on the machine after the server took the result")
+	}
+}
+
+// wrapBundle answers the bundle without the escaping entry.
+func wrapBundle(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasSuffix(r.URL.Path, "/bundle") {
+			gz := gzip.NewWriter(w)
+			archive := tar.NewWriter(gz)
+			body := `{"task":"ciao"}`
+			_ = archive.WriteHeader(&tar.Header{Name: "m0", Mode: 0o644, Size: int64(len(body)), Typeflag: tar.TypeReg})
+			_, _ = archive.Write([]byte(body))
+			archive.Close()
+			gz.Close()
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+func TestNodeRefusesCommandsOutsideItsSandboxRules(t *testing.T) {
+	limits := map[string]any{"cpus": 8.0, "memory_mib": 16384}
+	base := func(extra ...string) nodeRun {
+		args := append([]string{"run", "--name", "rh-job-0123456789ab", "--cpus=2", "--memory=2048m"}, extra...)
+		return nodeRun{ID: "rh-job-0123456789ab", Image: "img", Mounts: []nodeMount{{Key: "m0", Mode: "ro", Kind: "dir", Target: "/data"}},
+			Args: append(args, "img", "python3", "x.py")}
+	}
+	if args, name, err := nodeArgs(base("--mount", "type=bind,src={m0},dst=/data,readonly"), "/runs/x/m", limits); err != nil || name != "rh-job-0123456789ab" ||
+		!strings.Contains(strings.Join(args, " "), "src=/runs/x/m/m0,dst=/data,readonly") {
+		t.Fatalf("a plain command is accepted: %v %v", args, err)
+	}
+	for _, extra := range [][]string{{"--privileged"}, {"--device", "/dev/sda"}, {"--network=host"}, {"-v", "/:/host"}, {"--cap-add", "SYS_ADMIN"},
+		{"--mount", "type=bind,src=/etc,dst=/etc"}, {"--mount", "type=bind,src={m0},dst=/data"}, {"--mount", "type=bind,src={m9},dst=/data,readonly"},
+		{"--cpus=64"}, {"--memory=999999m"}, {"--env", "LD_PRELOAD=/x.so"}, {"--label", "com.other=1"}, {"--pid=host"}} {
+		if _, _, err := nodeArgs(base(extra...), "/runs/x/m", limits); err == nil {
+			t.Fatalf("refused: %v", extra)
+		}
+	}
+	wrongName := base()
+	wrongName.Args[2] = "rh-job-ffffffffffff"
+	if _, _, err := nodeArgs(wrongName, "/runs/x/m", limits); err == nil {
+		t.Fatal("the container name is the run's")
+	}
+	wrongImage := base()
+	wrongImage.Image = "other"
+	if _, _, err := nodeArgs(wrongImage, "/runs/x/m", limits); err == nil {
+		t.Fatal("the image is the run's")
+	}
+}
+
+// With RIGHAVEN_NODE_DOCKER_TEST=1 (the Linux job of CI, which has Docker) a real container runs
+// through the node's checks, mounts and result upload.
+func TestNodeRunsARealContainer(t *testing.T) {
+	if os.Getenv("RIGHAVEN_NODE_DOCKER_TEST") != "1" {
+		t.Skip("set RIGHAVEN_NODE_DOCKER_TEST=1 on a machine with Docker")
+	}
+	a := portable(t)
+	must(t, exec.Command("docker", "pull", "-q", "busybox:1.36").Run())
+	runs := t.TempDir()
+	previousRuns := nodeRunsDir
+	nodeRunsDir = func() string { return runs }
+	t.Cleanup(func() { nodeRunsDir = previousRuns })
+	job := nodeRun{ID: "rh-job-0a1b2c3d4e5f", Image: "busybox:1.36", Timeout: 120, Mounts: []nodeMount{
+		{Key: "m0", Mode: "ro", Kind: "file", Target: "/job.json"}, {Key: "m1", Mode: "rw", Kind: "dir", Target: "/out"}},
+		Args: []string{"run", "--name", "rh-job-0a1b2c3d4e5f", "--init", "--cap-drop=ALL", "--security-opt=no-new-privileges", "--pids-limit=64",
+			"--memory=256m", "--memory-swap=256m", "--cpus=1", "--network=bridge", "--tmpfs", "/tmp:rw,size=16m",
+			"--mount", "type=bind,src={m0},dst=/job.json,readonly", "--mount", "type=bind,src={m1},dst=/out",
+			"busybox:1.36", "sh", "-c", `cat /job.json > /out/report.md && echo '{"ok": true}' && ! touch /job.json 2>/dev/null`}}
+	var files = map[string]string{}
+	var result map[string]any
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case strings.HasSuffix(r.URL.Path, "/bundle"):
+			gz := gzip.NewWriter(w)
+			archive := tar.NewWriter(gz)
+			body := `{"task":"real"}`
+			_ = archive.WriteHeader(&tar.Header{Name: "m0", Mode: 0o644, Size: int64(len(body)), Typeflag: tar.TypeReg})
+			_, _ = archive.Write([]byte(body))
+			_ = archive.WriteHeader(&tar.Header{Name: "m1/", Mode: 0o777, Typeflag: tar.TypeDir})
+			archive.Close()
+			gz.Close()
+		case strings.HasSuffix(r.URL.Path, "/result"):
+			gz, _ := gzip.NewReader(r.Body)
+			archive := tar.NewReader(gz)
+			for header, err := archive.Next(); err == nil; header, err = archive.Next() {
+				data, _ := io.ReadAll(archive)
+				if header.Name == "result.json" {
+					_ = json.Unmarshal(data, &result)
+				} else {
+					files[header.Name] = string(data)
+				}
+			}
+		}
+	}))
+	defer server.Close()
+	session := &agentSession{a: a, config: agentConfig{Server: server.URL, Token: "rha_test", Node: &nodeConfig{Jobs: 1}}, out: io.Discard}
+	dir := filepath.Join(runs, job.ID)
+	done := session.executeJob(dir, job)
+	if done["returncode"] != 0 || !strings.Contains(done["stdout"].(string), `"ok": true`) {
+		t.Fatalf("real container: %v", done)
+	}
+	session.uploadResult(dir, job, done)
+	if files["m1/report.md"] != `{"task":"real"}` || result["returncode"] != float64(0) {
+		t.Fatalf("files back: %v %v", files, result)
+	}
+	if exec.Command("docker", "inspect", job.ID).Run() == nil {
+		t.Fatal("the container is removed after the run")
 	}
 }

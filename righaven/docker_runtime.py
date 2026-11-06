@@ -61,6 +61,21 @@ def host_path(path):
     raise ValueError('Il percorso richiesto non appartiene a un volume del Gateway')
 
 
+def gateway_path(path):
+    """The Gateway's own path for a bind source given to the daemon (the inverse of host_path)."""
+    global _mounts
+    path = Path(path)
+    if internal_daemon():
+        return str(path)
+    if _mounts is None:
+        _mounts = json.loads(docker('inspect', OWNER))[0]['Mounts']
+    for mount in sorted(_mounts, key=lambda m: len(m['Source']), reverse=True):
+        source = Path(mount['Source'])
+        if path == source or path.is_relative_to(source):
+            return str(Path(mount['Destination']) / path.relative_to(source))
+    raise ValueError('Il percorso del volume non appartiene al Gateway')
+
+
 def mount(path, target, read_only=False):
     value = f'type=bind,src={host_path(path)},dst={target}'
     return value + (',readonly' if read_only else '')
@@ -275,7 +290,7 @@ def codex_models():
     return codex_account(models=True)['models']
 
 
-def recover_saved(args, progress, workspace, output_dir, error, *, policy=None,role=None,staging=None,early=False):
+def recover_saved(args, progress, workspace, output_dir, error, *, policy=None,role=None,staging=None,early=False,node=None,oom=False):
     """Bounded native verification of saved files; never retries the AI session."""
     from .cancellation import requested, watch
     from .projects import assert_user_allows_work, read_project
@@ -300,7 +315,7 @@ def recover_saved(args, progress, workspace, output_dir, error, *, policy=None,r
             return None
     name = args[args.index('--name') + 1]
     try:
-        state = json.loads(docker('inspect', '--format', '{{json .State}}', name))
+        state = {'OOMKilled': oom} if node else json.loads(docker('inspect', '--format', '{{json .State}}', name))
         if state.get('OOMKilled'):
             return None
         remove(name)  # Stop the entire process tree before inspecting its outputs.
@@ -318,10 +333,14 @@ def recover_saved(args, progress, workspace, output_dir, error, *, policy=None,r
                execution_state='tool', execution_started_at=utcnow(), finished_at='', worker_exit_at='',
                deadline_at=(datetime.now(timezone.utc) + timedelta(seconds=300)).isoformat(),
                artifact_recovery={'status': 'running', 'session_error': attention['code']})
-        if staging is not None:
+        if staging is not None and not node:
             worker_resources(name, exact=read_status(progress)['limits'], timeout=300)
         with watch(lambda: request_stop(workspace, name), lambda: lifecycle(progress, cancel_error=True)):
-            completed = subprocess.run(['docker', *verification], capture_output=True, text=True, timeout=300)
+            if node:  # the node's place is still held by this job
+                from . import compute_nodes
+                completed = compute_nodes.run(node, verification, timeout=300, live=Path(progress).parent)
+            else:
+                completed = subprocess.run(['docker', *verification], capture_output=True, text=True, timeout=300)
         result = json.loads(completed.stdout)
         if completed.returncode or not isinstance(result, dict) or result.get('ok') is not True:
             raise ValueError(result.get('error', 'Controlli dei file salvati non superati') if isinstance(result, dict) else 'Risposta non valida')
@@ -503,9 +522,15 @@ def delegate(agent_id, task, workspace, tool_call_id=None, on_started=None, requ
         elif os.getenv('RIGHAVEN_EDITION', 'community') == 'cloud':
             from .credential_sessions import ApiCredentialSession
             credentials=ApiCredentialSession(engine,jobs/(name+'-credentials'),settings.get('connection_id'))
-        from .connections import Delivery as ConnectionDelivery
+        from .connections import Delivery as ConnectionDelivery, role_records
+        from .egress_policy import mode as egress_mode
+        from . import compute_nodes
+        # Cloud (this server) or on premise: a compute node of the owner, chosen by the environment.
+        node = compute_nodes.choose(policy.get('user_id'), policy.get('agent_name'), role_records(workspace, role), egress=egress_mode())
+        if node:
+            update(progress, node={'id': node, 'name': compute_nodes.placement_label(policy.get('user_id'), node)})
         # The connections the user assigned to this task, deleted with the worker.
-        connections=ConnectionDelivery(workspace,jobs/(name+'-connections'),role=role)
+        connections=ConnectionDelivery(workspace,jobs/(name+'-connections'),role=role,node=node)
         from .resource_budget import BUDGET
         from .cancellation import requested
         class CancelBudget:
@@ -514,8 +539,10 @@ def delegate(agent_id, task, workspace, tool_call_id=None, on_started=None, requ
         from .progress import heartbeat
         update(progress, 'preparing', 'Attendo le risorse per avviare l’incarico', execution_state='resources')
         with heartbeat(progress):
-            resources = worker_resources(name, cancel=CancelBudget(), timeout=None)
-        BUDGET.observe_progress(name,progress)
+            resources = (compute_nodes.acquire(node, name, cancel=CancelBudget()) if node
+                         else worker_resources(name, cancel=CancelBudget(), timeout=None))
+        if not node:
+            BUDGET.observe_progress(name,progress)
         if requested() or read_status(progress).get('cancel_requested') or read_status(progress).get('finish_requested'):
             return cancelled_before_start()
         update(progress, execution_state='launching')
@@ -589,8 +616,11 @@ def delegate(agent_id, task, workspace, tool_call_id=None, on_started=None, requ
             update(progress, egress={'mode': 'allowlist', 'domains': egress.domains, 'refused': []})
         from .task_staging import forward_worker_events
         with forward_worker_events(workspace, progress), watch(lambda: request_stop(workspace, name), lambda: lifecycle(progress, cancel_error=True)):
-            completed = subprocess.run(['docker', *args], capture_output=True, text=True,
-                                       timeout=1560)
+            if node:
+                completed = compute_nodes.run(node, args, timeout=1560, live=Path(progress).parent)
+            else:
+                completed = subprocess.run(['docker', *args], capture_output=True, text=True,
+                                           timeout=1560)
         lifecycle(progress, worker_exit_at=utcnow())
         response = completed.stdout
         if completed.returncode:
@@ -605,14 +635,15 @@ def delegate(agent_id, task, workspace, tool_call_id=None, on_started=None, requ
                 failure = {}
             error = ('Interruzione della fase richiesta dall’utente; i file salvati sono conservati.' if status.get('cancel_requested') else failure.get('error') or completed.stderr or 'Specialista non completato')
             try:
-                container_state = json.loads(docker('inspect', '--format', '{{json .State}}', name))
+                container_state = {'OOMKilled': completed.oom} if node else json.loads(docker('inspect', '--format', '{{json .State}}', name))
                 if isinstance(container_state, dict) and container_state.get('OOMKilled') is True:
                     error = 'Memoria esaurita confermata dallo stato del container. ' + error
                     previous_usage = read_status(progress).get('resources') or {}
                     update(progress, resources={**previous_usage, 'oom_kills': max(1, previous_usage.get('oom_kills', 0))})
             except (OSError, ValueError, TypeError, subprocess.SubprocessError):
                 pass  # Unknown cause must not be invented from exit 137.
-            recovered = recover_saved(args, progress, workspace, output_dir, error, policy=policy,role=role,staging=staging,early=read_status(progress).get('finish_requested',False))
+            recovered = recover_saved(args, progress, workspace, output_dir, error, policy=policy,role=role,staging=staging,early=read_status(progress).get('finish_requested',False),
+                                      node=node, oom=getattr(completed, 'oom', False))
             if recovered:
                 remove(name)
                 publish_staged(staging, recovered, progress)
@@ -638,7 +669,8 @@ def delegate(agent_id, task, workspace, tool_call_id=None, on_started=None, requ
         return completed_result({**result, 'environment': runtime_environment}, workspace, progress, runtime_image)
     except subprocess.TimeoutExpired:
         if 'args' in locals():
-            recovered = recover_saved(args, progress, workspace, output_dir, 'Command worker timed out after 1500 seconds', policy=policy,role=role,staging=staging,early=read_status(progress).get('finish_requested',False))
+            recovered = recover_saved(args, progress, workspace, output_dir, 'Command worker timed out after 1500 seconds', policy=policy,role=role,staging=staging,early=read_status(progress).get('finish_requested',False),
+                                      node=locals().get('node'))
             if recovered:
                 remove(name)
                 publish_staged(staging, recovered, progress)
@@ -669,6 +701,8 @@ def delegate(agent_id, task, workspace, tool_call_id=None, on_started=None, requ
             raise
         from .resource_budget import BUDGET
         BUDGET.release(name)
+        from .compute_nodes import release as release_node
+        release_node(name)
         lifecycle(progress, cleanup_finished_at=utcnow(), resources_reclaimed=True)
         try:
             from .environment_runtime import release_claim
@@ -712,6 +746,11 @@ def request_stop(workspace, job_id):
     if status.get('execution_state') == 'resources' or (status['phase'] == 'preparing_environment' and not status.get('environment_container')):
         update(path, cancel_requested=True)
         return {'requested': True, 'job_id': job_id, 'waiting_resources': True}
+    if status.get('node') and status['phase'] != 'preparing_environment':
+        from . import compute_nodes
+        update(path, cancel_requested=True)
+        compute_nodes.stop(job_id)
+        return {'requested': True, 'job_id': job_id, 'node': status['node'].get('name')}
     target = status.get('environment_container') if status['phase']=='preparing_environment' else job_id
     target = target or job_id
     if target != job_id and not __import__('re').fullmatch(r'rh-env-[0-9a-f]{12}-[0-9a-f]{6}',target):
