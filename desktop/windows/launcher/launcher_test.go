@@ -2,8 +2,13 @@ package main
 
 import (
 	"archive/tar"
+	"bufio"
 	"bytes"
+	"context"
+	"crypto/sha1"
+	"encoding/base64"
 	"encoding/binary"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -1074,5 +1079,169 @@ func TestEveryDeviceOfTheNetworkIsListed(t *testing.T) {
 	devices, _ := result["devices"].([]neighbour)
 	if len(devices) != 2 || devices[0].Address != "127.0.0.1" || !devices[0].Private || devices[1].Vendor != "Raspberry Pi" || devices[1].MAC != "B8:27:EB:12:34:56" {
 		t.Fatalf("%+v", result)
+	}
+}
+
+// wsServerConn is the server side of a test WebSocket (server frames are not masked).
+type wsServerConn struct {
+	conn   net.Conn
+	reader *bufio.Reader
+}
+
+func (c *wsServerConn) send(opcode byte, payload []byte) {
+	header := []byte{0x80 | opcode}
+	if len(payload) < 126 {
+		header = append(header, byte(len(payload)))
+	} else {
+		header = append(header, 126, byte(len(payload)>>8), byte(len(payload)))
+	}
+	_, _ = c.conn.Write(append(header, payload...))
+}
+
+func (c *wsServerConn) read(t *testing.T) (byte, []byte) {
+	t.Helper()
+	head := make([]byte, 2)
+	if _, err := io.ReadFull(c.reader, head); err != nil {
+		t.Fatal(err)
+	}
+	size := int(head[1] & 0x7f)
+	if size == 126 {
+		extra := make([]byte, 2)
+		_, _ = io.ReadFull(c.reader, extra)
+		size = int(binary.BigEndian.Uint16(extra))
+	}
+	mask := make([]byte, 4)
+	_, _ = io.ReadFull(c.reader, mask)
+	payload := make([]byte, size)
+	_, _ = io.ReadFull(c.reader, payload)
+	for i := range payload {
+		payload[i] ^= mask[i%4]
+	}
+	return head[0] & 0x0f, payload
+}
+
+func (c *wsServerConn) readJSON(t *testing.T) map[string]any {
+	t.Helper()
+	for {
+		kind, payload := c.read(t)
+		if kind != wsText {
+			continue
+		}
+		var value map[string]any
+		must(t, json.Unmarshal(payload, &value))
+		if value["type"] != "ping" {
+			return value
+		}
+	}
+}
+
+type fakeCOM struct{ written chan []byte }
+
+func (f *fakeCOM) Read(p []byte) (int, error) { time.Sleep(time.Hour); return 0, io.EOF }
+func (f *fakeCOM) Write(p []byte) (int, error) {
+	f.written <- append([]byte(nil), p...)
+	return len(p), nil
+}
+func (f *fakeCOM) Close() error { return nil }
+
+func TestAgentPairsConnectsAnswersAndCarriesATunnel(t *testing.T) {
+	a := portable(t)
+	config := filepath.Join(t.TempDir(), "agent.json")
+	previousPath, previousDial, previousCOM := agentConfigPath, scanDial, openCOM
+	t.Cleanup(func() { agentConfigPath, scanDial, openCOM = previousPath, previousDial, previousCOM })
+	agentConfigPath = func() string { return config }
+	scanDial = func(ctx context.Context, address string) error {
+		if address == "192.168.1.44:6668" {
+			return nil
+		}
+		if strings.HasPrefix(address, "192.168.1.45:") {
+			return errors.New("connect: connection refused")
+		}
+		return errors.New("i/o timeout")
+	}
+	com := &fakeCOM{written: make(chan []byte, 1)}
+	openCOM = func(name string) (io.ReadWriteCloser, error) {
+		if name != "COM5" {
+			return nil, errors.New("no such port")
+		}
+		return com, nil
+	}
+	sockets := make(chan *wsServerConn, 1)
+	mux := http.NewServeMux()
+	mux.HandleFunc("/api/webhooks/righaven-agent/pair", func(w http.ResponseWriter, r *http.Request) {
+		var body map[string]string
+		_ = json.NewDecoder(r.Body).Decode(&body)
+		if body["code"] != "ABCDE-FGHJK" || body["platform"] != "windows" {
+			w.WriteHeader(403)
+			return
+		}
+		_, _ = w.Write([]byte(`{"agent":"ag_0123456789ab","token":"rha_secret","name":"PC di casa"}`))
+	})
+	mux.HandleFunc("/api/webhooks/righaven-agent/connect", func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get(agentHeader) != "rha_secret" {
+			w.WriteHeader(403)
+			return
+		}
+		sum := sha1.Sum([]byte(r.Header.Get("Sec-WebSocket-Key") + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"))
+		conn, buffer, _ := w.(http.Hijacker).Hijack()
+		_, _ = buffer.WriteString("HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: " +
+			base64.StdEncoding.EncodeToString(sum[:]) + "\r\n\r\n")
+		_ = buffer.Flush()
+		sockets <- &wsServerConn{conn: conn, reader: buffer.Reader}
+	})
+	server := httptest.NewServer(mux)
+	t.Cleanup(server.Close)
+
+	if _, err := agentLink(a, server.URL, "WRONG-CODE1"); err == nil {
+		t.Fatal("a wrong code was accepted")
+	}
+	linked, err := agentLink(a, server.URL, "ABCDE-FGHJK")
+	must(t, err)
+	saved, _ := os.ReadFile(config)
+	if strings.Contains(string(saved), `"token": "rha_secret"`) || linked.Agent != "ag_0123456789ab" {
+		t.Fatalf("token stored as is: %s", saved)
+	}
+	loaded, err := loadAgentConfig()
+	must(t, err)
+	if loaded.Token != "rha_secret" {
+		t.Fatal(loaded)
+	}
+
+	stop := make(chan struct{})
+	finished := make(chan error, 1)
+	go func() { finished <- runAgent(a, loaded, io.Discard, stop) }()
+	socket := <-sockets
+	hello := socket.readJSON(t)
+	if hello["type"] != "hello" || hello["platform"] != "windows" || !strings.Contains(fmt.Sprint(hello["actions"]), "net-scan") {
+		t.Fatalf("%v", hello)
+	}
+	// The server asks a search of the home network.
+	socket.send(wsText, []byte(`{"type":"request","id":"j1","action":"net-scan","args":{"network":"192.168.1.0/26"}}`))
+	result := socket.readJSON(t)
+	devices := result["result"].(map[string]any)["devices"].([]any)
+	if result["id"] != "j1" || len(devices) != 2 || devices[0].(map[string]any)["address"] != "192.168.1.44" ||
+		fmt.Sprint(devices[0].(map[string]any)["ports"]) != "[6668]" || fmt.Sprint(devices[1].(map[string]any)["ports"]) != "[]" {
+		t.Fatalf("%v", result)
+	}
+	// A worker of the server opens COM5 through the tunnel.
+	socket.send(wsText, []byte(`{"type":"open","stream":7,"target":"com:COM5"}`))
+	if opened := socket.readJSON(t); opened["type"] != "opened" || opened["stream"] != float64(7) {
+		t.Fatalf("%v", opened)
+	}
+	socket.send(wsBinary, append([]byte{0, 0, 0, 7}, []byte("ATZ\r")...))
+	if got := <-com.written; string(got) != "ATZ\r" {
+		t.Fatalf("%q", got)
+	}
+	// Only private addresses of the PC's network are reachable through a tunnel.
+	socket.send(wsText, []byte(`{"type":"open","stream":8,"target":"tcp:8.8.8.8:53"}`))
+	if refused := socket.readJSON(t); refused["type"] != "close" || refused["stream"] != float64(8) {
+		t.Fatalf("%v", refused)
+	}
+	close(stop)
+	select {
+	case err := <-finished:
+		must(t, err)
+	case <-time.After(10 * time.Second):
+		t.Fatal("the agent did not stop")
 	}
 }

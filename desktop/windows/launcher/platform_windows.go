@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
+	"encoding/base64"
 	"encoding/json"
 	"encoding/xml"
 	"errors"
@@ -18,6 +19,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"sync/atomic"
 	"syscall"
 	"time"
 	"unsafe"
@@ -267,7 +269,28 @@ func openSerialPort(name string) (io.ReadWriteCloser, error) {
 		syscall.CloseHandle(handle)
 		return nil, err
 	}
-	return os.NewFile(uintptr(handle), name), nil
+	return &serialPort{File: os.NewFile(uintptr(handle), name)}, nil
+}
+
+// serialPort waits for the next bytes: a COM port returns nothing after its 100 ms read timeout,
+// which os.File reports as the end of the file.
+type serialPort struct {
+	*os.File
+	closed atomic.Bool
+}
+
+func (p *serialPort) Read(buffer []byte) (int, error) {
+	for {
+		n, err := p.File.Read(buffer)
+		if n > 0 || err != io.EOF || p.closed.Load() {
+			return n, err
+		}
+	}
+}
+
+func (p *serialPort) Close() error {
+	p.closed.Store(true)
+	return p.File.Close()
 }
 
 // listCOMPorts returns the present serial ports with their Windows names.
@@ -655,4 +678,64 @@ func readNeighbours() ([]neighbour, error) {
 	}
 	var found []neighbour
 	return found, json.Unmarshal(output, &found)
+}
+
+var (
+	crypt32                = syscall.NewLazyDLL("crypt32.dll")
+	procCryptProtectData   = crypt32.NewProc("CryptProtectData")
+	procCryptUnprotectData = crypt32.NewProc("CryptUnprotectData")
+	procLocalFree          = kernel32.NewProc("LocalFree")
+)
+
+type dataBlob struct {
+	size uint32
+	data *byte
+}
+
+func blob(data []byte) *dataBlob {
+	if len(data) == 0 {
+		return &dataBlob{}
+	}
+	return &dataBlob{size: uint32(len(data)), data: &data[0]}
+}
+
+func (b *dataBlob) bytes() []byte {
+	return append([]byte(nil), unsafe.Slice(b.data, b.size)...)
+}
+
+// protectSecret encrypts the agent's token for this Windows account (DPAPI).
+func protectSecret(secret string) (string, error) {
+	var out dataBlob
+	if r, _, err := procCryptProtectData.Call(uintptr(unsafe.Pointer(blob([]byte(secret)))), 0, 0, 0, 0, 0x1, uintptr(unsafe.Pointer(&out))); r == 0 {
+		return "", err
+	}
+	defer procLocalFree.Call(uintptr(unsafe.Pointer(out.data)))
+	return "dpapi:" + base64.StdEncoding.EncodeToString(out.bytes()), nil
+}
+
+func unprotectSecret(value string) (string, error) {
+	data, err := base64.StdEncoding.DecodeString(strings.TrimPrefix(value, "dpapi:"))
+	if err != nil {
+		return "", err
+	}
+	var out dataBlob
+	if r, _, err := procCryptUnprotectData.Call(uintptr(unsafe.Pointer(blob(data))), 0, 0, 0, 0, 0x1, uintptr(unsafe.Pointer(&out))); r == 0 {
+		return "", err
+	}
+	defer procLocalFree.Call(uintptr(unsafe.Pointer(out.data)))
+	return string(out.bytes()), nil
+}
+
+// setAutostart starts RigHaven Agent at the owner's sign-in (their own Run key, no administrator rights).
+func setAutostart(on bool) error {
+	key := `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`
+	if !on {
+		_ = exec.Command("reg", "delete", key, "/v", "RigHaven Agent", "/f").Run()
+		return nil
+	}
+	exe, err := os.Executable()
+	if err != nil {
+		return err
+	}
+	return exec.Command("reg", "add", key, "/v", "RigHaven Agent", "/t", "REG_SZ", "/d", `"`+exe+`" agent run`, "/f").Run()
 }

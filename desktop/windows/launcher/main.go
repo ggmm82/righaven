@@ -20,6 +20,9 @@ import (
 
 var launcherVersion = "dev"
 
+// launcherMode is "agent" for RigHaven-Agent.exe (set at build time): with no command it pairs and runs the agent.
+var launcherMode = "full"
+
 type options struct {
 	command   string
 	args      []string
@@ -33,6 +36,9 @@ type options struct {
 
 func parse(args []string, a *App) (options, error) {
 	o := options{command: "start"}
+	if launcherMode == "agent" {
+		o.command = "agent"
+	}
 	fs := flag.NewFlagSet("RigHaven", flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
 	fs.IntVar(&o.port, "port", 0, "")
@@ -149,6 +155,8 @@ func run(a *App, o options, w WSL, out io.Writer) error {
 		return bluetoothCommand(a, o, w, out)
 	case "usb":
 		return usbCommand(a, o, w, out, os.Stdin)
+	case "agent":
+		return agentCommand(a, o.args, out, os.Stdin)
 	case "version":
 		release, _ := a.release()
 		fmt.Fprintf(out, "RigHaven %s (launcher %s)\n", release.Version, launcherVersion)
