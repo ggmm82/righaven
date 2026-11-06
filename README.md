@@ -9,7 +9,10 @@ organization's policies before anything is delivered.
 
 [![RigHaven teaser: 15-second video](docs/media/righaven-teaser-poster.png)](docs/media/righaven-teaser.mp4)
 
-https://github.com/user-attachments/assets/7e9b5874-ac3a-4100-b8ff-7424ed1f23cf
+
+
+https://github.com/user-attachments/assets/fadcbe54-a836-4a16-8b7e-45764ca20a6e
+
 
 
 
