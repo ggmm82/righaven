@@ -1417,7 +1417,7 @@ func TestNodeRefusesCommandsOutsideItsSandboxRules(t *testing.T) {
 			Args: append(args, "img", "python3", "x.py")}
 	}
 	if args, name, err := nodeArgs(base("--mount", "type=bind,src={m0},dst=/data,readonly"), "/runs/x/m", limits); err != nil || name != "rh-job-0123456789ab" ||
-		!strings.Contains(strings.Join(args, " "), "src=/runs/x/m/m0,dst=/data,readonly") {
+		!strings.Contains(strings.Join(args, " "), "src="+dockerPath(filepath.Join("/runs/x/m", "m0"))+",dst=/data,readonly") {
 		t.Fatalf("a plain command is accepted: %v %v", args, err)
 	}
 	for _, extra := range [][]string{{"--privileged"}, {"--device", "/dev/sda"}, {"--network=host"}, {"-v", "/:/host"}, {"--cap-add", "SYS_ADMIN"},
@@ -1515,7 +1515,7 @@ func TestNodeAcceptsTheServersCommand(t *testing.T) {
 	if err != nil || name != job.ID {
 		t.Fatalf("the server's command must pass: %v", err)
 	}
-	if !strings.Contains(strings.Join(args, " "), "src=/runs/x/m/m0,dst=/mnt/user-data,readonly") || args[len(args)-1] != "/job.json" {
+	if !strings.Contains(strings.Join(args, " "), "src="+dockerPath(filepath.Join("/runs/x/m", "m0"))+",dst=/mnt/user-data,readonly") || args[len(args)-1] != "/job.json" {
 		t.Fatalf("command on the node: %v", args)
 	}
 }
