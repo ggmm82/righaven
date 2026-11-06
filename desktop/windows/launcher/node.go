@@ -258,6 +258,7 @@ func (s *agentSession) executeJob(dir string, job nodeRun) map[string]any {
 		} else if _, err := os.Stat(path); err != nil {
 			return fail(fmt.Errorf("file %s missing from the bundle", m.Key))
 		}
+		openForSandbox(path, m.Mode != "ro")
 	}
 	if err := s.ensureImage(job.Image); err != nil {
 		return fail(err)
@@ -374,7 +375,7 @@ func (s *agentSession) uploadResult(dir string, job nodeRun, result map[string]a
 		if err == nil {
 			response.Body.Close()
 			if response.StatusCode == http.StatusOK || response.StatusCode == http.StatusGone || response.StatusCode == http.StatusNotFound {
-				_ = os.RemoveAll(dir)
+				removeRun(dir, job.Image)
 				return
 			}
 		}
@@ -383,6 +384,34 @@ func (s *agentSession) uploadResult(dir string, job nodeRun, result map[string]a
 			pause = time.Minute
 		}
 	}
+}
+
+// openForSandbox: the sandbox runs as root without capabilities, so it reads and writes only what
+// the permissions allow; the run's folder itself stays private to this account (0700).
+func openForSandbox(path string, writable bool) {
+	_ = filepath.Walk(path, func(item string, info os.FileInfo, err error) error {
+		if err != nil {
+			return nil
+		}
+		mode := os.FileMode(0o644)
+		if info.IsDir() {
+			mode = 0o755
+		}
+		if writable {
+			mode |= 0o022
+		}
+		return os.Chmod(item, mode)
+	})
+}
+
+// removeRun deletes a run's folder; files the sandbox created as root are removed by a container.
+func removeRun(dir, image string) {
+	if os.RemoveAll(dir) == nil {
+		return
+	}
+	_ = dockerCommand(context.Background(), "run", "--rm", "--network=none", "--entrypoint", "sh", "--mount",
+		"type=bind,src="+dockerPath(dir)+",dst=/run-folder", image, "-c", "rm -rf /run-folder/* /run-folder/.[!.]*").Run()
+	_ = os.RemoveAll(dir)
 }
 
 // resumeRuns: results left by a previous start of the agent are sent, runs cut short are ended.
