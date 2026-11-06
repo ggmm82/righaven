@@ -145,6 +145,9 @@ class AgentTests(unittest.TestCase):
             host_bridge.pick('alice')
 
 
+HOSTINGER = Path(__file__).parents[1] / 'config/compose.hostinger.template.yaml'
+
+
 class PublicAddressTests(unittest.TestCase):
     class Request:
         def __init__(self, headers, scheme='http', netloc='gateway:8001'):
@@ -160,9 +163,10 @@ class PublicAddressTests(unittest.TestCase):
             self.assertEqual(public_address(self.Request(forwarded)), 'https://rh.example.org')
             self.assertEqual(public_address(self.Request({'host': 'pc.lan:2026'})), 'http://pc.lan:2026')
 
+    @unittest.skipUnless(HOSTINGER.exists(), 'the gateway image check mounts only the tests')
     def test_the_hostinger_compose_routes_the_agent_to_the_gateway_without_a_password_middleware(self):
         import yaml
-        compose = yaml.safe_load((Path(__file__).parents[1] / 'config/compose.hostinger.template.yaml').read_text())
+        compose = yaml.safe_load(HOSTINGER.read_text())
         labels = compose['services']['gateway']['labels']
         rule = next(l for l in labels if '-gateway.rule=' in l)
         self.assertIn('PathPrefix(`/api`)', rule)  # /api/webhooks/righaven-agent/* and its WebSocket
