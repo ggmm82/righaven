@@ -10,6 +10,7 @@ audit then continue here as for a local worker.
 """
 import json
 import math
+import os
 import re
 import shutil
 import subprocess
@@ -37,6 +38,9 @@ class Run:
         self.name, self.node, self.mounts, self.folder = name, node, mounts, folder
         self.state, self.result, self.done = 'sent', None, threading.Event()
         self.image = ''
+        # The job's progress file as the node last had it: only what the node changed since is
+        # taken, so the server's own writes (a stop request, the limits) are never undone.
+        self.seen = {}
 
 
 def folder():
@@ -91,7 +95,7 @@ def choose(user, profile, records, *, egress='open'):
     if place != 'auto':
         name = agents.owned(user, place).get('name', place)
         if not capacity(place):
-            raise ValueError(f'«{name}» non esegue ambienti: avvia RigHaven Agent in modalità macchina di calcolo (agent node on) oppure scegli Cloud')
+            raise ValueError('Questa macchina non esegue ambienti (avvia RigHaven Agent con «agent node on» oppure scegli Cloud): ' + name)
         problem = blockers or ([f'connessioni tramite un altro PC ({", ".join(sorted(through - {place}))})'] if through - {place} else [])
         if problem:
             raise ValueError(f'Questo incarico non può essere eseguito su «{name}»: ' + '; '.join(problem) + '. Scegli Cloud per questo ambiente')
@@ -200,6 +204,13 @@ def prepare(node, args, live):
         template.append(item)
         i += 1
     run = Run(name, node, mounts, folder() / name)
+    for mount in mounts:
+        status = Path(mount['source']) / 'progress.json'
+        if mount['mode'] == 'live' and status.is_file():
+            try:
+                run.seen[mount['key']] = json.loads(status.read_text())
+            except ValueError:
+                pass
     if run.folder.exists():
         shutil.rmtree(run.folder)
     run.folder.mkdir(mode=0o700)
@@ -313,13 +324,34 @@ def _unpack(stream, run_, modes):
             if mount['kind'] == 'file' and relative:
                 continue
             destination.parent.mkdir(parents=True, exist_ok=True)
-            with archive.extractfile(member) as source, open(destination, 'wb') as target:
+            if mount['mode'] == 'live' and relative == 'progress.json':
+                _merge_progress(run_, mount, destination, archive.extractfile(member).read())
+                continue
+            temporary = destination.with_name('.' + destination.name + '.node')
+            with archive.extractfile(member) as source, open(temporary, 'wb') as target:
                 shutil.copyfileobj(source, target)
+            os.replace(temporary, destination)  # readers never see half a file
         try:
             outcome = json.load(archive.extractfile('result.json'))
         except (KeyError, ValueError, AttributeError):
             outcome = None
     return outcome
+
+
+def _merge_progress(run_, mount, destination, data):
+    from .progress import edit_status
+    try:
+        sent = json.loads(data)
+    except ValueError:
+        return
+    if not isinstance(sent, dict):
+        return
+    before = run_.seen.get(mount['key'], {})
+    with edit_status(destination) as value:
+        for key, item in sent.items():
+            if key != 'node' and before.get(key) != item:
+                value[key] = item
+    run_.seen[mount['key']] = sent
 
 
 def receive_live(node, name, stream):

@@ -1203,5 +1203,22 @@
   "Through a RigHaven Agent: a private address or an internal name of the agent’s network, for example 192.168.1.20 or sql01.office.local": null,
   "Device transport: network, serial, local or bluetooth": null,
   "Matter devices go through the Matter controller of this server": null,
-  "Through a RigHaven Agent a USB or serial device is a COM port of the PC": null
+  "Through a RigHaven Agent a USB or serial device is a COM port of the PC": null,
+  "Comando del worker non valido": "Invalid worker command",
+  "Dati dell’incarico troppo grandi per una macchina on premise": "Task data too large for an on-premise machine",
+  "Esecuzione non più attesa da questo server": "Run no longer expected by this server",
+  "Esecuzione non trovata": "Run not found",
+  "Il dispositivo ": "The device ",
+  "Il percorso del volume non appartiene al Gateway": "The volume path does not belong to the Gateway",
+  "Immagine del worker mancante": "Worker image missing",
+  "Immagine non richiesta da questa macchina": "Image not requested by this machine",
+  "La connessione ": "The connection ",
+  "La macchina on premise è occupata o scollegata": "The on-premise machine is busy or offline",
+  "Nome del worker non valido": "Invalid worker name",
+  "Questo incarico non può essere eseguito su «": "This task cannot run on «",
+  "Questo incarico usa risorse di questo server (": "This task uses resources of this server (",
+  "Risultato della macchina on premise non valido": "Invalid result from the on-premise machine",
+  "Risultato troppo grande": "Result too large",
+  "Volume del worker non supportato su una macchina on premise": "Worker volume not supported on an on-premise machine",
+  "Questa macchina non esegue ambienti (avvia RigHaven Agent con «agent node on» oppure scegli Cloud): ": "This machine runs no environments (start RigHaven Agent with “agent node on” or choose Cloud): "
 }

@@ -67,6 +67,7 @@ class ComputeNodeTests(unittest.TestCase):
 
     def test_a_run_waits_for_the_node_and_takes_back_only_its_writable_folders(self):
         args, project, output, progress = self.folders()
+        (progress / 'progress.json').write_text(json.dumps({'phase': 'starting', 'summary': 'avvio', 'cancel_requested': False}))
         sent = []
 
         def node(identifier, message):
@@ -74,6 +75,9 @@ class ComputeNodeTests(unittest.TestCase):
             if message['type'] != 'run':
                 return
             def answer():
+                # Meanwhile the owner asked to stop: the server wrote it, the node's copy does not know.
+                status = json.loads((progress / 'progress.json').read_text())
+                (progress / 'progress.json').write_text(json.dumps({**status, 'cancel_requested': True}))
                 buffer = io.BytesIO()
                 with tarfile.open(fileobj=buffer, mode='w:gz') as archive:
                     def add(name, data):
@@ -82,6 +86,7 @@ class ComputeNodeTests(unittest.TestCase):
                     add('result.json', json.dumps({'returncode': 0, 'stdout': '{"ok": true}', 'oom': False}).encode())
                     add('m1/report.md', b'# fatto')
                     add('m2/status.json', b'{"phase": "done"}')
+                    add('m2/progress.json', json.dumps({'phase': 'finalizing', 'summary': 'fatto', 'cancel_requested': False}).encode())
                     add('m0/dati.csv', b'overwritten')       # read only: ignored
                     add('m1/../../escape.txt', b'x')          # outside: ignored
                 buffer.seek(0)
@@ -94,6 +99,8 @@ class ComputeNodeTests(unittest.TestCase):
         self.assertEqual(sent[0]['image'], 'righaven-env:abc')
         self.assertEqual((output / 'report.md').read_text(), '# fatto')
         self.assertEqual((progress / 'status.json').read_text(), '{"phase": "done"}')
+        merged = json.loads((progress / 'progress.json').read_text())
+        self.assertEqual((merged['phase'], merged['summary'], merged['cancel_requested']), ('finalizing', 'fatto', True))
         self.assertEqual((project / 'dati.csv').read_text(), 'a,b\n1,2\n')
         self.assertFalse((self.root / 'escape.txt').exists())
         self.assertEqual(compute_nodes.RUNS, {})

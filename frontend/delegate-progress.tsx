@@ -101,6 +101,7 @@ function JobCard({ job, now, threadId, role }: { job: JobProgress; now: number; 
     </div>
     {job.environment && <section className="space-y-1 text-xs" data-testid="job-environment">
       <p className="font-semibold">{job.resources_reclaimed ? tr("Sandbox chiusa · file salvati conservati", "Sandbox closed · saved files kept") : terminal ? tr("Incarico terminato · controlla il rilascio delle risorse sotto", "Assignment ended · check the resource release below") : tr("Ambiente dell’incarico", "Assignment environment")}</p>
+      <p data-testid="job-place">{job.node ? tr("Eseguito on premise su «", "Running on premise on “") + job.node.name + tr("»", "”") : tr("Eseguito in cloud su questo server", "Running in the cloud on this server")}</p>
       {assigned && <p>{tr("Strumenti assegnati:", "Assigned tools:")} {assigned.length ? assigned.map(person).join(", ") : tr("strumenti di base", "basic tools")}.</p>}
       {job.environment.profile&&<ProfileUseLine use={job.environment.profile}/>}
       {job.egress&&<p data-testid="job-egress">{tr("Rete limitata a", "Network limited to")} {job.egress.domains.join(", ") || tr("nessun dominio", "no domain")}.{job.egress.refused.length>0&&<strong className="text-amber-700 dark:text-amber-300"> {tr("Connessioni bloccate", "Blocked connections")}: {job.egress.refused.map((r)=>`${r.destination} ×${r.attempts}`).join(", ")}.</strong>}</p>}
