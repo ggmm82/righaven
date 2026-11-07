@@ -297,7 +297,7 @@ async def prepare(name:str,request:Request):
     return {'accepted':True,'environment':value}
 
 
-def prepare_on_machine(user,prefs,tools,pins,cancel):
+def prepare_on_machine(user,prefs,tools,pins,cancel,report=None):
     """An environment placed on one machine is prepared there, never in this server's cache.
 
     None when it belongs to this server (cloud), to Automatic (prepared where each task lands) or
@@ -307,11 +307,14 @@ def prepare_on_machine(user,prefs,tools,pins,cancel):
     if place in compute_nodes.PLACES:return None
     label=agents.owned(user,place).get('name',place)
     owner='rh-preload-'+__import__('uuid').uuid4().hex[:12]
+    report=report or (lambda phase:None)
+    report('waiting_machine')
     # The machine's turn, as for a task; after a restart its agent reconnects within moments.
     resources=compute_nodes.acquire(place,owner,cancel=cancel,offline_timeout=600,label=label)
     try:
         if not compute_nodes.prepares_environments(place):return None
-        return compute_nodes.prepare_environment(place,owner,tools,versions=pins,resources=resources,label=label)
+        report('preparing_machine')
+        return compute_nodes.prepare_environment(place,owner,tools,versions=pins,resources=resources,label=label,report=report)
     finally:compute_nodes.release(owner)
 
 
@@ -360,7 +363,8 @@ def schedule(user,name,*,reschedule=False,refresh_versions=True,trigger='manual'
                     require_tools(policy,set(runtimes.closure(tools))-{'playwright'})
                     control['environment_id']=runtimes.recipe(tools,versions=pins)[0]
                     preparation.update(user,name,phase='preparing',environment_id=control['environment_id'],tool='',index=len(choice),total=len(choice))
-                    ready=prepare_on_machine(user,prefs,tools,pins,control['cancel'])
+                    ready=prepare_on_machine(user,prefs,tools,pins,control['cancel'],
+                        report=lambda phase:preparation.update(user,name,phase=phase))
                     if ready is None:
                         ready=runtimes.ensure(tools,background=True,exact=True,cancel=PreparationCancel(control['cancel'],yielded),cache_dependencies=not prefs.get('ephemeral',False),versions=pins)
                     from .editor_preparation import schedule as schedule_editors
@@ -471,8 +475,15 @@ async def preparation_log(name:str,request:Request):
     user=get_effective_user_id();record=preparation.read(user,name)
     key=record.get('environment_id') or value['runtime'].get('id')
     since=record.get('started_at') if (value.get('preparation') or {}).get('active') else None
-    detail=await run_in_threadpool(runtimes.preparation_text,key,since=since) if key else ''
-    observation=await run_in_threadpool(runtimes.preparation_observation,key,since=since)
+    place=(value.get('deployment') or {}).get('placement') or 'cloud'
+    from . import compute_nodes
+    if key and place not in compute_nodes.PLACES and value['runtime'].get('node'):
+        # Prepared on the machine: its log and phase, never this server's cache.
+        detail=await run_in_threadpool(compute_nodes.preparation_text,place,key,since=since)
+        observation=await run_in_threadpool(compute_nodes.preparation_observation,place,key,record.get('phase') or 'queued',since=since)
+    else:
+        detail=await run_in_threadpool(runtimes.preparation_text,key,since=since) if key else ''
+        observation=await run_in_threadpool(runtimes.preparation_observation,key,since=since)
     if value.get('configuration_change') and not (value.get('preparation') or {}).get('active'):
         observation={**observation,'phase':'configuration_changed','historical':True,'recent_output':'','waiting_on':None}
     if record.get('phase') in ('resolving_versions','checking_versions') and not record.get('environment_id'):

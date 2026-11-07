@@ -276,7 +276,14 @@ func (s *agentSession) runJob(job nodeRun) {
 		return
 	}
 	dir := filepath.Join(nodeRunsDir(), job.ID)
+	what := "task"
+	if job.Prepare != nil {
+		what = "environment preparation"
+	}
+	fmt.Fprintf(s.out, "RigHaven node: %s %s started\n", what, job.ID)
+	_ = s.send(map[string]any{"type": "run-state", "id": job.ID, "state": "received"})
 	result := s.executeJob(dir, job)
+	fmt.Fprintf(s.out, "RigHaven node: %s %s ended (exit %v)\n", what, job.ID, result["returncode"])
 	s.uploadResult(dir, job, result)
 }
 
@@ -309,7 +316,7 @@ func (s *agentSession) executeJob(dir string, job nodeRun) map[string]any {
 		}
 		openForSandbox(path, m.Mode != "ro")
 	}
-	if err := s.ensureImage(job.Image); err != nil {
+	if err := s.ensureImage(job.ID, job.Image); err != nil {
 		return fail(err)
 	}
 	limits, _ := nodeCapacity(s.nodeConfig())
@@ -326,6 +333,18 @@ func (s *agentSession) executeJob(dir string, job nodeRun) map[string]any {
 	var stdout, stderr bytes.Buffer
 	cmd := dockerCommand(ctx, args...)
 	cmd.Stdout, cmd.Stderr = &limited{&stdout, 16 << 20}, &limited{&stderr, 1 << 20}
+	// A preparation's output (installer phases, package downloads) goes to the server while it
+	// runs, so the Environments page shows what the machine is doing.
+	var output *nodeOutput
+	if job.Prepare != nil {
+		output = &nodeOutput{}
+		cmd.Stdout, cmd.Stderr = io.MultiWriter(cmd.Stdout, output), io.MultiWriter(cmd.Stderr, output)
+	}
+	sendOutput := func() {
+		if text := output.take(); text != "" {
+			_ = s.send(map[string]any{"type": "run-output", "id": job.ID, "text": text})
+		}
+	}
 	done := make(chan struct{})
 	go func() { // progress of the task, while it runs
 		ticker := time.NewTicker(nodeLive)
@@ -335,12 +354,17 @@ func (s *agentSession) executeJob(dir string, job nodeRun) map[string]any {
 			case <-done:
 				return
 			case <-ticker.C:
-				s.uploadLive(job, root)
+				if output != nil {
+					sendOutput()
+				} else {
+					s.uploadLive(job, root)
+				}
 			}
 		}
 	}()
 	runErr := cmd.Run()
 	close(done)
+	sendOutput()
 	code := 0
 	var exit *exec.ExitError
 	switch {
@@ -354,6 +378,7 @@ func (s *agentSession) executeJob(dir string, job nodeRun) map[string]any {
 	inspect, _ := dockerCommand(context.Background(), "inspect", "--format", "{{.State.OOMKilled}}", name).Output()
 	result := map[string]any{"returncode": code, "stdout": stdout.String(), "stderr": stderr.String(), "oom": strings.TrimSpace(string(inspect)) == "true"}
 	if job.Prepare != nil && code == 0 {
+		_ = s.send(map[string]any{"type": "run-state", "id": job.ID, "state": "publishing"})
 		if err := commitEnvironment(name, job, args, result); err != nil {
 			result["returncode"], result["stderr"] = 125, stderr.String()+"\nRigHaven node: "+err.Error()
 		}
@@ -511,10 +536,13 @@ func (s *agentSession) nodeConfig() *nodeConfig {
 }
 
 // ensureImage: the environment image is downloaded once from the server (or from its registry).
-func (s *agentSession) ensureImage(image string) error {
+func (s *agentSession) ensureImage(id, image string) error {
 	if dockerCommand(context.Background(), "image", "inspect", image).Run() == nil {
 		return nil
 	}
+	// The first time this can be a few GB: the server shows that the machine is downloading.
+	_ = s.send(map[string]any{"type": "run-state", "id": id, "state": "image"})
+	fmt.Fprintf(s.out, "RigHaven node: downloading image %.19s… from the server (once)\n", image)
 	if strings.Contains(image, "/") && !strings.HasPrefix(image, "sha256:") {
 		if dockerCommand(context.Background(), "pull", image).Run() == nil {
 			return nil
@@ -738,6 +766,36 @@ func untarRun(r io.Reader, root string) error {
 			// links and special files are not part of a run
 		}
 	}
+}
+
+// nodeOutput collects a run's output between two sends (at most 64 KiB, the rest is in the result).
+type nodeOutput struct {
+	mu     sync.Mutex
+	buffer bytes.Buffer
+}
+
+func (o *nodeOutput) Write(p []byte) (int, error) {
+	o.mu.Lock()
+	defer o.mu.Unlock()
+	if room := 64<<10 - o.buffer.Len(); room > 0 {
+		if len(p) > room {
+			o.buffer.Write(p[:room])
+		} else {
+			o.buffer.Write(p)
+		}
+	}
+	return len(p), nil
+}
+
+func (o *nodeOutput) take() string {
+	if o == nil {
+		return ""
+	}
+	o.mu.Lock()
+	defer o.mu.Unlock()
+	text := o.buffer.String()
+	o.buffer.Reset()
+	return text
 }
 
 type limited struct {

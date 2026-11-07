@@ -114,7 +114,8 @@ RigHaven Agent can also run the tasks of on-premise environments with the machin
 
 ## Limits
 
-- Windows only for now; the Linux and phone agents are planned.
+- Windows PCs; Linux machines as compute nodes; Android phones with the app (see
+  [RigHaven for Android](ANDROID.md)).
 - USB peripherals are used through their COM port (USB-serial boards, ESP, Arduino); other USB
   classes are not forwarded.
 - Matter needs the controller in the home network: it stays available with the full portable

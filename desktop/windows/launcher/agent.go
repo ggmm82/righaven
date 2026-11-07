@@ -321,24 +321,17 @@ func (s *agentSession) serve(stop <-chan struct{}) error {
 			}
 			continue
 		}
-		var message struct {
-			Type   string            `json:"type"`
-			ID     string            `json:"id"`
-			Action string            `json:"action"`
-			Args   map[string]string `json:"args"`
-			Stream uint32            `json:"stream"`
-			Target string            `json:"target"`
-		}
-		if json.Unmarshal(data, &message) != nil {
+		message, err := parseAgentMessage(data)
+		if err != nil {
+			fmt.Fprintf(s.out, "RigHaven Agent: message from the server not understood: %v\n", err)
 			continue
 		}
 		switch message.Type {
 		case "run":
-			if s.config.Node != nil {
-				var job nodeRun
-				if json.Unmarshal(data, &job) == nil {
-					go s.runJob(job)
-				}
+			if s.config.Node == nil {
+				fmt.Fprintln(s.out, "RigHaven Agent: the server sent a task, but this PC is not a compute node (agent node on)")
+			} else if message.Run != nil {
+				go s.runJob(*message.Run)
 			}
 		case "stop":
 			s.stopJob(message.ID)
@@ -664,4 +657,47 @@ func homePage(address string, port int) string {
 	defer response.Body.Close()
 	body, _ := io.ReadAll(io.LimitReader(response.Body, 8192))
 	return response.Header.Get("Server") + " " + string(body)
+}
+
+// agentMessage is a message from the server. Its "args" differ by type: the arguments of an
+// action (request) or the docker command of a run, so each type reads them its own way.
+type agentMessage struct {
+	Type   string `json:"type"`
+	ID     string `json:"id"`
+	Action string `json:"action"`
+	Args   map[string]string
+	Stream uint32   `json:"stream"`
+	Target string   `json:"target"`
+	Run    *nodeRun `json:"-"`
+}
+
+func parseAgentMessage(data []byte) (agentMessage, error) {
+	var message agentMessage
+	var raw struct {
+		Type   string          `json:"type"`
+		ID     string          `json:"id"`
+		Action string          `json:"action"`
+		Args   json.RawMessage `json:"args"`
+		Stream uint32          `json:"stream"`
+		Target string          `json:"target"`
+	}
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return message, err
+	}
+	message = agentMessage{Type: raw.Type, ID: raw.ID, Action: raw.Action, Stream: raw.Stream, Target: raw.Target}
+	switch raw.Type {
+	case "run":
+		var job nodeRun
+		if err := json.Unmarshal(data, &job); err != nil {
+			return message, fmt.Errorf("run: %v", err)
+		}
+		message.Run = &job
+	case "request":
+		if len(raw.Args) > 0 && string(raw.Args) != "null" {
+			if err := json.Unmarshal(raw.Args, &message.Args); err != nil {
+				return message, fmt.Errorf("request: %v", err)
+			}
+		}
+	}
+	return message, nil
 }

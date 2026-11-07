@@ -1225,5 +1225,6 @@
   "La macchina «": "The machine «",
   "Immagine preparata dalla macchina on premise non valida": "Environment image prepared by the on-premise machine not valid",
   "Memoria insufficiente su «": "Not enough memory on «",
-  "Preparazione dell’ambiente su «": "Environment preparation on «"
+  "Preparazione dell’ambiente su «": "Environment preparation on «",
+  "La macchina on premise non ha preso in carico il lavoro: aggiorna RigHaven Agent sulla macchina alla versione di questo server e riprova": "The on-premise machine did not take the work: update RigHaven Agent on the machine to this server's version and try again"
 }

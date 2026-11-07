@@ -116,9 +116,22 @@ class ComputeNodeTests(unittest.TestCase):
         sent = []
         with patch.object(agent_hub, 'send', side_effect=lambda i, m: sent.append(m)), patch.object(agent_hub, 'owner', return_value='alice'), \
                 patch.object(agents, 'log'):
-            with patch('threading.Event.wait', return_value=False):
+            # Gone offline after taking it: the run waits for its results up to the deadline.
+            with patch('threading.Event.wait', return_value=False), patch.object(compute_nodes, 'ACK_TIMEOUT', 0), \
+                    patch.object(agent_hub, 'online', return_value=False):
                 with self.assertRaises(subprocess.TimeoutExpired):
                     compute_nodes.run('ag_000000000001', args, timeout=1, live=progress)
+        self.assertEqual([m['type'] for m in sent], ['run', 'stop'])
+
+    def test_a_connected_node_that_does_not_take_the_run_is_told_to_update(self):
+        """An agent that cannot read the run (too old) never confirms it: the task ends at once, not after its timeout."""
+        args, _, _, progress = self.folders()
+        sent = []
+        with patch.object(agent_hub, 'send', side_effect=lambda i, m: sent.append(m)), patch.object(agent_hub, 'owner', return_value='alice'), \
+                patch.object(agents, 'log'), patch.object(compute_nodes, 'ACK_TIMEOUT', 0):
+            with self.assertRaises(RuntimeError) as refused:
+                compute_nodes.run('ag_000000000001', args, timeout=3600, live=progress)
+        self.assertIn('aggiorna RigHaven Agent', str(refused.exception))
         self.assertEqual([m['type'] for m in sent], ['run', 'stop'])
 
     def test_each_node_shares_its_limits_among_the_tasks_it_accepts(self):
@@ -262,8 +275,12 @@ class NodeEnvironmentTests(unittest.TestCase):
             key = ''.join(sorted(tools)).encode().hex().ljust(64, '0')[:64]
             return key, {'version': 1, 'core': 'sha256:' + 'c' * 64, 'tools': sorted(tools),
                          'tool_fingerprints': {t: 'f-' + t for t in tools}}
-        def run(node, args, *, timeout, live=None, preparation=None):
+        self.states = []
+        def run(node, args, *, timeout, live=None, preparation=None, on_state=None, on_output=None):
             self.runs.append((args, preparation))
+            for state in ('image', 'running'):
+                on_state(state)  # as the node reports them
+            on_output('Installazione blender 4.2\n{"phase": "installing"}\n{"phase": "checking"}\nOK blender\n')
             image = 'sha256:' + str(len(self.runs)) * 64
             return SimpleNamespace(returncode=0, stdout='{"phase":"verified","installed_versions":{"blender":"4.2"}}\n', stderr='',
                                    oom=False, image_id=image, size_bytes=1 << 30)
@@ -279,7 +296,16 @@ class NodeEnvironmentTests(unittest.TestCase):
         self.env = env
 
     def prepare(self, tools):
-        return compute_nodes.prepare_environment(self.NODE, 'rh-job-0123456789ab', tools, resources={'cpus': 4.0}, label='devPc')
+        return compute_nodes.prepare_environment(self.NODE, 'rh-job-0123456789ab', tools, resources={'cpus': 4.0}, label='devPc',
+                                                 report=self.states.append)
+
+    def test_the_page_shows_what_the_machine_is_doing(self):
+        record = self.prepare(['blender', 'ffmpeg'])
+        self.assertEqual(self.states[:4], ['downloading_image', 'preparing_machine', 'installing', 'checking'])
+        # The node's output is kept here for the page, without any server cache entry.
+        self.assertIn('Installazione blender', compute_nodes.preparation_text(self.NODE, record['id']))
+        seen = compute_nodes.preparation_observation(self.NODE, record['id'], 'checking')
+        self.assertEqual((seen['phase'], seen['recent_output']), ('checking', 'OK blender'))
 
     def test_prepared_on_the_machine_then_reused_there(self):
         first = self.prepare(['blender'])
