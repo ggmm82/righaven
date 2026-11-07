@@ -1220,5 +1220,6 @@
   "Risultato della macchina on premise non valido": "Invalid result from the on-premise machine",
   "Risultato troppo grande": "Result too large",
   "Volume del worker non supportato su una macchina on premise": "Worker volume not supported on an on-premise machine",
-  "Questa macchina non esegue ambienti (avvia RigHaven Agent con «agent node on» oppure scegli Cloud): ": "This machine runs no environments (start RigHaven Agent with “agent node on” or choose Cloud): "
+  "Questa macchina non esegue ambienti (avvia RigHaven Agent con «agent node on» oppure scegli Cloud): ": "This machine runs no environments (start RigHaven Agent with “agent node on” or choose Cloud): ",
+  "Catalogo modelli non leggibile: ": "Model catalog unreadable: "
 }

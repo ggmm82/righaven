@@ -30,6 +30,19 @@ def page():
 
 @router.get('/api/catalog')
 def get_catalog():
+    try:
+        return _catalog()
+    except HTTPException:
+        raise
+    except Exception as error:
+        # The page shows why the model configuration cannot be read; the full trace goes to the log.
+        import logging
+        from .progress import clean_summary
+        logging.getLogger(__name__).exception('Model catalog unreadable')
+        raise HTTPException(500, 'Catalogo modelli non leggibile: ' + type(error).__name__ + ': ' + clean_summary(error, 300)) from None
+
+
+def _catalog():
     from .capability_policy import current_policy, public
     policy = current_policy()
     from .state import custom_connection_path
