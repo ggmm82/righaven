@@ -87,6 +87,9 @@ class Actions(private val context: Context) {
         if (context.getSystemService(android.location.LocationManager::class.java)?.let { Build.VERSION.SDK_INT >= 28 && !it.isLocationEnabled } == true)
             warnings += tr("Posizione del telefono spenta: con la posizione spenta molti telefoni non riportano i dispositivi Bluetooth vicini.",
                 "The phone's Location is off: with it off many phones report no nearby Bluetooth devices.")
+        if (!granted(Manifest.permission.ACCESS_FINE_LOCATION))
+            warnings += tr("Posizione precisa non concessa a RigHaven: Android non riporta i dispositivi Bluetooth vicini. Impostazioni → App → RigHaven → Autorizzazioni → Posizione → «Usa posizione precisa».",
+                "Precise location not granted to RigHaven: Android reports no nearby Bluetooth devices. Settings → Apps → RigHaven → Permissions → Location → “Use precise location”.")
         var failed = 0
         val watched = object : ScanCallback() {
             override fun onScanResult(callbackType: Int, result: ScanResult) = callback.onScanResult(callbackType, result)
