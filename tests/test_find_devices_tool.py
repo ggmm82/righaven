@@ -109,20 +109,50 @@ class SetupDeviceToolTests(unittest.TestCase):
 
 @unittest.skipUnless(tools, 'Gateway dependency environment required')
 class ExploreToolTests(unittest.TestCase):
+    def setUp(self):
+        for p in (patch('righaven.host_bridge.pick', return_value=None), patch('righaven.tools.resolve_runtime_user_id', return_value='alice')):
+            p.start()
+            self.addCleanup(p.stop)
+
+    def test_the_chat_uses_the_owners_agent_when_the_server_has_no_pc(self):
+        from righaven import device_discovery
+        with patch('righaven.host_bridge.pick', return_value='ag_0123456789ab'), \
+             patch.object(device_discovery, 'explore_from_agent', return_value={'address': '192.168.50.20', 'ports': [80]}) as remote, \
+             patch('righaven.host_bridge.run', return_value={'ok': True}) as run:
+            tools.harness_explore_device.func(runtime=None, kind='network', target='192.168.50.20')
+            tools.harness_explore_device.func(runtime=None, kind='bluetooth', target='38:A5:C9:3C:2E:9F')
+        remote.assert_called_once_with('ag_0123456789ab', '192.168.50.20')
+        run.assert_called_once_with('ble-inspect', {'address': '38:A5:C9:3C:2E:9F'}, timeout=150, agent='ag_0123456789ab')
+
+    def test_the_chat_prepares_on_premise_devices_through_the_named_pc(self):
+        from righaven import connections
+        saved = []
+        with patch('righaven.host_bridge.pick', return_value='ag_0123456789ab') as pick, \
+             patch.object(connections, 'save', side_effect=lambda user, body: saved.append(body) or body), \
+             patch.object(connections, 'listing', return_value=[]):
+            tools.harness_setup_device.func(runtime=None, kind='com', target='com5', pc='PC casa')
+            tools.harness_setup_device.func(runtime=None, kind='network', target='192.168.50.20', protocol='http', agent_network=True, pc='PC casa')
+        pick.assert_called_with('alice', 'PC casa')
+        self.assertEqual({k: saved[0][k] for k in ('transport', 'agent', 'device')}, {'transport': 'serial', 'agent': 'ag_0123456789ab', 'device': 'COM5'})
+        self.assertEqual({k: saved[1][k] for k in ('transport', 'agent', 'host', 'protocol')},
+                         {'transport': 'network', 'agent': 'ag_0123456789ab', 'host': '192.168.50.20', 'protocol': 'http'})
+        for body in saved:  # what the chat prepares is what the page saves
+            connections.validate({**body, 'id': 'x'})
+
     def test_the_chat_explores_like_the_page(self):
         from righaven import device_discovery
         with patch.object(device_discovery, 'explore', return_value={'address': '192.168.1.44', 'ports': [80]}):
             self.assertEqual(json.loads(tools.harness_explore_device.func(runtime=None, kind='network', target='192.168.1.44'))['ports'], [80])
         with patch('righaven.host_bridge.run', return_value={'ok': True, 'title': 'Tasmota'}) as run:
             tools.harness_explore_device.func(runtime=None, kind='wifi', target='tasmota-1A2B')
-        run.assert_called_once_with('wifi-explore', {'ssid': 'tasmota-1A2B', 'hint': 'tasmota'}, timeout=120)
+        run.assert_called_once_with('wifi-explore', {'ssid': 'tasmota-1A2B', 'hint': 'tasmota'}, timeout=120, agent=None)
         with patch('righaven.host_bridge.run', return_value={'devices': [{'busid': '1-4', 'name': 'CP210x'}]}):
             self.assertEqual(json.loads(tools.harness_explore_device.func(runtime=None, kind='usb', target='1-4'))['name'], 'CP210x')
             with self.assertRaises(ValueError):
                 tools.harness_explore_device.func(runtime=None, kind='usb', target='9-9')
         with patch('righaven.host_bridge.run', return_value={'devices': [{'address': '192.168.1.30'}]}) as run:
             self.assertEqual(json.loads(tools.harness_explore_device.func(runtime=None, kind='listen', target=''))['devices'][0]['address'], '192.168.1.30')
-        run.assert_called_once_with('net-listen', timeout=60)
+        run.assert_called_once_with('net-listen', timeout=60, agent=None)
         with self.assertRaises(ValueError):
             tools.harness_explore_device.func(runtime=None, kind='fax', target='x')
 

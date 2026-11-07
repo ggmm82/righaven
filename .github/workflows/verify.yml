@@ -189,6 +189,11 @@ jobs:
       - name: Check background work survives browser disconnect
         if: matrix.component == 'gateway'
         run: docker run --rm --entrypoint python -e RIGHAVEN_REQUIRE_GATEWAY_TESTS=1 --mount "type=bind,src=$PWD/tests,dst=/review,readonly" righaven-gateway:0.1.0 -m unittest discover -s /review -p test_background_runs.py -v
+      - name: Check the chat's device tools and RigHaven Agent in the gateway environment
+        if: matrix.component == 'gateway'
+        run: |
+          docker run --rm --entrypoint sh --mount "type=bind,src=$PWD/tests,dst=/review,readonly" righaven-gateway:0.1.0 -c \
+            'python -c "import righaven.tools" && python -m unittest discover -s /review -p "test_find_devices_tool.py" -v && python -m unittest discover -s /review -p "test_agents.py" -v'
       - name: Check persisted progress authorization and user isolation
         if: matrix.component == 'gateway'
         run: docker run --rm --entrypoint python -e RIGHAVEN_REQUIRE_GATEWAY_TESTS=1 --mount "type=bind,src=$PWD/tests,dst=/review,readonly" righaven-gateway:0.1.0 -m unittest discover -s /review -p test_progress_routes.py -v

@@ -65,3 +65,8 @@ func listPnPDevices() ([]pnpDevice, error) { return nil, os.ErrNotExist }
 func recordTraffic(int) (string, error) { return "", os.ErrNotExist }
 
 func readNeighbours() ([]neighbour, error) { return nil, os.ErrNotExist }
+
+// Outside Windows (tests and development) the token is kept as is; the file is readable only by its owner.
+func protectSecret(secret string) (string, error)  { return "plain:" + secret, nil }
+func unprotectSecret(value string) (string, error) { return strings.TrimPrefix(value, "plain:"), nil }
+func setAutostart(bool) error                      { return nil }

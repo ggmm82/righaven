@@ -144,6 +144,14 @@ them out on the PC, answering in the page.
 The RigHaven window must stay open (it is RigHaven itself). The commands below remain available
 for scripts and for troubleshooting.
 
+### A remote RigHaven
+
+When RigHaven runs on a server, the PC with the devices runs **RigHaven Agent** instead of the
+full portable app: the same actions and searches, carried to the server through the agent's
+encrypted channel. Each connection says where its service is: cloud, on premise next to this
+server, or on premise *through «PC»*, reached with the agent's tunnels (COM ports, home-network
+devices, on-premise databases). See [RigHaven Agent](AGENT.md).
+
 ### The same actions everywhere
 
 Every result of a search, and every saved device connection, offers the same actions:

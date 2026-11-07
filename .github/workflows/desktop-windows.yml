@@ -67,7 +67,11 @@ jobs:
           CGO_ENABLED: '0'
           GOOS: windows
           GOARCH: amd64
-        run: go build -trimpath -ldflags "-s -w -X main.launcherVersion=$VERSION" -o "$GITHUB_WORKSPACE/dist/RigHaven/RigHaven.exe" .
+        run: |
+          go build -trimpath -ldflags "-s -w -X main.launcherVersion=$VERSION" -o "$GITHUB_WORKSPACE/dist/RigHaven/RigHaven.exe" .
+          # RigHaven Agent: the same program started in agent mode, alone, for a PC that serves a remote RigHaven.
+          go build -trimpath -ldflags "-s -w -X main.launcherVersion=$VERSION -X main.launcherMode=agent" -o "$GITHUB_WORKSPACE/dist/RigHaven-Agent-windows-x64.exe" .
+          (cd "$GITHUB_WORKSPACE/dist" && sha256sum RigHaven-Agent-windows-x64.exe > RigHaven-Agent-windows-x64.exe.sha256)
       - name: Build the WSL distribution
         run: |
           docker build --pull -t righaven-wsl desktop/windows/rootfs
@@ -119,6 +123,8 @@ jobs:
           path: |
             dist/*.zip
             dist/*.zip.sha256
+            dist/*.exe
+            dist/*.exe.sha256
           retention-days: 7
   windows:
     needs: build
@@ -150,6 +156,18 @@ jobs:
           $report = & $exe doctor | Out-String
           Write-Output $report
           if ($report -notmatch 'files:\s+ok') { throw 'Packaged files do not match release.json' }
+      - name: RigHaven Agent starts in agent mode and refuses a wrong server
+        shell: pwsh
+        run: |
+          $agent = "dist/RigHaven-Agent-windows-x64.exe"
+          $info = (Get-Item $agent).VersionInfo
+          if ($info.FileDescription -ne 'RigHaven') { throw 'Version resource missing from RigHaven Agent' }
+          & $agent agent link https://127.0.0.1:9 ABCDE-FGHJK
+          if ($LASTEXITCODE -eq 0) { throw 'A pairing with an unreachable server was accepted' }
+          & $agent agent run
+          if ($LASTEXITCODE -eq 0) { throw 'RigHaven Agent ran without being paired' }
+          # Both refusals above are the expected outcome: the step succeeds (pwsh would return the last exit code).
+          exit 0
   linux:
     runs-on: ubuntu-24.04
     env:
@@ -224,4 +242,4 @@ jobs:
       - name: Attach the portable apps to the release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release upload "${{ inputs.tag }}" dist/*.zip dist/*.zip.sha256 dist/*.tar.gz dist/*.tar.gz.sha256 --repo "$GITHUB_REPOSITORY" --clobber
+        run: gh release upload "${{ inputs.tag }}" dist/*.zip dist/*.zip.sha256 dist/*.tar.gz dist/*.tar.gz.sha256 dist/*.exe dist/*.exe.sha256 --repo "$GITHUB_REPOSITORY" --clobber

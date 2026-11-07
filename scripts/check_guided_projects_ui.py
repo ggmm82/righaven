@@ -47,7 +47,8 @@ def main():
         return Reply({'value':[{'name':'vendite/master'},{'name':'vendite/erp','location':'westeurope'},{'name':'vendite/hr','location':'westeurope'}]})
     with tempfile.TemporaryDirectory() as directory,patch.object(state,'STATE',Path(directory)/'state'),\
          patch.object(connections,'folder',side_effect=lambda user:(Path(directory)/'users'/user).mkdir(parents=True,exist_ok=True) or Path(directory)/'users'/user),\
-         patch.dict(os.environ,{'RIGHAVEN_CREDENTIALS_KEY':Fernet.generate_key().decode()}),patch('httpx.post',side_effect=microsoft),patch('httpx.get',side_effect=azure):
+         patch.dict(os.environ,{'RIGHAVEN_CREDENTIALS_KEY':Fernet.generate_key().decode()}),patch('httpx.post',side_effect=microsoft),patch('httpx.get',side_effect=azure),\
+         patch('righaven.agents.owned',side_effect=lambda user,agent:{'id':agent}):
         root=Path(directory);workspace=root/'work';workspace.mkdir()
         (root/'fetch.ts').write_text('export const fetch=window.fetch.bind(window);')
         (root/'config.ts').write_text('export function getBackendBaseURL(){return ""}')
@@ -63,7 +64,7 @@ createRoot(document.getElementById('root')!).render(location.pathname.includes('
         aliases={'@/core/api/fetcher':str(root/'fetch.ts'),'@/core/config':str(root/'config.ts'),'@/core/i18n/hooks':str(root/'hooks.ts'),'@/core/i18n/ui-text':str(repo/'frontend/ui-text.ts'),'@/components/workspace/concept-map':str(repo/'frontend/concept-map.tsx'),'@/core/threads/api':str(root/'threads.ts'),'@/core/uploads/api':str(root/'uploads.ts'),'next/navigation':str(root/'router.ts')}
         build={'entryPoints':[str(root/'entry.tsx')],'outfile':str(root/'app.js'),'bundle':True,'jsx':'automatic','nodePaths':[str(modules)],'alias':aliases}
         subprocess.run(['node','-e','require('+json.dumps(str(modules/'esbuild'))+').buildSync('+json.dumps(build)+')'],check=True)
-        MATTER=[];HOST={}
+        MATTER=[];HOST={};AGENTS=[]
         class Handler(BaseHTTPRequestHandler):
             def log_message(self,*args):pass
             def send(self,body,kind='application/json',code=200):
@@ -71,6 +72,16 @@ createRoot(document.getElementById('root')!).render(location.pathname.includes('
             def do_GET(self):
                 if self.path=='/api/harness/connections':return self.send(json.dumps({'connections':connections.listing('owner'),'kinds':list(connections.KINDS)}))
                 if self.path=='/api/harness/access-catalog':return self.send(json.dumps({'providers':[]}))
+                if self.path=='/api/harness/agents':
+                    # The PC appears at the first refresh after the code was shown, as when RigHaven Agent pairs.
+                    shown=list(AGENTS) if len(AGENTS)>1 else []
+                    if AGENTS:AGENTS.append('seen')
+                    return self.send(json.dumps({'agents':[a for a in shown if a!='seen'],'server':'https://righaven.example.com',
+                    'download':'https://github.com/ggmm82/righaven/releases/latest/download/RigHaven-Agent-windows-x64.exe'}))
+                if self.path=='/api/harness/host?agent=ag_0123456789ab':return self.send(json.dumps({'connected':True,'platform':'windows','allowed':True,
+                    'actions':['bluetooth-scan','wifi-scan','com-list','net-scan','lan-devices','pc-devices','net-listen','traffic-capture']}))
+                if self.path=='/api/harness/connections/discovery?agent=ag_0123456789ab':return self.send(json.dumps({'networks':['192.168.50.0/24'],'ports':[80,6668],
+                    'allowed':True,'bluetooth':None,'serial':[],'wifi':None}))
                 if self.path=='/api/harness/host':return self.send(json.dumps({'connected':True,'platform':'windows','matter':True,
                     'actions':['bluetooth-scan','wifi-scan','usb-list','usb-install','usb-attach','usb-detach','com-list','com-share','matter-enable','matter-disable','ble-inspect','wifi-provision','wifi-explore','pc-devices','net-listen','traffic-capture','lan-devices']}))
                 if self.path.startswith('/api/harness/host/requests/'):
@@ -115,7 +126,7 @@ createRoot(document.getElementById('root')!).render(location.pathname.includes('
                              'ble-inspect':{'name':'LED Strip','services':[{'uuid':'0000180a-0000-1000-8000-00805f9b34fb','characteristics':[{'uuid':'00002a29-0000-1000-8000-00805f9b34fb','properties':['Read'],'value':'4c4544','text':'LED'}]},
                                                                             {'uuid':'0000ffe0-0000-1000-8000-00805f9b34fb','characteristics':[{'uuid':'0000ffe1-0000-1000-8000-00805f9b34fb','properties':['WriteWithoutResponse','Notify']}]}]}}
                     identifier='%032x'%(len(HOST)+1)
-                    HOST[identifier]={'id':identifier,'action':body['action'],'args':body['args'],'result':answers[body['action']]}
+                    HOST[identifier]={'id':identifier,'action':body['action'],'args':body['args'],'agent':body.get('agent'),'result':answers[body['action']]}
                     return self.send(json.dumps({'id':identifier,'status':'queued'}))
                 if self.path=='/api/harness/matter/commission':
                     assert body=={'code':'3497-011-2332'},body
@@ -128,6 +139,13 @@ createRoot(document.getElementById('root')!).render(location.pathname.includes('
                 if self.path=='/api/harness/connections/discovery/explore':
                     assert body=={'address':'192.168.1.44'},body
                     return self.send(json.dumps({'address':'192.168.1.44','ports':[80,6668],'name':'','title':'Smart IR','kind':'tuya','label':'Tuya / Smart Life','suggestion':{'protocol':'tuya','port':6668}}))
+                if self.path=='/api/harness/agents/pairings':
+                    assert body=={'name':'PC di casa'},body
+                    AGENTS.append({'id':'ag_0123456789ab','name':'PC di casa','platform':'windows','version':'1.0.0','online':True,'networks':['192.168.50.0/24']})
+                    return self.send(json.dumps({'code':'ABCDE-FGHJK','expires_in':600}))
+                if self.path=='/api/harness/connections/discovery' and body.get('agent'):
+                    assert body=={'network':'192.168.50.0/24','agent':'ag_0123456789ab'},body
+                    return self.send(json.dumps({'network':body['network'],'ports':[80,6668],'devices':[{'address':'192.168.50.20','ports':[80],'name':'','kind':'web','label':'Termostato','suggestion':{'protocol':'http','port':80}}]}))
                 if self.path=='/api/harness/connections/discovery':
                     assert body=={'network':'192.168.1.0/24'},body
                     from righaven.device_discovery import identify
@@ -383,8 +401,17 @@ createRoot(document.getElementById('root')!).render(location.pathname.includes('
                 page.get_by_role('button',name='Annulla',exact=True).click()
                 # A device attached to this machine: with no device offered, the form says how to offer one
                 # and cannot be saved; a one-letter or capitalised ID is saved in its normalised form.
-                page.get_by_test_id('new-device').click()
+                # New connection to a service: where it is first. The internet offers no serial or Bluetooth service.
+                chooser=page.get_by_test_id('new-connection')
+                expect(chooser.get_by_label('Dove si trova il servizio',exact=True)).to_have_value('cloud')
+                expect(chooser.get_by_test_id('new-serial')).to_have_count(0)
+                expect(chooser.get_by_test_id('new-entra')).to_have_count(1)
+                chooser.get_by_label('Dove si trova il servizio',exact=True).select_option('server')
+                expect(chooser.get_by_test_id('new-bluetooth')).to_have_count(1)
+                expect(chooser.get_by_test_id('new-entra')).to_have_count(0)
+                chooser.get_by_test_id('new-device').click()
                 form=page.get_by_test_id('connection-form')
+                expect(form.get_by_label('Dove si trova il servizio',exact=True)).to_have_value('server')
                 form.get_by_label('Nome',exact=True).fill('UsbRW')
                 form.get_by_label('ID (facoltativo)',exact=True).fill('A')
                 expect(form.get_by_test_id('connection-id-hint')).to_contain_text('Sarà salvato come a')
@@ -394,7 +421,7 @@ createRoot(document.getElementById('root')!).render(location.pathname.includes('
                 form.get_by_label('Collegamento del dispositivo',exact=True).select_option('network')
                 form.get_by_label('Indirizzo (host o IP)',exact=True).fill('192.168.1.40')
                 form.get_by_role('button',name='Salva',exact=True).click()
-                expect(page.get_by_test_id('connection-a')).to_contain_text('UsbRW')
+                expect(page.get_by_test_id('connections-server').get_by_test_id('connection-a')).to_contain_text('UsbRW')
                 assert connections.listing('owner')[0]['id']=='a'
                 connections.delete('owner','a')
                 page.reload()
@@ -433,6 +460,50 @@ createRoot(document.getElementById('root')!).render(location.pathname.includes('
                 listing.get_by_role('listitem').filter(has_text='erp').get_by_role('button',name='Usa questo database').click()
                 expect(sql).to_contain_text('vendite.database.windows.net:1433 / erp')
                 assert connections._read('owner','vendite-azure')['refresh_token']=='RT-secret','choosing the database keeps the sign-in'
+                # RigHaven Agent: pair a PC with a code, act on it, search its home network and connect a device through it.
+                agents=page.get_by_test_id('agents')
+                agents.get_by_label('Nome del PC da collegare',exact=True).fill('PC di casa')
+                agents.get_by_role('button',name='Collega un PC',exact=True).click()
+                pairing=agents.get_by_test_id('agent-pairing')
+                expect(pairing).to_contain_text('https://righaven.example.com')
+                expect(pairing).to_contain_text('ABCDE-FGHJK')
+                expect(pairing).to_contain_text('«PC di casa» è collegato',timeout=10000)
+                agents.get_by_label('Agisci sul PC',exact=True).select_option('ag_0123456789ab')
+                discovery=page.get_by_test_id('device-discovery')
+                expect(discovery.get_by_label('Rete da cercare',exact=True)).to_have_value('192.168.50.0/24')
+                discovery.get_by_role('button',name='Cerca in questa rete',exact=True).click()
+                found=discovery.get_by_test_id('discovery-results')
+                expect(found).to_contain_text('Termostato · 192.168.50.20')
+                found.locator('li',has_text='Termostato').get_by_role('button',name='Crea connessione',exact=True).click()
+                form=page.get_by_test_id('connection-form')
+                expect(form.get_by_label('Dove si trova il servizio',exact=True)).to_have_value('ag_0123456789ab')  # the PC being worked on
+                expect(form.get_by_label('Collegamento del dispositivo',exact=True)).to_have_value('network')
+                expect(form.get_by_label('Indirizzo come lo vede quel PC (IP privato o nome interno)',exact=True)).to_have_value('192.168.50.20')
+                form.get_by_role('button',name='Salva',exact=True).click()
+                onsite=page.get_by_test_id('connections-ag_0123456789ab')
+                expect(onsite).to_contain_text('On premise · tramite PC di casa')
+                expect(onsite.get_by_test_id('connection-termostato')).to_contain_text('HTTP · 192.168.50.20:80')
+                saved=connections._read('owner','termostato')
+                assert (saved['transport'],saved['agent'],saved['host']) == ('network','ag_0123456789ab','192.168.50.20'),saved
+                # On-premise gateway: a SQL Server of the office network, reached through the same PC.
+                chooser=page.get_by_test_id('new-connection')
+                expect(chooser.get_by_label('Dove si trova il servizio',exact=True)).to_have_value('ag_0123456789ab')
+                expect(chooser.get_by_test_id('new-serial')).to_contain_text('Porta COM / USB del PC')
+                expect(chooser.get_by_test_id('new-network')).to_have_count(0)  # networks to map are scanned from the server
+                chooser.get_by_role('button',name='Nuova: SQL Server / Azure SQL / Fabric',exact=True).click()
+                form=page.get_by_test_id('connection-form')
+                expect(form.get_by_label('Dove si trova il servizio',exact=True)).to_have_value('ag_0123456789ab')
+                expect(form.get_by_label('Autenticazione',exact=True)).to_have_count(0)  # through an agent: user and password
+                form.get_by_label('Nome',exact=True).fill('ERP ufficio')
+                form.get_by_label('Server, URL o stringa di connessione',exact=True).fill('sql01.ufficio.local')
+                form.get_by_label('Database',exact=True).fill('erp')
+                form.get_by_label('Utente',exact=True).fill('lettore')
+                form.get_by_label('Password',exact=True).fill('segreta-123')
+                form.get_by_label('Confermo che l’account ha solo permessi di lettura').check()
+                form.get_by_role('button',name='Salva',exact=True).click()
+                expect(onsite.get_by_test_id('connection-erp-ufficio')).to_contain_text('sql01.ufficio.local:1433 / erp · lettore')
+                saved=connections._read('owner','erp-ufficio')
+                assert (saved['agent'],saved['authentication'],saved['host']) == ('ag_0123456789ab','password','sql01.ufficio.local'),saved
                 assert not errors,errors
                 page.close()
                 # Recipe editor: the user composes skills, environment and phases into a new recipe, then starts it.

@@ -1,7 +1,8 @@
 {$RIGHAVEN_SITE} {
     # The app manifest and its icons are public, so phones can install RigHaven
     # (browsers fetch them without the sign-in credentials). They contain no data.
-    @protected not path /manifest.webmanifest /rh-app/*
+    # RigHaven Agent authenticates itself (pairing code, then its own token): no site password there.
+    @protected not path /manifest.webmanifest /rh-app/* /api/webhooks/righaven-agent/*
     basic_auth @protected {
         {$RIGHAVEN_USER} {$RIGHAVEN_PASSWORD_HASH}
     }

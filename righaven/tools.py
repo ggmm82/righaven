@@ -8,6 +8,7 @@ from .projects import archive_plan, create_plan, execute_step, read_project, set
 from .project_brief import briefing_issue
 import functools
 import json
+import sys
 import threading
 
 
@@ -121,7 +122,7 @@ def harness_journey(runtime: Runtime, stage_id: str = '', evidence_json: str = '
 
 
 @tool('harness_find_devices', parse_docstring=True)
-def harness_find_devices(runtime: Runtime, where: str = 'all', network: str = '') -> str:
+def harness_find_devices(runtime: Runtime, where: str = 'all', network: str = '', pc: str = '') -> str:
     """Identify devices near the owner's PC when the owner asks, without knowing their address.
 
     Read only: nothing is written to any device and the PC joins no network. Sources: the home
@@ -136,23 +137,30 @@ def harness_find_devices(runtime: Runtime, where: str = 'all', network: str = ''
         runtime: Injected RigHaven runtime.
         where: all, network, wifi, bluetooth, usb, com or serial.
         network: Private network to search, for example 192.168.1.0/24; empty means the PC's network.
+        pc: The owner's PC to use, by its name or ID (needed when several of the owner's PCs are connected).
     """
     from . import connections, device_discovery, host_bridge
     if where not in ('all', 'network', 'wifi', 'bluetooth', 'usb', 'com', 'serial'):
         raise ValueError('where: all, network, wifi, bluetooth, usb, com o serial')
     found, notes = {}, []
+    try:
+        agent, folder = _pc(runtime, pc)
+    except ValueError as error:
+        agent, folder = False, None
+        notes.append(str(error))
+    state = host_bridge.state(agent) if agent is not False else {'connected': False, 'actions': []}
     if where in ('all', 'serial'):
-        found['serial'] = {'offered': connections.local_devices(), 'shared_com_ports': device_discovery.serial_ports()}
+        found['serial'] = {'offered': [] if agent else connections.local_devices(), 'shared_com_ports': device_discovery.serial_ports(folder)}
     if where in ('all', 'network'):
-        target = network or next(iter(device_discovery.local_networks()), '')
+        networks = state.get('networks') if agent else device_discovery.local_networks()
+        target = network or next(iter(networks or []), '')
         if target:
             try:
-                found['network'] = device_discovery.scan(target)
+                found['network'] = device_discovery.scan_from_agent(agent, target) if agent else device_discovery.scan(target)
             except ValueError as error:
                 notes.append(str(error))
         else:
             notes.append('Rete del PC non nota: indica network, per esempio 192.168.1.0/24')
-    state = host_bridge.state()
     steps = (('usb', 'usb-list', None), ('com', 'com-list', None),
              ('wifi', 'wifi-scan', device_discovery.wifi), ('bluetooth', 'bluetooth-scan', device_discovery.bluetooth))
     for kind, action, read in steps:
@@ -166,8 +174,8 @@ def harness_find_devices(runtime: Runtime, where: str = 'all', network: str = ''
                          if kind in ('usb', 'com') else kind + ': non disponibile su questo PC')
             continue
         try:
-            answer = host_bridge.run(action, timeout=150)
-            found[kind] = read() if read else answer
+            answer = host_bridge.run(action, timeout=150, agent=agent or None)
+            found[kind] = read(folder) if read else answer
         except ValueError as error:
             notes.append(kind + ': ' + str(error))
     return json.dumps({'found': found, 'notes': notes, 'instruction':
@@ -175,6 +183,13 @@ def harness_find_devices(runtime: Runtime, where: str = 'all', network: str = ''
         'harness_setup_device for the device the owner wants (USB peripheral by busid, COM port by name, network '
         'device by address and protocol, Matter device by pairing code). Devices in setup mode are first added to '
         'the home Wi-Fi: Tuya with its app; Tasmota, Shelly, ESPHome, WLED and OpenBeken with «Porta nel Wi-Fi di casa» in Connections, where the owner types the home Wi-Fi password (never ask for it in the chat). Do not search again unless the owner asks.'}, ensure_ascii=False, default=str)
+
+
+def _pc(runtime, agent=''):
+    """The PC a chat tool works on: an agent of this user (named, or the one online), or the launcher next to this server."""
+    from . import agents, host_bridge
+    target = host_bridge.pick(resolve_runtime_user_id(runtime), agent or None)
+    return target, (str(agents.folder(target)) if target else None)
 
 
 def _connection_id(user, name):
@@ -191,7 +206,8 @@ def _connection_id(user, name):
 
 
 @tool('harness_setup_device', parse_docstring=True)
-def harness_setup_device(runtime: Runtime, kind: str, target: str, name: str = '', protocol: str = '', port: int = 0, note: str = '') -> str:
+def harness_setup_device(runtime: Runtime, kind: str, target: str, name: str = '', protocol: str = '', port: int = 0, note: str = '',
+                         agent_network: bool = False, pc: str = '') -> str:
     """Prepare a device the owner asked to use and create its connection, read only.
 
     Use it only after the owner chose the device (usually from harness_find_devices). It does
@@ -214,18 +230,35 @@ def harness_setup_device(runtime: Runtime, kind: str, target: str, name: str = '
         protocol: For network: mqtt, http, modbus-tcp, adb, tcp or tuya.
         port: For network: port if not the protocol default.
         note: What the owner wants to do with the device.
+        agent_network: For network: the device is in the home network of the owner's RigHaven Agent (the server reaches it through the agent).
+        pc: The owner's PC to use, by its name or ID (needed when several of the owner's PCs are connected).
     """
     from . import connections, device_discovery, host_bridge, matter
     user = resolve_runtime_user_id(runtime)
     label = (name or target).strip()[:80] or 'Dispositivo'
     body = {'kind': 'device', 'name': label, 'description': note[:400], 'access': 'read'}
-    if kind == 'usb':
+    agent = None
+    if kind in ('usb', 'com', 'bluetooth') or (kind == 'network' and agent_network):
+        agent, _ = _pc(runtime, pc)
+    if agent and kind in ('usb', 'com'):
+        # Through an agent a USB serial board is a COM port of the PC, carried to the server by a tunnel.
+        if kind == 'usb':
+            raise ValueError('Tramite RigHaven Agent una scheda USB si usa come porta COM: usa kind com con il nome della porta (per esempio COM5)')
+        body.update(transport='serial', agent=agent, device=target.strip().upper(), baud=115200)
+    elif kind == 'usb':
         answer = host_bridge.run('usb-attach', {'busid': target}, timeout=240)
         ports = [p for p in answer.get('ports') or [] if p in connections.local_devices()]
         if not ports:
             return json.dumps({'attached': True, 'connection': None, 'instruction':
                 'The peripheral is attached but it exposes no serial port: tell the owner it may need a driver or is not a serial device.'}, ensure_ascii=False)
         body.update(transport='local', device=ports[0], baud=115200)
+    elif agent and kind == 'network':
+        if protocol not in ('mqtt', 'http', 'modbus-tcp', 'adb', 'tcp', 'tuya'):
+            raise ValueError('protocol: mqtt, http, modbus-tcp, adb, tcp o tuya')
+        if protocol == 'tuya':
+            return json.dumps({'connection': None, 'instruction': 'A Tuya device needs its device ID and local key: ask the owner to create '
+                               'the connection in Connections; never ask for the local key in the chat.'}, ensure_ascii=False)
+        body.update(transport='network', agent=agent, host=target.strip(), protocol=protocol, **({'port': port} if port else {}))
     elif kind == 'com':
         host_bridge.run('com-share', {'name': target}, timeout=60)
         shared = next((p for p in device_discovery.serial_ports() if p['name'] == target), None)
@@ -243,7 +276,7 @@ def harness_setup_device(runtime: Runtime, kind: str, target: str, name: str = '
             raise ValueError('protocol: mqtt, http, modbus-tcp, adb, tcp o tuya')
         body.update(transport='network', protocol=protocol, host=target, **({'port': port} if port else {}))
     elif kind == 'bluetooth':
-        body.update(transport='bluetooth', address=target.strip().upper())
+        body.update(transport='bluetooth', address=target.strip().upper(), **({'agent': agent} if agent else {}))
     elif kind == 'matter':
         node = matter.commission(target)
         url = matter.url().removeprefix('ws://').split('/')[0]
@@ -260,7 +293,7 @@ def harness_setup_device(runtime: Runtime, kind: str, target: str, name: str = '
 
 
 @tool('harness_explore_device', parse_docstring=True)
-def harness_explore_device(runtime: Runtime, kind: str, target: str) -> str:
+def harness_explore_device(runtime: Runtime, kind: str, target: str, pc: str = '') -> str:
     """Explore one thing found near the PC, as Explore does in Connections: read only, no connection needed.
 
     network (target = IP address): which IoT ports answer, its name and home page. wifi
@@ -278,19 +311,27 @@ def harness_explore_device(runtime: Runtime, kind: str, target: str) -> str:
         runtime: Injected RigHaven runtime.
         kind: network, wifi, bluetooth, usb or listen.
         target: IP address, Wi-Fi network name, Bluetooth address or USB busid.
+        pc: The owner's PC to use, by its name or ID (needed when several of the owner's PCs are connected).
     """
     from . import device_discovery, host_bridge
+    agent, _ = _pc(runtime, pc) if kind != 'network' else (None, None)
     if kind == 'network':
-        return json.dumps(device_discovery.explore(target), ensure_ascii=False)
+        try:
+            agent, _ = _pc(runtime, pc)
+        except ValueError:
+            if pc or isinstance(sys.exc_info()[1], host_bridge.SeveralPCs):
+                raise
+            agent = None
+        return json.dumps(device_discovery.explore_from_agent(agent, target) if agent else device_discovery.explore(target), ensure_ascii=False)
     if kind == 'wifi':
         hint = device_discovery.wifi_hint(target)
-        return json.dumps(host_bridge.run('wifi-explore', {'ssid': target, **({'hint': hint} if hint else {})}, timeout=120), ensure_ascii=False)
+        return json.dumps(host_bridge.run('wifi-explore', {'ssid': target, **({'hint': hint} if hint else {})}, timeout=120, agent=agent), ensure_ascii=False)
     if kind == 'bluetooth':
-        return json.dumps(host_bridge.run('ble-inspect', {'address': target}, timeout=150), ensure_ascii=False)
+        return json.dumps(host_bridge.run('ble-inspect', {'address': target}, timeout=150, agent=agent), ensure_ascii=False)
     if kind == 'listen':
-        return json.dumps(host_bridge.run('net-listen', timeout=60), ensure_ascii=False)
+        return json.dumps(host_bridge.run('net-listen', timeout=60, agent=agent), ensure_ascii=False)
     if kind == 'usb':
-        listed = host_bridge.run('usb-list', timeout=60)
+        listed = host_bridge.run('usb-list', timeout=60, agent=agent)
         found = [d for d in listed.get('devices') or [] if d.get('busid') == target]
         if not found:
             raise ValueError('Periferica USB non trovata: ' + str(target)[:20])
@@ -332,10 +373,11 @@ def harness_bluetooth(runtime: Runtime, connection: str = '', action: str = 'ins
         row = next((c for c in connections.listing(user) if c.get('id') == connection), None)
         if not row or row.get('kind') != 'device' or row.get('transport') != 'bluetooth':
             raise ValueError('Not a Bluetooth LE device connection: ' + str(connection))
+    agent, _ = _pc(runtime, row.get('agent', ''))
     if action == 'inspect':
-        return json.dumps(host_bridge.run('ble-inspect', {'address': row['address']}, timeout=150), ensure_ascii=False)
+        return json.dumps(host_bridge.run('ble-inspect', {'address': row['address']}, timeout=150, agent=agent), ensure_ascii=False)
     if action == 'read':
-        return json.dumps(host_bridge.run('ble-read', {'address': row['address'], 'service': service, 'characteristic': characteristic}, timeout=90), ensure_ascii=False)
+        return json.dumps(host_bridge.run('ble-read', {'address': row['address'], 'service': service, 'characteristic': characteristic}, timeout=90, agent=agent), ensure_ascii=False)
     if action != 'write':
         raise ValueError('action: inspect, read o write')
     command = device_changes.bluetooth_command({'payload': value, 'encoding': 'hex', 'address': service + '/' + characteristic})
@@ -344,7 +386,7 @@ def harness_bluetooth(runtime: Runtime, connection: str = '', action: str = 'ins
     if change is None:
         return json.dumps({'written': False, 'instruction': 'This exact write has no approval: call harness_device_change with action send and '
                            'command_json ' + json.dumps(command) + ', explain it, end the turn and write after the owner approves.'}, ensure_ascii=False)
-    host_bridge.run('ble-write', {'address': row['address'], 'service': service, 'characteristic': characteristic, 'value': command['payload']}, timeout=90)
+    host_bridge.run('ble-write', {'address': row['address'], 'service': service, 'characteristic': characteristic, 'value': command['payload']}, timeout=90, agent=agent)
     from .audit_log import append
     append(workspace, 'Dispositivi', 'Scrittura Bluetooth LE eseguita', 'completed', connection + ' · ' + command['address'] + ' · ' + command['payload'][:64])
     return json.dumps({'written': True, 'change': change['id']}, ensure_ascii=False)

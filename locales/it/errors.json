@@ -70,7 +70,6 @@
   "Device change not found: ": "Modifica del dispositivo non trovata: ",
   "Device change: ": "Modifica del dispositivo: ",
   "Device protocol: ": "Protocollo del dispositivo: ",
-  "Device transport: network, serial, local or bluetooth": "Collegamento del dispositivo: rete, seriale, locale o Bluetooth",
   "Direct package installation is not supported. Declare managed tools; their verified runtime recipes supply dependencies.": "L’installazione diretta di pacchetti non è supportata. Dichiara strumenti gestiti: le loro ricette verificate forniscono le dipendenze.",
   "Document exceeds 64 MiB": "Il documento supera 64 MiB",
   "Document exceeds the editor size limit": "Il documento supera il limite di dimensione dell’editor",
@@ -389,5 +388,10 @@
   "release unlocked resource slot": null,
   "security_policy must enforce rootless=true": null,
   "security_policy.writable_paths must include $RIGHAVEN_OUTPUT_DIR": null,
-  "tools must be a list of tool identifiers": "tools deve essere un elenco di identificativi di strumenti"
+  "tools must be a list of tool identifiers": "tools deve essere un elenco di identificativi di strumenti",
+  "Through a RigHaven Agent the database uses user and password": "Tramite RigHaven Agent il database usa utente e password",
+  "Through a RigHaven Agent: a private address or an internal name of the agent’s network, for example 192.168.1.20 or sql01.office.local": "Tramite RigHaven Agent: un indirizzo privato o un nome interno della rete dell’agente, per esempio 192.168.1.20 o sql01.office.local",
+  "Device transport: network, serial, local or bluetooth": "Collegamento del dispositivo: rete, seriale, locale o Bluetooth",
+  "Matter devices go through the Matter controller of this server": "I dispositivi Matter passano dal controller Matter di questo server",
+  "Through a RigHaven Agent a USB or serial device is a COM port of the PC": "Tramite RigHaven Agent un dispositivo USB o seriale è una porta COM del PC"
 }
