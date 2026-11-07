@@ -1203,5 +1203,6 @@
   "Through a RigHaven Agent: a private address or an internal name of the agent’s network, for example 192.168.1.20 or sql01.office.local": null,
   "Device transport: network, serial, local or bluetooth": null,
   "Matter devices go through the Matter controller of this server": null,
-  "Through a RigHaven Agent a USB or serial device is a COM port of the PC": null
+  "Through a RigHaven Agent a USB or serial device is a COM port of the PC": null,
+  "Catalogo modelli non leggibile: ": "Model catalog unreadable: "
 }

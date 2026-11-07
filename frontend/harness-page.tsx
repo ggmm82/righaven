@@ -45,7 +45,8 @@ export default function ModelsPage() {useUiLanguage();
       const result=await authenticatedFetch("/harness/api/catalog");
       if(!alive)return;
       if(result.status===403){setAccess("user");return;}
-      if(!result.ok)throw Error(tr("Configurazione dei modelli non raggiungibile", "Model configuration unreachable"));
+      if(!result.ok){const problem=await result.json().catch(()=>null) as {detail?:unknown}|null;
+        throw Error(tr("Configurazione dei modelli non raggiungibile", "Model configuration unreachable")+(typeof problem?.detail==="string"?" · "+problem.detail:` (HTTP ${result.status})`));}
       const value=await result.json() as Catalogue;
       setData(value);select(value.profiles.coordinator);setAccess("admin");
     }).catch(reason=>{if(alive){setAccess("error");setError(String(reason.message));}});
