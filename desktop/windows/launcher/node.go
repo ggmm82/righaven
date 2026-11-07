@@ -601,12 +601,19 @@ func (s *agentSession) uploadResult(dir string, job nodeRun, result map[string]a
 		response, err := s.nodeRequest("PUT", "/api/webhooks/righaven-agent/runs/"+job.ID+"/result", file)
 		file.Close()
 		if err == nil {
+			body, _ := io.ReadAll(io.LimitReader(response.Body, 300))
 			response.Body.Close()
 			if response.StatusCode == http.StatusOK || response.StatusCode == http.StatusGone || response.StatusCode == http.StatusNotFound {
+				if attempt > 0 || response.StatusCode != http.StatusOK {
+					fmt.Fprintf(s.out, "RigHaven node: result of %s sent (HTTP %d)\n", job.ID, response.StatusCode)
+				}
 				removeRun(dir, job.Image)
 				return
 			}
+			err = fmt.Errorf("HTTP %d %s", response.StatusCode, strings.TrimSpace(string(body)))
 		}
+		// Said every time: a result the server does not take is otherwise invisible on this machine.
+		fmt.Fprintf(s.out, "RigHaven node: result of %s not sent (attempt %d): %v; retrying in %s\n", job.ID, attempt+1, err, pause)
 		time.Sleep(pause)
 		if pause *= 2; pause > time.Minute {
 			pause = time.Minute
