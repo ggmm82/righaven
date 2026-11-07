@@ -384,8 +384,8 @@ func (s *agentSession) executeJob(dir string, job nodeRun) map[string]any {
 		}
 	}
 	_ = dockerCommand(context.Background(), "rm", "-f", name).Run()
-	if nodeImageID.MatchString(job.Image) {
-		touchImage(job.Image)
+	if id, err := dockerCommand(context.Background(), "image", "inspect", "--format", "{{.Id}}", job.Image).Output(); err == nil && nodeImageID.MatchString(strings.TrimSpace(string(id))) {
+		touchImage(strings.TrimSpace(string(id))) // environment images are used by name, kept by ID
 	}
 	pruneImages(s.nodeConfig())
 	return result

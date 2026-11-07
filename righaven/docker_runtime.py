@@ -522,7 +522,8 @@ def delegate(agent_id, task, workspace, tool_call_id=None, on_started=None, requ
                 if profile_use['mode'] in ('reused','extended'):
                     environments.save(base_profile['id'],last_used=time.time())
                     profiles_base.record_use(policy['user_id'],base_profile['name'],(role or {}).get('title') or agent_id,profile_use['mode'])
-            runtime_image = runtime_environment.get('image_id') or runtime_environment['image']
+            # On a machine its environment image is named (IDs differ between image stores).
+            runtime_image = runtime_environment['image'] if runtime_environment.get('node') else (runtime_environment.get('image_id') or runtime_environment['image'])
             # Installation can take minutes: a newer native disable/scope must win before AI starts.
             policy = native_policy(policy['user_id'], policy.get('agent_name')) if policy.get('source') == 'righaven_core' else legacy_policy()
             verify(role,policy)

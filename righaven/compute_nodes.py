@@ -297,6 +297,12 @@ def run(node, args, *, timeout, live=None, preparation=None, on_state=None, on_o
     image (docker commit) when the command succeeds, and answers with its image_id and size."""
     run_, template = prepare(node, args, live, preparation=preparation is not None)
     image = _image(template)
+    if image.startswith('sha256:'):
+        # Docker image IDs differ between image stores (Docker Desktop's containerd store gives
+        # the same image another ID): a node receives this server's images by name.
+        named = portable_image(image)
+        template[template.index(image)] = named
+        image = named
     run_.image = image
     run_.preparation = preparation
     run_.on_state = on_state
@@ -332,6 +338,16 @@ def run(node, args, *, timeout, live=None, preparation=None, on_state=None, on_o
         with _lock:
             RUNS.pop(run_.name, None)
         shutil.rmtree(run_.folder, ignore_errors=True)
+
+
+def portable_image(image):
+    """A name for one of this server's images, kept by docker save and load on any image store."""
+    tag = 'righaven-node:' + image.removeprefix('sha256:')[:32]
+    try:
+        subprocess.run(['docker', 'tag', image, tag], check=True, capture_output=True, timeout=60)
+    except (OSError, subprocess.SubprocessError) as error:
+        raise RuntimeError('Immagine non disponibile su questo server per la macchina on premise') from error
+    return tag
 
 
 def _image(template):
@@ -617,7 +633,8 @@ def prepare_environment(node, owner, tools, *, versions=None, resources, progres
         return chosen
     base = env.subset(spec, prefer, records=records, exists=exists)
     reused = env.reused_tools(base, spec)
-    base_image = base['image_id'] if base else spec['core']
+    # The machine's own images by their name there; the core image is sent by this server.
+    base_image = base['image'] if base else spec['core']
     name = 'rh-env-' + key[:12] + '-' + os.urandom(3).hex()
     work = folder() / (name + '-request')
     work.mkdir(mode=0o755)
