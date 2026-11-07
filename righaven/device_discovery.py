@@ -186,6 +186,10 @@ def _identified(devices):
     return found
 
 
+def identified(devices):
+    return _identified(devices)
+
+
 def scan_from_agent(agent, value):
     """The same search, run by the agent in its own network (this server cannot reach a home network)."""
     from . import host_bridge

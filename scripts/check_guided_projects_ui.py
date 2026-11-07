@@ -116,6 +116,7 @@ createRoot(document.getElementById('root')!).render(location.pathname.includes('
                                                                      {'busid':'2-1','name':'Realtek Bluetooth 4.2 Adapter','state':'Shared','serial':False,'attached':False,'pc_bluetooth':True}]},
                              'usb-detach':{'ok':True},
                              'usb-attach':{'ok':True,'ports':['/dev/ttyUSB0']},'com-list':{'ports':[{'name':'COM5','label':'OBDII (COM5)','bluetooth':True,'shared':False}]},
+                             'net-scan':{'devices':[{'address':'192.168.50.20','ports':[80]}]},
                              'com-share':{'ok':True},'bluetooth-scan':{'ok':True},'wifi-scan':{'ok':True,'networks':2},'wifi-provision':{'ok':True,'home':'CasaRossi'},'wifi-explore':{'ok':True,'ssid':'DaikinAP72288','address':'192.168.127.1','info':'ret=OK,type=aircon'},
                              'net-listen':{'devices':[{'address':'192.168.1.30','names':['Sonos-Cucina'],'services':['_spotify-connect._tcp.local'],'server':'Linux UPnP/1.0 Sonos/70.3','kinds':['mDNS','UPnP']}]},
                              'traffic-capture':{'ok':True,'packets':3,'download':True,'dns':['a1.tuyaeu.com'],'conversations':[{'local':'192.168.137.50','remote':'18.185.1.2','name':'a1.tuyaeu.com','proto':'TCP','port':8883,'packets':2,'bytes':150}]},
@@ -144,9 +145,10 @@ createRoot(document.getElementById('root')!).render(location.pathname.includes('
                     assert body=={'name':'PC di casa'},body
                     AGENTS.append({'id':'ag_0123456789ab','name':'PC di casa','platform':'windows','version':'1.0.0','online':True,'networks':['192.168.50.0/24']})
                     return self.send(json.dumps({'code':'ABCDE-FGHJK','expires_in':600}))
-                if self.path=='/api/harness/connections/discovery' and body.get('agent'):
-                    assert body=={'network':'192.168.50.0/24','agent':'ag_0123456789ab'},body
-                    return self.send(json.dumps({'network':body['network'],'ports':[80,6668],'devices':[{'address':'192.168.50.20','ports':[80],'name':'','kind':'web','label':'Termostato','suggestion':{'protocol':'http','port':80}}]}))
+                if self.path=='/api/harness/connections/discovery/identify':
+                    # Through an agent the page starts net-scan, follows it, then has its devices identified.
+                    assert body=={'devices':[{'address':'192.168.50.20','ports':[80]}]},body
+                    return self.send(json.dumps({'devices':[{'address':'192.168.50.20','ports':[80],'name':'','kind':'web','label':'Termostato','suggestion':{'protocol':'http','port':80}}]}))
                 if self.path=='/api/harness/connections/discovery':
                     assert body=={'network':'192.168.1.0/24'},body
                     from righaven.device_discovery import identify

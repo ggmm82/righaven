@@ -17,6 +17,7 @@ import okhttp3.WebSocket
 import okhttp3.WebSocketListener
 import okio.ByteString
 import okio.ByteString.Companion.toByteString
+import org.righaven.agent.ActivityLog
 import org.righaven.agent.AgentSession
 import org.righaven.agent.Channel
 import org.righaven.agent.HomeDial
@@ -33,6 +34,8 @@ import java.util.concurrent.TimeUnit
 class AgentService : Service() {
     companion object {
         const val VERSION_HEADER = "X-RigHaven-Agent"
+        const val ACTION_STOP = "org.righaven.agent.STOP"
+        const val EXTRA_LOG = "show_log"
         @Volatile var status: String = ""
             private set
 
@@ -43,11 +46,18 @@ class AgentService : Service() {
 
         fun stop(context: Context) {
             Store.setAgentEnabled(context, false)
+            log(context).add(tr("Agente fermato dall’app", "Agent stopped from the app"))
             context.stopService(Intent(context, AgentService::class.java))
         }
+
+        /** The phone's own record of what the agent did (Agent → Log in the app). */
+        fun log(context: Context) = ActivityLog(java.io.File(context.filesDir, "agent-log.txt"))
     }
 
-    private val client = OkHttpClient.Builder().pingInterval(25, TimeUnit.SECONDS).readTimeout(0, TimeUnit.MILLISECONDS).build()
+    // The read timeout bounds the opening handshake (OkHttp lifts it once the WebSocket is open; the
+    // pings watch it from then on): a server that accepts but never answers is retried, not waited for.
+    private val client = OkHttpClient.Builder().pingInterval(25, TimeUnit.SECONDS).connectTimeout(15, TimeUnit.SECONDS)
+        .readTimeout(30, TimeUnit.SECONDS).build()
     @Volatile private var running = false
     @Volatile private var socket: WebSocket? = null
     @Volatile private var session: AgentSession? = null
@@ -56,7 +66,17 @@ class AgentService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        val notification = notification(tr("Collegamento al server…", "Connecting to the server…"))
+        if (intent?.action == ACTION_STOP) {  // «Stop» in the notification, even with the app closed
+            Store.setAgentEnabled(this, false)
+            log(this).add(tr("Agente fermato dalla notifica", "Agent stopped from the notification"))
+            running = false
+            socket?.close(1000, "stopped")
+            stopForeground(STOP_FOREGROUND_REMOVE)
+            stopSelf()
+            return START_NOT_STICKY
+        }
+        // Opening the app starts the service again: an agent already connected keeps saying so.
+        val notification = notification(status.takeIf { running && it.isNotEmpty() } ?: tr("Collegamento al server…", "Connecting to the server…"))
         if (Build.VERSION.SDK_INT >= 29) startForeground(1, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE)
         else startForeground(1, notification)
         if (!running) {
@@ -78,6 +98,8 @@ class AgentService : Service() {
         val pairing = Store.load(this) ?: run { stopSelf(); return }
         val url = pairing.server.replaceFirst("https://", "wss://").replaceFirst("http://", "ws://") + "/api/webhooks/righaven-agent/connect"
         val request = Request.Builder().url(url).header(VERSION_HEADER, pairing.token).build()
+        val log = log(this)
+        log.add(tr("Collegamento a ", "Connecting to ") + pairing.server)
         socket = client.newWebSocket(request, object : WebSocketListener() {
             override fun onOpen(webSocket: WebSocket, response: Response) {
                 pause = 2000L
@@ -87,9 +109,24 @@ class AgentService : Service() {
                     override fun sendBinary(data: ByteArray) = webSocket.send(data.toByteString())
                     override fun close(code: Int, reason: String) { webSocket.close(code, reason) }
                 }
-                session = AgentSession(channel, "android", BuildConfigVersion.name(this@AgentService), actions.names, actions::networks, actions::handle,
+                session = AgentSession(channel, "android", BuildConfigVersion.name(this@AgentService), actions.names, actions::networks,
+                    { action, args ->
+                        // The notification says what the server asked while it runs, then the outcome.
+                        show(tr("Collegato · esegue ", "Connected · running ") + action + "…")
+                        try {
+                            log.action(action, args.values.joinToString(" ")) { actions.handle(action, args) }
+                        } finally {
+                            show(tr("Collegato a ", "Connected to ") + pairing.server + " · " + (log.lines().firstOrNull()?.substringAfter("  ") ?: ""))
+                        }
+                    },
                     openStream = { target ->
-                        val tcp = HomeDial().open(target)
+                        val tcp = try {
+                            HomeDial().open(target)
+                        } catch (error: Exception) {
+                            log.add(tr("✗ tunnel verso ", "✗ tunnel to ") + target + " · " + (error.message ?: error.javaClass.simpleName))
+                            throw error
+                        }
+                        log.add(tr("Tunnel aperto verso ", "Tunnel opened to ") + target)
                         object : Stream {
                             override val input: InputStream = tcp.getInputStream()
                             override val output: OutputStream = tcp.getOutputStream()
@@ -97,15 +134,20 @@ class AgentService : Service() {
                         }
                     }).also { it.hello() }
                 show(tr("Collegato a ", "Connected to ") + pairing.server)
+                log.add(tr("Collegato a ", "Connected to ") + pairing.server)
             }
 
             override fun onMessage(webSocket: WebSocket, text: String) { session?.onText(text) }
             override fun onMessage(webSocket: WebSocket, bytes: ByteString) { session?.onBinary(bytes.toByteArray()) }
 
             // A revocation is only what the server itself confirms; a proxy or a restarting server is not.
-            override fun onClosed(webSocket: WebSocket, code: Int, reason: String) { ended(code == 4001 || code == 4401) }
+            override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
+                log.add(tr("Collegamento chiuso dal server", "Connection closed by the server") + " ($code${if (reason.isNotEmpty()) " $reason" else ""})")
+                ended(code == 4001 || code == 4401)
+            }
 
             override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
+                log.add(tr("Collegamento non riuscito: ", "Connection failed: ") + (response?.let { "HTTP ${it.code} · " } ?: "") + (t.message ?: t.javaClass.simpleName))
                 ended((response?.code ?: 0) in setOf(401, 403))
             }
         })
@@ -116,6 +158,7 @@ class AgentService : Service() {
         session = null
         if (!running) return
         if (refused && confirmedRevoked()) {
+            log(this).add(tr("Il server ha revocato questo telefono", "The server revoked this phone"))
             show(tr("Il server non riconosce più questo telefono: abbinalo di nuovo dall’app", "The server no longer recognizes this phone: pair it again from the app"))
             Store.setRevoked(this, true)  // the server address stays, to pair again in one step
             running = false
@@ -123,6 +166,7 @@ class AgentService : Service() {
             return
         }
         show(tr("Server non raggiungibile: riprovo", "Server not reachable: retrying"))
+        log(this).add(tr("Riprovo tra ", "Retrying in ") + (pause / 1000) + " s")
         Thread {
             Thread.sleep(pause)
             pause = (pause * 2).coerceAtMost(60_000L)
@@ -148,6 +192,7 @@ class AgentService : Service() {
     }
 
     private fun show(text: String) {
+        if (!running) return  // stopped: no notification comes back
         status = text
         getSystemService(NotificationManager::class.java)?.notify(1, notification(text))
     }
@@ -156,8 +201,15 @@ class AgentService : Service() {
         val manager = getSystemService(NotificationManager::class.java)
         manager?.createNotificationChannel(NotificationChannel("agent", "RigHaven Agent", NotificationManager.IMPORTANCE_LOW))
         val open = PendingIntent.getActivity(this, 0, Intent(this, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE)
-        return Notification.Builder(this, "agent").setSmallIcon(R.drawable.ic_righaven).setContentTitle("RigHaven Agent")
-            .setContentText(text).setContentIntent(open).setOngoing(true).build()
+        val showLog = PendingIntent.getActivity(this, 1, Intent(this, MainActivity::class.java).putExtra(EXTRA_LOG, true)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP), PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
+        val stop = PendingIntent.getService(this, 2, Intent(this, AgentService::class.java).setAction(ACTION_STOP), PendingIntent.FLAG_IMMUTABLE)
+        // Always visible while the agent works: its state, the last operation, and how to stop or check it.
+        return Notification.Builder(this, "agent").setSmallIcon(R.drawable.ic_righaven).setContentTitle(tr("RigHaven Agent attivo", "RigHaven Agent active"))
+            .setContentText(text).setStyle(Notification.BigTextStyle().bigText(text)).setContentIntent(open).setOngoing(true)
+            .addAction(Notification.Action.Builder(null as android.graphics.drawable.Icon?, tr("Ferma", "Stop"), stop).build())
+            .addAction(Notification.Action.Builder(null as android.graphics.drawable.Icon?, tr("Registro", "Log"), showLog).build())
+            .build()
     }
 }
 

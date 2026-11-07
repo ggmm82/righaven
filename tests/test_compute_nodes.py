@@ -123,6 +123,25 @@ class ComputeNodeTests(unittest.TestCase):
                     compute_nodes.run('ag_000000000001', args, timeout=1, live=progress)
         self.assertEqual([m['type'] for m in sent], ['run', 'stop'])
 
+    def test_the_servers_images_travel_by_name(self):
+        """Docker Desktop's containerd store gives a loaded image another ID: the node gets a name."""
+        args, _, _, progress = self.folders()
+        image = 'sha256:' + 'd2b29ab18689' * 5 + 'abcd'
+        args[args.index('righaven-env:abc')] = image
+        sent, tagged = [], []
+        def send(node, message):
+            sent.append(message)
+            raise ValueError('stop here')
+        with patch.object(agent_hub, 'send', side_effect=send), patch.object(agent_hub, 'owner', return_value='alice'), \
+                patch.object(agents, 'log'), patch.object(compute_nodes.subprocess, 'run', side_effect=lambda cmd, **k: tagged.append(cmd)):
+            with self.assertRaises(ValueError):
+                compute_nodes.run('ag_000000000001', args, timeout=10, live=progress)
+        name = 'righaven-node:' + image[7:39]
+        self.assertEqual(tagged, [['docker', 'tag', image, name]])
+        self.assertEqual(sent[0]['image'], name)
+        self.assertIn(name, sent[0]['args'])
+        self.assertNotIn(image, sent[0]['args'])
+
     def test_a_connected_node_that_does_not_take_the_run_is_told_to_update(self):
         """An agent that cannot read the run (too old) never confirms it: the task ends at once, not after its timeout."""
         args, _, _, progress = self.folders()
@@ -322,7 +341,7 @@ class NodeEnvironmentTests(unittest.TestCase):
     def test_a_larger_environment_starts_from_the_machines_closest_image(self):
         first = self.prepare(['blender'])
         self.prepare(['blender', 'ffmpeg'])
-        self.assertEqual(self.runs[1][0][-1], first['image_id'])
+        self.assertEqual(self.runs[1][0][-1], first['image'])  # the machine's image by its name there
 
     def test_an_image_the_machine_removed_is_prepared_again(self):
         self.prepare(['blender'])

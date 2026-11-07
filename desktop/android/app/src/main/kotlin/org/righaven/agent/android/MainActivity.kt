@@ -43,6 +43,14 @@ class MainActivity : Activity() {
                 "The server no longer knows this phone (it was revoked in Connected PCs): create a new code and type it here."), pairing.server)
             else -> showWeb(pairing)
         }
+        if (intent?.getBooleanExtra(AgentService.EXTRA_LOG, false) == true) showLog()
+    }
+
+    // «Log» in the agent's notification while the app is already open.
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        if (intent.getBooleanExtra(AgentService.EXTRA_LOG, false)) showLog()
     }
 
     private fun showPairing(message: String = "", server: String = "") {
@@ -141,19 +149,40 @@ class MainActivity : Activity() {
             if (on) tr("Ferma l’agente su questo telefono", "Stop the agent on this phone") else tr("Avvia l’agente su questo telefono", "Start the agent on this phone"),
             tr("Permessi (Bluetooth, posizione, notifiche)", "Permissions (Bluetooth, location, notifications)"),
             tr("Batteria: lascia lavorare l’agente in background", "Battery: let the agent work in the background"),
+            tr("Registro delle operazioni", "Activity log"),
             tr("Scollega questo telefono dal server", "Disconnect this phone from the server"))
         AlertDialog.Builder(this).setTitle(AgentService.status.ifEmpty { pairing.server }).setItems(items) { _, which ->
             when (which) {
                 0 -> if (on) AgentService.stop(this) else AgentService.start(this)
                 1 -> askPermissions()
                 2 -> startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
-                3 -> {
+                3 -> showLog()
+                4 -> {
                     AgentService.stop(this)
                     Store.clear(this)
                     showPairing(tr("Telefono scollegato. Per revocarlo anche sul server usa «Revoca» in PC collegati.", "Phone disconnected. To revoke it on the server too use “Revoke” in Connected PCs."))
                 }
             }
         }.show()
+    }
+
+    /** What the agent did on this phone, newest first: readable even when the server does not answer. */
+    private fun showLog() {
+        val log = AgentService.log(this)
+        val lines = log.lines()
+        val padding = (12 * resources.displayMetrics.density).toInt()
+        val text = TextView(this).apply {
+            text = if (lines.isEmpty()) tr("Nessuna operazione registrata.", "Nothing recorded yet.") else lines.joinToString("\n")
+            typeface = android.graphics.Typeface.MONOSPACE
+            textSize = 12f
+            setTextIsSelectable(true)
+            setPadding(padding, padding, padding, padding)
+        }
+        AlertDialog.Builder(this).setTitle(AgentService.status.ifEmpty { tr("Registro delle operazioni", "Activity log") })
+            .setView(android.widget.ScrollView(this).apply { addView(text) })
+            .setPositiveButton("OK", null)
+            .setNeutralButton(tr("Svuota", "Clear")) { _, _ -> log.clear() }
+            .show()
     }
 
     private fun askPermissions() {

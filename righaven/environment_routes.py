@@ -307,7 +307,7 @@ def prepare_on_machine(user,prefs,tools,pins,cancel,report=None):
     if place in compute_nodes.PLACES:return None
     label=agents.owned(user,place).get('name',place)
     owner='rh-preload-'+__import__('uuid').uuid4().hex[:12]
-    report=report or (lambda phase:None)
+    report=report or (lambda phase,detail='':None)
     report('waiting_machine')
     # The machine's turn, as for a task; after a restart its agent reconnects within moments.
     resources=compute_nodes.acquire(place,owner,cancel=cancel,offline_timeout=600,label=label)
@@ -364,7 +364,7 @@ def schedule(user,name,*,reschedule=False,refresh_versions=True,trigger='manual'
                     control['environment_id']=runtimes.recipe(tools,versions=pins)[0]
                     preparation.update(user,name,phase='preparing',environment_id=control['environment_id'],tool='',index=len(choice),total=len(choice))
                     ready=prepare_on_machine(user,prefs,tools,pins,control['cancel'],
-                        report=lambda phase:preparation.update(user,name,phase=phase))
+                        report=lambda phase,detail='':preparation.update(user,name,phase=phase,tool=detail))
                     if ready is None:
                         ready=runtimes.ensure(tools,background=True,exact=True,cancel=PreparationCancel(control['cancel'],yielded),cache_dependencies=not prefs.get('ephemeral',False),versions=pins)
                     from .editor_preparation import schedule as schedule_editors
