@@ -262,8 +262,11 @@ class NodeEnvironmentTests(unittest.TestCase):
             key = ''.join(sorted(tools)).encode().hex().ljust(64, '0')[:64]
             return key, {'version': 1, 'core': 'sha256:' + 'c' * 64, 'tools': sorted(tools),
                          'tool_fingerprints': {t: 'f-' + t for t in tools}}
-        def run(node, args, *, timeout, live=None, preparation=None):
+        self.states = []
+        def run(node, args, *, timeout, live=None, preparation=None, on_state=None):
             self.runs.append((args, preparation))
+            for state in ('image', 'running'):
+                on_state(state)  # as the node reports them
             image = 'sha256:' + str(len(self.runs)) * 64
             return SimpleNamespace(returncode=0, stdout='{"phase":"verified","installed_versions":{"blender":"4.2"}}\n', stderr='',
                                    oom=False, image_id=image, size_bytes=1 << 30)
@@ -279,7 +282,12 @@ class NodeEnvironmentTests(unittest.TestCase):
         self.env = env
 
     def prepare(self, tools):
-        return compute_nodes.prepare_environment(self.NODE, 'rh-job-0123456789ab', tools, resources={'cpus': 4.0}, label='devPc')
+        return compute_nodes.prepare_environment(self.NODE, 'rh-job-0123456789ab', tools, resources={'cpus': 4.0}, label='devPc',
+                                                 report=self.states.append)
+
+    def test_the_page_shows_what_the_machine_is_doing(self):
+        self.prepare(['blender'])
+        self.assertEqual(self.states, ['downloading_image', 'preparing_machine'])
 
     def test_prepared_on_the_machine_then_reused_there(self):
         first = self.prepare(['blender'])
