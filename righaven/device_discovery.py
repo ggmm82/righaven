@@ -337,6 +337,8 @@ def bluetooth(directory=None):
         device = {'name': name, 'address': str(item.get('address') or '')[:40], 'port': str(item.get('port') or '')[:12],
                   'kind': str(item.get('kind') or 'bluetooth')[:12], 'paired': item.get('paired') is True,
                   'present': item.get('present') is not False, 'connected': item.get('connected') is True,
+                  # How strong the device was heard (dBm): the nearest first, a neighbour's far down.
+                  **({'signal': item['signal']} if type(item.get('signal')) is int and -127 <= item['signal'] < 0 else {}),
                   **({'maker': COMPANIES[str(item.get('company')).lower()][0], 'maker_hint': COMPANIES[str(item.get('company')).lower()][1]}
                      if str(item.get('company') or '').lower() in COMPANIES else {}),
                   'hint': item.get('hint') if item.get('hint') in {h for _, h in BLUETOOTH_HINTS} else bluetooth_hint(name)}

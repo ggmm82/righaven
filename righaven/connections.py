@@ -166,9 +166,9 @@ def validate(body, previous=None):
             raise ValueError('Segreto client dell’applicazione Entra obbligatorio')
         return record
     if kind == 'device':
-        return _device(body, previous, record)
+        return _auto_approval(body, _device(body, previous, record), previous)
     if kind == 'network':
-        return _network(body, record)
+        return _auto_approval(body, _network(body, record), previous)
     body = {**body, **address(kind, body.get('host'), body)}
     port = body.get('port') or DEFAULT_PORTS[kind]
     if type(port) is not int or not 1 <= port <= 65535:
@@ -303,6 +303,44 @@ def _network(body, record):
     record.update(ranges=[str(n) for n in ranges], exclude=[str(n) for n in scan_ranges(body.get('exclude') or [], 'esclusioni')],
                   authorized=True, write_enabled=access == 'write', read_only=access == 'read')
     return record
+
+
+# Writes the owner may let RigHaven approve by itself on a device or network they trust.
+AUTO_ACTIONS = {'device': ('send', 'reboot', 'enable', 'disable', 'clear_codes', 'install', 'uninstall', 'sideload', 'flash'),
+                'network': ('scan',)}
+AUTO_HOURS = (0, 1, 8, 24, 168)  # 0: until the owner turns it off
+
+
+def _auto_approval(body, record, previous=None):
+    """A zone of trust: the chosen kinds of writes on this connection are approved automatically,
+    for a while or until turned off. Each one is still recorded and shown; nothing else changes."""
+    actions = body.get('auto_approve') or []
+    if not record.get('write_enabled') or not actions:
+        record.pop('auto_approve', None)
+        record.pop('auto_until', None)
+        return record
+    allowed = AUTO_ACTIONS[record['kind']]
+    if not isinstance(actions, list) or any(a not in allowed for a in actions):
+        raise ValueError('Approvazione automatica: ' + ', '.join(allowed))
+    hours = body.get('auto_hours')
+    if hours is None and (previous or {}).get('auto_approve'):  # unchanged: keep the time already chosen
+        record['auto_approve'] = sorted(set(actions), key=allowed.index)
+        record['auto_until'] = previous.get('auto_until', '')
+        return record
+    hours = hours or 0
+    if hours not in AUTO_HOURS:
+        raise ValueError('Durata dell’approvazione automatica: ' + ', '.join(map(str, AUTO_HOURS)) + ' ore (0 = finché non la spegni)')
+    record['auto_approve'] = sorted(set(actions), key=allowed.index)
+    record['auto_until'] = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime(time.time() + hours * 3600)) if hours else ''
+    return record
+
+
+def auto_approves(row, action):
+    """Whether this assigned connection approves this action by itself now."""
+    if not row.get('write') or action not in (row.get('auto_approve') or []):
+        return False
+    until = row.get('auto_until') or ''
+    return not until or until > time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
 
 
 def local_devices():
@@ -875,6 +913,8 @@ def assigned(workspace, value=None):
                if view.get(k) not in (None, '')}
         if record.get('write_enabled') and identifier in binding.get('write', []):
             row.update(write=True, write_schema=record.get('write_schema', ''))  # the coordinator may plan dlt.load into this schema
+            if record.get('auto_approve'):
+                row.update(auto_approve=record['auto_approve'], auto_until=record.get('auto_until', ''))
         if identifier in outcomes:
             row.update(use='destination',fulfillment=outcomes[identifier]['status'],deferred=identifier in binding.get('deferred',[]))
         rows.append(row)

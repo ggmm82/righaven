@@ -592,6 +592,18 @@ func (s *agentSession) uploadResult(dir string, job nodeRun, result map[string]a
 			return
 		}
 	}
+	// A large result goes in parts: each request stays short (a proxy cuts long uploads) and a
+	// failed part is sent again from where it stopped. A server that does not take parts gets it whole.
+	if info, err := os.Stat(path); err == nil && info.Size() > nodePartSize {
+		switch s.uploadParts(path, job, info.Size()) {
+		case partsDone:
+			removeRun(dir, job.Image)
+			return
+		case partsGone:
+			removeRun(dir, job.Image)
+			return
+		}
+	}
 	pause := agentRetry
 	for attempt := 0; attempt < 400; attempt++ {
 		file, err := os.Open(path)
@@ -601,17 +613,97 @@ func (s *agentSession) uploadResult(dir string, job nodeRun, result map[string]a
 		response, err := s.nodeRequest("PUT", "/api/webhooks/righaven-agent/runs/"+job.ID+"/result", file)
 		file.Close()
 		if err == nil {
+			body, _ := io.ReadAll(io.LimitReader(response.Body, 300))
 			response.Body.Close()
 			if response.StatusCode == http.StatusOK || response.StatusCode == http.StatusGone || response.StatusCode == http.StatusNotFound {
+				if attempt > 0 || response.StatusCode != http.StatusOK {
+					fmt.Fprintf(s.out, "RigHaven node: result of %s sent (HTTP %d)\n", job.ID, response.StatusCode)
+				}
 				removeRun(dir, job.Image)
 				return
 			}
+			err = fmt.Errorf("HTTP %d %s", response.StatusCode, strings.TrimSpace(string(body)))
+		}
+		// Said every time: a result the server does not take is otherwise invisible on this machine.
+		fmt.Fprintf(s.out, "RigHaven node: result of %s not sent (attempt %d): %v; retrying in %s\n", job.ID, attempt+1, err, pause)
+		time.Sleep(pause)
+		if pause *= 2; pause > time.Minute {
+			pause = time.Minute
+		}
+	}
+}
+
+const nodePartSize = 8 << 20
+
+type partsOutcome int
+
+const (
+	partsDone        partsOutcome = iota
+	partsGone                     // the server no longer waits for this run
+	partsUnsupported              // an older server: send the result whole
+)
+
+// uploadParts sends a result 8 MB at a time; the server answers 409 with the part it expects
+// when one went missing, and the upload continues from there.
+func (s *agentSession) uploadParts(path string, job nodeRun, size int64) partsOutcome {
+	file, err := os.Open(path)
+	if err != nil {
+		return partsUnsupported
+	}
+	defer file.Close()
+	total := int((size + nodePartSize - 1) / nodePartSize)
+	pause := agentRetry
+	failures := 0
+	for part := 0; part < total; {
+		chunk := make([]byte, nodePartSize)
+		n, err := file.ReadAt(chunk, int64(part)*nodePartSize)
+		if err != nil && !errors.Is(err, io.EOF) {
+			return partsUnsupported
+		}
+		final := part == total-1
+		url := fmt.Sprintf("/api/webhooks/righaven-agent/runs/%s/result?part=%d&final=%t", job.ID, part, final)
+		response, err := s.nodeRequest("PUT", url, bytes.NewReader(chunk[:n]))
+		if err == nil {
+			var answer struct {
+				Complete *bool `json:"complete"`
+				Detail   struct {
+					Code     string `json:"code"`
+					Expected int    `json:"expected"`
+				} `json:"detail"`
+			}
+			body, _ := io.ReadAll(io.LimitReader(response.Body, 4096))
+			response.Body.Close()
+			_ = json.Unmarshal(body, &answer)
+			switch {
+			case response.StatusCode == http.StatusOK && answer.Complete != nil:
+				if final {
+					fmt.Fprintf(s.out, "RigHaven node: result of %s sent (%d MB in %d parts)\n", job.ID, size>>20, total)
+					return partsDone
+				}
+				part++
+				failures, pause = 0, agentRetry
+				continue
+			case response.StatusCode == http.StatusOK || (part == 0 && (response.StatusCode == http.StatusBadRequest || response.StatusCode == http.StatusInternalServerError)):
+				return partsUnsupported // the server read the part as a whole result: it predates parts
+			case response.StatusCode == http.StatusConflict && answer.Detail.Code == "part_expected":
+				part = answer.Detail.Expected
+				continue
+			case response.StatusCode == http.StatusGone || response.StatusCode == http.StatusNotFound:
+				return partsGone
+			}
+			err = fmt.Errorf("HTTP %d %s", response.StatusCode, strings.TrimSpace(string(body)))
+		}
+		failures++
+		fmt.Fprintf(s.out, "RigHaven node: part %d/%d of the result of %s not sent: %v; retrying in %s\n", part+1, total, job.ID, err, pause)
+		if failures > 200 {
+			return partsUnsupported
 		}
 		time.Sleep(pause)
 		if pause *= 2; pause > time.Minute {
 			pause = time.Minute
 		}
 	}
+	return partsDone
 }
 
 // openForSandbox: the sandbox runs as root without capabilities, so it reads and writes only what

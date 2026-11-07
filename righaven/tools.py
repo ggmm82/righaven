@@ -419,6 +419,11 @@ def harness_device_change(runtime: Runtime, connection: str, action: str, file_p
     from .device_changes import request
     value = request(workspace_for(runtime), connection, action, file_path, package, mode, note, json.loads(command_json) if command_json else None,
                     [t for t in targets.replace(';', ',').split(',') if t.strip()] or None, profile)
+    if value.get('auto_approved'):
+        # The owner trusts this device or network for this kind of write: no wait.
+        return json.dumps({'device_change': value, 'instruction': 'Approved automatically: the owner trusts this connection for this kind of '
+                           'write. Carry it out now, once, exactly as requested (delegate the iot operation to a role that declares this '
+                           'connection, or use harness_bluetooth for a Bluetooth LE write), then report the outcome.'}, ensure_ascii=False)
     return json.dumps({'device_change': value, 'instruction': 'The owner approves or rejects this change in the task card (Task connections). '
                        'End this turn with what will change, why, the risk and how it will be verified; do not ask for approval in the chat. '
                        'After approval delegate the iot operation once, to a role that declares this connection.'}, ensure_ascii=False)

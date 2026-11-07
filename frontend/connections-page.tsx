@@ -21,11 +21,11 @@ type Test={ok:boolean;detail:string;at:string};
 type Connection={id:string;kind:Kind;name:string;description?:string;host?:string;port?:number;database?:string;username?:string;tls?:boolean;read_only?:boolean;
  authentication?:"password"|"entra"|"microsoft";entra_connection?:string;tenant_id?:string;client_id?:string;cloud?:string;has_secret:boolean;tools:string[];last_test?:Test;updated_at?:string;
  mode?:"user"|"application";signed_in?:boolean;account?:string;write_enabled?:boolean;write_schema?:string;
- transport?:Transport;protocol?:string;device?:string;topic?:string;path?:string;unit?:number;baud?:number;ranges?:string[];exclude?:string[];address?:string;agent?:string;location?:"cloud"|"on_premise";pc?:string};
+ transport?:Transport;protocol?:string;device?:string;topic?:string;path?:string;unit?:number;baud?:number;ranges?:string[];exclude?:string[];address?:string;agent?:string;location?:"cloud"|"on_premise";pc?:string;auto_approve?:string[];auto_until?:string};
 type SignIn={id:string;user_code:string;verification_uri:string;interval:number;status:string;detail?:string};
 type Form={id:string;kind:Kind;name:string;description:string;host:string;port:string;database:string;username:string;password:string;tls:boolean;read_only:boolean;
  authentication:"password"|"entra"|"microsoft";entra_connection:string;tenant_id:string;client_id:string;client_secret:string;cloud:string;mode:"user"|"application";access:"read"|"write";write_schema:string;
- transport:Transport;protocol:string;device:string;topic:string;path:string;unit:string;baud:string;ranges:string;exclude:string;authorized:boolean;version:string;node_id:string;address:string;place:Place};
+ transport:Transport;protocol:string;device:string;topic:string;path:string;unit:string;baud:string;ranges:string;exclude:string;authorized:boolean;version:string;node_id:string;address:string;place:Place;auto_approve:string[];auto_hours:string;auto_until:string};
 
 const PORTS:Record<Kind,string>={postgres:"5432",sqlserver:"1433",mysql:"3306",oracle:"1521",entra:"",device:"",network:""};
 const DEVICE_PORTS:Record<string,string>={mqtt:"1883",mqtts:"8883","modbus-tcp":"502",http:"80",https:"443",adb:"5555",tuya:"6668",tcp:""};
@@ -33,7 +33,7 @@ const LABELS:Record<Kind,string>={postgres:"PostgreSQL",sqlserver:"SQL Server / 
 const DEFAULT_CLIENT="04b07795-8ddb-461a-bbee-02f9e1bf7b46";
 const blank=(kind:Kind,place:Place="cloud"):Form=>({id:"",kind,name:"",description:"",host:"",port:PORTS[kind],database:"",username:"",password:"",tls:true,read_only:false,
  authentication:kind==="sqlserver"?"microsoft":"password",entra_connection:"",tenant_id:"",client_id:"",client_secret:"",cloud:"public",mode:"user",access:"read",write_schema:"",
- transport:"network",protocol:"mqtt",device:"",topic:"#",path:"/",unit:"1",baud:"115200",ranges:"",exclude:"",authorized:false,version:"3.3",node_id:"",address:"",place});
+ transport:"network",protocol:"mqtt",device:"",topic:"#",path:"/",unit:"1",baud:"115200",ranges:"",exclude:"",authorized:false,version:"3.3",node_id:"",address:"",place,auto_approve:[],auto_hours:"",auto_until:""});
 const slug=(text:string)=>text.normalize("NFD").replace(/\p{M}/gu,"").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"").replace(/^([^a-z])/,"c-$1").slice(0,40);
 
 /** Personal database, Microsoft cloud and device connections; secrets are encrypted and never shown again. */
@@ -62,7 +62,7 @@ export default function ConnectionsPage(){
  const entras=(rows??[]).filter(r=>r.kind==="entra");
  function edit(row:Connection){setEditing(row.id);setNotice("");setError("");
   setForm({...blank(row.kind),...Object.fromEntries(Object.entries(row).filter(([,v])=>typeof v==="string"||typeof v==="boolean")),port:String(row.port??PORTS[row.kind]),password:"",client_secret:"",access:row.write_enabled?"write":"read",write_schema:row.write_schema??"",
-   unit:String(row.unit??1),baud:String(row.baud??115200),place:row.agent??(row.location==="on_premise"?"server":"cloud"),ranges:(row.ranges??[]).join(", "),exclude:(row.exclude??[]).join(", "),authorized:row.kind==="network"} as Form);}
+   unit:String(row.unit??1),baud:String(row.baud??115200),place:row.agent??(row.location==="on_premise"?"server":"cloud"),ranges:(row.ranges??[]).join(", "),exclude:(row.exclude??[]).join(", "),authorized:row.kind==="network",auto_approve:row.auto_approve??[],auto_hours:"",auto_until:row.auto_until??""} as Form);}
  async function save(){if(!form)return;setBusy("save");setError("");setNotice("");
   const body:Record<string,unknown>={kind:form.kind,name:form.name,description:form.description};
   if(!editing)body.id=slug(form.id)||slug(form.name);
@@ -80,6 +80,8 @@ export default function ConnectionsPage(){
    ...(form.authentication==="entra"&&form.kind==="sqlserver"?{entra_connection:form.entra_connection}
     :form.authentication==="microsoft"&&form.kind==="sqlserver"?{username:form.username,tenant_id:form.tenant_id}
     :{username:form.username,...(form.password?{password:form.password}:{})})});
+  // After the chain above (one branch per kind): the zone of trust of a device or network that may write.
+  if((form.kind==="network"||form.kind==="device")&&form.access==="write")Object.assign(body,{auto_approve:form.auto_approve.filter(id=>form.kind==="network"||id==="send"||form.transport!=="bluetooth"),...(form.auto_hours!==""?{auto_hours:Number(form.auto_hours)}:{})});
   const r=await fetch(editing?`${base}/${editing}`:base,{method:editing?"PUT":"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
   const v=await r.json();setBusy("");
   if(!r.ok){setError(typeof v.detail==="string"?v.detail:String(r.status));return;}
@@ -154,7 +156,7 @@ export default function ConnectionsPage(){
     {!editing&&<div>{input("id",t("ID (facoltativo)","ID (optional)"),{placeholder:slug(form.name)||"erp-vendite"})}
      <p className="text-muted-foreground mt-1 text-xs" data-testid="connection-id-hint">{t("Sarà salvato come","Saved as")} <code>{slug(form.id)||slug(form.name)||"…"}</code>{t(": lettere minuscole, cifre e trattini.",": lowercase letters, digits and hyphens.")}</p></div>}
     {input("description",t("Descrizione","Description"))}
-    {form.kind==="network"?<NetworkFields form={form} setForm={setForm} t={t} input={input}/>:form.kind==="device"?<><PlaceField form={form} setForm={setForm} places={places} placeLabel={placeLabel} t={t}/><DeviceFields form={form} setForm={setForm} devices={devices} editing={Boolean(editing)} t={t} input={input}/></>:form.kind==="entra"?<>
+    {form.kind==="network"?<><NetworkFields form={form} setForm={setForm} t={t} input={input}/><AutoApproval form={form} setForm={setForm} t={t}/></>:form.kind==="device"?<><PlaceField form={form} setForm={setForm} places={places} placeLabel={placeLabel} t={t}/><DeviceFields form={form} setForm={setForm} devices={devices} editing={Boolean(editing)} t={t} input={input}/><AutoApproval form={form} setForm={setForm} t={t}/></>:form.kind==="entra"?<>
      <label className="block text-sm md:col-span-2">{t("Tipo di accesso","Access type")}<select className={field} aria-label={t("Tipo di accesso","Access type")} value={form.mode} onChange={e=>setForm(f=>f&&{...f,mode:e.target.value as "user"|"application"})}>
       <option value="user">{t("Il mio account Microsoft (OAuth2, con MFA) · consigliato","My Microsoft account (OAuth2, with MFA) · recommended")}</option>
       <option value="application">{t("Applicazione Entra ID (service principal, segreto client)","Entra ID application (service principal, client secret)")}</option></select></label>
@@ -344,7 +346,7 @@ function NetworkFields({form,setForm,t,input}:{form:Form;setForm:Dispatch<SetSta
 
 type Found={address:string;ports:number[];name:string;kind:string;label:string;note?:string;mac?:string;vendor?:string;private_mac?:boolean;suggestion:{protocol:string;port:number}};
 type Reading=number|boolean|{value:number;unit:string};
-type Bluetooth={name:string;address:string;port:string;kind:string;paired:boolean;present?:boolean;connected?:boolean;maker?:string;maker_hint?:string;hint:string;sensor?:{format?:string;encrypted?:boolean;readings?:Record<string,Reading>}};
+type Bluetooth={name:string;address:string;port:string;kind:string;paired:boolean;present?:boolean;signal?:number;connected?:boolean;maker?:string;maker_hint?:string;hint:string;sensor?:{format?:string;encrypted?:boolean;readings?:Record<string,Reading>}};
 type SharedPort={name:string;label:string;host:string;port:number;hint:string};
 type WifiNetwork={ssid:string;bssid:string;open:boolean;signal:number|null;hint:string};
 type DiscoveryInfo={networks:string[];ports:number[];allowed:boolean;bluetooth:{scanned_at:string;devices:Bluetooth[];warnings?:string[]}|null;serial?:SharedPort[];wifi?:{scanned_at:string;networks:WifiNetwork[]}|null};
@@ -583,7 +585,7 @@ function DeviceDiscovery({base,t,onCreate}:{base:string;t:(a:string,b:string)=>s
    {info?.bluetooth?.devices.length?<>
     <p className="text-muted-foreground text-xs">{t("Ultima ricerca del PC: ","Last search on the PC: ")}{new Date(info.bluetooth.scanned_at).toLocaleString()}</p>
     {(()=>{const rows=info.bluetooth.devices.filter((d,i,all)=>!d.address||d.port||all.findIndex(x=>!x.port&&x.address.toUpperCase()===d.address.toUpperCase())===i);
-     const row=(d:Bluetooth)=><li key={d.kind+d.address+d.port+d.name}>{d.name||t("(senza nome)","(no name)")}{d.maker?<span title={d.maker_hint}> · {d.maker}{d.name?"":<span className="text-muted-foreground"> ({d.maker_hint})</span>}</span>:null} · {d.port||d.address} · {d.connected?<strong>{t("collegato ora","connected now")}</strong>:d.paired?t("associato (non collegato ora)","paired (not connected now)"):t("vicino ora","nearby now")}
+     const row=(d:Bluetooth)=><li key={d.kind+d.address+d.port+d.name}>{d.name||t("(senza nome)","(no name)")}{d.maker?<span title={d.maker_hint}> · {d.maker}{d.name?"":<span className="text-muted-foreground"> ({d.maker_hint})</span>}</span>:null} · {d.port||d.address} · {d.connected?<strong>{t("collegato ora","connected now")}</strong>:d.paired?t("associato (non collegato ora)","paired (not connected now)"):t("vicino ora","nearby now")}{d.signal!==undefined&&<span className="text-muted-foreground" title={d.signal+" dBm"}> · {d.signal>=-60?t("segnale forte","strong signal"):d.signal>=-80?t("segnale medio","medium signal"):t("segnale debole (lontano)","weak signal (far)")} ({d.signal} dBm)</span>}
      {d.address&&!d.port&&<Actions><button type="button" className={btn} onClick={()=>setExploring(exploring==="bt:"+d.address.toUpperCase()?"":"bt:"+d.address.toUpperCase())}>{t("Esplora","Explore")}</button>
       <button type="button" className={btn} onClick={()=>onCreate({...blank("device"),name:(d.name||"Bluetooth "+d.address.slice(-5)).slice(0,80),transport:"bluetooth",address:d.address.toUpperCase()})}>{t("Crea connessione","Create connection")}</button></Actions>}
      {exploring==="bt:"+d.address.toUpperCase()&&<BleExplorer address={d.address.toUpperCase()} t={t}/>}
@@ -591,8 +593,13 @@ function DeviceDiscovery({base,t,onCreate}:{base:string;t:(a:string,b:string)=>s
      {d.sensor?.readings&&<span className="block text-xs" data-testid="ble-readings">{d.sensor.format}: {Object.entries(d.sensor.readings).map(([k,v])=>`${quantity(k)} ${typeof v==="object"?`${v.value} ${v.unit}`:String(v)}`).join(" · ")}</span>}
      {d.sensor?.encrypted&&<span className="text-muted-foreground block text-xs">{d.sensor.format}: {t("dati cifrati: per leggerli serve la bind key del sensore, oppure un firmware aperto (pvvx, BTHome).","encrypted data: reading it needs the sensor’s bind key, or an open firmware (pvvx, BTHome).")}</span>}</li>;
      const old=rows.filter(d=>d.present===false);
-     return <><ul className="space-y-1 text-sm">{rows.filter(d=>d.present!==false).map(row)}</ul>
-      {old.length>0&&<details className="text-sm" data-testid="bluetooth-remembered"><summary className="cursor-pointer text-xs">{t("Ricordati da Windows, non sentiti ora","Remembered by Windows, not heard now")} ({old.length})</summary>
+     // The nearest first; anonymous devices (no name, an address that changes for privacy: phones, earbuds, PCs) folded below.
+     const heard=rows.filter(d=>d.present!==false).sort((a,b)=>(b.signal??-200)-(a.signal??-200));
+     const known=heard.filter(d=>d.name!==""||d.paired||d.connected===true||d.sensor!==undefined||d.port!==""),anonymous=heard.filter(d=>!known.includes(d));
+     return <><ul className="space-y-1 text-sm">{known.map(row)}</ul>
+      {anonymous.length>0&&<details className="text-sm" data-testid="bluetooth-anonymous"><summary className="cursor-pointer text-xs">{t("Altri dispositivi anonimi vicini","Other anonymous nearby devices")} ({anonymous.length}) · {t("senza nome, con indirizzo che cambia per privacy (telefoni, auricolari, orologi, PC); anche dei vicini","no name, with an address that changes for privacy (phones, earbuds, watches, PCs); neighbours' too")}</summary>
+       <ul className="mt-1 space-y-1">{anonymous.map(row)}</ul></details>}
+      {old.length>0&&<details className="text-sm" data-testid="bluetooth-remembered"><summary className="cursor-pointer text-xs">{host.state?.platform==="android"?t("Associati al telefono, non sentiti ora","Paired with the phone, not heard now"):t("Ricordati da Windows, non sentiti ora","Remembered by Windows, not heard now")} ({old.length})</summary>
        <ul className="mt-1 space-y-1">{old.map(row)}</ul></details>}</>;})()}
     {info.bluetooth.devices.some(d=>d.sensor?.readings)&&<a className="text-xs underline" href={withAgent(base+"/discovery/ble-history.csv",agent)} download>{t("Scarica lo storico delle letture (CSV)","Download the readings history (CSV)")}</a>}</>
    :<p className="text-muted-foreground text-xs">{t("Nessuna ricerca Bluetooth ancora: premi «Cerca dispositivi Bluetooth».","No Bluetooth search yet: press “Search Bluetooth devices”.")}</p>}
@@ -717,10 +724,11 @@ type UsbItem={busid:string;vidpid?:string;name:string;state:string;serial:boolea
 type ComItem={name:string;label:string;bluetooth:boolean;shared:boolean};
 
 /** USB peripherals and COM ports of the PC, attached or shared with RigHaven by the launcher. */
+type NfcTag={id:string;technologies:string[];chip?:string;sak?:number;ndef?:{type:string;max_size:number;writable:boolean};records?:{kind:string;text?:string;uri?:string;type?:string;size?:number;data?:string}[]};
 function PcDevices({t,onChanged,onCreate}:{t:(a:string,b:string)=>string;onChanged:()=>void;onCreate:(form:Form)=>void}){
  const host=useHost();
  const [ports,setPorts]=useState<Record<string,string[]>>({}),[open,setOpen]=useState("");
- const [all,setAll]=useState<{class:string;name:string;bus:string;ok:boolean;vidpid?:string;busid?:string}[]|null>(null);
+ const [all,setAll]=useState<{class:string;name:string;bus:string;ok:boolean;vidpid?:string;busid?:string;address?:string;chip?:string}[]|null>(null);
  async function createShared(name:string){
   if(host.agent){onCreate({...blank("device",host.agent),name,transport:"serial",device:name,baud:"38400"});return;}
   const info=await (await fetch(getBackendBaseURL()+"/api/harness/connections/discovery")).json() as DiscoveryInfo;
@@ -733,11 +741,20 @@ function PcDevices({t,onChanged,onCreate}:{t:(a:string,b:string)=>string;onChang
   setBusy(key);setError("");setNotice("");
   try{const v=await host.ask(action,args);after?.(v);}catch(e){setError(e instanceof Error?e.message:String(e));}finally{setBusy("");}}
  const listUsb=(v:Record<string,unknown>)=>{setUsbipd(v.usbipd!==false);setUsb((v.devices as UsbItem[]|undefined)??[]);};
+ const [tag,setTag]=useState<NfcTag|null>(null);
  if(!host.state?.platform)return null;
+ const phone=host.state.platform==="android";
  return <section className="space-y-3 rounded-xl border p-4" data-testid="pc-devices">
-  <h2 className="font-semibold">{t("Periferiche del PC","PC peripherals")}</h2>
-  {!host.state.connected?<p className="text-muted-foreground text-sm">{t("RigHaven sul PC non risponde: tieni aperta la finestra di RigHaven, poi ricarica la pagina.","RigHaven on the PC does not answer: keep the RigHaven window open, then reload the page.")}</p>:<>
-  <p className="text-muted-foreground text-sm">{t("Collega a RigHaven le periferiche USB (adattatori seriali, schede, adattatori OBD) e condividi le porte COM (per esempio un adattatore OBD Bluetooth associato in Windows). Windows può chiedere il permesso la prima volta.","Attach USB peripherals (serial adapters, boards, OBD adapters) to RigHaven and share COM ports (for example a Bluetooth OBD adapter paired in Windows). Windows may ask for permission the first time.")}</p>
+  <h2 className="font-semibold">{phone?t("Periferiche del telefono","Phone peripherals"):t("Periferiche del PC","PC peripherals")}</h2>
+  {phone&&host.state.connected&&<p className="text-muted-foreground text-sm" data-testid="phone-peripherals">{t("Quello che il telefono vede adesso: schede e adattatori collegati alla porta USB-C (OTG), dispositivi Bluetooth associati, NFC, infrarossi, sensori. Con «Leggi un tag NFC» avvicini un tag al telefono e RigHaven ne legge tipo e contenuto, senza scrivere nulla.","What the phone sees now: boards and adapters plugged into its USB-C port (OTG), paired Bluetooth devices, NFC, infrared, sensors. With “Read an NFC tag” you hold a tag to the phone and RigHaven reads its type and content, writing nothing.")}</p>}
+  {host.can("nfc-read")&&<div className="space-y-2" data-testid="nfc-read">
+   <button type="button" className="rounded border px-3 py-2 text-sm disabled:opacity-50" disabled={!!busy} onClick={()=>void run("nfc","nfc-read",{},v=>setTag(v as NfcTag))}>{busy==="nfc"?t("Avvicina il tag al telefono (tocca la notifica per aprire RigHaven)…","Hold the tag to the phone (tap the notification to open RigHaven)…"):t("Leggi un tag NFC","Read an NFC tag")}</button>
+   {tag&&<dl className="rounded border p-2 text-xs" data-testid="nfc-tag"><div><strong>{tag.chip??t("Tag NFC","NFC tag")}</strong> · ID {tag.id}</div><div>{tag.technologies.join(" · ")}{tag.sak!==undefined?" · SAK "+tag.sak:""}{tag.ndef?" · NDEF "+tag.ndef.type+" · "+tag.ndef.max_size+" B"+(tag.ndef.writable?"":t(" · sola lettura"," · read only")):""}</div>
+    {(tag.records??[]).map((r,i)=><div key={i} className="break-all">{r.kind==="uri"&&/^https?:\/\/[^/]+/.test(r.uri??"")&&<button type="button" className={btn+" mr-2"} onClick={()=>{const url=new URL(r.uri!);onCreate({...blank("device"),name:("NFC "+url.hostname).slice(0,80),description:("Link letto dal tag NFC "+tag.id+": "+r.uri).slice(0,400),transport:"network",protocol:"http",host:url.hostname,port:url.port!==""?url.port:(url.protocol==="https:"?"443":"80"),path:url.pathname||"/"});}}>{t("Crea connessione","Create connection")}</button>}{r.kind==="text"?t("Testo","Text")+": "+r.text:r.kind==="uri"?t("Link","Link")+": "+r.uri:r.kind==="mime"?(r.type+" · "+r.size+" B"+(r.text?": "+r.text:"")):(r.type??r.kind)+(r.data?": "+r.data:"")}</div>)}
+    {tag.ndef&&!(tag.records??[]).length&&<div>{t("Nessun contenuto NDEF.","No NDEF content.")}</div>}</dl>}
+  </div>}
+  {!host.state.connected?<p className="text-muted-foreground text-sm">{phone?t("Il telefono non risponde: apri l’app RigHaven e controlla che l’agente sia attivo.","The phone does not answer: open the RigHaven app and check the agent is active."):t("RigHaven sul PC non risponde: tieni aperta la finestra di RigHaven, poi ricarica la pagina.","RigHaven on the PC does not answer: keep the RigHaven window open, then reload the page.")}</p>:<>
+  {!phone&&<p className="text-muted-foreground text-sm">{t("Collega a RigHaven le periferiche USB (adattatori seriali, schede, adattatori OBD) e condividi le porte COM (per esempio un adattatore OBD Bluetooth associato in Windows). Windows può chiedere il permesso la prima volta.","Attach USB peripherals (serial adapters, boards, OBD adapters) to RigHaven and share COM ports (for example a Bluetooth OBD adapter paired in Windows). Windows may ask for permission the first time.")}</p>}
   <div className="flex flex-wrap gap-2">
    {host.can("usb-list")&&<button type="button" className="rounded border px-3 py-2 text-sm disabled:opacity-50" disabled={!!busy} onClick={()=>void run("usb","usb-list",{},listUsb)}>{busy==="usb"?t("Cerco…","Searching…"):t("Mostra periferiche USB","Show USB peripherals")}</button>}
    {host.can("com-list")&&<button type="button" className="rounded border px-3 py-2 text-sm disabled:opacity-50" disabled={!!busy} onClick={()=>void run("com","com-list",{},v=>setCom((v.ports as ComItem[]|undefined)??[]))}>{busy==="com"?t("Cerco…","Searching…"):t("Mostra porte COM","Show COM ports")}</button>}
@@ -770,11 +787,13 @@ function PcDevices({t,onChanged,onCreate}:{t:(a:string,b:string)=>string;onChang
     {p.shared?<span className="text-xs">{t("condivisa","shared")}</span>
      :<button type="button" className="rounded border px-2 py-1 text-xs disabled:opacity-50" disabled={!!busy} onClick={()=>void run("share-"+p.name,"com-share",{name:p.name},()=>{
        setNotice(t("Porta condivisa: ora puoi crearne la connessione.","Port shared: you can now create its connection."));setCom(list=>(list??[]).map(x=>x.name===p.name?{...x,shared:true}:x));onChanged();})}>{busy==="share-"+p.name?t("Condivido…","Sharing…"):t("Condividi con RigHaven","Share with RigHaven")}</button>}</li>)}</ul>)}
-  {host.can("pc-devices")&&<button type="button" className="rounded border px-3 py-1 text-sm disabled:opacity-50" disabled={!!busy} onClick={()=>void run("pc-devices","pc-devices",{},v=>setAll((v.devices as typeof all)??[]))}>{busy==="pc-devices"?t("Leggo Gestione dispositivi…","Reading Device Manager…"):t("Mostra tutti i dispositivi del PC","Show all the PC's devices")}</button>}
+  {host.can("pc-devices")&&<button type="button" className="rounded border px-3 py-1 text-sm disabled:opacity-50" disabled={!!busy} onClick={()=>void run("pc-devices","pc-devices",{},v=>setAll((v.devices as typeof all)??[]))}>{busy==="pc-devices"?(phone?t("Leggo i dispositivi del telefono…","Reading the phone's devices…"):t("Leggo Gestione dispositivi…","Reading Device Manager…")):(phone?t("Mostra tutti i dispositivi del telefono","Show all the phone's devices"):t("Mostra tutti i dispositivi del PC","Show all the PC's devices"))}</button>}
   {all&&<div className="space-y-2 text-sm" data-testid="pc-all-devices">
-   <p className="text-muted-foreground text-xs">{t("Tutto quello che Windows vede adesso (Gestione dispositivi, solo i dispositivi presenti). Un oggetto collegato all’USB solo per l’alimentazione (molti telecomandi IR, prese, lampade) non compare: non scambia dati con il PC e si trova in rete o via Bluetooth.","Everything Windows sees now (Device Manager, present devices only). Something plugged into USB only for power (many IR remotes, plugs, lamps) does not appear: it exchanges no data with the PC and is found on the network or over Bluetooth.")}</p>
-   {(["usb","bluetooth","internal","system"] as const).map(bus=>{const rows=all.filter(d=>d.bus===bus);return rows.length?<details key={bus} open={bus==="usb"}><summary className="cursor-pointer font-semibold">{bus==="usb"?t("USB","USB"):bus==="bluetooth"?t("Bluetooth","Bluetooth"):bus==="internal"?t("Interni al PC","Inside the PC"):t("Componenti di Windows","Windows components")} ({rows.length})</summary>
-    <ul className="mt-1 space-y-0.5 text-xs">{rows.map(d=><li key={d.class+d.name}>{d.name} <span className="text-muted-foreground">· {d.class}{d.vidpid?" · "+d.vidpid:""}</span>{!d.ok&&<span className="text-amber-700"> · {bus==="bluetooth"?t("servizio del dispositivo associato senza driver in Windows: RigHaven può usarlo dalla sua porta COM o dalla rete (vedi sotto)","service of the paired device with no Windows driver: RigHaven can use it through its COM port or the network (see below)"):t("Windows non ha un driver per questo dispositivo","Windows has no driver for this device")}</span>}
+   <p className="text-muted-foreground text-xs">{phone?t("Tutto quello che il telefono vede adesso. Un oggetto collegato all’USB-C solo per l’alimentazione non compare: non scambia dati con il telefono. I nomi di alcune periferiche USB compaiono solo dopo il permesso di Android: gli identificativi (VID:PID) ci sono sempre.","Everything the phone sees now. Something plugged into USB-C only for power does not appear: it exchanges no data with the phone. Some USB peripherals show their name only after Android's permission: their IDs (VID:PID) are always there."):t("Tutto quello che Windows vede adesso (Gestione dispositivi, solo i dispositivi presenti). Un oggetto collegato all’USB solo per l’alimentazione (molti telecomandi IR, prese, lampade) non compare: non scambia dati con il PC e si trova in rete o via Bluetooth.","Everything Windows sees now (Device Manager, present devices only). Something plugged into USB only for power (many IR remotes, plugs, lamps) does not appear: it exchanges no data with the PC and is found on the network or over Bluetooth.")}</p>
+   {(["usb","bluetooth","internal","system"] as const).map(bus=>{const rows=all.filter(d=>d.bus===bus);return rows.length?<details key={bus} open={bus==="usb"}><summary className="cursor-pointer font-semibold">{bus==="usb"?(phone?t("USB-C (OTG)","USB-C (OTG)"):t("USB","USB")):bus==="bluetooth"?(phone?t("Bluetooth associati","Paired Bluetooth"):t("Bluetooth","Bluetooth")):bus==="internal"?(phone?t("Nel telefono","In the phone"):t("Interni al PC","Inside the PC")):(phone?t("Telefono e rete","Phone and network"):t("Componenti di Windows","Windows components"))} ({rows.length})</summary>
+    <ul className="mt-1 space-y-0.5 text-xs">{rows.map(d=><li key={d.class+d.name}>{d.name} <span className="text-muted-foreground">· {d.class}{d.vidpid?" · "+d.vidpid:""}{d.chip?" · "+d.chip:""}</span>
+     {phone&&bus==="bluetooth"&&d.address&&<button type="button" className={btn+" ml-2"} onClick={()=>onCreate({...blank("device"),name:d.name.slice(0,80),transport:"bluetooth",address:d.address!.toUpperCase()})}>{t("Crea connessione","Create connection")}</button>}
+     {phone&&bus==="usb"&&d.class==="Ports"&&<span className="text-muted-foreground"> · {t("scheda seriale: il telefono la riconosce; usarla dal server tramite il telefono arriverà in un passo successivo (oggi: collegala a un PC con RigHaven Agent)","serial board: the phone recognizes it; using it from the server through the phone comes in a later step (today: plug it into a PC with RigHaven Agent)")}</span>}{!d.ok&&<span className="text-amber-700"> · {bus==="bluetooth"?t("servizio del dispositivo associato senza driver in Windows: RigHaven può usarlo dalla sua porta COM o dalla rete (vedi sotto)","service of the paired device with no Windows driver: RigHaven can use it through its COM port or the network (see below)"):t("Windows non ha un driver per questo dispositivo","Windows has no driver for this device")}</span>}
      {bus==="usb"&&(d.busid?<span> · {t("si può collegare a RigHaven (busid ","can be attached to RigHaven (busid ")}{d.busid})</span>:<span className="text-muted-foreground"> · {t("parte di un’altra periferica o hub: non si collega da sola","part of another peripheral or a hub: not attached on its own")}</span>)}</li>)}</ul></details>:null;})}
    {all.some(d=>d.bus==="bluetooth"&&!d.ok)&&<p className="text-xs">{t("I servizi Bluetooth senza driver (per esempio SerialPort, SPPSERVICE, SMS/MMS, Flow di un telefono Samsung) sono funzioni del dispositivo associato. Quelli seriali Windows li espone come porte COM: condividile con «Mostra porte COM» e crea la connessione. Un telefono Android si usa meglio dalla rete: attiva il «Debug wireless» nelle Opzioni sviluppatore e crea una connessione di rete con protocollo ADB.","Bluetooth services with no driver (for example SerialPort, SPPSERVICE, SMS/MMS, Flow of a Samsung phone) are functions of the paired device. Windows exposes the serial ones as COM ports: share them with “Show COM ports” and create the connection. An Android phone is best used over the network: turn on “Wireless debugging” in Developer options and create a network connection with protocol ADB.")}</p>}
   </div>}
@@ -784,3 +803,28 @@ function PcDevices({t,onChanged,onCreate}:{t:(a:string,b:string)=>string;onChang
  </section>;
 }
 
+/** A zone of trust: kinds of writes RigHaven approves by itself on this device or network, for a
+ * while or until turned off. Each one is still recorded and shown in the task; the rest stay one by one. */
+function AutoApproval({form,setForm,t}:{form:Form;setForm:Dispatch<SetStateAction<Form|null>>;t:Translate}){
+ if(form.access!=="write")return null;
+ const actions:[string,string,string,boolean][]=form.kind==="network"?[["scan","Ricerche di vulnerabilità sulle reti autorizzate","Vulnerability scans on the authorized networks",false]]
+  :[["send","Comandi (invio di dati, letture con scrittura, Bluetooth LE)","Commands (sending data, Bluetooth LE writes)",false],["reboot","Riavvii","Reboots",false],
+    ["enable","Riattivare app (Android)","Enable apps (Android)",false],["disable","Disattivare app (Android)","Disable apps (Android)",false],
+    ["clear_codes","Cancellare i codici di errore del veicolo","Clear vehicle trouble codes",true],["install","Installare o aggiornare app","Install or update apps",true],
+    ["uninstall","Rimuovere app","Remove apps",true],["sideload","Aggiornamenti di sistema (OTA)","System updates (OTA)",true],["flash","Caricare un firmware","Flash firmware",true]];
+ // Only the writes this device can receive: Bluetooth LE takes commands only, Android changes need ADB, firmware a serial port.
+ const possible=(id:string)=>form.kind==="network"||id==="send"||(form.transport!=="bluetooth"&&(
+  ["reboot","enable","disable","install","uninstall","sideload"].includes(id)?form.protocol==="adb":id==="flash"?form.transport==="serial"||form.transport==="local":true));
+ const toggle=(id:string,on:boolean)=>setForm(f=>f&&{...f,auto_approve:on?[...f.auto_approve,id]:f.auto_approve.filter(a=>a!==id)});
+ return <fieldset className="space-y-1 rounded border p-2 text-sm md:col-span-2" data-testid="auto-approval">
+  <legend className="px-1 font-medium">{t("Approvazione automatica (zona di fiducia)","Automatic approval (zone of trust)")}</legend>
+  <p className="text-muted-foreground text-xs">{t("Le scritture scelte qui su questa connessione vengono approvate da sole, senza chiedertele una per una. Restano registrate e visibili nell’incarico. Le altre continuano a chiederti l’approvazione.","The writes chosen here on this connection are approved by themselves, without asking you one by one. They stay recorded and visible in the task. The others still ask for your approval.")}</p>
+  {actions.filter(([id])=>possible(id)).map(([id,it,en,risky])=><label key={id} className="flex items-start gap-2"><input type="checkbox" checked={form.auto_approve.includes(id)} onChange={e=>toggle(id,e.target.checked)}/>
+   <span>{t(it,en)}{risky&&<span className="text-amber-700"> · {t("modifica permanente: sceglila solo se ne sei sicuro","permanent change: choose it only if you are sure")}</span>}</span></label>)}
+  {form.auto_approve.length>0&&<label className="block text-xs">{t("Per quanto tempo","For how long")}
+   <select className="ml-2 rounded border bg-transparent px-1 py-0.5" aria-label={t("Durata dell’approvazione automatica","Automatic approval duration")} value={form.auto_hours} onChange={e=>setForm(f=>f&&{...f,auto_hours:e.target.value})}>
+    {form.auto_until!==""||form.auto_hours===""?<option value="">{form.auto_until?t("come ora (fino al ","as now (until ")+new Date(form.auto_until).toLocaleString()+")":t("finché non la spegni","until you turn it off")}</option>:null}
+    <option value="1">{t("1 ora","1 hour")}</option><option value="8">{t("8 ore","8 hours")}</option><option value="24">{t("1 giorno","1 day")}</option><option value="168">{t("1 settimana","1 week")}</option><option value="0">{t("finché non la spegni","until you turn it off")}</option>
+   </select></label>}
+ </fieldset>;
+}

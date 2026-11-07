@@ -50,6 +50,7 @@ def collect(user):
             'versions':(status.get('environment') or {}).get('versions') or {},
             'phase':status['phase'],'observed_running':running,'heartbeat_at':status['heartbeat_at'],
             'last_activity_at':status['last_activity_at'],'cleanup':status['phase'] in TERMINAL})
+    jobs.extend(on_machines(owners))
     from .environment_terminal import SESSIONS
     for session in list(SESSIONS.values()):
         if session.user==user and not session.closed:
@@ -64,6 +65,36 @@ def collect(user):
     from .editor_presence import activity
     jobs.extend(activity(user))
     return {'observed':observed,'jobs':jobs}
+
+
+def on_machines(owners):
+    """Tasks and preparations running on the owner's machines on premise: their containers are on
+    the machine, not in this server's Docker, so they are known from the runs this server sent."""
+    from . import compute_nodes
+    jobs=[]
+    with compute_nodes._lock:
+        runs=list(compute_nodes.RUNS.values())
+        leased={owner:node for node,leases in compute_nodes.LEASES.items() for owner in leases}
+    for run in runs:
+        if run.preparation:
+            jobs.append({'thread_id':None,'environment_id':run.preparation['environment'],'role':'Preparazione strumenti',
+                'summary':'Preparazione dei programmi sulla macchina on premise','phase':'preparing_environment',
+                'observed_running':run.state!='sent','node':run.node})
+    for name,node in leased.items():
+        if not JOB_ID.fullmatch(name):continue
+        for thread,workspace in owners.values():
+            try:value=read_status(job_path(workspace,name))
+            except (OSError,ValueError):continue
+            if value.get('workspace_key')!=workspace_key(workspace):continue
+            status=public_status(value)
+            if status['phase'] in TERMINAL:break
+            jobs.append({'thread_id':thread,'job_id':name,'environment_id':(status.get('environment') or {}).get('id'),
+                'profile':status.get('environment_profile',''),'role':status['role_title'] or status['agent'],'summary':status['work_summary'] or status['summary'],
+                'tools':(status.get('environment') or {}).get('assigned_tools') or (status.get('environment') or {}).get('tools') or [],
+                'versions':(status.get('environment') or {}).get('versions') or {},'phase':status['phase'],'observed_running':True,
+                'heartbeat_at':status['heartbeat_at'],'last_activity_at':status['last_activity_at'],'cleanup':False,'node':node})
+            break
+    return jobs
 
 
 def for_runtime(activity,identifier,preparing=False,profile=None):

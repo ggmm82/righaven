@@ -25,6 +25,8 @@ ACTIONS = {
     # Any Wi-Fi network the owner chooses: joined for a few seconds to read what answers there.
     'wifi-explore': ('ssid', 'hint', 'key'),
     'pc-devices': (), 'net-listen': (), 'lan-devices': (),
+    # Agents on a phone: one NFC tag held to the phone, read only (the app on screen reads it).
+    'nfc-read': (),
     # Agents only: the home network searched from the agent (the server cannot see it).
     'net-scan': ('network',),
     # Agents only: whether a host of the agent's network (a database, a device) answers on a port.
