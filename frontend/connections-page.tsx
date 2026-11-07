@@ -67,7 +67,6 @@ export default function ConnectionsPage(){
   const body:Record<string,unknown>={kind:form.kind,name:form.name,description:form.description};
   if(!editing)body.id=slug(form.id)||slug(form.name);
   if(form.kind==="network")Object.assign(body,{ranges:form.ranges.split(/[\s,;]+/).filter(Boolean),exclude:form.exclude.split(/[\s,;]+/).filter(Boolean),authorized:form.authorized,access:form.access});
-  if((form.kind==="network"||form.kind==="device")&&form.access==="write")Object.assign(body,{auto_approve:form.auto_approve,...(form.auto_hours!==""?{auto_hours:Number(form.auto_hours)}:{})});
   else if(form.kind==="device")Object.assign(body,{transport:form.transport,access:form.access,agent:agentOf(form.place),
    ...(form.transport==="serial"&&agentOf(form.place)?{device:form.device,baud:Number(form.baud)}
     :form.transport==="bluetooth"?{address:form.address}
@@ -81,6 +80,8 @@ export default function ConnectionsPage(){
    ...(form.authentication==="entra"&&form.kind==="sqlserver"?{entra_connection:form.entra_connection}
     :form.authentication==="microsoft"&&form.kind==="sqlserver"?{username:form.username,tenant_id:form.tenant_id}
     :{username:form.username,...(form.password?{password:form.password}:{})})});
+  // After the chain above (one branch per kind): the zone of trust of a device or network that may write.
+  if((form.kind==="network"||form.kind==="device")&&form.access==="write")Object.assign(body,{auto_approve:form.auto_approve.filter(id=>form.kind==="network"||id==="send"||form.transport!=="bluetooth"),...(form.auto_hours!==""?{auto_hours:Number(form.auto_hours)}:{})});
   const r=await fetch(editing?`${base}/${editing}`:base,{method:editing?"PUT":"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
   const v=await r.json();setBusy("");
   if(!r.ok){setError(typeof v.detail==="string"?v.detail:String(r.status));return;}
@@ -811,11 +812,14 @@ function AutoApproval({form,setForm,t}:{form:Form;setForm:Dispatch<SetStateActio
     ["enable","Riattivare app (Android)","Enable apps (Android)",false],["disable","Disattivare app (Android)","Disable apps (Android)",false],
     ["clear_codes","Cancellare i codici di errore del veicolo","Clear vehicle trouble codes",true],["install","Installare o aggiornare app","Install or update apps",true],
     ["uninstall","Rimuovere app","Remove apps",true],["sideload","Aggiornamenti di sistema (OTA)","System updates (OTA)",true],["flash","Caricare un firmware","Flash firmware",true]];
+ // Only the writes this device can receive: Bluetooth LE takes commands only, Android changes need ADB, firmware a serial port.
+ const possible=(id:string)=>form.kind==="network"||id==="send"||(form.transport!=="bluetooth"&&(
+  ["reboot","enable","disable","install","uninstall","sideload"].includes(id)?form.protocol==="adb":id==="flash"?form.transport==="serial"||form.transport==="local":true));
  const toggle=(id:string,on:boolean)=>setForm(f=>f&&{...f,auto_approve:on?[...f.auto_approve,id]:f.auto_approve.filter(a=>a!==id)});
  return <fieldset className="space-y-1 rounded border p-2 text-sm md:col-span-2" data-testid="auto-approval">
   <legend className="px-1 font-medium">{t("Approvazione automatica (zona di fiducia)","Automatic approval (zone of trust)")}</legend>
   <p className="text-muted-foreground text-xs">{t("Le scritture scelte qui su questa connessione vengono approvate da sole, senza chiedertele una per una. Restano registrate e visibili nell’incarico. Le altre continuano a chiederti l’approvazione.","The writes chosen here on this connection are approved by themselves, without asking you one by one. They stay recorded and visible in the task. The others still ask for your approval.")}</p>
-  {actions.map(([id,it,en,risky])=><label key={id} className="flex items-start gap-2"><input type="checkbox" checked={form.auto_approve.includes(id)} onChange={e=>toggle(id,e.target.checked)}/>
+  {actions.filter(([id])=>possible(id)).map(([id,it,en,risky])=><label key={id} className="flex items-start gap-2"><input type="checkbox" checked={form.auto_approve.includes(id)} onChange={e=>toggle(id,e.target.checked)}/>
    <span>{t(it,en)}{risky&&<span className="text-amber-700"> · {t("modifica permanente: sceglila solo se ne sei sicuro","permanent change: choose it only if you are sure")}</span>}</span></label>)}
   {form.auto_approve.length>0&&<label className="block text-xs">{t("Per quanto tempo","For how long")}
    <select className="ml-2 rounded border bg-transparent px-1 py-0.5" aria-label={t("Durata dell’approvazione automatica","Automatic approval duration")} value={form.auto_hours} onChange={e=>setForm(f=>f&&{...f,auto_hours:e.target.value})}>
