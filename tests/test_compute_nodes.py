@@ -383,3 +383,28 @@ class HubComputeTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class MachineActivityTests(unittest.TestCase):
+    """A task or a preparation on a machine on premise makes its environment «in use» on the page."""
+    def test_runs_on_machines_count_as_activity(self):
+        from righaven import environment_activity
+        from righaven.progress import workspace_key
+        compute_nodes.RUNS.clear()
+        compute_nodes.LEASES.clear()
+        self.addCleanup(compute_nodes.RUNS.clear)
+        self.addCleanup(compute_nodes.LEASES.clear)
+        preparation = compute_nodes.Run('rh-env-0123456789ab-a1b2c3', 'ag_000000000001', [], Path('/tmp/x'))
+        preparation.preparation, preparation.state = {'tag': 't', 'environment': 'b' * 64}, 'running'
+        compute_nodes.RUNS[preparation.name] = preparation
+        compute_nodes.LEASES['ag_000000000001'] = {'rh-job-0123456789ab': {'cpus': 1}}
+        workspace = Path('/tmp/workspace-x')
+        status = {'workspace_key': workspace_key(workspace), 'phase': 'running', 'environment': {'id': 'c' * 64, 'tools': ['blender']},
+                  'environment_profile': '', 'role_title': 'Modellatore 3D', 'agent': 'workspace'}
+        with patch.object(environment_activity, 'read_status', return_value=status), \
+                patch.object(environment_activity, 'public_status', side_effect=lambda v: {**v, 'work_summary': 'Modello', 'summary': '', 'heartbeat_at': None, 'last_activity_at': None}):
+            jobs = environment_activity.on_machines({'k': ('thread-1', workspace)})
+        self.assertEqual([j['environment_id'] for j in jobs], ['b' * 64, 'c' * 64])
+        self.assertEqual((jobs[1]['thread_id'], jobs[1]['node']), ('thread-1', 'ag_000000000001'))
+        activity = {'observed': True, 'jobs': jobs}
+        self.assertEqual(environment_activity.for_runtime(activity, 'c' * 64)['state'], 'busy')
