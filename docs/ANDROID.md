@@ -59,13 +59,10 @@ answers 404 while the gateway is not running): the agent keeps retrying. Only wh
 itself answers `agent_revoked` on `/api/webhooks/righaven-agent/status` (you pressed *Revoke* in
 Connected PCs) does the app ask for a new code, with the server address already filled in.
 
-## Updates without a store
+## Updates
 
-**Agent → Updates** (also on the pairing screen) lists the GitHub releases that carry
-`RigHaven-android.apk`, stable versions first and test versions (`-rc.`) after, with the installed
-one marked. Choose one: the app downloads it and Android's installer asks you to confirm. The first
-time Android asks to allow RigHaven to install apps. Older versions can be chosen too, if Android
-accepts them (it refuses a lower version code over a higher one: uninstall first in that case).
+Download the new `RigHaven-android.apk` from the release and open it: it installs over the
+previous version and keeps the pairing.
 
 Updates install over the previous version only if both are signed with the same key. The CI signs
 the APK with the project key held in the repository secrets:

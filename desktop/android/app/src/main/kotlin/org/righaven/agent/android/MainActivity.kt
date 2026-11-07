@@ -3,7 +3,6 @@ package org.righaven.agent.android
 import android.Manifest
 import android.app.Activity
 import android.app.AlertDialog
-import android.content.BroadcastReceiver
 import android.content.Intent
 import android.graphics.Color
 import android.net.Uri
@@ -33,11 +32,9 @@ import java.net.URL
  */
 class MainActivity : Activity() {
     private var web: WebView? = null
-    private var installs: BroadcastReceiver? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        installs = Updates.listen(this) { message -> runOnUiThread { AlertDialog.Builder(this).setMessage(message).setPositiveButton("OK", null).show() } }
         val pairing = Store.load(this)
         when {
             pairing == null -> showPairing(server = Store.server(this))
@@ -46,11 +43,6 @@ class MainActivity : Activity() {
                 "The server no longer knows this phone (it was revoked in Connected PCs): create a new code and type it here."), pairing.server)
             else -> showWeb(pairing)
         }
-    }
-
-    override fun onDestroy() {
-        installs?.let { runCatching { unregisterReceiver(it) } }
-        super.onDestroy()
     }
 
     private fun showPairing(message: String = "", server: String = "") {
@@ -87,8 +79,7 @@ class MainActivity : Activity() {
                 }
             }.start()
         }
-        val updates = Button(this).apply { text = tr("Aggiornamenti", "Updates"); setOnClickListener { chooseUpdate() } }
-        listOf(server, code, button, status, updates).forEach { layout.addView(it, LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT)) }
+        listOf(server, code, button, status).forEach { layout.addView(it, LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT)) }
         setContentView(layout)
     }
 
@@ -150,68 +141,19 @@ class MainActivity : Activity() {
             if (on) tr("Ferma l’agente su questo telefono", "Stop the agent on this phone") else tr("Avvia l’agente su questo telefono", "Start the agent on this phone"),
             tr("Permessi (Bluetooth, posizione, notifiche)", "Permissions (Bluetooth, location, notifications)"),
             tr("Batteria: lascia lavorare l’agente in background", "Battery: let the agent work in the background"),
-            tr("Aggiornamenti (versione ", "Updates (version ") + BuildConfigVersion.name(this) + ")",
             tr("Scollega questo telefono dal server", "Disconnect this phone from the server"))
         AlertDialog.Builder(this).setTitle(AgentService.status.ifEmpty { pairing.server }).setItems(items) { _, which ->
             when (which) {
                 0 -> if (on) AgentService.stop(this) else AgentService.start(this)
                 1 -> askPermissions()
                 2 -> startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
-                3 -> chooseUpdate()
-                4 -> {
+                3 -> {
                     AgentService.stop(this)
                     Store.clear(this)
                     showPairing(tr("Telefono scollegato. Per revocarlo anche sul server usa «Revoca» in PC collegati.", "Phone disconnected. To revoke it on the server too use “Revoke” in Connected PCs."))
                 }
             }
         }.show()
-    }
-
-    /** No store: the owner picks one of the GitHub releases (stable first, test versions after) and Android installs it. */
-    private fun chooseUpdate() {
-        val repository = getString(R.string.github_repository)
-        val wait = AlertDialog.Builder(this).setMessage(tr("Leggo le versioni pubblicate…", "Reading the published versions…")).show()
-        Thread {
-            val outcome = runCatching { Updates.releases(repository) }
-            runOnUiThread {
-                wait.dismiss()
-                outcome.onFailure { message(tr("Versioni non leggibili: ", "Versions not readable: ") + (it.message ?: it.javaClass.simpleName)) }
-                outcome.onSuccess { releases ->
-                    if (releases.isEmpty()) return@onSuccess message(tr("Nessuna versione con l’app Android in $repository.", "No version with the Android app in $repository."))
-                    val current = BuildConfigVersion.name(this)
-                    val labels = releases.map { release ->
-                        release.tag + (if (release.prerelease) tr(" · prova", " · test") else "") + " · " + release.published +
-                            (if (release.tag.removePrefix("v") == current) tr(" (installata)", " (installed)") else "")
-                    }.toTypedArray()
-                    AlertDialog.Builder(this).setTitle(tr("Installata: ", "Installed: ") + current).setItems(labels) { _, which -> install(releases[which]) }
-                        .setNegativeButton(tr("Annulla", "Cancel"), null).show()
-                }
-            }
-        }.start()
-    }
-
-    private fun install(release: Updates.Release) {
-        if (Build.VERSION.SDK_INT >= 26 && !packageManager.canRequestPackageInstalls()) {
-            message(tr("Consenti a RigHaven di installare app (si apre l’impostazione), poi scegli di nuovo la versione.",
-                "Allow RigHaven to install apps (the setting opens), then choose the version again."))
-            startActivity(Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:$packageName")))
-            return
-        }
-        val progress = AlertDialog.Builder(this).setMessage(tr("Scarico ", "Downloading ") + release.tag + "…").setCancelable(false).show()
-        Thread {
-            val outcome = runCatching {
-                val apk = Updates.download(this, release) { percent -> runOnUiThread { progress.setMessage(tr("Scarico ", "Downloading ") + release.tag + " · $percent%") } }
-                Updates.install(this, apk)
-            }
-            runOnUiThread {
-                progress.dismiss()
-                outcome.onFailure { message(tr("Aggiornamento non riuscito: ", "Update failed: ") + (it.message ?: it.javaClass.simpleName)) }
-            }
-        }.start()
-    }
-
-    private fun message(text: String) {
-        AlertDialog.Builder(this).setMessage(text).setPositiveButton("OK", null).show()
     }
 
     private fun askPermissions() {

@@ -16,8 +16,6 @@ android {
         targetSdk = 35
         versionCode = major * 10000 + minor * 100 + patch
         versionName = System.getenv("RIGHAVEN_VERSION") ?: release
-        // Where the app looks for its updates: the repository that built it.
-        resValue("string", "github_repository", System.getenv("GITHUB_REPOSITORY") ?: "ggmm82/righaven")
     }
     signingConfigs {
         // A stable key from CI secrets lets updates install over the previous version.
