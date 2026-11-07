@@ -120,7 +120,13 @@ and can make the TV unusable.
 
 Works with ELM327 adapters on the standard OBD-II data (engine, emissions, trouble codes):
 
-- **Bluetooth**: pair the adapter with the machine running RigHaven (on Linux `rfcomm bind` gives
+- **Bluetooth LE** (most cheap adapters named "OBDII", Vgate iCar, vLinker): they never appear as
+  a COM port. Nothing to pair: ask in the chat ("read the codes of my car") and the coordinator
+  reads the adapter through RigHaven Agent on the PC or the phone (`harness_bluetooth` action
+  `obd`): stored, pending and permanent trouble codes, warning light, live values, VIN. Read only,
+  no approval; the Agent listens to the adapter's notifications in the same connection where it
+  sends the ELM327 commands. Ignition on, and no other app connected to the adapter.
+- **Classic Bluetooth**: pair the adapter with the machine running RigHaven (on Linux `rfcomm bind` gives
   `/dev/rfcomm0`, which the administrator adds to `RIGHAVEN_DEVICES`), then *Attached to this
   machine*. On Windows a Bluetooth adapter is a COM port that WSL cannot see: share it with an
   RFC 2217 server, or use a USB or Wi-Fi adapter.
@@ -171,7 +177,7 @@ Every result of a search, and every saved device connection, offers the same act
 |---|---|---|
 | Device on the network (or a saved network device) | ports that answer, name, home page | — |
 | Any Wi-Fi network | RigHaven for Windows joins it for a few seconds (with the password typed by the owner when it is protected; networks already saved in Windows keep their own profile), reads the page of what answers there (the device's setup page or the router) and goes back; *Create connection* uses that address | *Add to the home Wi-Fi* for Tasmota, Shelly, ESPHome, WLED, OpenBeken; Tuya, Daikin and LG are added with their app |
-| Bluetooth device, paired or not (or a saved Bluetooth connection); devices heard now come first, those Windows only remembers are in a closed list; any device that advertises (also a phone with an advertiser app) is listed | services, characteristics and readable values | pair it in Windows for serial devices (OBD-II, HC-05) |
+| Bluetooth device, paired or not (or a saved Bluetooth connection); devices heard now come first, those Windows only remembers are in a closed list; any device that advertises (also a phone with an advertiser app) is listed | services, characteristics and readable values | classic Bluetooth serial devices (HC-05, older OBD-II): pair them in Windows; Bluetooth LE OBD-II adapters are read from the chat |
 | USB peripheral | busid, VID:PID, state, whether it is a serial port, the chip (CP210x, CH340, FTDI, Espressif native USB…) and whether RigHaven can update its firmware (ESP boards, esptool) | *Attach to RigHaven*, then *Create connection on /dev/ttyUSB0* |
 | COM port | name, Bluetooth or not, shared or not | *Share with RigHaven*, then *Create connection* |
 | Matter device | name, vendor, state | pairing code, then *Create connection* |

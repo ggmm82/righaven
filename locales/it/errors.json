@@ -394,5 +394,9 @@
   "Device transport: network, serial, local or bluetooth": "Collegamento del dispositivo: rete, seriale, locale o Bluetooth",
   "Matter devices go through the Matter controller of this server": "I dispositivi Matter passano dal controller Matter di questo server",
   "Through a RigHaven Agent a USB or serial device is a COM port of the PC": "Tramite RigHaven Agent un dispositivo USB o seriale è una porta COM del PC",
-  "If the machine is offline: cloud, or wait 1-240 minutes": "Se la macchina è scollegata: cloud, oppure attesa da 1 a 240 minuti"
+  "If the machine is offline: cloud, or wait 1-240 minutes": "Se la macchina è scollegata: cloud, oppure attesa da 1 a 240 minuti",
+  "OBD command not allowed: ": "Comando OBD non consentito: ",
+  "This Bluetooth device has no service that takes commands and notifies answers: not an ELM327 adapter": "Questo dispositivo Bluetooth non ha un servizio che accetta comandi e notifica le risposte: non è un adattatore ELM327",
+  "This RigHaven Agent (or app) is too old to listen to Bluetooth notifications: update it from the latest release, then retry": "Questo RigHaven Agent (o app) è troppo vecchio per ascoltare le notifiche Bluetooth: aggiornalo dall’ultima release e riprova",
+  "exchange sends at most 64 bytes: use write for longer values": "exchange invia al massimo 64 byte: per valori più lunghi usa write"
 }

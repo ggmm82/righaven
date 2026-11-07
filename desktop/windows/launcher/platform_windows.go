@@ -407,8 +407,8 @@ public static class Gatt {
     if (operation.Status != AsyncStatus.Completed) throw operation.ErrorCode ?? new Exception(operation.Status.ToString());
     return operation.GetResults();
   }
-  // The whole operation ends within 40 seconds, whatever the device does.
-  static readonly DateTime Deadline = DateTime.UtcNow.AddSeconds(40);
+  // The whole operation ends within 50 seconds, whatever the device does.
+  static readonly DateTime Deadline = DateTime.UtcNow.AddSeconds(50);
   static string Clean(object value) { return value == null ? "" : value.ToString().Replace("|", " ").Replace("\r", " ").Replace("\n", " "); }
   static string Hex(IBuffer buffer) { var bytes = new byte[buffer.Length]; DataReader.FromBuffer(buffer).ReadBytes(bytes); return String.Concat(bytes.Select(b => b.ToString("x2"))); }
   // Many Bluetooth LE devices use a random (static) address: try it as public, then as random.
@@ -431,6 +431,54 @@ public static class Gatt {
     var characteristics = Wait(found.GetCharacteristicsForUuidAsync(Guid.Parse(characteristic), BluetoothCacheMode.Uncached));
     if (characteristics.Status != GattCommunicationStatus.Success || characteristics.Characteristics.Count == 0) throw new Exception("characteristic not found: " + characteristic);
     return characteristics.Characteristics[0];
+  }
+  // The first characteristic of the service that notifies (or indicates): where adapters answer.
+  static GattCharacteristic Listener(GattDeviceServicesResult services, string service) {
+    var wanted = Guid.Parse(service);
+    foreach (var item in services.Services) {
+      if (item.Uuid != wanted) continue;
+      var characteristics = Wait(item.GetCharacteristicsAsync(BluetoothCacheMode.Uncached));
+      if (characteristics.Status != GattCommunicationStatus.Success) break;
+      foreach (var candidate in characteristics.Characteristics)
+        if ((candidate.CharacteristicProperties & (GattCharacteristicProperties.Notify | GattCharacteristicProperties.Indicate)) != 0) return candidate;
+    }
+    throw new Exception("no characteristic of " + service + " notifies");
+  }
+  static byte[] Bytes(string hex) { return Enumerable.Range(0, hex.Length / 2).Select(i => Convert.ToByte(hex.Substring(i * 2, 2), 16)).ToArray(); }
+  // exchange: listen to the notify characteristic, then write each command and collect what the
+  // device notifies until the end byte (the ELM327 prompt is 3e) or until the wait is over.
+  static void Exchange(GattDeviceServicesResult services, string[] args) {
+    var target = Find(services, args[2], args[3]);
+    var listen = args[4] == "" ? Listener(services, args[2]) : Find(services, args[2], args[4]);
+    var received = new System.Collections.Generic.List<byte>(); var gate = new object();
+    listen.ValueChanged += (sender, change) => {
+      var chunk = new byte[change.CharacteristicValue.Length]; DataReader.FromBuffer(change.CharacteristicValue).ReadBytes(chunk);
+      lock (gate) received.AddRange(chunk);
+    };
+    var mode = (listen.CharacteristicProperties & GattCharacteristicProperties.Notify) != 0 ? GattClientCharacteristicConfigurationDescriptorValue.Notify : GattClientCharacteristicConfigurationDescriptorValue.Indicate;
+    var subscribed = Wait(listen.WriteClientCharacteristicConfigurationDescriptorAsync(mode));
+    if (subscribed != GattCommunicationStatus.Success) throw new Exception("notifications refused: " + subscribed);
+    var option = (target.CharacteristicProperties & GattCharacteristicProperties.Write) != 0 ? GattWriteOption.WriteWithResponse : GattWriteOption.WriteWithoutResponse;
+    int end = args[6] == "" ? -1 : Convert.ToInt32(args[6], 16); int wait = int.Parse(args[7]); int index = 0;
+    foreach (var command in args[5].Split(',')) {
+      lock (gate) received.Clear();
+      var writer = new DataWriter(); writer.WriteBytes(Bytes(command));
+      var status = Wait(target.WriteValueAsync(writer.DetachBuffer(), option));
+      if (status != GattCommunicationStatus.Success) throw new Exception("write refused: " + status);
+      var started = DateTime.UtcNow; var last = DateTime.UtcNow; int seen = 0;
+      while ((DateTime.UtcNow - started).TotalMilliseconds < wait && DateTime.UtcNow < Deadline) {
+        Thread.Sleep(30);
+        lock (gate) {
+          if (received.Count != seen) { seen = received.Count; last = DateTime.UtcNow; }
+          if (end >= 0 && received.Contains((byte)end)) break;
+        }
+        // Without an end byte the answer is over after a quiet half second.
+        if (end < 0 && seen > 0 && (DateTime.UtcNow - last).TotalMilliseconds > 500) break;
+      }
+      string answer; lock (gate) answer = String.Concat(received.Select(b => b.ToString("x2")));
+      Console.WriteLine("R|" + index + "|" + answer); index++;
+    }
+    try { Wait(listen.WriteClientCharacteristicConfigurationDescriptorAsync(GattClientCharacteristicConfigurationDescriptorValue.None)); } catch (Exception) { }
   }
   public static int Main(string[] args) {
     try {
@@ -464,6 +512,8 @@ public static class Gatt {
         var status = Wait(target.WriteValueAsync(writer.DetachBuffer(), option));
         if (status != GattCommunicationStatus.Success) throw new Exception("write refused: " + status);
         Console.WriteLine("V|");
+      } else if (args[0] == "exchange") {
+        Exchange(services, args);
       }
       device.Dispose();
       return 0;

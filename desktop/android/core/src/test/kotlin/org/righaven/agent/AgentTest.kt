@@ -177,3 +177,24 @@ class PhoneDiscoveryTest {
         assertEquals("0102", Ndef.record(4, "android.com:pkg".toByteArray(), byteArrayOf(1, 2))["data"])
     }
 }
+
+class BleExchangeTest {
+    private val args = mapOf("service" to "0000fff0-0000-1000-8000-00805f9b34fb", "characteristic" to "0000fff2-0000-1000-8000-00805f9b34fb",
+        "commands" to "41545a0d,30330D", "until" to "3e")
+
+    @Test
+    fun parsesAndChecksTheExchange() {
+        val exchange = BleExchange.parse(args)
+        assertEquals(2, exchange.commands.size)
+        assertEquals(listOf<Byte>(0x30, 0x33, 0x0d), exchange.commands[1].toList())
+        assertEquals(3000L, exchange.waitMillis)
+        assertTrue(exchange.complete("34330d3e".chunked(2).map { it.toInt(16).toByte() }.toByteArray(), 0))
+        assertTrue(!exchange.complete(byteArrayOf(0x34), 900))
+        val quiet = BleExchange.parse(args - "until")
+        assertTrue(!quiet.complete(byteArrayOf(0x34), 100) && quiet.complete(byteArrayOf(0x34), 600))
+        for ((key, bad) in listOf("commands" to "zz", "until" to "3e3e", "wait" to "50", "notify" to "fff1",
+                "commands" to List(BleExchange.MAX + 1) { "30" }.joinToString(","))) {
+            assertFailsWith<IllegalArgumentException> { BleExchange.parse(args + (key to bad)) }
+        }
+    }
+}

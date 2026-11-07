@@ -19,6 +19,9 @@ ACTIONS = {
     'com-share': ('name',), 'matter-enable': (), 'matter-disable': (), 'refresh-devices': (),
     'ble-inspect': ('address',), 'ble-read': ('address', 'service', 'characteristic'),
     'ble-write': ('address', 'service', 'characteristic', 'value'),
+    # Commands written in one connection while the notify characteristic is listened to (OBD-II
+    # adapters and serial bridges answer only by notification).
+    'ble-exchange': ('address', 'service', 'characteristic', 'notify', 'commands', 'until', 'wait'),
     # The home Wi-Fi to a device in setup mode: the password, typed by the owner in the page, is
     # used for this request only (the launcher does not store or return it).
     'wifi-provision': ('ssid', 'hint', 'password', 'home'),
@@ -34,14 +37,17 @@ ACTIONS = {
     # The owner's own recording of the PC's traffic (Windows asks for administrator rights).
     'traffic-capture': ('seconds',),
 }
-OPTIONAL = {'home', 'hint', 'key', 'confirm'}
+OPTIONAL = {'home', 'hint', 'key', 'confirm', 'notify', 'until', 'wait'}
 # Writes to a device: only the chat tool asks them, after the owner approved that exact write.
-APPROVED_ONLY = {'ble-write'}
+APPROVED_ONLY = {'ble-write', 'ble-exchange'}
 ARGUMENTS = {'busid': re.compile(r'[0-9]{1,3}-[0-9]{1,3}(\.[0-9]{1,3})*\Z'), 'name': re.compile(r'COM[0-9]{1,3}\Z'),
              'address': re.compile(r'[0-9A-F]{2}(:[0-9A-F]{2}){5}\Z'),
              'service': re.compile(r'[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\Z'),
              'characteristic': re.compile(r'[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\Z'),
              'value': re.compile(r'([0-9a-f]{2}){1,512}\Z'),
+             'notify': re.compile(r'[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\Z'),
+             'commands': re.compile(r'([0-9a-f]{2}){1,64}(,([0-9a-f]{2}){1,64}){0,15}\Z'),
+             'until': re.compile(r'[0-9a-f]{2}\Z'), 'wait': re.compile(r'([2-9]\d\d|[1-9]\d{3}|10000)\Z'),
              'ssid': re.compile(r'[^\x00-\x1f\x7f]{1,32}\Z'), 'home': re.compile(r'[^\x00-\x1f\x7f]{1,32}\Z'),
              'hint': re.compile(r'(tasmota|shelly|esp|wled|openbeken|tuya|daikin|lg|direct)\Z'), 'password': re.compile(r'[^\x00-\x1f\x7f]{8,63}\Z'),
              'key': re.compile(r'[^\x00-\x1f\x7f]{8,63}\Z'),
@@ -101,9 +107,9 @@ def request(action, args=None, agent=None):
             continue
         if key == 'address':
             value = value.upper().replace('-', ':')
-        elif key in ('service', 'characteristic'):
+        elif key in ('service', 'characteristic', 'notify'):
             value = uuid128(value)
-        elif key == 'value':
+        elif key in ('value', 'commands', 'until'):
             value = value.lower().replace(' ', '').removeprefix('0x')
         if not ARGUMENTS[key].fullmatch(value):
             raise ValueError('Parametro non valido per ' + action + ': ' + key)

@@ -1112,7 +1112,6 @@
   "Writing can be allowed only on connections assigned to the task": null,
   "Writing is not enabled on this connection in Connections: ": null,
   "Writing needs a saved Bluetooth LE connection: create it with harness_setup_device": null,
-  "action: inspect, read o write": "action: inspect, read or write",
   "artefatti e sorgenti effettivi obbligatori": "actual artifacts and sources are required",
   "audio assente nella finestra dell’evento": "no audio in the event window",
   "audio del master non decodificabile": "master audio cannot be decoded",
@@ -1230,5 +1229,11 @@
   "Immagine non disponibile su questo server per la macchina on premise": "Image not available on this server for the on-premise machine",
   "Parte del risultato troppo grande": "Result part too large",
   "Approvazione automatica: ": "Automatic approval: ",
-  "Durata dell’approvazione automatica: ": "Automatic approval duration: "
+  "Durata dell’approvazione automatica: ": "Automatic approval duration: ",
+  "action: inspect, read, write, exchange o obd": "action: inspect, read, write, exchange or obd",
+  "OBD request: codes, live o info": "OBD request: codes, live or info",
+  "OBD command not allowed: ": null,
+  "This Bluetooth device has no service that takes commands and notifies answers: not an ELM327 adapter": null,
+  "This RigHaven Agent (or app) is too old to listen to Bluetooth notifications: update it from the latest release, then retry": null,
+  "exchange sends at most 64 bytes: use write for longer values": null
 }

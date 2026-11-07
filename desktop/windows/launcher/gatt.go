@@ -18,6 +18,7 @@ var (
 	bleAddress = regexp.MustCompile(`^[0-9A-Fa-f]{2}(:[0-9A-Fa-f]{2}){5}$`)
 	bleUUID    = regexp.MustCompile(`^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$`)
 	bleValue   = regexp.MustCompile(`^(?:[0-9a-fA-F]{2})+$`)
+	bleByte    = regexp.MustCompile(`^[0-9a-fA-F]{2}$`)
 	gattTool   = runGATT
 	gattRetry  = 2 * time.Second
 )
@@ -45,7 +46,12 @@ type gattReport struct {
 	Services []gattService `json:"services"`
 	Value    string        `json:"value,omitempty"`
 	Text     string        `json:"text,omitempty"`
+	// Responses: what the device notified after each command of an exchange, in order.
+	Responses []string `json:"responses,omitempty"`
 }
+
+// maxExchange is how many commands one exchange sends in the same connection.
+const maxExchange = 16
 
 // gattArgs checks what the page or the chat asked before anything reaches the device.
 func gattArgs(action string, args map[string]string) ([]string, error) {
@@ -67,6 +73,33 @@ func gattArgs(action string, args map[string]string) ([]string, error) {
 			return nil, errors.New("the value to write must be hexadecimal bytes (at most 512)")
 		}
 		return []string{"write", address, args["service"], args["characteristic"], strings.ToLower(args["value"])}, nil
+	case "ble-exchange":
+		// Devices that answer only by notification (OBD-II adapters, serial bridges): the commands are
+		// written one after the other in one connection while the notify characteristic is listened to.
+		if !bleUUID.MatchString(args["service"]) || !bleUUID.MatchString(args["characteristic"]) ||
+			(args["notify"] != "" && !bleUUID.MatchString(args["notify"])) {
+			return nil, errors.New("service and characteristics must be UUIDs")
+		}
+		commands := strings.Split(strings.ToLower(args["commands"]), ",")
+		if len(commands) == 0 || len(commands) > maxExchange {
+			return nil, fmt.Errorf("an exchange sends from 1 to %d commands", maxExchange)
+		}
+		for _, command := range commands {
+			if !bleValue.MatchString(command) || len(command) > 128 {
+				return nil, errors.New("each command must be hexadecimal bytes (at most 64)")
+			}
+		}
+		until := strings.ToLower(args["until"])
+		if until != "" && !bleByte.MatchString(until) {
+			return nil, errors.New("until must be one hexadecimal byte")
+		}
+		wait := 3000
+		if args["wait"] != "" {
+			if _, err := fmt.Sscanf(args["wait"], "%d", &wait); err != nil || wait < 200 || wait > 10000 {
+				return nil, errors.New("wait must be from 200 to 10000 milliseconds")
+			}
+		}
+		return []string{"exchange", address, args["service"], args["characteristic"], args["notify"], strings.Join(commands, ","), until, fmt.Sprint(wait)}, nil
 	}
 	return nil, fmt.Errorf("unknown action %q", action)
 }
@@ -109,6 +142,10 @@ func parseGATT(output string) (gattReport, error) {
 			if len(parts) > 1 {
 				report.Value = parts[1]
 				report.Text = printable(parts[1])
+			}
+		case "R":
+			if len(parts) > 2 {
+				report.Responses = append(report.Responses, parts[2])
 			}
 		case "C":
 			if len(parts) < 6 {
@@ -159,6 +196,12 @@ func gattAction(action string, args map[string]string) map[string]any {
 		return map[string]any{"name": report.Name, "services": report.Services}
 	case "ble-read":
 		return map[string]any{"value": report.Value, "text": report.Text}
+	case "ble-exchange":
+		texts := make([]string, len(report.Responses))
+		for i, response := range report.Responses {
+			texts[i] = printable(response)
+		}
+		return map[string]any{"responses": report.Responses, "texts": texts}
 	}
 	return map[string]any{"ok": true}
 }

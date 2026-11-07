@@ -2,6 +2,13 @@
 
 ## 1.2.0
 
+- **Bluetooth LE OBD-II adapters.** The cheap "OBDII" dongles (and Vgate, vLinker) answer only by
+  notification and never become a COM port, so reading them always came back empty. RigHaven
+  Agent (Windows and Android) now listens to the notifications and sends the commands in the
+  same connection (`ble-exchange`); the chat reads stored, pending and permanent trouble codes,
+  the warning light, live values and the VIN with `harness_bluetooth` action `obd`, read only and
+  without approval (only fixed diagnostic requests, never clearing codes). An approved Bluetooth
+  write can also return what the device notifies (`exchange`). Needs the new Agent and app.
 - **RigHaven for Android.** The app shows the server's web interface and runs RigHaven Agent on
   the phone as a foreground service: Bluetooth LE search, exploration and approved writes, nearby
   Wi-Fi networks, search of the phone's network, connection tests and tunnels to hosts of its
