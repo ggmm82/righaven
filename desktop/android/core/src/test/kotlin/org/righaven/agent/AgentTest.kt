@@ -112,3 +112,25 @@ class AgentTest {
     }
 
 }
+
+class ActivityLogTest {
+    @Test
+    fun `the log keeps the latest lines, newest first, with outcomes and durations`() {
+        val file = kotlin.io.path.createTempFile().toFile()
+        var clock = 0L
+        val log = ActivityLog(file, max = 5, now = { clock })
+        log.add("Collegato a https://righaven.example.org")
+        val result = log.action("net-scan", "192.168.1.0/24") { clock += 45_000; mapOf("devices" to listOf(1, 2)) }
+        assertEquals(2, (result["devices"] as List<*>).size)
+        log.action("ble-inspect", "AA:BB") { mapOf("error" to "Il dispositivo si è scollegato") }
+        assertFailsWith<IllegalStateException> { log.action("wifi-scan", "") { throw IllegalStateException("permesso negato") } }
+        val lines = log.lines()
+        assertEquals(5, lines.size)  // the oldest («Collegato…», «→ net-scan») are gone
+        assertTrue(lines[0].endsWith("✗ wifi-scan · permesso negato"), lines[0])
+        assertTrue(lines.any { it.endsWith("✓ net-scan · 45.0 s · 2 dispositivi") }, lines.toString())
+        assertTrue(lines.any { it.contains("✗ ble-inspect") && it.endsWith("Il dispositivo si è scollegato") }, lines.toString())
+        assertEquals(lines, ActivityLog(file, max = 5).lines())  // kept on the phone
+        log.clear()
+        assertEquals(emptyList<String>(), log.lines())
+    }
+}

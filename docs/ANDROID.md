@@ -52,6 +52,15 @@ off, let RigHaven work in the background there.
 Tunnels and tests reach only private addresses of the phone's networks, as on Windows: an internal
 name that resolves to the internet is refused.
 
+## Activity log
+
+**Agent → Activity log** shows what the agent did on this phone, newest first, kept on the phone
+(the last 300 lines): connections to the server and why they ended (HTTP code or network error),
+each action the server asked with its duration and outcome (for example *✓ net-scan · 45.2 s · 2
+devices*, *✗ ble-inspect · the device disconnected*), tunnels opened or refused, retries. It is
+readable even when the server does not answer. The server keeps its own record of every agent's
+actions in **Connections → Connected PCs → Show the activity of connected PCs**.
+
 ## Server outages and revocation
 
 The phone stays paired while the server is down, restarting or behind a proxy error page (Traefik

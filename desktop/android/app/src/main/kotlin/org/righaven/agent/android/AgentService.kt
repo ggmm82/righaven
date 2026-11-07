@@ -17,6 +17,7 @@ import okhttp3.WebSocket
 import okhttp3.WebSocketListener
 import okio.ByteString
 import okio.ByteString.Companion.toByteString
+import org.righaven.agent.ActivityLog
 import org.righaven.agent.AgentSession
 import org.righaven.agent.Channel
 import org.righaven.agent.HomeDial
@@ -43,8 +44,12 @@ class AgentService : Service() {
 
         fun stop(context: Context) {
             Store.setAgentEnabled(context, false)
+            log(context).add(tr("Agente fermato dall’app", "Agent stopped from the app"))
             context.stopService(Intent(context, AgentService::class.java))
         }
+
+        /** The phone's own record of what the agent did (Agent → Log in the app). */
+        fun log(context: Context) = ActivityLog(java.io.File(context.filesDir, "agent-log.txt"))
     }
 
     // The read timeout bounds the opening handshake (OkHttp lifts it once the WebSocket is open; the
@@ -81,6 +86,8 @@ class AgentService : Service() {
         val pairing = Store.load(this) ?: run { stopSelf(); return }
         val url = pairing.server.replaceFirst("https://", "wss://").replaceFirst("http://", "ws://") + "/api/webhooks/righaven-agent/connect"
         val request = Request.Builder().url(url).header(VERSION_HEADER, pairing.token).build()
+        val log = log(this)
+        log.add(tr("Collegamento a ", "Connecting to ") + pairing.server)
         socket = client.newWebSocket(request, object : WebSocketListener() {
             override fun onOpen(webSocket: WebSocket, response: Response) {
                 pause = 2000L
@@ -90,9 +97,16 @@ class AgentService : Service() {
                     override fun sendBinary(data: ByteArray) = webSocket.send(data.toByteString())
                     override fun close(code: Int, reason: String) { webSocket.close(code, reason) }
                 }
-                session = AgentSession(channel, "android", BuildConfigVersion.name(this@AgentService), actions.names, actions::networks, actions::handle,
+                session = AgentSession(channel, "android", BuildConfigVersion.name(this@AgentService), actions.names, actions::networks,
+                    { action, args -> log.action(action, args.values.joinToString(" ")) { actions.handle(action, args) } },
                     openStream = { target ->
-                        val tcp = HomeDial().open(target)
+                        val tcp = try {
+                            HomeDial().open(target)
+                        } catch (error: Exception) {
+                            log.add(tr("✗ tunnel verso ", "✗ tunnel to ") + target + " · " + (error.message ?: error.javaClass.simpleName))
+                            throw error
+                        }
+                        log.add(tr("Tunnel aperto verso ", "Tunnel opened to ") + target)
                         object : Stream {
                             override val input: InputStream = tcp.getInputStream()
                             override val output: OutputStream = tcp.getOutputStream()
@@ -100,15 +114,20 @@ class AgentService : Service() {
                         }
                     }).also { it.hello() }
                 show(tr("Collegato a ", "Connected to ") + pairing.server)
+                log.add(tr("Collegato a ", "Connected to ") + pairing.server)
             }
 
             override fun onMessage(webSocket: WebSocket, text: String) { session?.onText(text) }
             override fun onMessage(webSocket: WebSocket, bytes: ByteString) { session?.onBinary(bytes.toByteArray()) }
 
             // A revocation is only what the server itself confirms; a proxy or a restarting server is not.
-            override fun onClosed(webSocket: WebSocket, code: Int, reason: String) { ended(code == 4001 || code == 4401) }
+            override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
+                log.add(tr("Collegamento chiuso dal server", "Connection closed by the server") + " ($code${if (reason.isNotEmpty()) " $reason" else ""})")
+                ended(code == 4001 || code == 4401)
+            }
 
             override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
+                log.add(tr("Collegamento non riuscito: ", "Connection failed: ") + (response?.let { "HTTP ${it.code} · " } ?: "") + (t.message ?: t.javaClass.simpleName))
                 ended((response?.code ?: 0) in setOf(401, 403))
             }
         })
@@ -119,6 +138,7 @@ class AgentService : Service() {
         session = null
         if (!running) return
         if (refused && confirmedRevoked()) {
+            log(this).add(tr("Il server ha revocato questo telefono", "The server revoked this phone"))
             show(tr("Il server non riconosce più questo telefono: abbinalo di nuovo dall’app", "The server no longer recognizes this phone: pair it again from the app"))
             Store.setRevoked(this, true)  // the server address stays, to pair again in one step
             running = false
@@ -126,6 +146,7 @@ class AgentService : Service() {
             return
         }
         show(tr("Server non raggiungibile: riprovo", "Server not reachable: retrying"))
+        log(this).add(tr("Riprovo tra ", "Retrying in ") + (pause / 1000) + " s")
         Thread {
             Thread.sleep(pause)
             pause = (pause * 2).coerceAtMost(60_000L)
