@@ -37,13 +37,45 @@ def available_skills():
     return ['skill-workspace', *['skill-' + a['id'] for a in applications()]]
 
 
+PC_REGISTRY = 'pc-agents.json'
+PC_KEYS = ('agents', 'codes')
+
+
+def split_pc_registry():
+    """Move the connected-PC registry out of agents.json (specialists), where RigHaven 1.0 betas wrote it.
+
+    Paired PCs keep their tokens; the specialists' configuration is left as it was. Idempotent."""
+    with LOCK:
+        path = STATE / 'agents.json'
+        try:
+            value = json.loads(path.read_text())
+        except (OSError, ValueError):
+            return
+        if not isinstance(value, dict) or not any(isinstance(value.get(k), list) for k in PC_KEYS):
+            return
+        registry_path = STATE / PC_REGISTRY
+        try:
+            registry = json.loads(registry_path.read_text()) if registry_path.exists() else {}
+        except ValueError:
+            registry = {}
+        for key in PC_KEYS:
+            moved = value.pop(key) if isinstance(value.get(key), list) else []
+            known = {item.get('id') or item.get('hash') for item in registry.get(key, []) if isinstance(item, dict)}
+            registry[key] = registry.get(key, []) + [item for item in moved if isinstance(item, dict) and (item.get('id') or item.get('hash')) not in known]
+        atomic_json(registry_path, registry)
+        atomic_json(path, value)
+
+
 def catalog():
+    split_pc_registry()
     with LOCK:
         path = STATE / 'agents.json'
         if not path.exists():
             atomic_json(path, {app['id']: {'engine': 'inherit', 'model': '',
                         'instructions': '', 'enabled': True, 'skills': default_skills(app['id'])} for app in applications()})
         agents = json.loads(path.read_text())
+        # Only specialists' settings belong here; anything else is set aside, never a reason to stop.
+        agents = {k: v for k, v in agents.items() if isinstance(v, dict)} if isinstance(agents, dict) else {}
         changed = False
         for app in applications():
             identifier = app['id']

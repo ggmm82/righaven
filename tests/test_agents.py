@@ -40,7 +40,8 @@ class AgentTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
-        for p in (patch.object(agents, 'STATE', Path(self.temp.name)), patch.dict(os.environ, {'RIGHAVEN_HOST_DIR': self.temp.name + '/host'})):
+        for p in (patch.object(agents, 'STATE', Path(self.temp.name)), patch('righaven.state.STATE', Path(self.temp.name)),
+                  patch.dict(os.environ, {'RIGHAVEN_HOST_DIR': self.temp.name + '/host'})):
             p.start()
             self.addCleanup(p.stop)
         agents._failures.clear()
@@ -64,6 +65,30 @@ class AgentTests(unittest.TestCase):
         agents.revoke('alice', paired['agent'])
         self.assertIsNone(agents.authenticate(paired['token']))
         self.assertEqual([r['action'] for r in agents.activity('alice')][:2], ['revoked', 'paired'])
+
+    def test_paired_pcs_never_mix_with_the_specialists_configuration(self):
+        """The 1.0 betas saved the PC registry in agents.json, the specialists' file: the model catalog and the
+        gateway's start then failed (TypeError). The registry moves to its own file, pairings and settings kept."""
+        from righaven import state
+        root = Path(self.temp.name)
+        specialists = {app['id']: {'engine': 'codex', 'model': 'gpt-x', 'instructions': '', 'enabled': True, 'skills': ['skill-' + app['id']]}
+                       for app in state.applications()[:3]}
+        paired = agents.redeem(agents.create_code('alice', 'SamsungPc')['code'], 'windows', '1.2.0')
+        registry = json.loads((root / agents.FILE).read_text())
+        (root / agents.FILE).unlink()
+        (root / 'agents.json').write_text(json.dumps({**specialists, **registry}))  # what the betas left
+        catalog = state.catalog()  # the gateway's start
+        self.assertEqual({k: catalog[k] for k in specialists}, specialists)
+        self.assertNotIn('agents', catalog)
+        self.assertNotIn('agents', json.loads((root / 'agents.json').read_text()))
+        self.assertEqual(agents.authenticate(paired['token'])['name'], 'SamsungPc')  # still paired
+        self.assertEqual([a['name'] for a in agents.listing('alice')], ['SamsungPc'])
+        agents.create_code('alice', 'Telefono')
+        self.assertFalse({'agents', 'codes'} & set(json.loads((root / 'agents.json').read_text())))  # never written there again
+        state.split_pc_registry()  # idempotent
+        self.assertEqual(len(agents.listing('alice')), 1)
+        (root / 'agents.json').write_text(json.dumps({**specialists, 'stray': ['not', 'a', 'specialist']}))
+        self.assertNotIn('stray', state.catalog())
 
     def test_guessing_codes_is_blocked(self):
         for _ in range(agents.MAX_FAILED_REDEEMS):
