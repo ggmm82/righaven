@@ -416,6 +416,8 @@ def _prepare(key,spec, *, acquire,progress,exact,cancel,cache_dependencies,deadl
                 from .progress import update
                 update(progress, environment_container=name)
             args=preparation_arguments(name,limits,key,base_image,descriptor,progress)
+            if progress:
+                from .progress import read_status
             process=subprocess.Popen(['docker',*args],stdout=subprocess.PIPE,stderr=subprocess.STDOUT,bufsize=0)
             pending=''
             with log.open('w') as output:
