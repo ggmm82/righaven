@@ -83,7 +83,7 @@ Every delivery of a device to a task is written in the task's audit log, with re
 | Operation | Writes to the device | Output |
 |---|---|---|
 | `iot.capture` | Never | `telemetry.jsonl`, `telemetry.csv`, `summary.json` (records, rate, gaps over 5 s, min/max/mean of numeric fields, also from `T=21.5 H:40` lines) |
-| `iot.send` | Yes, with approval | `written.json` (Modbus writes are read back), reply lines |
+| `iot.send` | Yes, with approval | `written.json` (Modbus writes are read back), the device's reply in the same connection: serial and TCP lines up to `reply_seconds` or the `reply_until` prompt (`>`, `OK`), MQTT messages on `reply_topic` (subscribed before publishing, only inside the connection's topic filter) |
 | `iot.simulate` | No device | Deterministic synthetic telemetry from a scenario: see [SCENARIOS.md](../skills/custom/skill-iot/references/SCENARIOS.md) |
 | `iot.inspect` | Resets the board, with consent | Chip, MAC and flash size from esptool |
 | `iot.flash` | Yes, with approval | Firmware written and verified with esptool; image SHA-256 recorded |

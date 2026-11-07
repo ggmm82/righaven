@@ -9,6 +9,10 @@
   the warning light, live values and the VIN with `harness_bluetooth` action `obd`, read only and
   without approval (only fixed diagnostic requests, never clearing codes). An approved Bluetooth
   write can also return what the device notifies (`exchange`). Needs the new Agent and app.
+- **Replies in the same connection.** `iot.send` on MQTT can subscribe to the topic where the
+  device answers (`reply_topic`, e.g. `stat/plug/#`) before publishing, so an immediate answer is
+  not missed; serial and TCP replies can end at a prompt (`reply_until`, e.g. `>` or `OK`) instead
+  of waiting the whole `reply_seconds`, and bare carriage returns split the lines.
 - **RigHaven for Android.** The app shows the server's web interface and runs RigHaven Agent on
   the phone as a foreground service: Bluetooth LE search, exploration and approved writes, nearby
   Wi-Fi networks, search of the phone's network, connection tests and tunnels to hosts of its
