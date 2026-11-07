@@ -31,6 +31,7 @@ PREPARATION_NAME = re.compile(r'rh-env-[0-9a-f]{12}-[0-9a-f]{6}\Z')
 ENVIRONMENT_TAG = re.compile(r'skill-environment:[0-9a-f]{12}-[0-9a-f]{64}\Z')
 MOUNT = re.compile(r'type=bind,src=([^,]+),dst=([^,]+)(,readonly)?\Z')
 MAX_BUNDLE = 8 << 30
+MAX_PART = 16 << 20  # one part of a result sent in parts
 ACK_TIMEOUT = 120  # seconds for a connected node to confirm it received a run
 PREPARATION_EXTRA = 2 * 3600  # base image download and docker commit of a preparation, on top of its run
 MAX_RESULT = 8 << 30
@@ -487,6 +488,40 @@ def receive_result(node, name, stream):
             raise ValueError('Immagine preparata dalla macchina on premise non valida')
         run_.result.update(image_id=image_id, size_bytes=size)
     run_.done.set()
+
+
+class PartOutOfOrder(ValueError):
+    def __init__(self, expected):
+        super().__init__(f'part {expected} expected')
+        self.expected = expected
+
+
+def receive_part(node, name, part, data, final):
+    """One part of a large result, appended in order; the last one completes it."""
+    run_ = get(node, name)
+    path = run_.folder / 'result.parts'
+    with _lock:
+        expected = getattr(run_, 'parts', 0)
+        if part != expected:
+            if part < expected:  # already here (an answer lost on the way): fine
+                return False
+            raise PartOutOfOrder(expected)
+        if part == 0 and path.exists():
+            path.unlink()
+        size = path.stat().st_size if path.exists() else 0
+        if size + len(data) > MAX_RESULT:
+            raise ValueError('Risultato troppo grande')
+        with path.open('ab') as stream:
+            stream.write(data)
+        run_.parts = part + 1
+    if not final:
+        return False
+    try:
+        with path.open('rb') as stream:
+            receive_result(node, name, stream)
+    finally:
+        path.unlink(missing_ok=True)
+    return True
 
 
 def bundle(node, name):

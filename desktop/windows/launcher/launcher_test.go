@@ -1708,3 +1708,40 @@ func TestImageDownloadReportsEveryHundredMB(t *testing.T) {
 type zeroReader struct{}
 
 func (zeroReader) Read(p []byte) (int, error) { return len(p), nil }
+
+// A large result goes in 8 MB parts; a part the server lost is sent again from where it expects.
+func TestLargeResultsGoInPartsAndResume(t *testing.T) {
+	data := bytes.Repeat([]byte("r"), 20<<20) // three parts
+	path := filepath.Join(t.TempDir(), "result.tar.gz")
+	must(t, os.WriteFile(path, data, 0o600))
+	var received bytes.Buffer
+	expected, refusedOnce := 0, false
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		part := 0
+		_, _ = fmt.Sscanf(r.URL.Query().Get("part"), "%d", &part)
+		body, _ := io.ReadAll(r.Body)
+		if part == 1 && !refusedOnce { // a lost part: the server says which one it expects
+			refusedOnce = true
+			expected = 1
+			w.WriteHeader(http.StatusConflict)
+			_, _ = w.Write([]byte(`{"detail":{"code":"part_expected","expected":1}}`))
+			return
+		}
+		if part != expected {
+			w.WriteHeader(http.StatusConflict)
+			_, _ = fmt.Fprintf(w, `{"detail":{"code":"part_expected","expected":%d}}`, expected)
+			return
+		}
+		received.Write(body)
+		expected++
+		_, _ = fmt.Fprintf(w, `{"ok":true,"complete":%t}`, r.URL.Query().Get("final") == "true")
+	}))
+	defer server.Close()
+	session := &agentSession{config: agentConfig{Server: server.URL, Token: "rha_x"}, out: io.Discard}
+	if outcome := session.uploadParts(path, nodeRun{ID: "rh-job-0123456789ab"}, int64(len(data))); outcome != partsDone {
+		t.Fatalf("outcome %v", outcome)
+	}
+	if !bytes.Equal(received.Bytes(), data) {
+		t.Fatalf("received %d bytes of %d", received.Len(), len(data))
+	}
+}
