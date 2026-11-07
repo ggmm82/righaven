@@ -47,7 +47,10 @@ class AgentService : Service() {
         }
     }
 
-    private val client = OkHttpClient.Builder().pingInterval(25, TimeUnit.SECONDS).readTimeout(0, TimeUnit.MILLISECONDS).build()
+    // The read timeout bounds the opening handshake (OkHttp lifts it once the WebSocket is open; the
+    // pings watch it from then on): a server that accepts but never answers is retried, not waited for.
+    private val client = OkHttpClient.Builder().pingInterval(25, TimeUnit.SECONDS).connectTimeout(15, TimeUnit.SECONDS)
+        .readTimeout(30, TimeUnit.SECONDS).build()
     @Volatile private var running = false
     @Volatile private var socket: WebSocket? = null
     @Volatile private var session: AgentSession? = null
