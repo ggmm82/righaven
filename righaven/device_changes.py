@@ -155,15 +155,22 @@ def request(workspace, connection, action, file_path='', package='', mode='', no
         if mode not in MODES:
             raise ValueError('Reboot mode: ' + ', '.join(MODES))
         change['mode'] = mode
+    from .connections import auto_approves
+    if auto_approves(row, action):
+        # A zone the owner trusts: approved now, recorded and shown like any other.
+        change.update(status='approved', decided_at=_now(), auto_approved=True)
     from .project_store import locked
     with locked(workspace) as directory:
         changes = _load(directory)
-        if sum(1 for c in changes if c['status'] == 'pending') >= MAX_PENDING:
+        if change['status'] == 'pending' and sum(1 for c in changes if c['status'] == 'pending') >= MAX_PENDING:
             raise ValueError('Too many device changes wait for the owner: let them decide first')
         changes.append(change)
         state.atomic_json(Path(directory) / FILE, changes[-100:])
     from .audit_log import append
-    append(workspace, 'Dispositivi', 'Riprogrammazione richiesta al proprietario', 'pending', _summary(change))
+    if change.get('auto_approved'):
+        append(workspace, 'Dispositivi', 'Riprogrammazione approvata automaticamente (zona di fiducia del proprietario)', 'completed', _summary(change))
+    else:
+        append(workspace, 'Dispositivi', 'Riprogrammazione richiesta al proprietario', 'pending', _summary(change))
     return change
 
 

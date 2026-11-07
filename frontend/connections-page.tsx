@@ -21,11 +21,11 @@ type Test={ok:boolean;detail:string;at:string};
 type Connection={id:string;kind:Kind;name:string;description?:string;host?:string;port?:number;database?:string;username?:string;tls?:boolean;read_only?:boolean;
  authentication?:"password"|"entra"|"microsoft";entra_connection?:string;tenant_id?:string;client_id?:string;cloud?:string;has_secret:boolean;tools:string[];last_test?:Test;updated_at?:string;
  mode?:"user"|"application";signed_in?:boolean;account?:string;write_enabled?:boolean;write_schema?:string;
- transport?:Transport;protocol?:string;device?:string;topic?:string;path?:string;unit?:number;baud?:number;ranges?:string[];exclude?:string[];address?:string;agent?:string;location?:"cloud"|"on_premise";pc?:string};
+ transport?:Transport;protocol?:string;device?:string;topic?:string;path?:string;unit?:number;baud?:number;ranges?:string[];exclude?:string[];address?:string;agent?:string;location?:"cloud"|"on_premise";pc?:string;auto_approve?:string[];auto_until?:string};
 type SignIn={id:string;user_code:string;verification_uri:string;interval:number;status:string;detail?:string};
 type Form={id:string;kind:Kind;name:string;description:string;host:string;port:string;database:string;username:string;password:string;tls:boolean;read_only:boolean;
  authentication:"password"|"entra"|"microsoft";entra_connection:string;tenant_id:string;client_id:string;client_secret:string;cloud:string;mode:"user"|"application";access:"read"|"write";write_schema:string;
- transport:Transport;protocol:string;device:string;topic:string;path:string;unit:string;baud:string;ranges:string;exclude:string;authorized:boolean;version:string;node_id:string;address:string;place:Place};
+ transport:Transport;protocol:string;device:string;topic:string;path:string;unit:string;baud:string;ranges:string;exclude:string;authorized:boolean;version:string;node_id:string;address:string;place:Place;auto_approve:string[];auto_hours:string;auto_until:string};
 
 const PORTS:Record<Kind,string>={postgres:"5432",sqlserver:"1433",mysql:"3306",oracle:"1521",entra:"",device:"",network:""};
 const DEVICE_PORTS:Record<string,string>={mqtt:"1883",mqtts:"8883","modbus-tcp":"502",http:"80",https:"443",adb:"5555",tuya:"6668",tcp:""};
@@ -33,7 +33,7 @@ const LABELS:Record<Kind,string>={postgres:"PostgreSQL",sqlserver:"SQL Server / 
 const DEFAULT_CLIENT="04b07795-8ddb-461a-bbee-02f9e1bf7b46";
 const blank=(kind:Kind,place:Place="cloud"):Form=>({id:"",kind,name:"",description:"",host:"",port:PORTS[kind],database:"",username:"",password:"",tls:true,read_only:false,
  authentication:kind==="sqlserver"?"microsoft":"password",entra_connection:"",tenant_id:"",client_id:"",client_secret:"",cloud:"public",mode:"user",access:"read",write_schema:"",
- transport:"network",protocol:"mqtt",device:"",topic:"#",path:"/",unit:"1",baud:"115200",ranges:"",exclude:"",authorized:false,version:"3.3",node_id:"",address:"",place});
+ transport:"network",protocol:"mqtt",device:"",topic:"#",path:"/",unit:"1",baud:"115200",ranges:"",exclude:"",authorized:false,version:"3.3",node_id:"",address:"",place,auto_approve:[],auto_hours:"",auto_until:""});
 const slug=(text:string)=>text.normalize("NFD").replace(/\p{M}/gu,"").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"").replace(/^([^a-z])/,"c-$1").slice(0,40);
 
 /** Personal database, Microsoft cloud and device connections; secrets are encrypted and never shown again. */
@@ -62,11 +62,12 @@ export default function ConnectionsPage(){
  const entras=(rows??[]).filter(r=>r.kind==="entra");
  function edit(row:Connection){setEditing(row.id);setNotice("");setError("");
   setForm({...blank(row.kind),...Object.fromEntries(Object.entries(row).filter(([,v])=>typeof v==="string"||typeof v==="boolean")),port:String(row.port??PORTS[row.kind]),password:"",client_secret:"",access:row.write_enabled?"write":"read",write_schema:row.write_schema??"",
-   unit:String(row.unit??1),baud:String(row.baud??115200),place:row.agent??(row.location==="on_premise"?"server":"cloud"),ranges:(row.ranges??[]).join(", "),exclude:(row.exclude??[]).join(", "),authorized:row.kind==="network"} as Form);}
+   unit:String(row.unit??1),baud:String(row.baud??115200),place:row.agent??(row.location==="on_premise"?"server":"cloud"),ranges:(row.ranges??[]).join(", "),exclude:(row.exclude??[]).join(", "),authorized:row.kind==="network",auto_approve:row.auto_approve??[],auto_hours:"",auto_until:row.auto_until??""} as Form);}
  async function save(){if(!form)return;setBusy("save");setError("");setNotice("");
   const body:Record<string,unknown>={kind:form.kind,name:form.name,description:form.description};
   if(!editing)body.id=slug(form.id)||slug(form.name);
   if(form.kind==="network")Object.assign(body,{ranges:form.ranges.split(/[\s,;]+/).filter(Boolean),exclude:form.exclude.split(/[\s,;]+/).filter(Boolean),authorized:form.authorized,access:form.access});
+  if((form.kind==="network"||form.kind==="device")&&form.access==="write")Object.assign(body,{auto_approve:form.auto_approve,...(form.auto_hours!==""?{auto_hours:Number(form.auto_hours)}:{})});
   else if(form.kind==="device")Object.assign(body,{transport:form.transport,access:form.access,agent:agentOf(form.place),
    ...(form.transport==="serial"&&agentOf(form.place)?{device:form.device,baud:Number(form.baud)}
     :form.transport==="bluetooth"?{address:form.address}
@@ -154,7 +155,7 @@ export default function ConnectionsPage(){
     {!editing&&<div>{input("id",t("ID (facoltativo)","ID (optional)"),{placeholder:slug(form.name)||"erp-vendite"})}
      <p className="text-muted-foreground mt-1 text-xs" data-testid="connection-id-hint">{t("Sarà salvato come","Saved as")} <code>{slug(form.id)||slug(form.name)||"…"}</code>{t(": lettere minuscole, cifre e trattini.",": lowercase letters, digits and hyphens.")}</p></div>}
     {input("description",t("Descrizione","Description"))}
-    {form.kind==="network"?<NetworkFields form={form} setForm={setForm} t={t} input={input}/>:form.kind==="device"?<><PlaceField form={form} setForm={setForm} places={places} placeLabel={placeLabel} t={t}/><DeviceFields form={form} setForm={setForm} devices={devices} editing={Boolean(editing)} t={t} input={input}/></>:form.kind==="entra"?<>
+    {form.kind==="network"?<><NetworkFields form={form} setForm={setForm} t={t} input={input}/><AutoApproval form={form} setForm={setForm} t={t}/></>:form.kind==="device"?<><PlaceField form={form} setForm={setForm} places={places} placeLabel={placeLabel} t={t}/><DeviceFields form={form} setForm={setForm} devices={devices} editing={Boolean(editing)} t={t} input={input}/><AutoApproval form={form} setForm={setForm} t={t}/></>:form.kind==="entra"?<>
      <label className="block text-sm md:col-span-2">{t("Tipo di accesso","Access type")}<select className={field} aria-label={t("Tipo di accesso","Access type")} value={form.mode} onChange={e=>setForm(f=>f&&{...f,mode:e.target.value as "user"|"application"})}>
       <option value="user">{t("Il mio account Microsoft (OAuth2, con MFA) · consigliato","My Microsoft account (OAuth2, with MFA) · recommended")}</option>
       <option value="application">{t("Applicazione Entra ID (service principal, segreto client)","Entra ID application (service principal, client secret)")}</option></select></label>
@@ -801,3 +802,25 @@ function PcDevices({t,onChanged,onCreate}:{t:(a:string,b:string)=>string;onChang
  </section>;
 }
 
+/** A zone of trust: kinds of writes RigHaven approves by itself on this device or network, for a
+ * while or until turned off. Each one is still recorded and shown in the task; the rest stay one by one. */
+function AutoApproval({form,setForm,t}:{form:Form;setForm:Dispatch<SetStateAction<Form|null>>;t:Translate}){
+ if(form.access!=="write")return null;
+ const actions:[string,string,string,boolean][]=form.kind==="network"?[["scan","Ricerche di vulnerabilità sulle reti autorizzate","Vulnerability scans on the authorized networks",false]]
+  :[["send","Comandi (invio di dati, letture con scrittura, Bluetooth LE)","Commands (sending data, Bluetooth LE writes)",false],["reboot","Riavvii","Reboots",false],
+    ["enable","Riattivare app (Android)","Enable apps (Android)",false],["disable","Disattivare app (Android)","Disable apps (Android)",false],
+    ["clear_codes","Cancellare i codici di errore del veicolo","Clear vehicle trouble codes",true],["install","Installare o aggiornare app","Install or update apps",true],
+    ["uninstall","Rimuovere app","Remove apps",true],["sideload","Aggiornamenti di sistema (OTA)","System updates (OTA)",true],["flash","Caricare un firmware","Flash firmware",true]];
+ const toggle=(id:string,on:boolean)=>setForm(f=>f&&{...f,auto_approve:on?[...f.auto_approve,id]:f.auto_approve.filter(a=>a!==id)});
+ return <fieldset className="space-y-1 rounded border p-2 text-sm md:col-span-2" data-testid="auto-approval">
+  <legend className="px-1 font-medium">{t("Approvazione automatica (zona di fiducia)","Automatic approval (zone of trust)")}</legend>
+  <p className="text-muted-foreground text-xs">{t("Le scritture scelte qui su questa connessione vengono approvate da sole, senza chiedertele una per una. Restano registrate e visibili nell’incarico. Le altre continuano a chiederti l’approvazione.","The writes chosen here on this connection are approved by themselves, without asking you one by one. They stay recorded and visible in the task. The others still ask for your approval.")}</p>
+  {actions.map(([id,it,en,risky])=><label key={id} className="flex items-start gap-2"><input type="checkbox" checked={form.auto_approve.includes(id)} onChange={e=>toggle(id,e.target.checked)}/>
+   <span>{t(it,en)}{risky&&<span className="text-amber-700"> · {t("modifica permanente: sceglila solo se ne sei sicuro","permanent change: choose it only if you are sure")}</span>}</span></label>)}
+  {form.auto_approve.length>0&&<label className="block text-xs">{t("Per quanto tempo","For how long")}
+   <select className="ml-2 rounded border bg-transparent px-1 py-0.5" aria-label={t("Durata dell’approvazione automatica","Automatic approval duration")} value={form.auto_hours} onChange={e=>setForm(f=>f&&{...f,auto_hours:e.target.value})}>
+    {form.auto_until!==""||form.auto_hours===""?<option value="">{form.auto_until?t("come ora (fino al ","as now (until ")+new Date(form.auto_until).toLocaleString()+")":t("finché non la spegni","until you turn it off")}</option>:null}
+    <option value="1">{t("1 ora","1 hour")}</option><option value="8">{t("8 ore","8 hours")}</option><option value="24">{t("1 giorno","1 day")}</option><option value="168">{t("1 settimana","1 week")}</option><option value="0">{t("finché non la spegni","until you turn it off")}</option>
+   </select></label>}
+ </fieldset>;
+}

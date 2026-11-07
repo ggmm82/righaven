@@ -76,7 +76,7 @@ export function ProjectConnections({ threadId, expanded = false, onAssigned }: {
   </details>;
 }
 
-type DeviceChange = { id: string; connection: string; device: string; action: string; status: string; note?: string; file?: string; sha256?: string; size?: number; package?: string; mode?: string; command?: Record<string, unknown>; requested_at: string };
+type DeviceChange = { id: string; connection: string; device: string; action: string; status: string; auto_approved?: boolean; note?: string; file?: string; sha256?: string; size?: number; package?: string; mode?: string; command?: Record<string, unknown>; requested_at: string };
 
 const ACTIONS: Record<string, [string, string]> = {
   send: ["Invia un comando", "Send a command"], flash: ["Carica un firmware", "Flash firmware"], sideload: ["Aggiorna il sistema (OTA)", "System update (OTA)"],
@@ -122,7 +122,7 @@ function DeviceChanges({ threadId }: { threadId: string }) {
       </div>
     </div>)}
     {recent.length > 0 && <ul className="text-muted-foreground space-y-0.5">{recent.map((c) => <li key={c.id}>{c.device} · {tr(...(ACTIONS[c.action] ?? [c.action, c.action]))} · {
-      c.status === "approved" ? tr("approvata, in attesa di esecuzione", "approved, waiting to run") : c.status === "delivered" ? tr("consegnata all’incarico", "handed to the task") : tr("rifiutata", "rejected")}</li>)}</ul>}
+      c.status === "approved" ? (c.auto_approved ? tr("approvata automaticamente (zona di fiducia), in attesa di esecuzione", "approved automatically (zone of trust), waiting to run") : tr("approvata, in attesa di esecuzione", "approved, waiting to run")) : c.status === "delivered" ? tr("consegnata all’incarico", "handed to the task") : tr("rifiutata", "rejected")}</li>)}</ul>}
     {error && <p className="text-destructive">{error}</p>}
   </section>;
 }

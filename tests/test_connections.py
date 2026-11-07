@@ -396,6 +396,33 @@ class ConnectionTests(unittest.TestCase):
         self.assertIn('Riprogrammazione richiesta al proprietario', operations)
         self.assertIn('Riprogrammazione approvata', operations)
 
+    def test_a_zone_of_trust_approves_the_chosen_writes_by_itself_for_a_while(self):
+        from righaven import device_changes
+        from unittest.mock import patch
+        base = {'kind': 'device', 'name': 'Lampada', 'transport': 'network', 'protocol': 'mqtt', 'host': 'lamp.example.com', 'access': 'write'}
+        with self.assertRaisesRegex(ValueError, 'Approvazione automatica'):
+            connections.save('alice', {**base, 'id': 'lampada', 'auto_approve': ['scan']})  # a device has no scans
+        with self.assertRaisesRegex(ValueError, 'Durata'):
+            connections.save('alice', {**base, 'id': 'lampada', 'auto_approve': ['send'], 'auto_hours': 5})
+        connections.save('alice', {**base, 'id': 'lampada', 'auto_approve': ['send'], 'auto_hours': 1})
+        self.assertTrue(connections._read('alice', 'lampada')['auto_until'])
+        projects.create_plan(self.workspace, 'Casa', PLAN)
+        connections.assign('alice', self.workspace, ['lampada'], ['lampada'])
+        sent = device_changes.request(self.workspace, 'lampada', 'send', command={'topic': 'casa/lampada', 'payload': 'on'})
+        self.assertEqual((sent['status'], sent.get('auto_approved')), ('approved', True))
+        # Kept when the owner edits the connection without touching the duration; gone when it expires.
+        until = connections._read('alice', 'lampada')['auto_until']
+        connections.save('alice', {**base, 'auto_approve': ['send']}, 'lampada')
+        self.assertEqual(connections._read('alice', 'lampada')['auto_until'], until)
+        with patch('righaven.connections.time.strftime', return_value='2999-01-01T00:00:00Z'):
+            later = device_changes.request(self.workspace, 'lampada', 'send', command={'topic': 'casa/lampada', 'payload': 'off'})
+        self.assertEqual(later['status'], 'pending')
+        # Reading only: no zone of trust at all.
+        connections.save('alice', {**base, 'access': 'read', 'auto_approve': ['send']}, 'lampada')
+        self.assertNotIn('auto_approve', connections._read('alice', 'lampada'))
+        from righaven.audit_log import page
+        self.assertIn('Riprogrammazione approvata automaticamente (zona di fiducia del proprietario)', [e['operation'] for e in page(self.workspace)['events']])
+
     def test_networks_to_map_need_authorization_and_scans_need_approval_of_the_exact_scope(self):
         from righaven import device_changes
         body = {'id': 'lan', 'kind': 'network', 'name': 'Rete di casa', 'ranges': ['192.168.1.0/24'], 'exclude': ['192.168.1.1'], 'authorized': True}

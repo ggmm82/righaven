@@ -39,6 +39,13 @@ exactly as you approved it.
    approve or reject. An approved change is handed once to the next assignment that receives the
    device; the toolkit refuses any write that does not match it (a different command, another
    file, a second run). A file that changed after the request cannot be approved.
+4. **Zones of trust (optional).** On a device or network connection that may write, *Automatic
+   approval* lets you choose kinds of writes that RigHaven approves by itself (for example
+   commands on a lamp you trust, or vulnerability scans on your own network), for 1 hour, 8
+   hours, a day, a week or until you turn it off. Each one is still recorded, shown in the task as
+   *approved automatically* and written in the audit log; the writes you did not choose still ask
+   you one by one. Firmware, apps, system updates and clearing trouble codes are marked as
+   permanent changes.
 
 | Write | What you approve |
 |---|---|

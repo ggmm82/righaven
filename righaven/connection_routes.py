@@ -48,6 +48,8 @@ class Connection(BaseModel):
     ranges: Optional[list[str]] = Field(default=None, max_length=64)
     exclude: Optional[list[str]] = Field(default=None, max_length=64)
     authorized: Optional[bool] = None
+    auto_approve: Optional[list[str]] = Field(default=None, max_length=12)
+    auto_hours: Optional[int] = None
 
 
 class DeviceDecision(BaseModel):
