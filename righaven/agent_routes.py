@@ -201,6 +201,17 @@ async def run_result(name: str, request: Request):
     return await _receive(request, compute_nodes.receive_result, name)
 
 
+@router.get('/api/webhooks/righaven-agent/status')
+async def agent_status(request: Request):
+    """Whether this agent's access is still valid. An agent stops or forgets its pairing only on this
+    answer: a proxy error or a server that is restarting is never a revocation."""
+    from fastapi.responses import JSONResponse
+    agent = await run_in_threadpool(agents.authenticate, request.headers.get(HEADER, ''))
+    if agent is None:
+        return JSONResponse({'code': 'agent_revoked'}, status_code=401)
+    return {'ok': True, 'agent': agent['id'], 'name': agent.get('name', '')}
+
+
 @router.websocket('/api/webhooks/righaven-agent/connect')
 async def connect(websocket: WebSocket):
     """The agent's channel: it stays open while RigHaven Agent runs on the PC."""

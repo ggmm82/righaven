@@ -23,6 +23,9 @@ from types import SimpleNamespace
 from . import agent_hub, agents
 
 PLACES = ('cloud', 'auto')
+# When the chosen machine is offline: wait up to N minutes for it, or run the task in the cloud.
+UNAVAILABLE = re.compile(r'(cloud|wait:([1-9][0-9]{0,2}))\Z')
+DEFAULT_UNAVAILABLE = 'wait:15'
 JOB_NAME = re.compile(r'rh-job-[0-9a-f]{12}\Z')
 MOUNT = re.compile(r'type=bind,src=([^,]+),dst=([^,]+)(,readonly)?\Z')
 MAX_BUNDLE = 8 << 30
@@ -80,7 +83,22 @@ def check_place(user, place):
     return place
 
 
-def choose(user, profile, records, *, egress='open'):
+def check_unavailable(value):
+    value = str(value or DEFAULT_UNAVAILABLE)
+    matched = UNAVAILABLE.fullmatch(value)
+    if not matched or (matched.group(2) and int(matched.group(2)) > 240):
+        raise ValueError('If the machine is offline: cloud, or wait 1-240 minutes')
+    return value
+
+
+def waiting_minutes(user, profile):
+    """How long a task waits for its offline machine; None when it goes to the cloud instead."""
+    from .environments import preferences
+    value = (preferences(user).get(profile, {}) if user and profile else {}).get('unavailable') or DEFAULT_UNAVAILABLE
+    return None if value == 'cloud' else int(value.split(':')[1])
+
+
+def choose(user, profile, records, *, egress='open', notes=None):
     """Where a task of this environment runs: None for this server, or the ID of a compute node.
 
     An explicit node is used or refused with the reason; *auto* takes the node next to the
@@ -97,7 +115,13 @@ def choose(user, profile, records, *, egress='open'):
     blockers = _blockers(records, egress)
     if place != 'auto':
         name = agents.owned(user, place).get('name', place)
-        if not capacity(place):
+        if not agent_hub.online(place):
+            if waiting_minutes(user, profile) is None:
+                if notes is not None:
+                    notes.append(f'«{name}» è scollegato: l’incarico viene eseguito in cloud, come scelto per questo ambiente')
+                return None
+            # Waits for the machine (acquire), within the environment's limit.
+        elif not capacity(place):
             raise ValueError('Questa macchina non esegue ambienti (avvia RigHaven Agent con «agent node on» oppure scegli Cloud): ' + name)
         problem = blockers or ([f'connessioni tramite un altro PC ({", ".join(sorted(through - {place}))})'] if through - {place} else [])
         if problem:
@@ -151,9 +175,13 @@ def share(offered):
             'max_workers': jobs}
 
 
-def acquire(node, owner, *, cancel=None, timeout=None, exact=None):
-    """Wait for a free place on the node; the job keeps it until release."""
+def acquire(node, owner, *, cancel=None, timeout=None, exact=None, label=None, offline_timeout=None):
+    """Wait for a free place on the node; the job keeps it until release.
+
+    A busy node is a queue, as on the server: the task waits for its turn. offline_timeout bounds
+    only the time the machine stays disconnected; timeout (tests, recovery) bounds the whole wait."""
     deadline = None if timeout is None else time.monotonic() + timeout
+    offline_since = None
     with _lock:
         while True:
             if cancel is not None and cancel.is_set():
@@ -166,8 +194,17 @@ def acquire(node, owner, *, cancel=None, timeout=None, exact=None):
                 value = {**share(offered), **(exact or {}), 'node': node}
                 leases[owner] = value
                 return value
-            if deadline is not None and time.monotonic() >= deadline:
-                raise RuntimeError('La macchina on premise è occupata o scollegata')
+            now = time.monotonic()
+            if agent_hub.online(node):
+                offline_since = None
+            elif offline_since is None:
+                offline_since = now
+            if offline_timeout is not None and offline_since is not None and now - offline_since >= offline_timeout:
+                minutes = max(1, round(offline_timeout / 60))
+                raise RuntimeError(f'La macchina «{label or node}» è scollegata e non è tornata entro {minutes} minuti: avvia RigHaven Agent sulla macchina, '
+                                   'oppure scegli per questo ambiente di eseguire in cloud quando la macchina non c’è')
+            if deadline is not None and now >= deadline:
+                raise RuntimeError(f'La macchina «{label or node}» è occupata o scollegata: riprova più tardi')
             _lock.wait(.5)
 
 

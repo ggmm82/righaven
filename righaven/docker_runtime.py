@@ -526,9 +526,13 @@ def delegate(agent_id, task, workspace, tool_call_id=None, on_started=None, requ
         from .egress_policy import mode as egress_mode
         from . import compute_nodes
         # Cloud (this server) or on premise: a compute node of the owner, chosen by the environment.
-        node = compute_nodes.choose(policy.get('user_id'), policy.get('agent_name'), role_records(workspace, role), egress=egress_mode())
+        placement_notes = []
+        node = compute_nodes.choose(policy.get('user_id'), policy.get('agent_name'), role_records(workspace, role), egress=egress_mode(), notes=placement_notes)
+        if placement_notes:
+            update(progress, 'preparing', placement_notes[0])
+        node_label = compute_nodes.placement_label(policy.get('user_id'), node) if node else ''
         if node:
-            update(progress, node={'id': node, 'name': compute_nodes.placement_label(policy.get('user_id'), node)})
+            update(progress, node={'id': node, 'name': node_label})
         # The connections the user assigned to this task, deleted with the worker.
         connections=ConnectionDelivery(workspace,jobs/(name+'-connections'),role=role,node=node)
         from .resource_budget import BUDGET
@@ -539,8 +543,15 @@ def delegate(agent_id, task, workspace, tool_call_id=None, on_started=None, requ
         from .progress import heartbeat
         update(progress, 'preparing', 'Attendo le risorse per avviare l’incarico', execution_state='resources')
         with heartbeat(progress):
-            resources = (compute_nodes.acquire(node, name, cancel=CancelBudget()) if node
-                         else worker_resources(name, cancel=CancelBudget(), timeout=None))
+            if node:
+                from . import agent_hub
+                # Chosen while connected, an environment that would go to the cloud still waits a little for a short drop.
+                minutes = compute_nodes.waiting_minutes(policy.get('user_id'), policy.get('agent_name')) or 5
+                if not agent_hub.online(node):
+                    update(progress, 'preparing', f'Attendo «{node_label}»: è scollegato (al massimo {minutes} minuti)')
+                resources = compute_nodes.acquire(node, name, cancel=CancelBudget(), offline_timeout=minutes * 60, label=node_label)
+            else:
+                resources = worker_resources(name, cancel=CancelBudget(), timeout=None)
         if not node:
             BUDGET.observe_progress(name,progress)
         if requested() or read_status(progress).get('cancel_requested') or read_status(progress).get('finish_requested'):
