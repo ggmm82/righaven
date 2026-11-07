@@ -77,7 +77,8 @@ createRoot(document.getElementById('root')!).render(location.pathname.includes('
                     shown=list(AGENTS) if len(AGENTS)>1 else []
                     if AGENTS:AGENTS.append('seen')
                     return self.send(json.dumps({'agents':[a for a in shown if a!='seen'],'server':'https://righaven.example.com',
-                    'download':'https://github.com/ggmm82/righaven/releases/latest/download/RigHaven-Agent-windows-x64.exe'}))
+                    'download':'https://github.com/ggmm82/righaven/releases/latest/download/RigHaven-Agent-windows-x64.exe',
+                    'android':'https://github.com/ggmm82/righaven/releases/latest/download/RigHaven-android.apk'}))
                 if self.path=='/api/harness/host?agent=ag_0123456789ab':return self.send(json.dumps({'connected':True,'platform':'windows','allowed':True,
                     'actions':['bluetooth-scan','wifi-scan','com-list','net-scan','lan-devices','pc-devices','net-listen','traffic-capture']}))
                 if self.path=='/api/harness/connections/discovery?agent=ag_0123456789ab':return self.send(json.dumps({'networks':['192.168.50.0/24'],'ports':[80,6668],
@@ -465,6 +466,7 @@ createRoot(document.getElementById('root')!).render(location.pathname.includes('
                 agents.get_by_label('Nome del PC da collegare',exact=True).fill('PC di casa')
                 agents.get_by_role('button',name='Collega un PC',exact=True).click()
                 pairing=agents.get_by_test_id('agent-pairing')
+                expect(pairing.get_by_test_id('android-download').get_by_role('link')).to_have_attribute('href','https://github.com/ggmm82/righaven/releases/latest/download/RigHaven-android.apk')
                 expect(pairing).to_contain_text('https://righaven.example.com')
                 expect(pairing).to_contain_text('ABCDE-FGHJK')
                 expect(pairing).to_contain_text('«PC di casa» è collegato',timeout=10000)

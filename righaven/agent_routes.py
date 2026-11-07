@@ -22,6 +22,7 @@ router = APIRouter()
 HEADER = 'x-righaven-agent'
 MAX_CAPTURE = 64 << 20
 DOWNLOAD = 'https://github.com/{repository}/releases/latest/download/RigHaven-Agent-windows-x64.exe'
+ANDROID = 'https://github.com/{repository}/releases/latest/download/RigHaven-android.apk'
 
 
 async def run(function, *args):
@@ -50,7 +51,8 @@ async def listing(request: Request):
     rows = await run(agents.listing, get_effective_user_id())
     for row in rows:
         row.update(online=agent_hub.online(row['id']), **{k: v for k, v in agent_hub.state(row['id']).items() if k in ('networks', 'compute')})
-    return {'agents': rows, 'download': DOWNLOAD.format(repository=os.getenv('RIGHAVEN_REPOSITORY', 'ggmm82/righaven')),
+    repository = os.getenv('RIGHAVEN_REPOSITORY', 'ggmm82/righaven')
+    return {'agents': rows, 'download': DOWNLOAD.format(repository=repository), 'android': ANDROID.format(repository=repository),
             'server': agents.public_address(request)}
 
 
