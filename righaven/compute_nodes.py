@@ -27,6 +27,8 @@ PLACES = ('cloud', 'auto')
 UNAVAILABLE = re.compile(r'(cloud|wait:([1-9][0-9]{0,2}))\Z')
 DEFAULT_UNAVAILABLE = 'wait:15'
 JOB_NAME = re.compile(r'rh-job-[0-9a-f]{12}\Z')
+PREPARATION_NAME = re.compile(r'rh-env-[0-9a-f]{12}-[0-9a-f]{6}\Z')
+ENVIRONMENT_TAG = re.compile(r'skill-environment:[0-9a-f]{12}-[0-9a-f]{64}\Z')
 MOUNT = re.compile(r'type=bind,src=([^,]+),dst=([^,]+)(,readonly)?\Z')
 MAX_BUNDLE = 8 << 30
 MAX_RESULT = 8 << 30
@@ -41,6 +43,7 @@ class Run:
         self.name, self.node, self.mounts, self.folder = name, node, mounts, folder
         self.state, self.result, self.done = 'sent', None, threading.Event()
         self.image = ''
+        self.preparation = None  # {'tag', 'environment'} when the run prepares an environment image
         # The job's progress file as the node last had it: only what the node changed since is
         # taken, so the server's own writes (a stop request, the limits) are never undone.
         self.seen = {}
@@ -217,17 +220,25 @@ def release(owner):
 
 # --- Remote runs -----------------------------------------------------------------------
 
-def prepare(node, args, live):
-    """The docker-run arguments with every bind source replaced by a bundle key, and the bundle."""
+def prepare(node, args, live, preparation=False):
+    """The docker-run arguments with every bind source replaced by a bundle key, and the bundle.
+
+    A preparation (an environment image built on the node) may add only the capabilities the
+    package installers need, as on this server; a task may add none."""
     from .docker_runtime import gateway_path
+    from .environment_runtime import PREPARATION_CAPABILITIES
     if not args or args[0] != 'run' or '--name' not in args:
         raise ValueError('Comando del worker non valido')
     name = args[args.index('--name') + 1]
-    if not JOB_NAME.fullmatch(name):
+    if not (PREPARATION_NAME if preparation else JOB_NAME).fullmatch(name):
         raise ValueError('Nome del worker non valido')
     template, mounts, i = [], [], 0
     while i < len(args):
         item = args[i]
+        if preparation and item == '--cap-add' and i + 1 < len(args) and args[i + 1] in PREPARATION_CAPABILITIES:
+            template += args[i:i + 2]
+            i += 2
+            continue
         if item in ('--device', '-v', '--volume', '--privileged') or item.startswith(('--device=', '--cap-add', '--network=')) and item != '--network=bridge':
             raise ValueError('Questo incarico usa risorse di questo server (' + item.split('=')[0] + '): eseguilo in cloud')
         if item == '--mount':
@@ -276,16 +287,23 @@ def _pack(target, mounts, modes, limit):
                 archive.add(mount['source'], arcname=mount['key'], filter=keep)
 
 
-def run(node, args, *, timeout, live=None):
-    """Run the worker's docker command on the node; the answer looks like subprocess.run's."""
-    run_, template = prepare(node, args, live)
+def run(node, args, *, timeout, live=None, preparation=None):
+    """Run the worker's docker command on the node; the answer looks like subprocess.run's.
+
+    With preparation={'tag', 'environment'} the node saves the container as that environment
+    image (docker commit) when the command succeeds, and answers with its image_id and size."""
+    run_, template = prepare(node, args, live, preparation=preparation is not None)
     image = _image(template)
     run_.image = image
+    run_.preparation = preparation
     with _lock:
         RUNS[run_.name] = run_
     try:
-        agent_hub.send(node, {'type': 'run', 'id': run_.name, 'args': template, 'image': image, 'timeout': int(timeout),
-                              'mounts': [{k: m[k] for k in ('key', 'mode', 'kind', 'target')} for m in run_.mounts]})
+        message = {'type': 'run', 'id': run_.name, 'args': template, 'image': image, 'timeout': int(timeout),
+                   'mounts': [{k: m[k] for k in ('key', 'mode', 'kind', 'target')} for m in run_.mounts]}
+        if preparation is not None:
+            message['prepare'] = {'tag': preparation['tag'], 'environment': preparation['environment']}
+        agent_hub.send(node, message)
         owner = agent_hub.owner(node)
         agents.log(owner, node, 'compute-run', run_.name, 'asked')
         # The node keeps its results while it is offline and sends them when it comes back.
@@ -295,7 +313,7 @@ def run(node, args, *, timeout, live=None):
         result = run_.result
         agents.log(owner, node, 'compute-run', f'{run_.name} · exit {result["returncode"]}', 'done' if not result['returncode'] else 'failed')
         return SimpleNamespace(returncode=result['returncode'], stdout=result.get('stdout', ''), stderr=result.get('stderr', ''),
-                               oom=bool(result.get('oom')))
+                               oom=bool(result.get('oom')), image_id=result.get('image_id', ''), size_bytes=result.get('size_bytes', 0))
     finally:
         with _lock:
             RUNS.pop(run_.name, None)
@@ -306,7 +324,7 @@ def _image(template):
     i = 1
     while i < len(template):
         item = template[i]
-        if item in ('--name', '--label', '--tmpfs', '--env', '--mount', '--pids-limit'):
+        if item in ('--name', '--label', '--tmpfs', '--env', '--mount', '--pids-limit', '--cap-add'):
             i += 2
         elif item.startswith('-'):
             i += 1
@@ -405,6 +423,11 @@ def receive_result(node, name, stream):
         raise ValueError('Risultato della macchina on premise non valido')
     run_.result = {'returncode': outcome['returncode'], 'stdout': str(outcome.get('stdout') or '')[:16 << 20],
                    'stderr': str(outcome.get('stderr') or '')[:1 << 20], 'oom': outcome.get('oom') is True}
+    if run_.preparation is not None and not outcome['returncode']:
+        image_id, size = outcome.get('image_id'), outcome.get('size_bytes')
+        if not (isinstance(image_id, str) and re.fullmatch(r'sha256:[0-9a-f]{64}', image_id)) or type(size) is not int or size < 0:
+            raise ValueError('Immagine preparata dalla macchina on premise non valida')
+        run_.result.update(image_id=image_id, size_bytes=size)
     run_.done.set()
 
 
@@ -437,3 +460,124 @@ def placement_label(user, place):
     except ValueError:
         return place
 
+
+
+
+# --- Environment images prepared on the node ----------------------------------------------
+# A machine on premise prepares and keeps its own environment images: nothing is built or cached
+# on this server for it, and its images are reused only by its own tasks. This server's cache is
+# reused only in the cloud: the two never mix.
+
+def _environments_file():
+    from .state import STATE
+    return STATE / 'compute-environments.json'
+
+
+def _environments():
+    path = _environments_file()
+    try:
+        value = json.loads(path.read_text()) if path.is_file() and not path.is_symlink() else {}
+    except (OSError, ValueError):
+        value = {}
+    return value if isinstance(value, dict) else {}
+
+
+def _save_environment(node, record):
+    from .state import atomic_json
+    with _lock:
+        value = _environments()
+        records = value.setdefault(node, {})
+        records[record['id']] = record
+        atomic_json(_environments_file(), value)
+
+
+def node_images(node):
+    """The environment images the node says it has now (it removes the least used ones itself)."""
+    offered = capacity(node) or {}
+    return set(offered.get('images') or ())
+
+
+def prepares_environments(node):
+    """Whether the node prepares environments itself (RigHaven Agent that reports its images)."""
+    offered = capacity(node) or {}
+    return isinstance(offered.get('images'), list)
+
+
+def environments(node):
+    """The node's ready environments whose image it still has (as last known while it is offline:
+    nothing is prepared or run there until it is back and says what it has)."""
+    records = [r for r in _environments().get(node, {}).values() if isinstance(r, dict) and r.get('status') == 'ready']
+    if not prepares_environments(node):
+        return records
+    present = node_images(node)
+    return [r for r in records if r.get('image_id') in present]
+
+
+def available(node, tools, identity=None, *, versions=None):
+    """The environment the node would use now for these tools: one of its images, or on_demand."""
+    from . import environment_runtime as env
+    key, spec = env.recipe(tools, identity=identity, versions=versions)
+    if not spec['tools'] and not spec.get('versions'):
+        return {'id': key, 'status': 'ready', 'tools': [], 'core': True, 'node': node}
+    records = environments(node)
+    present = {r['id'] for r in records}
+    ready = env.candidates(spec, records=records, exists=lambda item: item.get('id') in present)
+    if ready:
+        return ready[0]
+    return {'id': key, 'status': 'on_demand', 'tools': spec['tools'], 'core': spec['core'], 'node': node,
+            **({'software_abi': spec['software_abi']} if spec.get('software_abi') else {})}
+
+
+def prepare_environment(node, owner, tools, *, versions=None, resources, progress=None, label=None, prefer=None, timeout=3600):
+    """The environment of a task on premise: one of the node's images when it fits, otherwise
+    prepared on the node, starting from the closest of its own images."""
+    from . import environment_runtime as env
+    from .docker_runtime import IMAGE
+    key, spec = env.recipe(tools, versions=versions)
+    if not spec['tools'] and not spec.get('versions'):
+        return {'id': key, 'image': IMAGE, 'tools': [], 'status': 'ready', 'core': True}
+    records = environments(node)
+    present = {r['id'] for r in records}
+    exists = lambda item: item.get('id') in present
+    ready = env.candidates(spec, records=records, exists=exists, prefer=prefer)
+    if ready:
+        chosen = {**ready[0], 'last_used': time.time()}
+        _save_environment(node, chosen)
+        return chosen
+    base = env.subset(spec, prefer, records=records, exists=exists)
+    reused = env.reused_tools(base, spec)
+    base_image = base['image_id'] if base else spec['core']
+    name = 'rh-env-' + key[:12] + '-' + os.urandom(3).hex()
+    work = folder() / (name + '-request')
+    work.mkdir(mode=0o755)
+    try:
+        descriptor = env.write_descriptor(work / 'environment-request.json', spec, base, reused)
+        args = env.preparation_arguments(name, resources, key, base_image, descriptor, progress)
+        tag = env.image_tag(key)
+        if progress:
+            from .progress import update
+            update(progress, 'preparing_environment', f'Preparo gli strumenti su «{label or node}»' +
+                   (f' partendo da un suo ambiente ({", ".join(reused)} già pronti)' if reused else ''))
+            update(progress, environment_container=name)  # a stop request reaches the node's container
+        completed = run(node, args, timeout=timeout, preparation={'tag': tag, 'environment': key})
+        if progress:
+            from .progress import read_status
+            if read_status(progress).get('cancel_requested'):
+                raise RuntimeError('Preparazione annullata')
+    finally:
+        shutil.rmtree(work, ignore_errors=True)
+    if completed.returncode:
+        detail = (completed.stderr or completed.stdout or '').strip().splitlines()[-1:] or ['']
+        if completed.oom:
+            raise RuntimeError(f'Memoria insufficiente su «{label or node}» durante la preparazione dell’ambiente')
+        raise RuntimeError(f'Preparazione dell’ambiente su «{label or node}» non riuscita: ' + detail[0][:300])
+    from .tool_versions import packages
+    record = {'id': key, 'status': 'ready', 'image': tag, 'image_id': completed.image_id, 'size_bytes': completed.size_bytes,
+              'tools': spec['tools'], 'core': spec['core'], 'software_abi': spec.get('software_abi'),
+              'tool_fingerprints': spec.get('tool_fingerprints'), 'versions': spec.get('versions', {}),
+              'version_names': {k: v['app']['version'] for k, v in packages(spec.get('versions', {})).items()},
+              'installed_versions': env.verified_versions(completed.stdout), 'base_environment_id': (base or {}).get('id'),
+              'reused_tools': reused, 'node': node, 'created_at': time.time(), 'last_used': time.time()}
+    _save_environment(node, record)
+    agent_hub.note_image(node, completed.image_id)  # until the node's next report
+    return record

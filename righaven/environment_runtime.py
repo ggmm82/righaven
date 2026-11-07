@@ -222,24 +222,31 @@ def matching_versions(value,spec,subset=False,reset_providers=False):
     return True
 
 
-def candidates(spec, cache=None, prefer=None):
-    from .software_identity import compatible
-    result=[]
+def _records():
+    """This server's environment records; a machine on premise has its own (compute_nodes)."""
     for path in folder().glob('*.json'):
+        try:yield read(path.stem)
+        except (OSError,ValueError):continue
+
+
+def candidates(spec, cache=None, prefer=None, *, records=None, exists=None):
+    from .software_identity import compatible
+    exists=exists or (lambda item:image_exists(item, cache))
+    result=[]
+    for item in (_records() if records is None else records):
         try:
-            item=read(path.stem)
-            if compatible(item,spec,docker) and set(spec['tools']).issubset(item.get('tools',[])) and matching_versions(item,spec) and image_exists(item, cache):result.append(item)
+            if item and compatible(item,spec,docker) and set(spec['tools']).issubset(item.get('tools',[])) and matching_versions(item,spec) and exists(item):result.append(item)
         except (OSError,ValueError):continue
     return sorted(result,key=lambda x:(x['id']!=prefer,len(x['tools'])))
 
 
-def subset(spec, prefer=None):
+def subset(spec, prefer=None, *, records=None, exists=None):
     from .software_identity import compatible,inherited_fingerprints
+    exists=exists or image_exists
     ready=[]
-    for path in folder().glob('*.json'):
+    for value in (_records() if records is None else records):
         try:
-            value=read(path.stem)
-            if not value or (spec['tools'] and not set(value.get('tools',[]))&set(spec['tools'])) or (not spec['tools'] and (value.get('tools') or set(value.get('versions',{}))!=set(spec.get('versions',{})))) or not compatible(value,spec,docker) or not image_exists(value):continue
+            if not value or (spec['tools'] and not set(value.get('tools',[]))&set(spec['tools'])) or (not spec['tools'] and (value.get('tools') or set(value.get('versions',{}))!=set(spec.get('versions',{})))) or not compatible(value,spec,docker) or not exists(value):continue
             actual=inherited_fingerprints(value,spec,docker)
             common=[t for t in value.get('tools',[]) if t in spec['tools'] and (actual.get(t)==spec.get('tool_fingerprints',{}).get(t) if actual is not None else value.get('versions',{}).get(t)==spec.get('versions',{}).get(t))]
             if set(value.get('tools',[]))==set(spec['tools']) and matching_versions(value,spec) and value.get('versions',{})==spec.get('versions',{}):continue
@@ -384,22 +391,13 @@ def _prepare(key,spec, *, acquire,progress,exact,cancel,cache_dependencies,deadl
             if base:_BUILD_PINS.setdefault(key,set()).add(base['id'])
         protected=(key,base['id']) if base else (key,)
         prune(exclude=protected)
-        from .software_identity import inherited_fingerprints,catalog_files
-        actual=inherited_fingerprints(base,spec,docker) if base else {}
-        reused=[t for t in (base or {}).get('tools',[]) if t in spec['tools'] and (actual.get(t)==spec.get('tool_fingerprints',{}).get(t) if actual is not None else (base or {}).get('versions',{}).get(t)==spec.get('versions',{}).get(t))]
+        reused=reused_tools(base,spec)
         save(key,base_environment_id=(base or {}).get('id'),reused_tools=reused,install_tools=sorted(set(spec['tools'])-set(reused)))
         base_image=base['image_id'] if base else spec['core']
         from .runtime_settings import effective
         limits=effective()
         name='rh-env-'+key[:12]+'-'+uuid.uuid4().hex[:6]
-        descriptor=folder()/(name+'.request.json')
-        resets={tool:builtins()[tool] for tool in (base or {}).get('versions',{})
-                if tool.startswith('provider-') and tool not in spec.get('versions',{}) and not spec['tools']}
-        atomic_json(descriptor,{'tools':spec['tools'],'versions':spec.get('versions',{}),'version_packages':packages(spec.get('versions',{})),
-                                'reset_providers':resets,'catalog_files':catalog_files(spec['tools']),'reinstall_tools':sorted(set((base or {}).get('tools',[]))-set(reused)),'catalog':json.loads((state.ROOT/'versions.lock.json').read_text()) if spec['tools'] else None,
-                                'capabilities':json.loads((Path(os.getenv('RIGHAVEN_WORKER_SOURCE',Path(__file__).resolve().parents[1]))/'config/tool-capabilities.json').read_text()) if spec['tools'] else None})
-        # Only public catalog IDs: readable under dropped capabilities/user namespaces too.
-        descriptor.chmod(0o644)
+        descriptor=write_descriptor(folder()/(name+'.request.json'),spec,base,reused)
         image=image_tag(key)
         log=folder()/(key+'.log')
         error='Preparazione non completata'
@@ -417,20 +415,7 @@ def _prepare(key,spec, *, acquire,progress,exact,cancel,cache_dependencies,deadl
             if progress:
                 from .progress import update
                 update(progress, environment_container=name)
-            # /tmp is not a tmpfs: native compiler/npm downloads need bounded disk, not the worker RAM budget.
-            args=base_arguments(name,limits) + runtime_arguments(skills=True)
-            tmp=args.index('--tmpfs');del args[tmp:tmp+2]
-            # Curated package maintainers need ownership and apt's _apt user transitions.
-            # These capabilities belong only to preparation, never to AI workers.
-            for capability in ('CHOWN','FOWNER','DAC_OVERRIDE','SETUID','SETGID'):
-                args += ['--cap-add',capability]
-            if progress:
-                from .progress import read_status
-                args += ['--label','org.righaven.harness.workspace='+read_status(progress)['workspace_key']]
-            args += ['--label','org.righaven.harness.installation='+installation(),
-                '--label','org.righaven.environment='+key,
-                '--mount','type=bind,src='+host_path(descriptor)+',dst=/environment-request.json,readonly',
-                base_image,'python3','/opt/righaven/prepare_environment.py','/environment-request.json']
+            args=preparation_arguments(name,limits,key,base_image,descriptor,progress)
             process=subprocess.Popen(['docker',*args],stdout=subprocess.PIPE,stderr=subprocess.STDOUT,bufsize=0)
             pending=''
             with log.open('w') as output:
@@ -477,11 +462,7 @@ def _prepare(key,spec, *, acquire,progress,exact,cancel,cache_dependencies,deadl
                 except (ValueError,subprocess.SubprocessError):parent_size=None
             remove(name)
             cleaned=True
-            observed_versions={}
-            for line in log.read_text(errors='replace').splitlines():
-                try:event=json.loads(line)
-                except ValueError:continue
-                if isinstance(event,dict) and event.get('phase')=='verified':observed_versions=event.get('installed_versions',{})
+            observed_versions=verified_versions(log.read_text(errors='replace'))
             result=save(key,installed_versions=observed_versions,status='ready',image=image,image_id=inspected['Id'],size_bytes=inspected['Size'],
                 last_used=time.time(),container='',tools=spec['tools'],core=spec['core'],software_abi=spec.get('software_abi'),tool_fingerprints=spec.get('tool_fingerprints'),error='',failure={},
                 base_image_id=base_image,reused_tools=reused,versions=spec.get('versions',{}),version_names={k:v['app']['version'] for k,v in packages(spec.get('versions',{})).items()})
@@ -520,6 +501,61 @@ def _prepare(key,spec, *, acquire,progress,exact,cancel,cache_dependencies,deadl
                         from .resource_budget import BUDGET
                         BUDGET.release(name)
                     descriptor.unlink(missing_ok=True)
+
+
+PREPARATION_CAPABILITIES=('CHOWN','FOWNER','DAC_OVERRIDE','SETUID','SETGID')
+PREPARATION_COMMAND=['python3','/opt/righaven/prepare_environment.py','/environment-request.json']
+
+
+def reused_tools(base,spec):
+    """The base environment's tools that are already what the recipe asks for."""
+    if not base:return []
+    from .software_identity import inherited_fingerprints
+    actual=inherited_fingerprints(base,spec,docker)
+    return [t for t in base.get('tools',[]) if t in spec['tools'] and (actual.get(t)==spec.get('tool_fingerprints',{}).get(t) if actual is not None else base.get('versions',{}).get(t)==spec.get('versions',{}).get(t))]
+
+
+def write_descriptor(path,spec,base,reused):
+    """What prepare_environment.py installs: public catalog IDs and locked packages, no secrets."""
+    from .tool_versions import packages,builtins
+    from .software_identity import catalog_files
+    resets={tool:builtins()[tool] for tool in (base or {}).get('versions',{})
+            if tool.startswith('provider-') and tool not in spec.get('versions',{}) and not spec['tools']}
+    atomic_json(path,{'tools':spec['tools'],'versions':spec.get('versions',{}),'version_packages':packages(spec.get('versions',{})),
+                      'reset_providers':resets,'catalog_files':catalog_files(spec['tools']),'reinstall_tools':sorted(set((base or {}).get('tools',[]))-set(reused)),'catalog':json.loads((state.ROOT/'versions.lock.json').read_text()) if spec['tools'] else None,
+                      'capabilities':json.loads((Path(os.getenv('RIGHAVEN_WORKER_SOURCE',Path(__file__).resolve().parents[1]))/'config/tool-capabilities.json').read_text()) if spec['tools'] else None})
+    # Only public catalog IDs: readable under dropped capabilities/user namespaces too.
+    path.chmod(0o644)
+    return path
+
+
+def preparation_arguments(name,limits,key,base_image,descriptor,progress=None):
+    """The docker run of a preparation, the same here and on a machine on premise."""
+    from .docker_runtime import base_arguments,host_path,runtime_arguments
+    # /tmp is not a tmpfs: native compiler/npm downloads need bounded disk, not the worker RAM budget.
+    args=base_arguments(name,limits) + runtime_arguments(skills=True)
+    tmp=args.index('--tmpfs');del args[tmp:tmp+2]
+    # Curated package maintainers need ownership and apt's _apt user transitions.
+    # These capabilities belong only to preparation, never to AI workers.
+    for capability in PREPARATION_CAPABILITIES:
+        args += ['--cap-add',capability]
+    if progress:
+        from .progress import read_status
+        args += ['--label','org.righaven.harness.workspace='+read_status(progress)['workspace_key']]
+    return args+['--label','org.righaven.harness.installation='+installation(),
+        '--label','org.righaven.environment='+key,
+        '--mount','type=bind,src='+host_path(descriptor)+',dst=/environment-request.json,readonly',
+        base_image,*PREPARATION_COMMAND]
+
+
+def verified_versions(text):
+    """The versions prepare_environment.py found installed (its «verified» event)."""
+    observed={}
+    for line in text.splitlines():
+        try:event=json.loads(line)
+        except ValueError:continue
+        if isinstance(event,dict) and event.get('phase')=='verified':observed=event.get('installed_versions',{})
+    return observed
 
 
 def source_tools(workspace, task, selected):

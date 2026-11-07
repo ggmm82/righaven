@@ -381,8 +381,8 @@ def completed_result(result, workspace, progress, image=None):
 
 
 def release_prepared_environment(environment, ephemeral):
-    if not environment or not environment.get('tools'):
-        return
+    if not environment or not environment.get('tools') or environment.get('node'):
+        return  # an environment of a machine on premise is kept (and pruned) by that machine
     from .environment_runtime import prune
     # The worker has already stopped. Keep reusable software only within the
     # shared cache limits; an idle draft never pins an image indefinitely.
@@ -460,6 +460,32 @@ def delegate(agent_id, task, workspace, tool_call_id=None, on_started=None, requ
         from .runtime_settings import effective
         resources = effective()
         update(progress, limits=resources, can_stop=True)
+        from .connections import role_records
+        from .egress_policy import mode as egress_mode
+        from . import compute_nodes
+        from .resource_budget import BUDGET
+        from .cancellation import requested
+        class CancelBudget:
+            def is_set(self):
+                return requested() or read_status(progress).get('cancel_requested', False) or read_status(progress).get('finish_requested', False)
+        # Cloud (this server) or on premise: a compute node of the owner, chosen by the environment
+        # before its software is prepared, because each place prepares and reuses only its own images.
+        placement_notes = []
+        node = compute_nodes.choose(policy.get('user_id'), policy.get('agent_name'), role_records(workspace, role), egress=egress_mode(), notes=placement_notes)
+        if placement_notes:
+            update(progress, 'preparing', placement_notes[0])
+        node_label = compute_nodes.placement_label(policy.get('user_id'), node) if node else ''
+        if node:
+            update(progress, node={'id': node, 'name': node_label})
+
+        def node_place():
+            """The task's place on the node, kept from the preparation to the end of the task."""
+            from . import agent_hub
+            # Chosen while connected, an environment that would go to the cloud still waits a little for a short drop.
+            minutes = compute_nodes.waiting_minutes(policy.get('user_id'), policy.get('agent_name')) or 5
+            if not agent_hub.online(node):
+                update(progress, 'preparing', f'Attendo «{node_label}»: è scollegato (al massimo {minutes} minuti)')
+            return compute_nodes.acquire(node, name, cancel=CancelBudget(), offline_timeout=minutes * 60, label=node_label)
         from . import environment_runtime as environments
         if environments.enabled():
             from .progress import heartbeat
@@ -483,7 +509,15 @@ def delegate(agent_id, task, workspace, tool_call_id=None, on_started=None, requ
                 # A ready owner profile covering these tools is reused or extended, not rebuilt.
                 base_profile=profiles_base.choose(policy.get('user_id'),needed,policy,(role or {}).get('skills',[])) if policy.get('source') == 'righaven_core' else None
                 chosen_versions=profiles_base.versions(chosen_versions,base_profile)
-                runtime_environment = environments.ensure(needed, acquire=True, progress=progress, cache_dependencies=not ephemeral_environment, claim=name,versions=chosen_versions,prefer=(base_profile or {}).get('id'))
+                if node and compute_nodes.prepares_environments(node):
+                    # On premise the image is prepared and kept on the machine, reusing only its own images.
+                    from .tool_versions import resolved
+                    chosen_versions = resolved(chosen_versions or {}, wait=True, progress=progress, refresh=False)
+                    runtime_environment = compute_nodes.prepare_environment(node, name, needed, versions=chosen_versions, resources=node_place(),
+                                                                            progress=progress, label=node_label)
+                    base_profile = None
+                else:
+                    runtime_environment = environments.ensure(needed, acquire=True, progress=progress, cache_dependencies=not ephemeral_environment, claim=name,versions=chosen_versions,prefer=(base_profile or {}).get('id'))
                 profile_use=profiles_base.outcome(base_profile,runtime_environment)
                 if profile_use['mode'] in ('reused','extended'):
                     environments.save(base_profile['id'],last_used=time.time())
@@ -522,34 +556,14 @@ def delegate(agent_id, task, workspace, tool_call_id=None, on_started=None, requ
         elif os.getenv('RIGHAVEN_EDITION', 'community') == 'cloud':
             from .credential_sessions import ApiCredentialSession
             credentials=ApiCredentialSession(engine,jobs/(name+'-credentials'),settings.get('connection_id'))
-        from .connections import Delivery as ConnectionDelivery, role_records
-        from .egress_policy import mode as egress_mode
-        from . import compute_nodes
-        # Cloud (this server) or on premise: a compute node of the owner, chosen by the environment.
-        placement_notes = []
-        node = compute_nodes.choose(policy.get('user_id'), policy.get('agent_name'), role_records(workspace, role), egress=egress_mode(), notes=placement_notes)
-        if placement_notes:
-            update(progress, 'preparing', placement_notes[0])
-        node_label = compute_nodes.placement_label(policy.get('user_id'), node) if node else ''
-        if node:
-            update(progress, node={'id': node, 'name': node_label})
+        from .connections import Delivery as ConnectionDelivery
         # The connections the user assigned to this task, deleted with the worker.
         connections=ConnectionDelivery(workspace,jobs/(name+'-connections'),role=role,node=node)
-        from .resource_budget import BUDGET
-        from .cancellation import requested
-        class CancelBudget:
-            def is_set(self):
-                return requested() or read_status(progress).get('cancel_requested', False) or read_status(progress).get('finish_requested', False)
         from .progress import heartbeat
         update(progress, 'preparing', 'Attendo le risorse per avviare l’incarico', execution_state='resources')
         with heartbeat(progress):
             if node:
-                from . import agent_hub
-                # Chosen while connected, an environment that would go to the cloud still waits a little for a short drop.
-                minutes = compute_nodes.waiting_minutes(policy.get('user_id'), policy.get('agent_name')) or 5
-                if not agent_hub.online(node):
-                    update(progress, 'preparing', f'Attendo «{node_label}»: è scollegato (al massimo {minutes} minuti)')
-                resources = compute_nodes.acquire(node, name, cancel=CancelBudget(), offline_timeout=minutes * 60, label=node_label)
+                resources = node_place()  # the place already taken for the preparation, if any
             else:
                 resources = worker_resources(name, cancel=CancelBudget(), timeout=None)
         if not node:
@@ -757,10 +771,12 @@ def request_stop(workspace, job_id):
     if status.get('execution_state') == 'resources' or (status['phase'] == 'preparing_environment' and not status.get('environment_container')):
         update(path, cancel_requested=True)
         return {'requested': True, 'job_id': job_id, 'waiting_resources': True}
-    if status.get('node') and status['phase'] != 'preparing_environment':
+    if status.get('node'):
         from . import compute_nodes
         update(path, cancel_requested=True)
-        compute_nodes.stop(job_id)
+        # On premise the preparation runs on the node too: stopping it stops its container there.
+        preparing = status['phase'] == 'preparing_environment' and status.get('environment_container')
+        compute_nodes.stop(status['environment_container'] if preparing else job_id)
         return {'requested': True, 'job_id': job_id, 'node': status['node'].get('name')}
     target = status.get('environment_container') if status['phase']=='preparing_environment' else job_id
     target = target or job_id

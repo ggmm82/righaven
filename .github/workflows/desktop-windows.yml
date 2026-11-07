@@ -188,9 +188,9 @@ jobs:
         with:
           go-version: '1.24.x'
           cache-dependency-path: desktop/windows/launcher/go.mod
-      - name: A compute node runs a real container with the runner's Docker
+      - name: A compute node runs a real container and prepares a real environment image with the runner's Docker
         working-directory: desktop/windows/launcher
-        run: RIGHAVEN_NODE_DOCKER_TEST=1 go test -count=1 -run TestNodeRunsARealContainer -v ./...
+        run: RIGHAVEN_NODE_DOCKER_TEST=1 go test -count=1 -run 'TestNodeRunsARealContainer|TestNodePreparesARealEnvironmentImage' -v ./...
       - name: Launcher checks
         run: |
           sh -n desktop/linux/righaven

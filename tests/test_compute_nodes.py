@@ -8,6 +8,7 @@ import tempfile
 import threading
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from righaven import agent_hub, agents, compute_nodes
@@ -172,6 +173,24 @@ def server_template():
     return args
 
 
+PREPARE_FIXTURE = Path(__file__).parents[1] / 'desktop/windows/launcher/testdata/server-prepare-args.json'
+
+
+def preparation_template():
+    """An environment preparation as the server sends it to a node, with the node's bundle keys."""
+    import re
+    from righaven import docker_runtime, environment_runtime
+    worker = ['--mount', 'type=bind,src=/state/runtime/righaven-worker,dst=/opt/righaven-worker,readonly',
+              '--mount', 'type=bind,src=/state/runtime/prepare_environment.py,dst=/opt/righaven/prepare_environment.py,readonly']
+    with patch.object(docker_runtime, 'OWNER', 'harness'), patch.object(docker_runtime, 'runtime_arguments', return_value=worker), \
+            patch.object(docker_runtime, 'host_path', side_effect=str), \
+            patch.object(environment_runtime, 'installation', return_value='0f3c2a9e-5d41-4b7a-9c1e-2b8d7f6a5e40'):
+        args = environment_runtime.preparation_arguments('rh-env-0123456789ab-a1b2c3', {'memory_mib': 4096, 'cpus': 4.0, 'tmp_mib': 512, 'threads': 4},
+                                                         'b' * 64, 'sha256:' + 'c' * 64, Path('/state/compute-runs/x/environment-request.json'))
+    keys = iter(range(10))
+    return [re.sub(r'src=[^,]+', lambda m: 'src={m%d}' % next(keys), a) if a.startswith('type=bind') else a for a in args]
+
+
 class OfflineMachineTests(unittest.TestCase):
     """What happens to a task whose machine is offline: wait N minutes, or run it in the cloud."""
     def setUp(self):
@@ -220,12 +239,101 @@ class ServerArgumentsTests(unittest.TestCase):
                          'docker_runtime changed the worker command: update the fixture and the node rules together')
 
 
+    def test_the_preparation_fixture_is_what_the_server_writes(self):
+        """The Go test checks it against the node's rules (TestNodePreparesOnlyRigHavensInstaller)."""
+        self.assertEqual(json.loads(PREPARE_FIXTURE.read_text())['args'], preparation_template(),
+                         'the environment preparation changed: update the fixture and the node rules together')
+
+
+class NodeEnvironmentTests(unittest.TestCase):
+    """On premise the environment image is prepared and kept on the machine; each place reuses only its own."""
+    NODE = 'ag_000000000001'
+
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        root = Path(self.temp.name) / 'state'
+        root.mkdir()
+        from righaven import environment_runtime as env
+        self.images = []
+        self.runs = []
+        self.specs = {}
+        def recipe(tools, versions=None, **_):
+            key = ''.join(sorted(tools)).encode().hex().ljust(64, '0')[:64]
+            return key, {'version': 1, 'core': 'sha256:' + 'c' * 64, 'tools': sorted(tools),
+                         'tool_fingerprints': {t: 'f-' + t for t in tools}}
+        def run(node, args, *, timeout, live=None, preparation=None):
+            self.runs.append((args, preparation))
+            image = 'sha256:' + str(len(self.runs)) * 64
+            return SimpleNamespace(returncode=0, stdout='{"phase":"verified","installed_versions":{"blender":"4.2"}}\n', stderr='',
+                                   oom=False, image_id=image, size_bytes=1 << 30)
+        for p in (patch('righaven.state.STATE', root), patch.object(env, 'recipe', side_effect=recipe),
+                  patch.object(env, 'write_descriptor', side_effect=lambda path, *a: path),
+                  patch.object(env, 'preparation_arguments', side_effect=lambda name, limits, key, base, *a: ['run', '--name', name, base]),
+                  patch.object(env, 'image_tag', side_effect=lambda key: 'skill-environment:000000000000-' + key),
+                  patch.object(compute_nodes, 'run', side_effect=run),
+                  patch.object(agent_hub, 'state', side_effect=lambda i: {'compute': {'cpus': 4.0, 'memory_mib': 8192, 'jobs': 1, 'images': list(self.images)}}),
+                  patch.object(agent_hub, 'note_image', side_effect=lambda node, image: self.images.append(image))):
+            p.start()
+            self.addCleanup(p.stop)
+        self.env = env
+
+    def prepare(self, tools):
+        return compute_nodes.prepare_environment(self.NODE, 'rh-job-0123456789ab', tools, resources={'cpus': 4.0}, label='devPc')
+
+    def test_prepared_on_the_machine_then_reused_there(self):
+        first = self.prepare(['blender'])
+        self.assertEqual(len(self.runs), 1)
+        args, preparation = self.runs[0]
+        self.assertEqual(args[-1], 'sha256:' + 'c' * 64)  # from the core image, not from a server environment
+        self.assertEqual(preparation['environment'], first['id'])
+        self.assertEqual((first['node'], first['installed_versions']), (self.NODE, {'blender': '4.2'}))
+        again = self.prepare(['blender'])
+        self.assertEqual((len(self.runs), again['image_id']), (1, first['image_id']))
+        # Nothing of the machine's environments is in this server's cache.
+        self.assertEqual(list(self.env._records()), [])
+
+    def test_a_larger_environment_starts_from_the_machines_closest_image(self):
+        first = self.prepare(['blender'])
+        self.prepare(['blender', 'ffmpeg'])
+        self.assertEqual(self.runs[1][0][-1], first['image_id'])
+
+    def test_an_image_the_machine_removed_is_prepared_again(self):
+        self.prepare(['blender'])
+        self.images.clear()  # the node pruned it
+        self.prepare(['blender'])
+        self.assertEqual(len(self.runs), 2)
+
+    def test_the_servers_images_are_never_used_on_the_machine(self):
+        from righaven.state import atomic_json
+        key, spec = self.env.recipe(['blender'])
+        self.env.folder()
+        atomic_json(self.env.record_path(key), {'id': key, 'status': 'ready', 'tools': ['blender'], 'core': spec['core'],
+                                                'tool_fingerprints': spec['tool_fingerprints'], 'image_id': 'sha256:' + 'e' * 64, 'image': 'x'})
+        self.images.append('sha256:' + 'e' * 64)  # even an image with the same ID on the machine
+        self.prepare(['blender'])
+        self.assertEqual(len(self.runs), 1)
+        self.assertEqual(self.runs[0][0][-1], 'sha256:' + 'c' * 64)
+
+    def test_only_the_preparation_may_add_the_installers_capabilities(self):
+        args = ['run', '--name', 'rh-env-0123456789ab-a1b2c3', '--cap-drop=ALL', '--cap-add', 'CHOWN', 'img', 'python3', 'x']
+        with patch('righaven.state.STATE', Path(self.temp.name) / 'state'):
+            _, template = compute_nodes.prepare(self.NODE, args, None, preparation=True)
+        self.assertEqual(template[3:6], ['--cap-drop=ALL', '--cap-add', 'CHOWN'])
+        with self.assertRaises(ValueError):
+            compute_nodes.prepare(self.NODE, args, None)  # a task never
+        with self.assertRaises(ValueError):
+            compute_nodes.prepare(self.NODE, args[:5] + ['SYS_ADMIN'] + args[6:], None, preparation=True)
+
+
 class HubComputeTests(unittest.TestCase):
     def test_declared_capacity_is_bounded(self):
         self.assertEqual(agent_hub.compute({'cpus': 12, 'memory_mib': 49152, 'jobs': 2, 'docker': '27.1'}),
                          {'cpus': 12.0, 'memory_mib': 49152, 'jobs': 2, 'docker': '27.1', 'running': 0})
         for wrong in (None, {}, {'cpus': 0, 'memory_mib': 4096}, {'cpus': 4, 'memory_mib': 100}, {'cpus': 4, 'memory_mib': 4096, 'jobs': 500}, {'cpus': 'x'}):
             self.assertIsNone(agent_hub.compute(wrong))
+        reported = agent_hub.compute({'cpus': 4, 'memory_mib': 8192, 'images': ['sha256:' + 'a' * 64, 'nginx:latest', 3]})
+        self.assertEqual(reported['images'], ['sha256:' + 'a' * 64])
 
 
 if __name__ == '__main__':
