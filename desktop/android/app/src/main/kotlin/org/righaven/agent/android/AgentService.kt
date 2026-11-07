@@ -64,7 +64,8 @@ class AgentService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        val notification = notification(tr("Collegamento al server…", "Connecting to the server…"))
+        // Opening the app starts the service again: an agent already connected keeps saying so.
+        val notification = notification(status.takeIf { running && it.isNotEmpty() } ?: tr("Collegamento al server…", "Connecting to the server…"))
         if (Build.VERSION.SDK_INT >= 29) startForeground(1, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE)
         else startForeground(1, notification)
         if (!running) {
