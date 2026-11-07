@@ -499,7 +499,11 @@ function DeviceDiscovery({base,t,onCreate}:{base:string;t:(a:string,b:string)=>s
   try{
    // Every device of the PC's network answers the PC's ARP, whatever its ports: the launcher lists them with their MAC.
    const all=host.can("lan-devices")?host.ask("lan-devices").catch(()=>({devices:[]})):Promise.resolve({devices:[]});
-   const r=await fetch(base+"/discovery",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({network,...(agent?{agent}:{})})});const v=await r.json();
+   // Through an agent the search runs on the PC or phone (about a minute on a phone): it is started
+   // and followed, never one request that a proxy would cut after 30 seconds.
+   const r=agent?await fetch(base+"/discovery/identify",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({devices:(await host.ask("net-scan",{network})).devices??[]})})
+    :await fetch(base+"/discovery",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({network})});
+   const v=await r.json().catch(()=>({detail:t("Il server non ha risposto in tempo: riprova","The server did not answer in time: try again")}));
    if(!r.ok)throw Error(typeof v.detail==="string"?v.detail:String(r.status));
    const byPort=(v as {devices:Found[]}).devices;
    const lan=((await all).devices as {address:string;mac:string;vendor?:string;private_mac?:boolean}[]|undefined)??[];
@@ -528,7 +532,7 @@ function DeviceDiscovery({base,t,onCreate}:{base:string;t:(a:string,b:string)=>s
    <label className="text-sm">{t("Rete da cercare","Network to search")}
     <input className="mt-1 block w-48 rounded border bg-transparent px-2 py-1" list="rh-local-networks" aria-label={t("Rete da cercare","Network to search")} placeholder="192.168.1.0/24" value={network} onChange={e=>setNetwork(e.target.value)}/>
     <datalist id="rh-local-networks">{(info?.networks??[]).map(n=><option key={n} value={n}/>)}</datalist></label>
-   <button type="button" className="rounded border px-3 py-2 text-sm disabled:opacity-50" disabled={busy||!network.trim()} onClick={()=>void search()}>{busy?t("Ricerca in corso (fino a 30 s)…","Searching (up to 30 s)…"):t("Cerca in questa rete","Search this network")}</button>
+   <button type="button" className="rounded border px-3 py-2 text-sm disabled:opacity-50" disabled={busy||!network.trim()} onClick={()=>void search()}>{busy?t("Ricerca in corso (fino a un minuto)…","Searching (up to a minute)…"):t("Cerca in questa rete","Search this network")}</button>
   </div>
   <p className="text-muted-foreground text-xs" data-testid="discovery-consent">{info?.networks.length?t("Rete del PC rilevata dal launcher. ","PC network detected by the launcher. "):t("Scrivi la rete del tuo Wi-Fi (di solito 192.168.1.0/24 o 192.168.0.0/24). ","Write your Wi-Fi network (usually 192.168.1.0/24 or 192.168.0.0/24). ")}
    {t("RigHaven prova solo ad aprire una connessione alle porte ","RigHaven only tries to open a connection to ports ")}{(info?.ports??[]).join(", ")}{t(" di ogni indirizzo e legge la pagina iniziale di chi risponde: nulla viene modificato. Cerca solo nelle reti tue o autorizzate."," of each address and reads the home page of those that answer: nothing is changed. Search only networks you own or are authorized for.")}</p>

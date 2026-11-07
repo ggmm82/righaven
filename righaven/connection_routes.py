@@ -79,6 +79,10 @@ class Discovery(BaseModel):
     agent: Optional[str] = Field(default=None, max_length=20)
 
 
+class Identify(BaseModel):
+    devices: list = Field(default_factory=list, max_length=4096)
+
+
 class Explore(BaseModel):
     address: str = Field(max_length=45)
     agent: Optional[str] = Field(default=None, max_length=20)
@@ -266,6 +270,16 @@ async def discover(body: Discovery, request: Request):
         agent = await pc(request, body.agent)
         return await run(device_discovery.scan_from_agent, agent, body.network)
     return await run(device_discovery.scan, body.network)
+
+
+@router.post('/api/harness/connections/discovery/identify')
+@require_permission('agents', 'read')
+async def identify(body: Identify, request: Request):
+    """What an agent's network search found, identified as a search from this server. The page runs
+    the search itself (start and poll), since a phone needs longer than a proxy waits for one answer."""
+    same_origin(request)
+    from . import device_discovery
+    return {'devices': await run(device_discovery.identified, body.devices)}
 
 
 @router.post('/api/harness/connections')
