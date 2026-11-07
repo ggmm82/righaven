@@ -31,6 +31,7 @@ PREPARATION_NAME = re.compile(r'rh-env-[0-9a-f]{12}-[0-9a-f]{6}\Z')
 ENVIRONMENT_TAG = re.compile(r'skill-environment:[0-9a-f]{12}-[0-9a-f]{64}\Z')
 MOUNT = re.compile(r'type=bind,src=([^,]+),dst=([^,]+)(,readonly)?\Z')
 MAX_BUNDLE = 8 << 30
+ACK_TIMEOUT = 120  # seconds for a connected node to confirm it received a run
 MAX_RESULT = 8 << 30
 
 _lock = threading.Condition()
@@ -310,6 +311,15 @@ def run(node, args, *, timeout, live=None, preparation=None, on_state=None, on_o
         agent_hub.send(node, message)
         owner = agent_hub.owner(node)
         agents.log(owner, node, 'compute-run', run_.name, 'asked')
+        # A node confirms each run at once; one that does not (an agent too old to read it) would
+        # otherwise leave the task waiting for its whole timeout.
+        acknowledged = time.monotonic() + min(ACK_TIMEOUT, timeout + 120)
+        while not run_.done.is_set() and run_.state == 'sent' and time.monotonic() < acknowledged:
+            run_.done.wait(.5)
+        if not run_.done.is_set() and run_.state == 'sent' and agent_hub.online(node):
+            stop(run_.name)
+            raise RuntimeError('La macchina on premise non ha preso in carico il lavoro: aggiorna RigHaven Agent sulla macchina '
+                               'alla versione di questo server e riprova')
         # The node keeps its results while it is offline and sends them when it comes back.
         if not run_.done.wait(timeout + 120):
             stop(run_.name)

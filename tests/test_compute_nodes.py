@@ -116,9 +116,22 @@ class ComputeNodeTests(unittest.TestCase):
         sent = []
         with patch.object(agent_hub, 'send', side_effect=lambda i, m: sent.append(m)), patch.object(agent_hub, 'owner', return_value='alice'), \
                 patch.object(agents, 'log'):
-            with patch('threading.Event.wait', return_value=False):
+            # Gone offline after taking it: the run waits for its results up to the deadline.
+            with patch('threading.Event.wait', return_value=False), patch.object(compute_nodes, 'ACK_TIMEOUT', 0), \
+                    patch.object(agent_hub, 'online', return_value=False):
                 with self.assertRaises(subprocess.TimeoutExpired):
                     compute_nodes.run('ag_000000000001', args, timeout=1, live=progress)
+        self.assertEqual([m['type'] for m in sent], ['run', 'stop'])
+
+    def test_a_connected_node_that_does_not_take_the_run_is_told_to_update(self):
+        """An agent that cannot read the run (too old) never confirms it: the task ends at once, not after its timeout."""
+        args, _, _, progress = self.folders()
+        sent = []
+        with patch.object(agent_hub, 'send', side_effect=lambda i, m: sent.append(m)), patch.object(agent_hub, 'owner', return_value='alice'), \
+                patch.object(agents, 'log'), patch.object(compute_nodes, 'ACK_TIMEOUT', 0):
+            with self.assertRaises(RuntimeError) as refused:
+                compute_nodes.run('ag_000000000001', args, timeout=3600, live=progress)
+        self.assertIn('aggiorna RigHaven Agent', str(refused.exception))
         self.assertEqual([m['type'] for m in sent], ['run', 'stop'])
 
     def test_each_node_shares_its_limits_among_the_tasks_it_accepts(self):

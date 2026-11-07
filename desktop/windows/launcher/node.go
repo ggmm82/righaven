@@ -281,6 +281,7 @@ func (s *agentSession) runJob(job nodeRun) {
 		what = "environment preparation"
 	}
 	fmt.Fprintf(s.out, "RigHaven node: %s %s started\n", what, job.ID)
+	_ = s.send(map[string]any{"type": "run-state", "id": job.ID, "state": "received"})
 	result := s.executeJob(dir, job)
 	fmt.Fprintf(s.out, "RigHaven node: %s %s ended (exit %v)\n", what, job.ID, result["returncode"])
 	s.uploadResult(dir, job, result)

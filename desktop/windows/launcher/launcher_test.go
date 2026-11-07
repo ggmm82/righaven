@@ -1671,3 +1671,25 @@ func TestNodePreparesARealEnvironmentImage(t *testing.T) {
 		t.Fatal("the preparation container is removed")
 	}
 }
+
+// The server's run message, as it arrives on the channel, reaches the node (its args are a list,
+// an action's args a map: both must be read).
+func TestAgentReadsTheServersRunAndRequestMessages(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join("testdata", "server-prepare-args.json"))
+	must(t, err)
+	var fixture map[string]any
+	must(t, json.Unmarshal(data, &fixture))
+	fixture["type"], fixture["id"], fixture["timeout"] = "run", "rh-env-0123456789ab-a1b2c3", 3600
+	wire, _ := json.Marshal(fixture)
+	message, err := parseAgentMessage(wire)
+	if err != nil || message.Run == nil || message.Run.Prepare == nil || len(message.Run.Args) < 10 || !validRunID(*message.Run) {
+		t.Fatalf("run message: %v %+v", err, message)
+	}
+	request, err := parseAgentMessage([]byte(`{"type":"request","id":"j1","action":"net-scan","args":{"network":"192.168.1.0/24"}}`))
+	if err != nil || request.Args["network"] != "192.168.1.0/24" {
+		t.Fatalf("request message: %v %+v", err, request)
+	}
+	if _, err := parseAgentMessage([]byte(`{"type":"stop","id":"rh-job-0123456789ab"}`)); err != nil {
+		t.Fatal(err)
+	}
+}
