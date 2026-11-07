@@ -45,6 +45,7 @@ class Run:
         self.image = ''
         self.preparation = None  # {'tag', 'environment'} when the run prepares an environment image
         self.on_state = None     # called with the node's states: image (downloading it), running
+        self.on_output = None    # called with a preparation's output while it runs
         # The job's progress file as the node last had it: only what the node changed since is
         # taken, so the server's own writes (a stop request, the limits) are never undone.
         self.seen = {}
@@ -288,7 +289,7 @@ def _pack(target, mounts, modes, limit):
                 archive.add(mount['source'], arcname=mount['key'], filter=keep)
 
 
-def run(node, args, *, timeout, live=None, preparation=None, on_state=None):
+def run(node, args, *, timeout, live=None, preparation=None, on_state=None, on_output=None):
     """Run the worker's docker command on the node; the answer looks like subprocess.run's.
 
     With preparation={'tag', 'environment'} the node saves the container as that environment
@@ -298,6 +299,7 @@ def run(node, args, *, timeout, live=None, preparation=None, on_state=None):
     run_.image = image
     run_.preparation = preparation
     run_.on_state = on_state
+    run_.on_output = on_output
     with _lock:
         RUNS[run_.name] = run_
     try:
@@ -352,6 +354,18 @@ def started(node, name, state):
     if run_.on_state is not None:
         try:
             run_.on_state(state)
+        except Exception:  # a progress display never stops the run
+            pass
+
+
+def output(node, name, text):
+    try:
+        run_ = get(node, name)
+    except LookupError:
+        return
+    if run_.on_output is not None and text:
+        try:
+            run_.on_output(text)
         except Exception:  # a progress display never stops the run
             pass
 
@@ -521,6 +535,45 @@ def environments(node):
     return [r for r in records if r.get('image_id') in present]
 
 
+NODE_PHASES = {'image': '«{where}» scarica l’immagine base di RigHaven (la prima volta, alcuni GB)',
+               'running': 'Preparo gli strumenti su «{where}»', 'installing': 'Installazione dei programmi su «{where}»',
+               'adapters': 'Configurazione degli strumenti su «{where}»', 'checking': 'Collaudo dell’ambiente su «{where}»',
+               'publishing': 'Salvataggio dell’immagine su «{where}»'}
+
+
+def log_path(node, key):
+    """The preparation log of an environment on a node, kept here for the Environments page."""
+    from .state import STATE
+    if not re.fullmatch(r'[0-9a-f]{64}', key) or not re.fullmatch(r'[A-Za-z0-9_-]{1,80}', node):
+        raise ValueError('Identità ambiente non valida')
+    folder_ = STATE / 'compute-environment-logs'
+    folder_.mkdir(parents=True, exist_ok=True, mode=0o700)
+    return folder_ / f'{node}-{key}.log'
+
+
+def preparation_text(node, key, *, since=None):
+    path = log_path(node, key)
+    if not path.is_file() or (since is not None and path.stat().st_mtime < since):
+        return ''
+    with path.open('rb') as stream:
+        stream.seek(max(0, path.stat().st_size - 12000))
+        return stream.read(12000).decode('utf-8', errors='replace')
+
+
+def preparation_observation(node, key, phase, *, since=None):
+    """What the Environments page shows while a node prepares: the phase and the node's last output."""
+    from .progress import clean_summary
+    now, last, size, recent = time.time(), None, 0, ''
+    path = log_path(node, key)
+    if path.is_file() and (since is None or path.stat().st_mtime >= since):
+        stat = path.stat()
+        last, size = stat.st_mtime, stat.st_size
+        tail = preparation_text(node, key)[-4096:]
+        recent = next((clean_summary(line, 300) for line in reversed(tail.splitlines()) if line.strip()), '')
+    return {'environment_id': key, 'phase': phase, 'tools': [], 'last_output_at': last, 'log_bytes': size,
+            'recent_output': recent, 'observed_at': now, 'prerequisite': False}
+
+
 def available(node, tools, identity=None, *, versions=None):
     """The environment the node would use now for these tools: one of its images, or on_demand."""
     from . import environment_runtime as env
@@ -569,15 +622,28 @@ def prepare_environment(node, owner, tools, *, versions=None, resources, progres
             update(progress, environment_container=name)  # a stop request reaches the node's container
         where = label or node
 
+        log = log_path(node, key)
+        log.write_text('')
+
+        def on_output(text):
+            with log.open('a') as stream:
+                if log.stat().st_size < 4_000_000:
+                    stream.write(text)
+            for line in text.splitlines():  # the installer's phases, as on this server
+                try:
+                    event = json.loads(line)
+                except ValueError:
+                    continue
+                if isinstance(event, dict) and event.get('phase') in ('installing', 'adapters', 'checking', 'publishing'):
+                    on_state(event['phase'])
+
         def on_state(state):
             if report is not None:
                 report({'image': 'downloading_image', 'running': 'preparing_machine'}.get(state, state))
-            if progress and state in ('image', 'running'):
+            if progress and state in NODE_PHASES:
                 from .progress import update
-                update(progress, 'preparing_environment',
-                       f'«{where}» scarica l’immagine base di RigHaven (la prima volta, alcuni GB)' if state == 'image'
-                       else f'Preparo gli strumenti su «{where}»')
-        completed = run(node, args, timeout=timeout, preparation={'tag': tag, 'environment': key}, on_state=on_state)
+                update(progress, 'preparing_environment', NODE_PHASES[state].format(where=where))
+        completed = run(node, args, timeout=timeout, preparation={'tag': tag, 'environment': key}, on_state=on_state, on_output=on_output)
         if progress:
             from .progress import read_status
             if read_status(progress).get('cancel_requested'):

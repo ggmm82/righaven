@@ -475,8 +475,15 @@ async def preparation_log(name:str,request:Request):
     user=get_effective_user_id();record=preparation.read(user,name)
     key=record.get('environment_id') or value['runtime'].get('id')
     since=record.get('started_at') if (value.get('preparation') or {}).get('active') else None
-    detail=await run_in_threadpool(runtimes.preparation_text,key,since=since) if key else ''
-    observation=await run_in_threadpool(runtimes.preparation_observation,key,since=since)
+    place=(value.get('deployment') or {}).get('placement') or 'cloud'
+    from . import compute_nodes
+    if key and place not in compute_nodes.PLACES and value['runtime'].get('node'):
+        # Prepared on the machine: its log and phase, never this server's cache.
+        detail=await run_in_threadpool(compute_nodes.preparation_text,place,key,since=since)
+        observation=await run_in_threadpool(compute_nodes.preparation_observation,place,key,record.get('phase') or 'queued',since=since)
+    else:
+        detail=await run_in_threadpool(runtimes.preparation_text,key,since=since) if key else ''
+        observation=await run_in_threadpool(runtimes.preparation_observation,key,since=since)
     if value.get('configuration_change') and not (value.get('preparation') or {}).get('active'):
         observation={**observation,'phase':'configuration_changed','historical':True,'recent_output':'','waiting_on':None}
     if record.get('phase') in ('resolving_versions','checking_versions') and not record.get('environment_id'):

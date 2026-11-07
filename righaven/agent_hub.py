@@ -234,6 +234,9 @@ async def serve(websocket, agent):
                     writer.close()
             elif kind == 'compute':
                 session.compute = compute(value)
+            elif kind == 'run-output':
+                from . import compute_nodes
+                compute_nodes.output(agent['id'], str(value.get('id') or ''), str(value.get('text') or '')[:65536])
             elif kind == 'run-state':
                 from . import compute_nodes
                 compute_nodes.started(agent['id'], str(value.get('id') or ''), str(value.get('state') or '')[:40])

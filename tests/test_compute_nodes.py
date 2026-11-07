@@ -263,10 +263,11 @@ class NodeEnvironmentTests(unittest.TestCase):
             return key, {'version': 1, 'core': 'sha256:' + 'c' * 64, 'tools': sorted(tools),
                          'tool_fingerprints': {t: 'f-' + t for t in tools}}
         self.states = []
-        def run(node, args, *, timeout, live=None, preparation=None, on_state=None):
+        def run(node, args, *, timeout, live=None, preparation=None, on_state=None, on_output=None):
             self.runs.append((args, preparation))
             for state in ('image', 'running'):
                 on_state(state)  # as the node reports them
+            on_output('Installazione blender 4.2\n{"phase": "installing"}\n{"phase": "checking"}\nOK blender\n')
             image = 'sha256:' + str(len(self.runs)) * 64
             return SimpleNamespace(returncode=0, stdout='{"phase":"verified","installed_versions":{"blender":"4.2"}}\n', stderr='',
                                    oom=False, image_id=image, size_bytes=1 << 30)
@@ -286,8 +287,12 @@ class NodeEnvironmentTests(unittest.TestCase):
                                                  report=self.states.append)
 
     def test_the_page_shows_what_the_machine_is_doing(self):
-        self.prepare(['blender'])
-        self.assertEqual(self.states, ['downloading_image', 'preparing_machine'])
+        record = self.prepare(['blender', 'ffmpeg'])
+        self.assertEqual(self.states[:4], ['downloading_image', 'preparing_machine', 'installing', 'checking'])
+        # The node's output is kept here for the page, without any server cache entry.
+        self.assertIn('Installazione blender', compute_nodes.preparation_text(self.NODE, record['id']))
+        seen = compute_nodes.preparation_observation(self.NODE, record['id'], 'checking')
+        self.assertEqual((seen['phase'], seen['recent_output']), ('checking', 'OK blender'))
 
     def test_prepared_on_the_machine_then_reused_there(self):
         first = self.prepare(['blender'])
