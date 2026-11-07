@@ -22,7 +22,7 @@ Gli ID sopra sono registrati dalla CLI, non una certificazione di ogni funzione.
 
 ## Limiti e scelta del metodo
 
-Captures are samples and simulated telemetry is synthetic. Every write (commands, firmware, Android apps and updates, reboots, clearing OBD codes) needs the owner approval of that exact change, delivered once; on network devices it is enforced by the toolkit, on devices attached to the machine also by the container. Firmware build toolchains and Bluetooth radios are not included: pair Bluetooth OBD adapters with the host as serial ports.
+Captures are samples and simulated telemetry is synthetic. Every write (commands, firmware, Android apps and updates, reboots, clearing OBD codes) needs the owner approval of that exact change, delivered once; on network devices it is enforced by the toolkit, on devices attached to the machine also by the container. Firmware build toolchains and Bluetooth radios are not included: a classic Bluetooth OBD adapter paired as a COM port is shared with the task; a Bluetooth LE OBD adapter never becomes a COM port and is read by the coordinator with harness_bluetooth action obd.
 
 ## Scoperta mirata
 

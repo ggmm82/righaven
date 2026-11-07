@@ -41,7 +41,7 @@ type agentConfig struct {
 }
 
 var (
-	agentActions = []string{"bluetooth-scan", "wifi-scan", "com-list", "ble-inspect", "ble-read", "ble-write", "wifi-provision",
+	agentActions = []string{"bluetooth-scan", "wifi-scan", "com-list", "ble-inspect", "ble-read", "ble-write", "ble-exchange", "wifi-provision",
 		"wifi-explore", "pc-devices", "net-listen", "lan-devices", "traffic-capture", "net-scan", "tcp-check"}
 	agentConfigPath = func() string {
 		base := os.Getenv("LOCALAPPDATA")
@@ -476,7 +476,7 @@ func agentHandle(a *App, config agentConfig, action string, args map[string]stri
 			list = append(list, map[string]any{"name": p.Name, "label": p.Label, "bluetooth": p.bluetooth(), "shared": true})
 		}
 		return map[string]any{"ports": list}
-	case "ble-inspect", "ble-read", "ble-write":
+	case "ble-inspect", "ble-read", "ble-write", "ble-exchange":
 		return gattAction(action, args)
 	case "wifi-provision":
 		return provisionWifi(a, args)

@@ -1745,3 +1745,42 @@ func TestLargeResultsGoInPartsAndResume(t *testing.T) {
 		t.Fatalf("received %d bytes of %d", received.Len(), len(data))
 	}
 }
+
+func TestGATTExchangeSendsCommandsInOneConnection(t *testing.T) {
+	previous := gattTool
+	t.Cleanup(func() { gattTool = previous })
+	var asked []string
+	gattTool = func(args ...string) (string, error) {
+		asked = args
+		return "N|OBDII\nR|0|454c4d3332372076312e350d0d3e\nR|1|34332030310d0d3e\n", nil
+	}
+	args := map[string]string{"address": "66:1E:32:FA:3C:20", "service": "0000fff0-0000-1000-8000-00805f9b34fb",
+		"characteristic": "0000fff2-0000-1000-8000-00805f9b34fb", "commands": "41545a0d,30330D", "until": "3e"}
+	result := gattAction("ble-exchange", args)
+	responses, _ := result["responses"].([]string)
+	texts, _ := result["texts"].([]string)
+	if len(responses) != 2 || responses[1] != "34332030310d0d3e" || texts[0] != "" {
+		t.Fatalf("%+v", result)
+	}
+	if strings.Join(asked, " ") != "exchange 66:1E:32:FA:3C:20 0000fff0-0000-1000-8000-00805f9b34fb 0000fff2-0000-1000-8000-00805f9b34fb  41545a0d,30330d 3e 3000" {
+		t.Fatal(asked)
+	}
+	for key, bad := range map[string]string{"commands": "zz", "until": "3e3e", "wait": "50", "notify": "fff1"} {
+		wrong := map[string]string{}
+		for k, v := range args {
+			wrong[k] = v
+		}
+		wrong[key] = bad
+		if result := gattAction("ble-exchange", wrong); result["error"] == nil {
+			t.Fatalf("accepted %s=%s", key, bad)
+		}
+	}
+	many := map[string]string{}
+	for k, v := range args {
+		many[k] = v
+	}
+	many["commands"] = strings.Repeat("30,", maxExchange) + "30"
+	if result := gattAction("ble-exchange", many); result["error"] == nil {
+		t.Fatal("accepted too many commands")
+	}
+}

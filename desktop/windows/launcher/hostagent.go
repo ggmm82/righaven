@@ -25,7 +25,7 @@ type hostRequest struct {
 	Args   map[string]string `json:"args"`
 }
 
-var hostActions = []string{"bluetooth-scan", "wifi-scan", "usb-list", "usb-install", "usb-attach", "usb-detach", "com-list", "com-share", "matter-enable", "matter-disable", "ble-inspect", "ble-read", "ble-write", "wifi-provision", "wifi-explore", "pc-devices", "net-listen", "traffic-capture", "lan-devices"}
+var hostActions = []string{"bluetooth-scan", "wifi-scan", "usb-list", "usb-install", "usb-attach", "usb-detach", "com-list", "com-share", "matter-enable", "matter-disable", "ble-inspect", "ble-read", "ble-write", "ble-exchange", "wifi-provision", "wifi-explore", "pc-devices", "net-listen", "traffic-capture", "lan-devices"}
 
 var (
 	hostMutex  sync.Mutex
@@ -194,7 +194,7 @@ func handleHost(a *App, w WSL, out io.Writer, request hostRequest) map[string]an
 		return exploreSetup(a, request.Args)
 	case "wifi-provision":
 		return provisionWifi(a, request.Args)
-	case "ble-inspect", "ble-read", "ble-write":
+	case "ble-inspect", "ble-read", "ble-write", "ble-exchange":
 		return gattAction(request.Action, request.Args)
 	case "matter-enable":
 		build, err := matterSystem.WindowsBuild()

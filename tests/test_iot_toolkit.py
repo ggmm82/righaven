@@ -154,6 +154,97 @@ class IotToolkitTests(unittest.TestCase):
         with self.assertRaisesRegex(iot_job.UserError, 'harness_device_change'):
             iot_job.flash(serial_cfg, {}, str(image), self.output('flash'))
 
+    def approved_send(self, cfg, command):
+        from righaven.device_changes import command_fingerprint
+        return {**cfg, 'write_enabled': True, 'approvals': [{'id': 's1', 'action': 'send', 'fingerprint': command_fingerprint(command)}]}
+
+    def test_tcp_reply_ends_at_the_prompt(self):
+        import socket
+        import threading
+        import time
+        server = socket.socket()
+        server.bind(('127.0.0.1', 0))
+        server.listen(1)
+        self.addCleanup(server.close)
+
+        def answer():
+            connection, _ = server.accept()
+            with connection:
+                connection.recv(64)
+                connection.sendall(b'43 01 33\r\r>')  # an ELM327 answer: no newline after the prompt
+                time.sleep(3)
+        threading.Thread(target=answer, daemon=True).start()
+        cfg = self.approved_send({'transport': 'network', 'protocol': 'tcp', 'host': '127.0.0.1', 'port': server.getsockname()[1], 'url': 'tcp://x'},
+                                 {'payload': '03\r'})
+        started = time.monotonic()
+        result = iot_job.send(cfg, {'payload': '03\r', 'reply_seconds': 10, 'reply_until': '>'}, self.output('tcp'))
+        self.assertLess(time.monotonic() - started, 5, 'the prompt ends the reply before reply_seconds')
+        self.assertEqual(result['reply_records'], 2)
+        rows = [json.loads(line) for line in (self.root / 'tcp' / 'telemetry.jsonl').read_text().splitlines()]
+        self.assertEqual([r['value'] for r in rows], ['43 01 33', '>'])
+        self.assertEqual(iot_job.reply_until({'reply_until': '3e', 'encoding': 'hex'}), b'>')
+        with self.assertRaises(iot_job.UserError):
+            iot_job.reply_until({'reply_until': 'zz', 'encoding': 'hex'})
+
+    def test_mqtt_reply_topic_is_subscribed_before_publishing(self):
+        events = []
+
+        class Message:
+            def __init__(self, topic, payload):
+                self.topic, self.payload, self.retain = topic, payload, False
+
+        class Published:
+            def wait_for_publish(self, timeout):
+                pass
+
+            def is_published(self):
+                return True
+
+        class Client:
+            on_message = on_subscribe = None
+
+            def connect(self, host, port, keepalive):
+                events.append('connect')
+
+            def loop_start(self):
+                pass
+
+            def loop_stop(self):
+                pass
+
+            def disconnect(self):
+                events.append('disconnect')
+
+            def subscribe(self, topic, qos):
+                events.append('subscribe ' + topic)
+                self.on_subscribe(self, None, 1, [0], None)
+
+            def publish(self, topic, data, qos, retain):
+                events.append('publish ' + topic)
+                # The device answers at once, on its status topic and outside the connection's filter.
+                self.on_message(self, None, Message('stat/plug/POWER', b'ON'))
+                self.on_message(self, None, Message('other/secret', b'x'))
+                return Published()
+
+        command = {'topic': 'cmnd/plug/POWER', 'payload': 'ON'}
+        cfg = self.approved_send({'transport': 'network', 'protocol': 'mqtt', 'host': 'broker', 'port': 1883, 'topic': 'stat/plug/#'}, command)
+        with patch.object(iot_job, 'mqtt_client', return_value=Client()):
+            result = iot_job.send(cfg, {**command, 'reply_topic': 'stat/plug/#', 'reply_seconds': 5, 'reply_until': 'ON'}, self.output('mqtt'))
+        self.assertEqual(events, ['connect', 'subscribe stat/plug/#', 'publish cmnd/plug/POWER', 'disconnect'])
+        self.assertEqual(result['reply_records'], 1)
+        self.assertEqual(result['written']['reply_topic'], 'stat/plug/#')
+        with patch.object(iot_job, 'mqtt_client', return_value=Client()), self.assertRaises(iot_job.UserError):
+            iot_job.send(self.approved_send(cfg, command), {**command, 'reply_topic': 'stat/#/x'}, self.output('mqtt-bad'))
+
+    def test_mqtt_topic_filters(self):
+        self.assertTrue(iot_job.topic_matches('stat/plug/#', 'stat/plug/POWER'))
+        self.assertTrue(iot_job.topic_matches('stat/+/POWER', 'stat/plug/POWER'))
+        self.assertTrue(iot_job.topic_matches('#', 'a/b'))
+        self.assertFalse(iot_job.topic_matches('#', '$SYS/load'))
+        self.assertFalse(iot_job.topic_matches('stat/+', 'stat/plug/POWER'))
+        self.assertFalse(iot_job.topic_matches('stat/plug', 'other/plug'))
+        self.assertTrue(iot_job.valid_filter('stat/+/#') and not iot_job.valid_filter('stat/#/x') and not iot_job.valid_filter('st+at'))
+
     def fake_adb(self, state='device'):
         """A stand-in adb that answers like an Android TV and records its calls."""
         folder = self.root / 'bin'

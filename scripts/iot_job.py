@@ -8,7 +8,7 @@ Reading never needs the owner. Every write needs both the owner's write consent 
 and the owner's approval of that exact change (harness_device_change), delivered once in the
 connection file: the command fingerprint, the file digest, the package or the reboot mode.
 """
-import csv,datetime,hashlib,json,math,os,random,re,select,shutil,socket,subprocess,sys,time
+import csv,datetime,hashlib,json,math,os,random,re,select,shutil,socket,subprocess,sys,threading,time
 import urllib.request
 from pathlib import Path
 
@@ -147,7 +147,8 @@ class ReadOnlyTTY:
     def close(self):os.close(self.fd)
 
 
-def lines(source,deadline,record,origin):
+def lines(source,deadline,record,origin,until=b''):
+    """Lines read until the deadline; with until (a prompt such as b'>' or b'OK'), the reply ends there."""
     buffer=b''
     while time.monotonic()<deadline:
         chunk=source.read(4096)
@@ -156,10 +157,42 @@ def lines(source,deadline,record,origin):
         while b'\n' in buffer:
             line,buffer=buffer.split(b'\n',1)
             if not record.add({'source':origin,'value':text(line.rstrip(b'\r'))}):return
+            if until and until in line:return
+        if until and until in buffer:
+            # Prompt protocols (ELM327, AT modems) end lines with a bare carriage return.
+            for line in re.split(rb'[\r\n]+',buffer):
+                if line and not record.add({'source':origin,'value':text(line)}):return
+            return
         if len(buffer)>MAX_PAYLOAD:
             if not record.add({'source':origin,'value':text(buffer)}):return
             buffer=b''
     if buffer:record.add({'source':origin,'value':text(buffer)})
+
+
+def reply_until(args):
+    """The end of a reply (a prompt such as > or OK): text, or hex bytes with encoding hex."""
+    value=args.get('reply_until')
+    if value is None or value=='':return b''
+    if not isinstance(value,str) or len(value)>16:raise UserError('reply_until: at most 16 characters')
+    if args.get('encoding')=='hex':
+        try:return bytes.fromhex(value)
+        except ValueError as error:raise UserError('reply_until must be hexadecimal bytes with encoding hex') from error
+    return value.encode()
+
+
+def valid_filter(value):
+    levels=value.split('/')
+    return all(level in ('+','#') or ('+' not in level and '#' not in level) for level in levels) and '#' not in levels[:-1]
+
+
+def topic_matches(subscription,topic):
+    """MQTT topic filter matching (+ one level, # the rest)."""
+    wanted,levels=subscription.split('/'),topic.split('/')
+    for i,part in enumerate(wanted):
+        if part=='#':return not topic.startswith('$') or i>0
+        if i>=len(levels) or (part!='+' and part!=levels[i]):return False
+        if part=='+' and i==0 and levels[0].startswith('$'):return False
+    return len(levels)==len(wanted)
 
 
 def mqtt_client(cfg):
@@ -277,24 +310,45 @@ def send(cfg,args,output):
     approval=approved(cfg,'send',fingerprint=command_fingerprint(args))
     transport,protocol=cfg['transport'],cfg.get('protocol')
     reply_seconds=args.get('reply_seconds',2);written={};reply=Recorder(output,1000)
+    until=reply_until(args)
     if transport in ('serial','local'):
         data=payload(args);port=open_serial(cfg,True)
         try:
             port.write(data);written={'bytes':len(data)}
-            lines(port,time.monotonic()+reply_seconds,reply,cfg['url'])
+            lines(port,time.monotonic()+reply_seconds,reply,cfg['url'],until)
         finally:port.close()
     elif protocol=='mqtt':
         topic=args.get('topic')
         if not topic or not re.fullmatch(r'[^\x00-\x20#+]{1,200}',topic):raise UserError('send to MQTT needs a topic without wildcards')
         data=payload(args);client=mqtt_client(cfg)
+        listen=args.get('reply_topic')
+        if listen is not None and (not re.fullmatch(r'[^\x00-\x1f]{1,200}',listen) or not valid_filter(listen)):
+            raise UserError('reply_topic must be an MQTT topic or filter (+ and # only as whole levels)')
+        subscribed,heard=threading.Event(),threading.Event()
+        if listen:
+            # Subscribed before publishing, in the same connection: a device that answers at once is not missed.
+            allowed=cfg.get('topic','#')
+            def on_message(client,userdata,message):
+                if topic_matches(allowed,message.topic) and not message.retain:
+                    reply.add({'source':message.topic,'topic':message.topic,'value':text(message.payload[:MAX_PAYLOAD])})
+                    if until and until in message.payload:heard.set()
+            client.on_message=on_message
+            client.on_subscribe=lambda *_:subscribed.set()
         try:client.connect(cfg['host'],cfg['port'],keepalive=30)
         except OSError as error:raise UserError('MQTT broker not reachable: '+str(error)) from error
         client.loop_start()
+        if listen:
+            client.subscribe(listen,qos=0)
+            if not subscribed.wait(10):
+                client.loop_stop();client.disconnect()
+                raise UserError('The broker did not confirm the subscription to reply_topic')
         info=client.publish(topic,data,qos=1,retain=args.get('retain',False))
         info.wait_for_publish(timeout=10)
+        if listen and info.is_published():
+            heard.wait(reply_seconds)  # the whole reply_seconds, or until a message contains reply_until
         client.loop_stop();client.disconnect()
         if not info.is_published():raise UserError('The broker did not confirm the message')
-        written={'topic':topic,'bytes':len(data),'qos':1,'retain':args.get('retain',False)}
+        written={'topic':topic,'bytes':len(data),'qos':1,'retain':args.get('retain',False),**({'reply_topic':listen} if listen else {})}
     elif protocol=='modbus-tcp':
         if 'address' not in args or not args.get('values'):raise UserError('send to Modbus needs address and values')
         client=modbus(cfg)
@@ -320,7 +374,7 @@ def send(cfg,args,output):
         data=payload(args)
         with socket.create_connection((cfg['host'],cfg['port']),timeout=10) as stream:
             stream.sendall(data);stream.setblocking(False);written={'bytes':len(data)}
-            lines(SocketReader(stream),time.monotonic()+reply_seconds,reply,cfg['url'])
+            lines(SocketReader(stream),time.monotonic()+reply_seconds,reply,cfg['url'],until)
     summary=reply.close(reply_seconds)
     (output/'written.json').write_text(json.dumps({'at':now(),'approval':approval,**written},indent=2))
     return {'status':'passed','approval':approval,'written':written,'reply_records':summary['records'],'files':['written.json','telemetry.jsonl','summary.json'],

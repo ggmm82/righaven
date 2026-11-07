@@ -6,6 +6,7 @@ import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothGatt
 import android.bluetooth.BluetoothGattCallback
 import android.bluetooth.BluetoothGattCharacteristic
+import android.bluetooth.BluetoothGattDescriptor
 import android.bluetooth.BluetoothManager
 import android.bluetooth.BluetoothProfile
 import android.bluetooth.le.ScanCallback
@@ -19,6 +20,7 @@ import android.os.Build
 import org.righaven.agent.HomeDial
 import org.righaven.agent.NetworkScan
 import org.righaven.agent.PrivateNetwork
+import org.righaven.agent.BleExchange
 import org.righaven.agent.printable
 import java.util.UUID
 import java.util.concurrent.LinkedBlockingQueue
@@ -30,12 +32,12 @@ import java.util.concurrent.TimeUnit
  * nearby Wi-Fi networks, the search of its network and whether a host of its network answers.
  */
 class Actions(private val context: Context) {
-    val names = listOf("bluetooth-scan", "ble-inspect", "ble-read", "ble-write", "wifi-scan", "net-scan", "tcp-check",
+    val names = listOf("bluetooth-scan", "ble-inspect", "ble-read", "ble-write", "ble-exchange", "wifi-scan", "net-scan", "tcp-check",
         "net-listen", "pc-devices", "nfc-read")
 
     fun handle(action: String, args: Map<String, String>): Map<String, Any?> = when (action) {
         "bluetooth-scan" -> bluetoothScan()
-        "ble-inspect", "ble-read", "ble-write" -> gatt(action, args)
+        "ble-inspect", "ble-read", "ble-write", "ble-exchange" -> gatt(action, args)
         "wifi-scan" -> wifiScan()
         "net-scan" -> NetworkScan().scan(args["network"].orEmpty())
         "tcp-check" -> HomeDial().open(args["target"].orEmpty(), 6000).use { mapOf("ok" to true, "address" to it.remoteSocketAddress.toString().removePrefix("/")) }
@@ -142,6 +144,7 @@ class Actions(private val context: Context) {
         val address = args["address"].orEmpty()
         require(BluetoothAdapterCheck.valid(address)) { "invalid Bluetooth address $address" }
         val events = LinkedBlockingQueue<Pair<String, Any?>>()
+        val notified = java.io.ByteArrayOutputStream()
         val callback = object : BluetoothGattCallback() {
             override fun onConnectionStateChange(gatt: BluetoothGatt, status: Int, newState: Int) {
                 events.put((if (newState == BluetoothProfile.STATE_CONNECTED) "connected" else "disconnected") to status)
@@ -156,6 +159,16 @@ class Actions(private val context: Context) {
             }
             override fun onCharacteristicWrite(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic, status: Int) {
                 events.put("write" to status)
+            }
+            override fun onDescriptorWrite(gatt: BluetoothGatt, descriptor: BluetoothGattDescriptor, status: Int) {
+                events.put("descriptor" to status)
+            }
+            override fun onCharacteristicChanged(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic, value: ByteArray) {
+                synchronized(notified) { notified.write(value) }
+            }
+            @Deprecated("Android 12 and earlier")
+            override fun onCharacteristicChanged(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic) {
+                if (Build.VERSION.SDK_INT < 33) synchronized(notified) { notified.write(characteristic.value ?: ByteArray(0)) }
             }
         }
         fun await(kind: String, seconds: Long = 15): Any? {
@@ -192,6 +205,7 @@ class Actions(private val context: Context) {
                     if (status != BluetoothGatt.GATT_SUCCESS) throw IllegalStateException("write refused ($status)")
                     mapOf("ok" to true)
                 }
+                "ble-exchange" -> exchange(gatt, BleExchange.parse(args), notified, ::await)
                 else -> mapOf("name" to (device.name ?: ""), "services" to gatt.services.map { service ->
                     mapOf("uuid" to service.uuid.toString(), "characteristics" to service.characteristics.map { item ->
                         val entry = linkedMapOf<String, Any?>("uuid" to item.uuid.toString(), "properties" to properties(item.properties))
@@ -208,6 +222,49 @@ class Actions(private val context: Context) {
             gatt.disconnect()
             gatt.close()
         }
+    }
+
+    /** Listens to the notify characteristic, then writes each command and collects what the device notifies. */
+    @SuppressLint("MissingPermission")
+    @Suppress("DEPRECATION")
+    private fun exchange(gatt: BluetoothGatt, spec: BleExchange, notified: java.io.ByteArrayOutputStream, await: (String, Long) -> Any?): Map<String, Any?> {
+        val service = gatt.getService(UUID.fromString(spec.service))
+            ?: throw IllegalStateException(tr("Servizio non presente sul dispositivo", "Service not on the device"))
+        val target = service.getCharacteristic(UUID.fromString(spec.characteristic))
+            ?: throw IllegalStateException(tr("Caratteristica non presente sul dispositivo", "Characteristic not on the device"))
+        val listens = BluetoothGattCharacteristic.PROPERTY_NOTIFY or BluetoothGattCharacteristic.PROPERTY_INDICATE
+        val listen = (if (spec.notify.isEmpty()) service.characteristics.firstOrNull { it.properties and listens != 0 }
+            else service.getCharacteristic(UUID.fromString(spec.notify)))
+            ?: throw IllegalStateException(tr("Nessuna caratteristica del servizio invia notifiche", "No characteristic of the service notifies"))
+        if (!gatt.setCharacteristicNotification(listen, true)) throw IllegalStateException("notifications refused")
+        val enable = if (listen.properties and BluetoothGattCharacteristic.PROPERTY_NOTIFY != 0) BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
+            else BluetoothGattDescriptor.ENABLE_INDICATION_VALUE
+        listen.getDescriptor(UUID.fromString("00002902-0000-1000-8000-00805f9b34fb"))?.let { descriptor ->
+            if (Build.VERSION.SDK_INT >= 33) gatt.writeDescriptor(descriptor, enable) else { descriptor.value = enable; gatt.writeDescriptor(descriptor) }
+            val status = await("descriptor", 10) as Int
+            if (status != BluetoothGatt.GATT_SUCCESS) throw IllegalStateException("notifications refused ($status)")
+        }
+        val type = if (target.properties and BluetoothGattCharacteristic.PROPERTY_WRITE != 0) BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT
+            else BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE
+        val responses = mutableListOf<String>()
+        for (command in spec.commands) {
+            synchronized(notified) { notified.reset() }
+            if (Build.VERSION.SDK_INT >= 33) gatt.writeCharacteristic(target, command, type)
+            else { target.writeType = type; target.value = command; gatt.writeCharacteristic(target) }
+            val status = await("write", 10) as Int
+            if (status != BluetoothGatt.GATT_SUCCESS) throw IllegalStateException("write refused ($status)")
+            val started = System.currentTimeMillis()
+            var last = started
+            var seen = 0
+            while (System.currentTimeMillis() - started < spec.waitMillis) {
+                Thread.sleep(30)
+                val received = synchronized(notified) { notified.toByteArray() }
+                if (received.size != seen) { seen = received.size; last = System.currentTimeMillis() }
+                if (spec.complete(received, System.currentTimeMillis() - last)) break
+            }
+            responses += hex(synchronized(notified) { notified.toByteArray() })
+        }
+        return mapOf("responses" to responses, "texts" to responses.map(::printable))
     }
 
     @SuppressLint("MissingPermission")
