@@ -557,7 +557,10 @@ func (s *agentSession) ensureImage(id, image string) error {
 		return fmt.Errorf("the server did not send the image (HTTP %d)", response.StatusCode)
 	}
 	load := dockerCommand(context.Background(), "load")
-	load.Stdin = response.Body
+	load.Stdin = &downloadProgress{reader: response.Body, report: func(mib int64) {
+		fmt.Fprintf(s.out, "RigHaven node: %d MB of the image downloaded\n", mib)
+		_ = s.send(map[string]any{"type": "run-state", "id": id, "state": fmt.Sprintf("image:%d", mib)})
+	}}
 	if out, err := load.CombinedOutput(); err != nil {
 		return fmt.Errorf("docker load: %v %s", err, strings.TrimSpace(string(out)))
 	}
@@ -766,6 +769,23 @@ func untarRun(r io.Reader, root string) error {
 			// links and special files are not part of a run
 		}
 	}
+}
+
+// downloadProgress reports every 100 MB read from the server.
+type downloadProgress struct {
+	reader io.Reader
+	read   int64
+	report func(mib int64)
+}
+
+func (d *downloadProgress) Read(p []byte) (int, error) {
+	n, err := d.reader.Read(p)
+	before := d.read >> 20 / 100
+	d.read += int64(n)
+	if after := d.read >> 20 / 100; after > before {
+		d.report(d.read >> 20)
+	}
+	return n, err
 }
 
 // nodeOutput collects a run's output between two sends (at most 64 KiB, the rest is in the result).

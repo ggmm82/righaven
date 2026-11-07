@@ -665,6 +665,14 @@ def prepare_environment(node, owner, tools, *, versions=None, resources, progres
                     on_state(event['phase'])
 
         def on_state(state):
+            if state.startswith('image:'):  # megabytes of the base image downloaded so far
+                megabytes = state.split(':', 1)[1]
+                if report is not None and megabytes.isdigit():
+                    report('downloading_image', f'{megabytes} MB scaricati')
+                if progress and megabytes.isdigit():
+                    from .progress import update
+                    update(progress, 'preparing_environment', f'«{where}» scarica l’immagine base: {megabytes} MB')
+                return
             if report is not None:
                 report({'image': 'downloading_image', 'running': 'preparing_machine'}.get(state, state))
             if progress and state in NODE_PHASES:

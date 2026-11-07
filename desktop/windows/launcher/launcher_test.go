@@ -1693,3 +1693,18 @@ func TestAgentReadsTheServersRunAndRequestMessages(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestImageDownloadReportsEveryHundredMB(t *testing.T) {
+	var seen []int64
+	progress := &downloadProgress{reader: io.LimitReader(zeroReader{}, 250<<20), report: func(mib int64) { seen = append(seen, mib) }}
+	if _, err := io.Copy(io.Discard, progress); err != nil {
+		t.Fatal(err)
+	}
+	if len(seen) != 2 || seen[0] < 100 || seen[1] < 200 {
+		t.Fatalf("reports: %v", seen)
+	}
+}
+
+type zeroReader struct{}
+
+func (zeroReader) Read(p []byte) (int, error) { return len(p), nil }
