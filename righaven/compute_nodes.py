@@ -145,6 +145,14 @@ def choose(user, profile, records, *, egress='open', notes=None):
     return max(nodes, key=lambda r: free(r['id'])[0])['id']
 
 
+def runs_here(node, records, egress='open'):
+    """Whether a task with these connections can run on this connected node (no server-bound resource)."""
+    if not agent_hub.online(node) or not capacity(node) or _blockers(records, egress):
+        return False
+    through = {r['agent'] for r in records if r.get('agent') and not (r['kind'] == 'device' and r.get('transport') == 'bluetooth')}
+    return not (through - {node})
+
+
 def _blockers(records, egress):
     problems = []
     if egress == 'allowlist':

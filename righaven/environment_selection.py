@@ -35,8 +35,20 @@ def record_use(user, name, role, mode):
         state.atomic_json(_usage_path(user, name), value)
 
 
-def profiles(user, policy):
-    """Owner profiles kept ready: name, prepared image, authorized tools and active skills."""
+def _on_machine(user, name, key):
+    """The record of a profile prepared on its machine on premise, while that machine can run it."""
+    from . import agent_hub, compute_nodes
+    from .environments import preferences
+    place = preferences(user).get(name, {}).get('placement') or 'cloud'
+    if place in compute_nodes.PLACES or not agent_hub.online(place) or not compute_nodes.prepares_environments(place):
+        return None
+    record = next((r for r in compute_nodes.environments(place) if r.get('id') == key), None)
+    return {**record, 'node': place} if record else None
+
+
+def profiles(user, policy, include_nodes=True):
+    """Owner profiles kept ready: name, prepared image, authorized tools and active skills. A profile
+    prepared on a machine on premise counts while that machine is connected (its tasks then run there)."""
     from .environment_preparation import read as preparation
     from . import environment_runtime as runtime
     try:
@@ -49,22 +61,26 @@ def profiles(user, policy):
         if prefs.get(agent.name, {}).get('mode') != 'preload':
             continue
         try:
-            record = runtime.read(preparation(user, agent.name).get('ready_id') or '')
+            ready_id = preparation(user, agent.name).get('ready_id') or ''
+            record = runtime.read(ready_id) if ready_id else None
             skills = set(profile(user, agent)['active_skills'])
+            machine = _on_machine(user, agent.name, ready_id) if include_nodes and ready_id else None
         except (ValueError, OSError):
             continue
-        if record and record.get('status') == 'ready' and runtime.image_exists(record):
+        if machine:
+            yield agent.name, machine, set(machine.get('tools', [])) & set(policy.get('allowed', [])), skills
+        elif record and record.get('status') == 'ready' and runtime.image_exists(record):
             yield agent.name, record, set(record.get('tools', [])) & set(policy.get('allowed', [])), skills
 
 
-def choose(user, needed, policy, skills=()):
+def choose(user, needed, policy, skills=(), include_nodes=True):
     """Best ready profile for this role, or None when no profile shares a skill or a tool."""
     if not user or not (needed or skills):
         return None
     from .environment_runtime import closure
     wanted, wanted_skills = set(closure(needed)), set(skills) - {'skill-harness', 'skill-workspace'}
     best = None
-    for name, record, tools, profile_skills in profiles(user, policy):
+    for name, record, tools, profile_skills in profiles(user, policy, include_nodes):
         covered, shared = wanted & tools, wanted_skills & profile_skills
         if not covered and not shared:
             continue
@@ -74,7 +90,7 @@ def choose(user, needed, policy, skills=()):
     if best is None:
         return None
     _, name, record, covered, shared = best
-    return {'name': name, 'id': record['id'], 'covered': sorted(covered), 'missing': sorted(wanted - covered),
+    return {'name': name, 'id': record['id'], 'node': record.get('node'), 'covered': sorted(covered), 'missing': sorted(wanted - covered),
             'skills': sorted(shared), 'role_skills': sorted(wanted_skills), 'wanted': len(wanted),
             'versions': {t: r for t, r in record.get('versions', {}).items() if t in covered and not t.startswith('provider-')}}
 

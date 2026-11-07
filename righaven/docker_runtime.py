@@ -508,19 +508,30 @@ def delegate(agent_id, task, workspace, tool_call_id=None, on_started=None, requ
                 chosen_versions=software_selections(policy.get('user_id'),policy.get('agent_name'),needed)
                 # A ready owner profile covering these tools is reused or extended, not rebuilt.
                 base_profile=profiles_base.choose(policy.get('user_id'),needed,policy,(role or {}).get('skills',[])) if policy.get('source') == 'righaven_core' else None
+                if base_profile and base_profile.get('node') and base_profile['node'] != node:
+                    # The best ready profile is on a machine on premise: the task goes there, unless the
+                    # environment chose its place or the task needs this server; otherwise cloud profiles only.
+                    if node is None and not policy.get('agent_name') and compute_nodes.runs_here(base_profile['node'], role_records(workspace, role), egress_mode()):
+                        node = base_profile['node']
+                        node_label = compute_nodes.placement_label(policy.get('user_id'), node)
+                        update(progress, node={'id': node, 'name': node_label})
+                    else:
+                        base_profile=profiles_base.choose(policy.get('user_id'),needed,policy,(role or {}).get('skills',[]),include_nodes=False)
                 chosen_versions=profiles_base.versions(chosen_versions,base_profile)
                 if node and compute_nodes.prepares_environments(node):
                     # On premise the image is prepared and kept on the machine, reusing only its own images.
                     from .tool_versions import resolved
                     chosen_versions = resolved(chosen_versions or {}, wait=True, progress=progress, refresh=False)
                     runtime_environment = compute_nodes.prepare_environment(node, name, needed, versions=chosen_versions, resources=node_place(),
-                                                                            progress=progress, label=node_label)
-                    base_profile = None
+                                                                            progress=progress, label=node_label, prefer=(base_profile or {}).get('id'))
+                    if base_profile and not base_profile.get('node'):
+                        base_profile = None  # a cloud profile is never the base of a machine's image
                 else:
                     runtime_environment = environments.ensure(needed, acquire=True, progress=progress, cache_dependencies=not ephemeral_environment, claim=name,versions=chosen_versions,prefer=(base_profile or {}).get('id'))
                 profile_use=profiles_base.outcome(base_profile,runtime_environment)
                 if profile_use['mode'] in ('reused','extended'):
-                    environments.save(base_profile['id'],last_used=time.time())
+                    if not base_profile.get('node'):
+                        environments.save(base_profile['id'],last_used=time.time())
                     profiles_base.record_use(policy['user_id'],base_profile['name'],(role or {}).get('title') or agent_id,profile_use['mode'])
             # On a machine its environment image is named (IDs differ between image stores).
             runtime_image = runtime_environment['image'] if runtime_environment.get('node') else (runtime_environment.get('image_id') or runtime_environment['image'])

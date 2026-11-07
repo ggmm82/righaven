@@ -45,6 +45,24 @@ class ProfileSelectionTests(unittest.TestCase):
         # Coordination skills present in every profile do not count as a match.
         self.assertIsNone(self.choose(['d2'], [('base', profile('c', ['typst'], skills=['skill-harness']))], skills=['skill-harness']))
 
+    def test_a_profile_ready_on_a_machine_on_premise_takes_its_tasks_there(self):
+        on_machine = ('3d-cad', {**profile('c', ['typst', 'pandoc'], skills=['skill-typst']), 'node': 'ag_000000000001'})
+        cloud = ('documenti', profile('a', ['pandoc']))
+        base = self.choose(['typst', 'pandoc'], [cloud, on_machine], skills=['skill-typst'])
+        self.assertEqual((base['name'], base['node']), ('3d-cad', 'ag_000000000001'))
+        self.assertIsNone(self.choose(['pandoc'], [cloud])['node'])
+        from righaven import agent_hub, compute_nodes
+        key = 'c' * 64
+        machine = {'id': key, 'status': 'ready', 'tools': ['typst'], 'image': 'skill-environment:x', 'image_id': 'sha256:' + 'e' * 64}
+        with patch('righaven.environments.preferences', return_value={'3d-cad': {'placement': 'ag_000000000001'}}), \
+                patch.object(agent_hub, 'online', return_value=True), patch.object(compute_nodes, 'prepares_environments', return_value=True), \
+                patch.object(compute_nodes, 'environments', return_value=[machine]):
+            self.assertEqual(selection._on_machine('owner', '3d-cad', key)['node'], 'ag_000000000001')
+            with patch.object(agent_hub, 'online', return_value=False):  # an offline machine offers nothing
+                self.assertIsNone(selection._on_machine('owner', '3d-cad', key))
+        with patch('righaven.environments.preferences', return_value={'3d-cad': {'placement': 'cloud'}}):
+            self.assertIsNone(selection._on_machine('owner', '3d-cad', key))
+
     def test_ties_prefer_fewer_unrequested_tools_then_the_smaller_image(self):
         lean = ('lean', profile('c', ['d2', 'poppler'], size=9))
         wide = ('wide', profile('d', ['d2', 'poppler', 'calibre'], size=1))
