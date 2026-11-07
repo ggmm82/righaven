@@ -34,6 +34,8 @@ import java.util.concurrent.TimeUnit
 class AgentService : Service() {
     companion object {
         const val VERSION_HEADER = "X-RigHaven-Agent"
+        const val ACTION_STOP = "org.righaven.agent.STOP"
+        const val EXTRA_LOG = "show_log"
         @Volatile var status: String = ""
             private set
 
@@ -64,6 +66,15 @@ class AgentService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        if (intent?.action == ACTION_STOP) {  // «Stop» in the notification, even with the app closed
+            Store.setAgentEnabled(this, false)
+            log(this).add(tr("Agente fermato dalla notifica", "Agent stopped from the notification"))
+            running = false
+            socket?.close(1000, "stopped")
+            stopForeground(STOP_FOREGROUND_REMOVE)
+            stopSelf()
+            return START_NOT_STICKY
+        }
         // Opening the app starts the service again: an agent already connected keeps saying so.
         val notification = notification(status.takeIf { running && it.isNotEmpty() } ?: tr("Collegamento al server…", "Connecting to the server…"))
         if (Build.VERSION.SDK_INT >= 29) startForeground(1, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE)
@@ -99,7 +110,15 @@ class AgentService : Service() {
                     override fun close(code: Int, reason: String) { webSocket.close(code, reason) }
                 }
                 session = AgentSession(channel, "android", BuildConfigVersion.name(this@AgentService), actions.names, actions::networks,
-                    { action, args -> log.action(action, args.values.joinToString(" ")) { actions.handle(action, args) } },
+                    { action, args ->
+                        // The notification says what the server asked while it runs, then the outcome.
+                        show(tr("Collegato · esegue ", "Connected · running ") + action + "…")
+                        try {
+                            log.action(action, args.values.joinToString(" ")) { actions.handle(action, args) }
+                        } finally {
+                            show(tr("Collegato a ", "Connected to ") + pairing.server + " · " + (log.lines().firstOrNull()?.substringAfter("  ") ?: ""))
+                        }
+                    },
                     openStream = { target ->
                         val tcp = try {
                             HomeDial().open(target)
@@ -173,6 +192,7 @@ class AgentService : Service() {
     }
 
     private fun show(text: String) {
+        if (!running) return  // stopped: no notification comes back
         status = text
         getSystemService(NotificationManager::class.java)?.notify(1, notification(text))
     }
@@ -181,8 +201,15 @@ class AgentService : Service() {
         val manager = getSystemService(NotificationManager::class.java)
         manager?.createNotificationChannel(NotificationChannel("agent", "RigHaven Agent", NotificationManager.IMPORTANCE_LOW))
         val open = PendingIntent.getActivity(this, 0, Intent(this, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE)
-        return Notification.Builder(this, "agent").setSmallIcon(R.drawable.ic_righaven).setContentTitle("RigHaven Agent")
-            .setContentText(text).setContentIntent(open).setOngoing(true).build()
+        val showLog = PendingIntent.getActivity(this, 1, Intent(this, MainActivity::class.java).putExtra(EXTRA_LOG, true)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP), PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
+        val stop = PendingIntent.getService(this, 2, Intent(this, AgentService::class.java).setAction(ACTION_STOP), PendingIntent.FLAG_IMMUTABLE)
+        // Always visible while the agent works: its state, the last operation, and how to stop or check it.
+        return Notification.Builder(this, "agent").setSmallIcon(R.drawable.ic_righaven).setContentTitle(tr("RigHaven Agent attivo", "RigHaven Agent active"))
+            .setContentText(text).setStyle(Notification.BigTextStyle().bigText(text)).setContentIntent(open).setOngoing(true)
+            .addAction(Notification.Action.Builder(null as android.graphics.drawable.Icon?, tr("Ferma", "Stop"), stop).build())
+            .addAction(Notification.Action.Builder(null as android.graphics.drawable.Icon?, tr("Registro", "Log"), showLog).build())
+            .build()
     }
 }
 

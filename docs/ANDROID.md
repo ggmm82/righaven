@@ -34,8 +34,11 @@ work on it, and *Create connection* proposes the connection *on premise, through
 
 ## The agent in the background
 
-The agent is a **foreground service**: Android shows its notification ("Connected to …") for as
-long as it runs, and it reconnects by itself. The **Agent** button of the app stops or starts it,
+The agent is a **foreground service**: Android shows its notification, *RigHaven Agent active*, for
+as long as it runs, and it reconnects by itself. The notification says the real state (connected,
+retrying, the action the server asked while it runs, then its outcome) and has two buttons that
+work with the app closed: **Stop** turns the agent off (start it again from the app's Agent menu)
+and **Log** opens the activity log. The **Agent** button of the app stops or starts it,
 opens the permissions and the battery settings: if the phone stops the agent when the screen is
 off, let RigHaven work in the background there.
 

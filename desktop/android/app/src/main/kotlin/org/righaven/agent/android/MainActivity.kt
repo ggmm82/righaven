@@ -43,6 +43,14 @@ class MainActivity : Activity() {
                 "The server no longer knows this phone (it was revoked in Connected PCs): create a new code and type it here."), pairing.server)
             else -> showWeb(pairing)
         }
+        if (intent?.getBooleanExtra(AgentService.EXTRA_LOG, false) == true) showLog()
+    }
+
+    // «Log» in the agent's notification while the app is already open.
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        if (intent.getBooleanExtra(AgentService.EXTRA_LOG, false)) showLog()
     }
 
     private fun showPairing(message: String = "", server: String = "") {
