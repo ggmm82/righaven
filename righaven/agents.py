@@ -16,7 +16,7 @@ from urllib.parse import urlsplit
 
 from .state import LOCK, STATE, atomic_json
 
-FILE = 'agents.json'
+FILE = 'pc-agents.json'  # agents.json belongs to the specialists (state.catalog)
 ACTIVITY = 'agents-activity.jsonl'
 CODE_SECONDS = 600
 CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'  # no 0/O, 1/I
@@ -32,6 +32,8 @@ def _hash(value):
 
 
 def _load():
+    from .state import split_pc_registry
+    split_pc_registry()  # pairings saved by the betas in agents.json
     path = STATE / FILE
     try:
         value = json.loads(path.read_text())
