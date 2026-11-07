@@ -592,7 +592,7 @@ function DeviceDiscovery({base,t,onCreate}:{base:string;t:(a:string,b:string)=>s
      {d.sensor?.encrypted&&<span className="text-muted-foreground block text-xs">{d.sensor.format}: {t("dati cifrati: per leggerli serve la bind key del sensore, oppure un firmware aperto (pvvx, BTHome).","encrypted data: reading it needs the sensor’s bind key, or an open firmware (pvvx, BTHome).")}</span>}</li>;
      const old=rows.filter(d=>d.present===false);
      return <><ul className="space-y-1 text-sm">{rows.filter(d=>d.present!==false).map(row)}</ul>
-      {old.length>0&&<details className="text-sm" data-testid="bluetooth-remembered"><summary className="cursor-pointer text-xs">{t("Ricordati da Windows, non sentiti ora","Remembered by Windows, not heard now")} ({old.length})</summary>
+      {old.length>0&&<details className="text-sm" data-testid="bluetooth-remembered"><summary className="cursor-pointer text-xs">{host.state?.platform==="android"?t("Associati al telefono, non sentiti ora","Paired with the phone, not heard now"):t("Ricordati da Windows, non sentiti ora","Remembered by Windows, not heard now")} ({old.length})</summary>
        <ul className="mt-1 space-y-1">{old.map(row)}</ul></details>}</>;})()}
     {info.bluetooth.devices.some(d=>d.sensor?.readings)&&<a className="text-xs underline" href={withAgent(base+"/discovery/ble-history.csv",agent)} download>{t("Scarica lo storico delle letture (CSV)","Download the readings history (CSV)")}</a>}</>
    :<p className="text-muted-foreground text-xs">{t("Nessuna ricerca Bluetooth ancora: premi «Cerca dispositivi Bluetooth».","No Bluetooth search yet: press “Search Bluetooth devices”.")}</p>}
