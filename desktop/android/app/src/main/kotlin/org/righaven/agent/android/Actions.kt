@@ -30,7 +30,8 @@ import java.util.concurrent.TimeUnit
  * nearby Wi-Fi networks, the search of its network and whether a host of its network answers.
  */
 class Actions(private val context: Context) {
-    val names = listOf("bluetooth-scan", "ble-inspect", "ble-read", "ble-write", "wifi-scan", "net-scan", "tcp-check")
+    val names = listOf("bluetooth-scan", "ble-inspect", "ble-read", "ble-write", "wifi-scan", "net-scan", "tcp-check",
+        "net-listen", "pc-devices", "nfc-read")
 
     fun handle(action: String, args: Map<String, String>): Map<String, Any?> = when (action) {
         "bluetooth-scan" -> bluetoothScan()
@@ -38,6 +39,9 @@ class Actions(private val context: Context) {
         "wifi-scan" -> wifiScan()
         "net-scan" -> NetworkScan().scan(args["network"].orEmpty())
         "tcp-check" -> HomeDial().open(args["target"].orEmpty(), 6000).use { mapOf("ok" to true, "address" to it.remoteSocketAddress.toString().removePrefix("/")) }
+        "net-listen" -> listen()
+        "pc-devices" -> PhoneDevices(context).list()
+        "nfc-read" -> NfcBus.read(context)
         else -> mapOf("error" to "unknown action $action")
     }
 
@@ -46,6 +50,17 @@ class Actions(private val context: Context) {
         val connectivity = context.getSystemService(ConnectivityManager::class.java) ?: return emptyList()
         val properties = connectivity.getLinkProperties(connectivity.activeNetwork) ?: return emptyList()
         return properties.linkAddresses.mapNotNull { PrivateNetwork.cidr(it.address, it.prefixLength) }.distinct()
+    }
+
+    /** Devices that announce themselves on the phone's Wi-Fi (mDNS/Bonjour, SSDP/UPnP). */
+    private fun listen(): Map<String, Any?> {
+        val wifi = context.applicationContext.getSystemService(WifiManager::class.java)
+        val lock = wifi?.createMulticastLock("righaven-listen")?.apply { setReferenceCounted(false); acquire() }
+        try {
+            return org.righaven.agent.NetListen().listen(6)
+        } finally {
+            lock?.release()
+        }
     }
 
     private fun granted(permission: String) = context.checkSelfPermission(permission) == PackageManager.PERMISSION_GRANTED
@@ -78,9 +93,38 @@ class Actions(private val context: Context) {
             }
         }
         val scanner = adapter.bluetoothLeScanner ?: throw IllegalStateException(tr("Bluetooth LE non disponibile", "Bluetooth LE not available"))
-        scanner.startScan(null, ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY).build(), callback)
+        // Android drops a search for every device without a word while the screen is off, while
+        // Location is off, or after five searches in 30 seconds: say so instead of an empty list.
+        val warnings = mutableListOf<String>()
+        if (context.getSystemService(android.os.PowerManager::class.java)?.isInteractive == false)
+            warnings += tr("Schermo del telefono spento: Android blocca la ricerca dei dispositivi Bluetooth vicini. Accendi lo schermo e riprova.",
+                "The phone's screen is off: Android blocks the search for nearby Bluetooth devices. Turn the screen on and try again.")
+        if (context.getSystemService(android.location.LocationManager::class.java)?.let { Build.VERSION.SDK_INT >= 28 && !it.isLocationEnabled } == true)
+            warnings += tr("Posizione del telefono spenta: con la posizione spenta molti telefoni non riportano i dispositivi Bluetooth vicini.",
+                "The phone's Location is off: with it off many phones report no nearby Bluetooth devices.")
+        if (context.getSystemService(android.os.PowerManager::class.java)?.isIgnoringBatteryOptimizations(context.packageName) == false)
+            warnings += tr("Batteria ottimizzata per RigHaven: il telefono limita l’agente in background e la ricerca Bluetooth può non trovare nulla. Agente → Batteria → «Senza restrizioni».",
+                "Battery optimized for RigHaven: the phone limits the agent in the background and the Bluetooth search may find nothing. Agent → Battery → “Unrestricted”.")
+        if (!granted(Manifest.permission.ACCESS_FINE_LOCATION))
+            warnings += tr("Posizione precisa non concessa a RigHaven: Android non riporta i dispositivi Bluetooth vicini. Impostazioni → App → RigHaven → Autorizzazioni → Posizione → «Usa posizione precisa».",
+                "Precise location not granted to RigHaven: Android reports no nearby Bluetooth devices. Settings → Apps → RigHaven → Permissions → Location → “Use precise location”.")
+        var failed = 0
+        val watched = object : ScanCallback() {
+            override fun onScanResult(callbackType: Int, result: ScanResult) = callback.onScanResult(callbackType, result)
+            override fun onScanFailed(errorCode: Int) { failed = errorCode }
+        }
+        scanner.startScan(null, ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY).build(), watched)
         Thread.sleep(8000)
-        scanner.stopScan(callback)
+        scanner.stopScan(watched)
+        if (failed != 0) warnings += when (failed) {
+            ScanCallback.SCAN_FAILED_APPLICATION_REGISTRATION_FAILED, 6 /* SCANNING_TOO_FREQUENTLY */ ->
+                tr("Troppe ricerche Bluetooth ravvicinate: Android ne permette cinque ogni 30 secondi. Riprova tra poco.",
+                    "Too many Bluetooth searches in a row: Android allows five every 30 seconds. Try again shortly.")
+            else -> tr("La ricerca Bluetooth del telefono non è partita (errore $failed)", "The phone's Bluetooth search did not start (error $failed)")
+        }
+        if (synchronized(heard) { heard.isEmpty() } && failed == 0 && warnings.isEmpty())
+            warnings += tr("Nessun dispositivo Bluetooth sentito in 8 secondi. Se ce ne sono vicini, Android potrebbe aver limitato la ricerca (troppe ricerche ravvicinate): riprova tra 30 secondi.",
+                "No Bluetooth device heard in 8 seconds. If some are nearby, Android may have limited the search (too many in a row): try again in 30 seconds.")
         val devices = synchronized(heard) { heard.values.toMutableList<Map<String, Any?>>() }
         for (device in adapter.bondedDevices.orEmpty()) {
             if (devices.none { it["address"] == device.address }) {
@@ -88,7 +132,7 @@ class Actions(private val context: Context) {
                     "kind" to if (device.type == BluetoothDevice.DEVICE_TYPE_CLASSIC) "classic" else "ble")
             }
         }
-        return mapOf("devices" to devices, "warnings" to emptyList<String>())
+        return mapOf("devices" to devices, "warnings" to warnings)
     }
 
     @SuppressLint("MissingPermission")

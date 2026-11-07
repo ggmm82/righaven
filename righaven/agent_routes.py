@@ -195,9 +195,28 @@ async def run_live(name: str, request: Request):
 
 
 @router.put('/api/webhooks/righaven-agent/runs/{name}/result')
-async def run_result(name: str, request: Request):
-    """The end of a sandbox: exit code, output, and the folders it was allowed to write."""
+async def run_result(name: str, request: Request, part: Optional[int] = None, final: bool = False):
+    """The end of a sandbox: exit code, output, and the folders it was allowed to write.
+
+    A large result comes in parts (part=0, 1, … and final=true on the last): each request stays
+    short, so no proxy timeout cuts it, and a failed part is sent again from where it stopped."""
     from . import compute_nodes
+    if part is not None:
+        agent = await _node(request)
+        data = b''
+        async for chunk in request.stream():
+            data += chunk
+            if len(data) > compute_nodes.MAX_PART:
+                raise HTTPException(413, 'Parte del risultato troppo grande')
+        try:
+            complete = await run_in_threadpool(compute_nodes.receive_part, agent['id'], name, part, data, final)
+        except LookupError:
+            raise HTTPException(410, 'Esecuzione non più attesa da questo server') from None
+        except compute_nodes.PartOutOfOrder as error:
+            raise HTTPException(409, {'code': 'part_expected', 'expected': error.expected}) from None
+        except (ValueError, OSError) as error:
+            raise HTTPException(400, str(error)) from error
+        return {'ok': True, 'complete': complete}
     return await _receive(request, compute_nodes.receive_result, name)
 
 

@@ -69,6 +69,37 @@ class ComputeNodeTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 compute_nodes.prepare('ag_000000000001', args[:3] + extra + args[3:], progress)
 
+    def test_a_large_result_arrives_in_parts_in_order(self):
+        args, project, output, progress = self.folders()
+        sent = []
+
+        def node(identifier, message):
+            sent.append(message)
+            if message['type'] != 'run':
+                return
+            def answer():
+                buffer = io.BytesIO()
+                with tarfile.open(fileobj=buffer, mode='w:gz') as archive:
+                    for name, data in (('result.json', json.dumps({'returncode': 0, 'stdout': 'ok'}).encode()), ('m1/render.bin', os.urandom(300000))):
+                        info = tarfile.TarInfo(name); info.size = len(data)
+                        archive.addfile(info, io.BytesIO(data))
+                data = buffer.getvalue()
+                parts = [data[i:i + 100000] for i in range(0, len(data), 100000)]
+                with self.assertRaises(compute_nodes.PartOutOfOrder) as skipped:
+                    compute_nodes.receive_part(identifier, message['id'], 1, parts[1], False)  # part 0 is missing
+                self.assertEqual(skipped.exception.expected, 0)
+                for index, part in enumerate(parts):
+                    final = index == len(parts) - 1
+                    self.assertEqual(compute_nodes.receive_part(identifier, message['id'], index, part, final), final)
+                    if index == 0:  # an answer lost on the way: the same part again is fine
+                        self.assertFalse(compute_nodes.receive_part(identifier, message['id'], 0, part, False))
+            threading.Timer(.1, answer).start()
+        with patch.object(agent_hub, 'send', side_effect=node), patch.object(agent_hub, 'owner', return_value='alice'), \
+                patch.object(agents, 'log'):
+            completed = compute_nodes.run('ag_000000000001', args, timeout=10, live=progress)
+        self.assertEqual((completed.returncode, completed.stdout), (0, 'ok'))
+        self.assertEqual((output / 'render.bin').stat().st_size, 300000)
+
     def test_a_run_waits_for_the_node_and_takes_back_only_its_writable_folders(self):
         args, project, output, progress = self.folders()
         (progress / 'progress.json').write_text(json.dumps({'phase': 'starting', 'summary': 'avvio', 'cancel_requested': False}))
@@ -383,3 +414,28 @@ class HubComputeTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class MachineActivityTests(unittest.TestCase):
+    """A task or a preparation on a machine on premise makes its environment «in use» on the page."""
+    def test_runs_on_machines_count_as_activity(self):
+        from righaven import environment_activity
+        from righaven.progress import workspace_key
+        compute_nodes.RUNS.clear()
+        compute_nodes.LEASES.clear()
+        self.addCleanup(compute_nodes.RUNS.clear)
+        self.addCleanup(compute_nodes.LEASES.clear)
+        preparation = compute_nodes.Run('rh-env-0123456789ab-a1b2c3', 'ag_000000000001', [], Path('/tmp/x'))
+        preparation.preparation, preparation.state = {'tag': 't', 'environment': 'b' * 64}, 'running'
+        compute_nodes.RUNS[preparation.name] = preparation
+        compute_nodes.LEASES['ag_000000000001'] = {'rh-job-0123456789ab': {'cpus': 1}}
+        workspace = Path('/tmp/workspace-x')
+        status = {'workspace_key': workspace_key(workspace), 'phase': 'running', 'environment': {'id': 'c' * 64, 'tools': ['blender']},
+                  'environment_profile': '', 'role_title': 'Modellatore 3D', 'agent': 'workspace'}
+        with patch.object(environment_activity, 'read_status', return_value=status), \
+                patch.object(environment_activity, 'public_status', side_effect=lambda v: {**v, 'work_summary': 'Modello', 'summary': '', 'heartbeat_at': None, 'last_activity_at': None}):
+            jobs = environment_activity.on_machines({'k': ('thread-1', workspace)})
+        self.assertEqual([j['environment_id'] for j in jobs], ['b' * 64, 'c' * 64])
+        self.assertEqual((jobs[1]['thread_id'], jobs[1]['node']), ('thread-1', 'ag_000000000001'))
+        activity = {'observed': True, 'jobs': jobs}
+        self.assertEqual(environment_activity.for_runtime(activity, 'c' * 64)['state'], 'busy')

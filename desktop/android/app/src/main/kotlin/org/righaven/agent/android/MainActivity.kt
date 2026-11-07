@@ -46,6 +46,18 @@ class MainActivity : Activity() {
         if (intent?.getBooleanExtra(AgentService.EXTRA_LOG, false) == true) showLog()
     }
 
+    // NFC is read only by the app on screen: while the server waits for a tag, this activity listens.
+    override fun onResume() {
+        super.onResume()
+        NfcBus.attach(this)
+    }
+
+    override fun onPause() {
+        NfcBus.attach(null)
+        runCatching { android.nfc.NfcAdapter.getDefaultAdapter(this)?.disableReaderMode(this) }
+        super.onPause()
+    }
+
     // «Log» in the agent's notification while the app is already open.
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
