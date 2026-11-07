@@ -44,6 +44,7 @@ class Run:
         self.state, self.result, self.done = 'sent', None, threading.Event()
         self.image = ''
         self.preparation = None  # {'tag', 'environment'} when the run prepares an environment image
+        self.on_state = None     # called with the node's states: image (downloading it), running
         # The job's progress file as the node last had it: only what the node changed since is
         # taken, so the server's own writes (a stop request, the limits) are never undone.
         self.seen = {}
@@ -287,7 +288,7 @@ def _pack(target, mounts, modes, limit):
                 archive.add(mount['source'], arcname=mount['key'], filter=keep)
 
 
-def run(node, args, *, timeout, live=None, preparation=None):
+def run(node, args, *, timeout, live=None, preparation=None, on_state=None):
     """Run the worker's docker command on the node; the answer looks like subprocess.run's.
 
     With preparation={'tag', 'environment'} the node saves the container as that environment
@@ -296,6 +297,7 @@ def run(node, args, *, timeout, live=None, preparation=None):
     image = _image(template)
     run_.image = image
     run_.preparation = preparation
+    run_.on_state = on_state
     with _lock:
         RUNS[run_.name] = run_
     try:
@@ -343,9 +345,15 @@ def get(node, name):
 
 def started(node, name, state):
     try:
-        get(node, name).state = state
+        run_ = get(node, name)
     except LookupError:
-        pass
+        return
+    run_.state = state
+    if run_.on_state is not None:
+        try:
+            run_.on_state(state)
+        except Exception:  # a progress display never stops the run
+            pass
 
 
 def stop(name):
@@ -528,7 +536,7 @@ def available(node, tools, identity=None, *, versions=None):
             **({'software_abi': spec['software_abi']} if spec.get('software_abi') else {})}
 
 
-def prepare_environment(node, owner, tools, *, versions=None, resources, progress=None, label=None, prefer=None, timeout=3600):
+def prepare_environment(node, owner, tools, *, versions=None, resources, progress=None, label=None, prefer=None, timeout=3600, report=None):
     """The environment of a task on premise: one of the node's images when it fits, otherwise
     prepared on the node, starting from the closest of its own images."""
     from . import environment_runtime as env
@@ -559,7 +567,17 @@ def prepare_environment(node, owner, tools, *, versions=None, resources, progres
             update(progress, 'preparing_environment', f'Preparo gli strumenti su «{label or node}»' +
                    (f' partendo da un suo ambiente ({", ".join(reused)} già pronti)' if reused else ''))
             update(progress, environment_container=name)  # a stop request reaches the node's container
-        completed = run(node, args, timeout=timeout, preparation={'tag': tag, 'environment': key})
+        where = label or node
+
+        def on_state(state):
+            if report is not None:
+                report({'image': 'downloading_image', 'running': 'preparing_machine'}.get(state, state))
+            if progress and state in ('image', 'running'):
+                from .progress import update
+                update(progress, 'preparing_environment',
+                       f'«{where}» scarica l’immagine base di RigHaven (la prima volta, alcuni GB)' if state == 'image'
+                       else f'Preparo gli strumenti su «{where}»')
+        completed = run(node, args, timeout=timeout, preparation={'tag': tag, 'environment': key}, on_state=on_state)
         if progress:
             from .progress import read_status
             if read_status(progress).get('cancel_requested'):

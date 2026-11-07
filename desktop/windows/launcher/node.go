@@ -309,7 +309,7 @@ func (s *agentSession) executeJob(dir string, job nodeRun) map[string]any {
 		}
 		openForSandbox(path, m.Mode != "ro")
 	}
-	if err := s.ensureImage(job.Image); err != nil {
+	if err := s.ensureImage(job.ID, job.Image); err != nil {
 		return fail(err)
 	}
 	limits, _ := nodeCapacity(s.nodeConfig())
@@ -511,10 +511,12 @@ func (s *agentSession) nodeConfig() *nodeConfig {
 }
 
 // ensureImage: the environment image is downloaded once from the server (or from its registry).
-func (s *agentSession) ensureImage(image string) error {
+func (s *agentSession) ensureImage(id, image string) error {
 	if dockerCommand(context.Background(), "image", "inspect", image).Run() == nil {
 		return nil
 	}
+	// The first time this can be a few GB: the server shows that the machine is downloading.
+	_ = s.send(map[string]any{"type": "run-state", "id": id, "state": "image"})
 	if strings.Contains(image, "/") && !strings.HasPrefix(image, "sha256:") {
 		if dockerCommand(context.Background(), "pull", image).Run() == nil {
 			return nil

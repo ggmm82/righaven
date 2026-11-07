@@ -7,11 +7,15 @@ import time
 from . import state
 from .progress import clean_summary
 
-ACTIVE={'resolving_versions','checking_versions','queued','waiting_chat','installing','adapters','checking','publishing','preparing'}
+ACTIVE={'resolving_versions','checking_versions','queued','waiting_chat','installing','adapters','checking','publishing','preparing',
+        'waiting_machine','downloading_image','preparing_machine'}
 LABELS={'resolving_versions':'Ricerca delle versioni','checking_versions':'Verifica delle versioni',
     'queued':'In attesa di risorse','waiting_chat':'In attesa della chat','installing':'Installazione dei programmi',
     'adapters':'Configurazione degli strumenti','checking':'Collaudo dell’ambiente','preparing':'Preparazione dell’ambiente',
-    'publishing':'Salvataggio dell’immagine software','ready':'Programmi pronti','failed':'Preparazione non riuscita','cancelled':'Preparazione annullata','interrupted':'Preparazione interrotta'}
+    'publishing':'Salvataggio dell’immagine software',
+    'waiting_machine':'In attesa della macchina on premise (collegata e libera)',
+    'downloading_image':'La macchina scarica l’immagine base (la prima volta, alcuni GB)',
+    'preparing_machine':'Preparazione sulla macchina on premise','ready':'Programmi pronti','failed':'Preparazione non riuscita','cancelled':'Preparazione annullata','interrupted':'Preparazione interrotta'}
 
 
 def path(user,name):
