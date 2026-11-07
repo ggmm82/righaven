@@ -404,7 +404,8 @@ func commitEnvironment(name string, job nodeRun, args []string, result map[strin
 		changes = append(changes, "--change", "LABEL "+installation)
 	}
 	changes = append(changes, "--change", `CMD ["python3","-c","print(\"Ambiente RigHaven pronto\")"]`, name, job.Prepare.Tag)
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Minute)
+	// A large environment (Blender, FreeCAD…) is several GB: Docker Desktop can take long to write it.
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Minute)
 	defer cancel()
 	if out, err := dockerCommand(ctx, changes...).CombinedOutput(); err != nil {
 		return fmt.Errorf("docker commit: %v %s", err, strings.TrimSpace(string(out)))

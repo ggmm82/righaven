@@ -32,6 +32,7 @@ ENVIRONMENT_TAG = re.compile(r'skill-environment:[0-9a-f]{12}-[0-9a-f]{64}\Z')
 MOUNT = re.compile(r'type=bind,src=([^,]+),dst=([^,]+)(,readonly)?\Z')
 MAX_BUNDLE = 8 << 30
 ACK_TIMEOUT = 120  # seconds for a connected node to confirm it received a run
+PREPARATION_EXTRA = 2 * 3600  # base image download and docker commit of a preparation, on top of its run
 MAX_RESULT = 8 << 30
 
 _lock = threading.Condition()
@@ -326,8 +327,9 @@ def run(node, args, *, timeout, live=None, preparation=None, on_state=None, on_o
             stop(run_.name)
             raise RuntimeError('La macchina on premise non ha preso in carico il lavoro: aggiorna RigHaven Agent sulla macchina '
                                'alla versione di questo server e riprova')
-        # The node keeps its results while it is offline and sends them when it comes back.
-        if not run_.done.wait(timeout + 120):
+        # The node keeps its results while it is offline and sends them when it comes back. A
+        # preparation also downloads the base image first and saves a large image at the end.
+        if not run_.done.wait(timeout + 120 + (PREPARATION_EXTRA if preparation is not None else 0)):
             stop(run_.name)
             raise subprocess.TimeoutExpired(['docker', *args], timeout)
         result = run_.result
