@@ -36,7 +36,8 @@ def main():
                     return self.send(json.dumps({'items':[{'id':'a'*64,'saved_at':100,'definition':profile},{'id':'b'*64,'saved_at':90,'definition':{**profile,'purpose':'Earlier configuration'}}]}))
                 if self.path.endswith('/compute-nodes'):
                     return self.send(json.dumps({'nodes':[{'id':'ag_0123456789ab','name':'Workstation','online':True,'running':[],
-                                                           'compute':{'cpus':16,'memory_mib':65536,'jobs':2,'docker':'27.1'}}]}))
+                                                           'compute':{'cpus':16,'memory_mib':65536,'jobs':2,'docker':'27.1'}},
+                                                          {'id':'ag_ffffffffffff','name':'SamsungPc','online':True,'running':[],'compute':None,'reason':'not_a_node'}]}))
                 if '/tool-versions' in self.path:return self.send(json.dumps(library))
                 if '/transfers/' in self.path:return self.send(json.dumps(transfer))
                 if '/terminals/' in self.path:return self.send(json.dumps(terminal))
@@ -101,7 +102,9 @@ def main():
                 dialog.get_by_text('Versioni e opzioni avanzate',exact=True).click();dialog.get_by_label('Versione d2',exact=True).select_option('latest')
                 # On premise: the environment runs on a dedicated machine of the owner; coordination stays here.
                 place=dialog.get_by_label('Dove si esegue',exact=True);expect(place).to_have_value('cloud')
-                expect(place.locator('option')).to_have_count(3)
+                expect(place.locator('option')).to_have_count(4)
+                expect(place.locator('option',has_text='SamsungPc')).to_be_disabled()  # connected, but not a compute node
+                expect(dialog.get_by_test_id('placement-hint')).to_contain_text('agent node on')
                 place.select_option('ag_0123456789ab')
                 dialog.get_by_role('button',name='Salva ambiente').click();expect(page.get_by_role('dialog')).to_have_count(0)
                 card=page.get_by_test_id('environment-card');expect(card).to_contain_text('Progettazione')

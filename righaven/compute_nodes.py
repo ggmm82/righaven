@@ -57,14 +57,17 @@ def capacity(node):
 
 
 def listing(user):
-    """The owner's compute nodes, connected or not, with what they offer and run now."""
+    """The owner's PCs: those that run on-premise environments (compute) with what they offer and run
+    now, and the others with why not, so the page can say what to do."""
     rows = []
     for row in agents.listing(user):
         offered = capacity(row['id'])
         with _lock:
             running = sorted(LEASES.get(row['id'], {}))
-        if offered or running:
-            rows.append({'id': row['id'], 'name': row['name'], 'online': agent_hub.online(row['id']), 'compute': offered, 'running': running})
+        online = agent_hub.online(row['id'])
+        reason = '' if offered else ('offline' if not online else 'not_a_node')
+        rows.append({'id': row['id'], 'name': row['name'], 'online': online, 'compute': offered, 'running': running,
+                     'platform': row.get('platform', ''), 'reason': reason})
     return rows
 
 
