@@ -1222,5 +1222,8 @@
   "Questa macchina non esegue ambienti (avvia RigHaven Agent con «agent node on» oppure scegli Cloud): ": "This machine runs no environments (start RigHaven Agent with “agent node on” or choose Cloud): ",
   "Catalogo modelli non leggibile: ": "Model catalog unreadable: ",
   "If the machine is offline: cloud, or wait 1-240 minutes": null,
-  "La macchina «": "The machine «"
+  "La macchina «": "The machine «",
+  "Immagine preparata dalla macchina on premise non valida": "Environment image prepared by the on-premise machine not valid",
+  "Memoria insufficiente su «": "Not enough memory on «",
+  "Preparazione dell’ambiente su «": "Environment preparation on «"
 }

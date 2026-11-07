@@ -16,6 +16,7 @@ The gateway runs as one process, so the sessions live in memory.
 """
 import asyncio
 import json
+import re
 import socket
 import struct
 import threading
@@ -76,6 +77,9 @@ def state(identifier):
                 'version': session.version, 'networks': list(session.networks), 'compute': dict(session.compute) if session.compute else None}
 
 
+IMAGE_ID = re.compile(r'sha256:[0-9a-f]{64}')
+
+
 def compute(value):
     """The capacity a compute node declares, within sane bounds; None when it runs no sandboxes."""
     if not isinstance(value, dict):
@@ -86,8 +90,20 @@ def compute(value):
         return None
     if not (0.25 <= cpus <= 1024 and 512 <= memory <= 16 << 20 and 1 <= jobs <= 64):
         return None
-    return {'cpus': round(cpus, 3), 'memory_mib': memory, 'jobs': jobs, 'docker': str(value.get('docker') or '')[:40],
-            'running': max(0, min(64, int(value.get('running') or 0)))}
+    result = {'cpus': round(cpus, 3), 'memory_mib': memory, 'jobs': jobs, 'docker': str(value.get('docker') or '')[:40],
+              'running': max(0, min(64, int(value.get('running') or 0)))}
+    # The environment images the node keeps (it prepares them itself and removes the least used).
+    if isinstance(value.get('images'), list):
+        result['images'] = [i for i in value['images'][:1000] if isinstance(i, str) and IMAGE_ID.fullmatch(i)]
+    return result
+
+
+def note_image(identifier, image_id):
+    """An image the node has just prepared, known before its next report."""
+    with _lock:
+        session = SESSIONS.get(identifier)
+        if session is not None and session.compute is not None and image_id not in session.compute.setdefault('images', []):
+            session.compute['images'].append(image_id)
 
 
 def owner(identifier):

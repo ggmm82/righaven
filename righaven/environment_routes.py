@@ -57,7 +57,14 @@ def summary(user,agent,identity=None,cache=None):
             # Reading the page or starting a chat must never advance a global
             # Latest pointer. Only an explicit preparation/version action does.
             pins=resolved(chosen,refresh=False)
-            value['runtime']=runtimes.available(target,identity,cache,versions=pins)
+            place=value['deployment'].get('placement') or 'cloud'
+            from . import compute_nodes
+            from . import agent_hub
+            if place not in compute_nodes.PLACES and (compute_nodes.prepares_environments(place) or not agent_hub.online(place)):
+                # On premise: what the machine has, never this server's cache.
+                value['runtime']=compute_nodes.available(place,target,identity,versions=pins)
+            else:
+                value['runtime']=runtimes.available(target,identity,cache,versions=pins)
         except ValueError as error:
             value['runtime']={'status':'version_pending','error':str(error),'tools':target}
         value['selected_versions']=chosen
@@ -290,6 +297,24 @@ async def prepare(name:str,request:Request):
     return {'accepted':True,'environment':value}
 
 
+def prepare_on_machine(user,prefs,tools,pins,cancel):
+    """An environment placed on one machine is prepared there, never in this server's cache.
+
+    None when it belongs to this server (cloud), to Automatic (prepared where each task lands) or
+    to a machine whose RigHaven Agent does not prepare environments yet."""
+    from . import agents,agent_hub,compute_nodes
+    place=prefs.get('placement') or 'cloud'
+    if place in compute_nodes.PLACES:return None
+    label=agents.owned(user,place).get('name',place)
+    owner='rh-preload-'+__import__('uuid').uuid4().hex[:12]
+    # The machine's turn, as for a task; after a restart its agent reconnects within moments.
+    resources=compute_nodes.acquire(place,owner,cancel=cancel,offline_timeout=600,label=label)
+    try:
+        if not compute_nodes.prepares_environments(place):return None
+        return compute_nodes.prepare_environment(place,owner,tools,versions=pins,resources=resources,label=label)
+    finally:compute_nodes.release(owner)
+
+
 def schedule(user,name,*,reschedule=False,refresh_versions=True,trigger='manual',trigger_tool=''):
     """Preparation outlives the HTTP connection; all writes retain the native owner."""
     key=(user,name)
@@ -335,7 +360,9 @@ def schedule(user,name,*,reschedule=False,refresh_versions=True,trigger='manual'
                     require_tools(policy,set(runtimes.closure(tools))-{'playwright'})
                     control['environment_id']=runtimes.recipe(tools,versions=pins)[0]
                     preparation.update(user,name,phase='preparing',environment_id=control['environment_id'],tool='',index=len(choice),total=len(choice))
-                    ready=runtimes.ensure(tools,background=True,exact=True,cancel=PreparationCancel(control['cancel'],yielded),cache_dependencies=not prefs.get('ephemeral',False),versions=pins)
+                    ready=prepare_on_machine(user,prefs,tools,pins,control['cancel'])
+                    if ready is None:
+                        ready=runtimes.ensure(tools,background=True,exact=True,cancel=PreparationCancel(control['cancel'],yielded),cache_dependencies=not prefs.get('ephemeral',False),versions=pins)
                     from .editor_preparation import schedule as schedule_editors
                     schedule_editors(user,name,tools)
                     preparation.update(user,name,phase='ready',ready_id=ready['id'],environment_id=ready['id'],error='',failure={})
