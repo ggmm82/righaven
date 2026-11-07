@@ -120,7 +120,8 @@ class NetListen(
         val locations = mutableMapOf<String, String>()
         socket().use { udp ->
             udp.soTimeout = 300
-            udp.send(DatagramPacket(Mdns.query().let { it }, Mdns.query().size, InetAddress.getByName("224.0.0.251"), 5353))
+            val query = Mdns.query()
+            udp.send(DatagramPacket(query, query.size, InetAddress.getByName("224.0.0.251"), 5353))
             udp.send(DatagramPacket(Ssdp.SEARCH, Ssdp.SEARCH.size, InetAddress.getByName("239.255.255.250"), 1900))
             val deadline = System.currentTimeMillis() + seconds * 1000L
             val buffer = ByteArray(9000)

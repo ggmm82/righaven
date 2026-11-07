@@ -134,3 +134,46 @@ class ActivityLogTest {
         assertEquals(emptyList<String>(), log.lines())
     }
 }
+
+class PhoneDiscoveryTest {
+    private fun mdnsAnswer(): ByteArray {
+        val out = java.io.ByteArrayOutputStream()
+        fun name(text: String) { for (label in text.split('.')) { out.write(label.length); out.write(label.toByteArray()) }; out.write(0) }
+        fun short(value: Int) { out.write(value shr 8); out.write(value and 0xff) }
+        out.write(byteArrayOf(0, 0, 0x84.toByte(), 0, 0, 0, 0, 3, 0, 0, 0, 0))
+        // PTR _googlecast._tcp.local → Salotto._googlecast._tcp.local
+        name("_googlecast._tcp.local"); short(12); short(1); out.write(byteArrayOf(0, 0, 0, 120))
+        val target = java.io.ByteArrayOutputStream().apply { for (label in "Salotto._googlecast._tcp.local".split('.')) { write(label.length); write(label.toByteArray()) }; write(0) }.toByteArray()
+        short(target.size); out.write(target)
+        // SRV → chromecast-1.local
+        name("Salotto._googlecast._tcp.local"); short(33); short(1); out.write(byteArrayOf(0, 0, 0, 120))
+        val host = java.io.ByteArrayOutputStream().apply { write(byteArrayOf(0, 0, 0, 0, 0x1f, 0x49)); for (label in "chromecast-1.local".split('.')) { write(label.length); write(label.toByteArray()) }; write(0) }.toByteArray()
+        short(host.size); out.write(host)
+        // A chromecast-1.local
+        name("chromecast-1.local"); short(1); short(1); out.write(byteArrayOf(0, 0, 0, 120)); short(4); out.write(byteArrayOf(192.toByte(), 168.toByte(), 1, 30))
+        return out.toByteArray()
+    }
+
+    @Test
+    fun `announcements of the network are read as names and services`() {
+        val answers = Mdns.parse(mdnsAnswer())
+        assertEquals(listOf("_googlecast._tcp"), answers.services.toList())
+        assertEquals(setOf("Salotto", "chromecast-1"), answers.names)
+        assertTrue(Mdns.query().size > 100)
+        val headers = Ssdp.headers("HTTP/1.1 200 OK\r\nSERVER: Linux UPnP/1.0 Sonos/70.3\r\nST: urn:schemas-upnp-org:device:ZonePlayer:1\r\nLOCATION: http://192.168.1.30:1400/xml/device_description.xml\r\n\r\n")
+        assertEquals("Linux UPnP/1.0 Sonos/70.3", headers["server"])
+        assertEquals("ZonePlayer", Ssdp.kind(headers["st"]!!))
+        assertEquals("Cucina", Ssdp.friendlyName("<root><device><friendlyName>Cucina</friendlyName></device></root>"))
+        assertEquals("", Mdns.parse(byteArrayOf(1, 2, 3)).names.joinToString())  // truncated data is ignored
+    }
+
+    @Test
+    fun `NFC records are read as text, links and data`() {
+        val text = Ndef.record(1, "T".toByteArray(), byteArrayOf(2) + "it".toByteArray() + "Ciao".toByteArray())
+        assertEquals(listOf("text", "it", "Ciao"), listOf(text["kind"], text["language"], text["text"]))
+        assertEquals("https://righaven.example.org", Ndef.record(1, "U".toByteArray(), byteArrayOf(4) + "righaven.example.org".toByteArray())["uri"])
+        val mime = Ndef.record(2, "application/json".toByteArray(), "{\"a\":1}".toByteArray())
+        assertEquals(listOf("mime", 7, "{\"a\":1}"), listOf(mime["kind"], mime["size"], mime["text"]))
+        assertEquals("0102", Ndef.record(4, "android.com:pkg".toByteArray(), byteArrayOf(1, 2))["data"])
+    }
+}

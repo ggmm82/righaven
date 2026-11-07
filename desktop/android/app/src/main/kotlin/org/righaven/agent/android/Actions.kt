@@ -30,7 +30,8 @@ import java.util.concurrent.TimeUnit
  * nearby Wi-Fi networks, the search of its network and whether a host of its network answers.
  */
 class Actions(private val context: Context) {
-    val names = listOf("bluetooth-scan", "ble-inspect", "ble-read", "ble-write", "wifi-scan", "net-scan", "tcp-check")
+    val names = listOf("bluetooth-scan", "ble-inspect", "ble-read", "ble-write", "wifi-scan", "net-scan", "tcp-check",
+        "net-listen", "pc-devices", "nfc-read")
 
     fun handle(action: String, args: Map<String, String>): Map<String, Any?> = when (action) {
         "bluetooth-scan" -> bluetoothScan()
@@ -38,6 +39,9 @@ class Actions(private val context: Context) {
         "wifi-scan" -> wifiScan()
         "net-scan" -> NetworkScan().scan(args["network"].orEmpty())
         "tcp-check" -> HomeDial().open(args["target"].orEmpty(), 6000).use { mapOf("ok" to true, "address" to it.remoteSocketAddress.toString().removePrefix("/")) }
+        "net-listen" -> listen()
+        "pc-devices" -> PhoneDevices(context).list()
+        "nfc-read" -> NfcBus.read(context)
         else -> mapOf("error" to "unknown action $action")
     }
 
@@ -46,6 +50,17 @@ class Actions(private val context: Context) {
         val connectivity = context.getSystemService(ConnectivityManager::class.java) ?: return emptyList()
         val properties = connectivity.getLinkProperties(connectivity.activeNetwork) ?: return emptyList()
         return properties.linkAddresses.mapNotNull { PrivateNetwork.cidr(it.address, it.prefixLength) }.distinct()
+    }
+
+    /** Devices that announce themselves on the phone's Wi-Fi (mDNS/Bonjour, SSDP/UPnP). */
+    private fun listen(): Map<String, Any?> {
+        val wifi = context.applicationContext.getSystemService(WifiManager::class.java)
+        val lock = wifi?.createMulticastLock("righaven-listen")?.apply { setReferenceCounted(false); acquire() }
+        try {
+            return org.righaven.agent.NetListen().listen(6)
+        } finally {
+            lock?.release()
+        }
     }
 
     private fun granted(permission: String) = context.checkSelfPermission(permission) == PackageManager.PERMISSION_GRANTED
@@ -87,6 +102,9 @@ class Actions(private val context: Context) {
         if (context.getSystemService(android.location.LocationManager::class.java)?.let { Build.VERSION.SDK_INT >= 28 && !it.isLocationEnabled } == true)
             warnings += tr("Posizione del telefono spenta: con la posizione spenta molti telefoni non riportano i dispositivi Bluetooth vicini.",
                 "The phone's Location is off: with it off many phones report no nearby Bluetooth devices.")
+        if (context.getSystemService(android.os.PowerManager::class.java)?.isIgnoringBatteryOptimizations(context.packageName) == false)
+            warnings += tr("Batteria ottimizzata per RigHaven: il telefono limita l’agente in background e la ricerca Bluetooth può non trovare nulla. Agente → Batteria → «Senza restrizioni».",
+                "Battery optimized for RigHaven: the phone limits the agent in the background and the Bluetooth search may find nothing. Agent → Battery → “Unrestricted”.")
         if (!granted(Manifest.permission.ACCESS_FINE_LOCATION))
             warnings += tr("Posizione precisa non concessa a RigHaven: Android non riporta i dispositivi Bluetooth vicini. Impostazioni → App → RigHaven → Autorizzazioni → Posizione → «Usa posizione precisa».",
                 "Precise location not granted to RigHaven: Android reports no nearby Bluetooth devices. Settings → Apps → RigHaven → Permissions → Location → “Use precise location”.")
