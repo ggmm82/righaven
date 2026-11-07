@@ -257,6 +257,10 @@ gateway**: a database of the office or home network (Postgres, SQL Server, MySQL
 *reached through* a PC of that network, while cloud databases go from the server. The PC
 connects to the server, no router port is opened. See [RigHaven Agent](docs/AGENT.md).
 
+**On-premise environments.** An environment can run its tasks on a dedicated machine of yours
+(a Linux server or a Windows PC with Docker) while coordination and data stay on the server. See
+[On-premise environments](docs/ON-PREMISE-ENVIRONMENTS.md).
+
 **On the phone.** RigHaven can be installed as an app from the browser ("Add to Home
 screen" or "Install app") and the project card collapses to one line, so the chat and
 the team's questions stay visible: [phones and the installable app](docs/MOBILE.md).
@@ -437,6 +441,7 @@ surfaces still need localization. See [workspace guide](docs/WORKSPACE.md),
 | [Model providers](docs/MODEL-PROVIDERS.md) | Codex, Claude Code, Antigravity and OpenAI-compatible APIs: capabilities and limits |
 | [Windows portable app](docs/WINDOWS-PORTABLE.md) | Run RigHaven on one Windows PC in WSL 2 with the same isolation, commands and build |
 | [Linux portable app](docs/LINUX-PORTABLE.md) | Run RigHaven on one Linux PC with its Docker engine |
+| [On-premise environments](docs/ON-PREMISE-ENVIRONMENTS.md) | Run an environment's tasks on your dedicated machines (compute nodes), with coordination and data on the server |
 | [RigHaven Agent](docs/AGENT.md) | Put a Windows PC's Bluetooth, Wi-Fi, COM ports and home network at the disposal of a RigHaven server; on-premise databases through it |
 | [Phones and the installable app](docs/MOBILE.md) | Install RigHaven as an app, use it from a phone, reach a PC copy on the network |
 | [Environments](docs/OPTIONAL-ENVIRONMENTS.md) | Catalog, preparation, profile reuse and machine usage |

@@ -949,9 +949,14 @@ def _file(record, user_id):
             'username': record['username'], 'password': record['password']}
 
 
-def through_agent(record):
-    """The record a worker receives for a service reached through an agent: the tunnel's address, same protocol."""
+def through_agent(record, node=None):
+    """The record a worker receives for a service reached through an agent: the tunnel's address, same protocol.
+    A worker running on that agent's own machine (an on-premise environment) reaches the service directly."""
     if not record.get('agent') or (record['kind'] == 'device' and record.get('transport') == 'bluetooth') or record['kind'] not in (*DEFAULT_PORTS, 'device'):
+        return record
+    if node:
+        if record['agent'] != node or (record['kind'] == 'device' and record['transport'] == 'serial'):
+            raise ValueError('La connessione ' + record['id'] + ' non è raggiungibile dalla macchina on premise di questo incarico')
         return record
     from . import agent_hub
     if record['kind'] == 'device' and record['transport'] == 'serial':
@@ -979,9 +984,26 @@ def device_file(record):
     return value
 
 
+def role_records(workspace, role=None):
+    """The connections this role will receive (what Delivery delivers), to choose where the task runs."""
+    from .project_store import locked, load
+    with locked(workspace) as directory:
+        value = load(directory, workspace) or {}
+    binding = value.get('connections') or {}
+    granted = list(binding.get('ids') or [])
+    requested = role.get('connections', []) if role else []
+    records = []
+    for identifier in [c for c in granted if c in requested and c not in binding.get('deferred', [])]:
+        try:
+            records.append(_read(binding['owner'], identifier))
+        except (ValueError, OSError, KeyError):
+            continue  # Delivery reports it
+    return records
+
+
 class Delivery:
     """Decrypt the task's connections, chosen by the user, into a private folder for one worker; removed on close."""
-    def __init__(self, workspace, destination, role=None):
+    def __init__(self, workspace, destination, role=None, node=None):
         self.directory = None
         self.public = []
         self.domains = []
@@ -1008,7 +1030,9 @@ class Delivery:
                 except (ValueError, OSError, KeyError) as error:
                     raise ValueError('Assigned connection is unavailable: '+identifier+'. Report this blocker; do not replace its destination with a local database.') from error
                 path = self.directory / (identifier + '.json')
-                record = through_agent(record)
+                record = through_agent(record, node)
+                if node and record['kind'] == 'device' and record.get('transport') == 'local':
+                    raise ValueError('Il dispositivo ' + identifier + ' è collegato a questo server: esegui l’incarico in cloud')
                 content = _file(record, owner)
                 writable = bool(record.get('write_enabled')) and identifier in binding.get('write', [])
                 content.update(write_enabled=writable, write_schema=record.get('write_schema', '') if writable else '')

@@ -1,0 +1,82 @@
+{
+ "image": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+ "prepare": {
+  "tag": "skill-environment:0123456789ab-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "environment": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+ },
+ "mounts": [
+  {
+   "key": "m0",
+   "mode": "ro",
+   "kind": "file",
+   "target": "/opt/righaven-worker"
+  },
+  {
+   "key": "m1",
+   "mode": "ro",
+   "kind": "file",
+   "target": "/opt/righaven/prepare_environment.py"
+  },
+  {
+   "key": "m2",
+   "mode": "ro",
+   "kind": "file",
+   "target": "/environment-request.json"
+  }
+ ],
+ "args": [
+  "run",
+  "--name",
+  "rh-env-0123456789ab-a1b2c3",
+  "--label",
+  "org.righaven.harness.owner=harness",
+  "--init",
+  "--cap-drop=ALL",
+  "--security-opt=no-new-privileges",
+  "--pids-limit=256",
+  "--memory=4096m",
+  "--memory-swap=4096m",
+  "--cpus=4.0",
+  "--network=bridge",
+  "--env",
+  "RIGHAVEN_CPU_THREADS=4",
+  "--env",
+  "RIGHAVEN_MEMORY_MIB=4096",
+  "--env",
+  "NO_BROWSER=true",
+  "--env",
+  "TZ=Europe/Rome",
+  "--env",
+  "TOKIO_WORKER_THREADS=4",
+  "--env",
+  "RAYON_NUM_THREADS=4",
+  "--env",
+  "OMP_NUM_THREADS=4",
+  "--env",
+  "OPENBLAS_NUM_THREADS=4",
+  "--mount",
+  "type=bind,src={m0},dst=/opt/righaven-worker,readonly",
+  "--mount",
+  "type=bind,src={m1},dst=/opt/righaven/prepare_environment.py,readonly",
+  "--cap-add",
+  "CHOWN",
+  "--cap-add",
+  "FOWNER",
+  "--cap-add",
+  "DAC_OVERRIDE",
+  "--cap-add",
+  "SETUID",
+  "--cap-add",
+  "SETGID",
+  "--label",
+  "org.righaven.harness.installation=0f3c2a9e-5d41-4b7a-9c1e-2b8d7f6a5e40",
+  "--label",
+  "org.righaven.environment=bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "--mount",
+  "type=bind,src={m2},dst=/environment-request.json,readonly",
+  "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+  "python3",
+  "/opt/righaven/prepare_environment.py",
+  "/environment-request.json"
+ ]
+}

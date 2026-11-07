@@ -8,10 +8,15 @@ Protocol (JSON text frames, binary frames for tunnel data):
   server → agent   {"type": "open", "stream", "target"}        target "com:COM5" or "tcp:192.168.1.44:6668"
   agent  → server  {"type": "opened", "stream"} / {"type": "close", "stream", "error"?}
   both             binary: 4-byte big-endian stream number, then the bytes
+Compute nodes (an agent with Docker that runs sandboxes for this server, see compute_nodes):
+  agent  → server  "hello" and {"type": "compute", ...} carry "compute": {"cpus", "memory_mib", "jobs", "docker"}
+  server → agent   {"type": "run", "id", "args", "mounts", "timeout"} / {"type": "stop", "id"}
+  agent  → server  {"type": "run-state", "id", "state"}; files travel over HTTP (agent_routes)
 The gateway runs as one process, so the sessions live in memory.
 """
 import asyncio
 import json
+import re
 import socket
 import struct
 import threading
@@ -37,6 +42,7 @@ class Session:
         self.agent, self.websocket, self.loop = agent, websocket, loop
         self.platform, self.version, self.actions = agent.get('platform', ''), agent.get('version', ''), []
         self.networks = []
+        self.compute = None  # what a compute node offers: cpus, memory_mib, jobs, docker
         self.streams = {}  # stream number → asyncio.StreamWriter
         self.opened = {}   # stream number → asyncio.Event
         self.next_stream = 1
@@ -68,7 +74,51 @@ def state(identifier):
         if session is None:
             return {'connected': False, 'platform': '', 'actions': [], 'matter': False}
         return {'connected': True, 'platform': session.platform, 'actions': list(session.actions), 'matter': False,
-                'version': session.version, 'networks': list(session.networks)}
+                'version': session.version, 'networks': list(session.networks), 'compute': dict(session.compute) if session.compute else None}
+
+
+IMAGE_ID = re.compile(r'sha256:[0-9a-f]{64}')
+
+
+def compute(value):
+    """The capacity a compute node declares, within sane bounds; None when it runs no sandboxes."""
+    if not isinstance(value, dict):
+        return None
+    try:
+        cpus, memory, jobs = float(value.get('cpus')), int(value.get('memory_mib')), int(value.get('jobs') or 1)
+    except (TypeError, ValueError):
+        return None
+    if not (0.25 <= cpus <= 1024 and 512 <= memory <= 16 << 20 and 1 <= jobs <= 64):
+        return None
+    result = {'cpus': round(cpus, 3), 'memory_mib': memory, 'jobs': jobs, 'docker': str(value.get('docker') or '')[:40],
+              'running': max(0, min(64, int(value.get('running') or 0)))}
+    # The environment images the node keeps (it prepares them itself and removes the least used).
+    if isinstance(value.get('images'), list):
+        result['images'] = [i for i in value['images'][:1000] if isinstance(i, str) and IMAGE_ID.fullmatch(i)]
+    return result
+
+
+def note_image(identifier, image_id):
+    """An image the node has just prepared, known before its next report."""
+    with _lock:
+        session = SESSIONS.get(identifier)
+        if session is not None and session.compute is not None and image_id not in session.compute.setdefault('images', []):
+            session.compute['images'].append(image_id)
+
+
+def owner(identifier):
+    with _lock:
+        session = SESSIONS.get(identifier)
+    return session.agent['user'] if session else ''
+
+
+def send(identifier, message):
+    """A message to an agent, from a worker thread."""
+    with _lock:
+        session = SESSIONS.get(identifier)
+    if session is None:
+        raise ValueError('L’agente non è collegato: avvia RigHaven Agent sul PC')
+    asyncio.run_coroutine_threadsafe(session.send_json(message), session.loop).result(timeout=15)
 
 
 def request(identifier, action, args):
@@ -157,6 +207,7 @@ async def serve(websocket, agent):
                         session.networks.append(str(private_network(item)))
                     except ValueError:
                         continue
+                session.compute = compute(value.get('compute'))
                 agents.seen(agent['id'], session.platform, session.version, session.actions)
                 await session.send_json({'type': 'welcome', 'protocol': PROTOCOL, 'agent': agent['id'], 'name': agent.get('name', '')})
             elif kind == 'result':
@@ -181,6 +232,11 @@ async def serve(websocket, agent):
                     event.set()
                 if writer is not None:
                     writer.close()
+            elif kind == 'compute':
+                session.compute = compute(value)
+            elif kind == 'run-state':
+                from . import compute_nodes
+                compute_nodes.started(agent['id'], str(value.get('id') or ''), str(value.get('state') or '')[:40])
             elif kind == 'ping':
                 await session.send_json({'type': 'pong'})
     finally:

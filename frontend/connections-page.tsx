@@ -13,7 +13,7 @@ type Transport="network"|"serial"|"local"|"bluetooth";
 type Place=string;
 const agentOf=(place:Place)=>place==="cloud"||place==="server"?"":place;
 const placeOf=(r:Connection):Place=>r.agent??(r.location==="on_premise"?"server":"cloud");
-type Agent={id:string;name:string;platform?:string;version?:string;last_seen?:string|null;online:boolean;networks?:string[]};
+type Agent={id:string;name:string;platform?:string;version?:string;last_seen?:string|null;online:boolean;networks?:string[];compute?:{cpus:number;memory_mib:number;jobs:number;docker:string;running:number}|null};
 /** The PC the device sections act on: "" for the PC of this server (administrators), or an agent of this user. */
 const PcContext=createContext("");
 const withAgent=(url:string,agent:string)=>agent?url+(url.includes("?")?"&":"?")+"agent="+encodeURIComponent(agent):url;
@@ -408,7 +408,8 @@ function AgentsPanel({t,pc,setPc,onAgents}:{t:Translate;pc:string;setPc:(value:s
     <option value="">{t("Il PC su cui gira questo server (solo amministratori)","The PC this server runs on (administrators only)")}</option>
     {(rows??[]).map(a=><option key={a.id} value={a.id}>{a.name}{a.online?t(" · collegato"," · connected"):t(" · scollegato"," · offline")}</option>)}</select></label>
   {!!rows?.length&&<ul className="divide-y rounded border text-sm" data-testid="agent-list">{rows.map(a=><li key={a.id} className="flex flex-wrap items-center justify-between gap-2 p-2">
-   <span><span className={"mr-2 inline-block h-2 w-2 rounded-full "+(a.online?"bg-green-600":"bg-gray-400")}/>{a.name} <span className="text-muted-foreground text-xs">· {a.platform??""}{a.version?" "+a.version:""}{a.online?t(" · collegato ora"," · connected now"):a.last_seen?t(" · ultimo contatto "," · last seen ")+a.last_seen.replace("T"," ").slice(0,16):""}</span></span>
+   <span><span className={"mr-2 inline-block h-2 w-2 rounded-full "+(a.online?"bg-green-600":"bg-gray-400")}/>{a.name} <span className="text-muted-foreground text-xs">· {a.platform??""}{a.version?" "+a.version:""}{a.online?t(" · collegato ora"," · connected now"):a.last_seen?t(" · ultimo contatto "," · last seen ")+a.last_seen.replace("T"," ").slice(0,16):""}</span>
+    {a.compute&&<span className="text-muted-foreground block text-xs" data-testid="agent-compute">{t("Macchina di calcolo: ","Compute node: ")}{a.compute.cpus} CPU · {Math.round(a.compute.memory_mib/1024)} GiB · {a.compute.jobs} {t("incarichi alla volta","tasks at a time")} · Docker {a.compute.docker}{a.compute.running?t(" · in corso: "," · running: ")+String(a.compute.running):""}</span>}</span>
    <button type="button" className={"rounded border px-2 py-1 text-xs"+(confirm===a.id?" border-destructive text-destructive":"")} onClick={()=>void revoke(a.id)}>{confirm===a.id?t("Conferma revoca","Confirm revocation"):t("Revoca","Revoke")}</button></li>)}</ul>}
   {!code?<div className="flex flex-wrap items-end gap-2">
    <label className="text-sm">{t("Nome del PC da collegare","Name of the PC to connect")}<input className="mt-1 block w-56 rounded border bg-transparent px-2 py-1" aria-label={t("Nome del PC da collegare","Name of the PC to connect")} placeholder={t("PC di casa","Home PC")} value={name} onChange={e=>setName(e.target.value)}/></label>

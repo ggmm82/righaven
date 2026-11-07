@@ -72,6 +72,9 @@ jobs:
           # RigHaven Agent: the same program started in agent mode, alone, for a PC that serves a remote RigHaven.
           go build -trimpath -ldflags "-s -w -X main.launcherVersion=$VERSION -X main.launcherMode=agent" -o "$GITHUB_WORKSPACE/dist/RigHaven-Agent-windows-x64.exe" .
           (cd "$GITHUB_WORKSPACE/dist" && sha256sum RigHaven-Agent-windows-x64.exe > RigHaven-Agent-windows-x64.exe.sha256)
+          # The same agent for a Linux machine: a compute node that runs on-premise environments with its Docker.
+          GOOS=linux go build -trimpath -ldflags "-s -w -X main.launcherVersion=$VERSION -X main.launcherMode=agent" -o "$GITHUB_WORKSPACE/dist/RigHaven-Agent-linux-x64" .
+          (cd "$GITHUB_WORKSPACE/dist" && sha256sum RigHaven-Agent-linux-x64 > RigHaven-Agent-linux-x64.sha256)
       - name: Build the WSL distribution
         run: |
           docker build --pull -t righaven-wsl desktop/windows/rootfs
@@ -125,6 +128,8 @@ jobs:
             dist/*.zip.sha256
             dist/*.exe
             dist/*.exe.sha256
+            dist/RigHaven-Agent-linux-x64
+            dist/RigHaven-Agent-linux-x64.sha256
           retention-days: 7
   windows:
     needs: build
@@ -179,6 +184,13 @@ jobs:
         with:
           python-version: '3.12'
       - run: pip install PyYAML==6.0.3
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.24.x'
+          cache-dependency-path: desktop/windows/launcher/go.mod
+      - name: A compute node runs a real container and prepares a real environment image with the runner's Docker
+        working-directory: desktop/windows/launcher
+        run: RIGHAVEN_NODE_DOCKER_TEST=1 go test -count=1 -run 'TestNodeRunsARealContainer|TestNodePreparesARealEnvironmentImage' -v ./...
       - name: Launcher checks
         run: |
           sh -n desktop/linux/righaven
@@ -242,4 +254,4 @@ jobs:
       - name: Attach the portable apps to the release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release upload "${{ inputs.tag }}" dist/*.zip dist/*.zip.sha256 dist/*.tar.gz dist/*.tar.gz.sha256 dist/*.exe dist/*.exe.sha256 --repo "$GITHUB_REPOSITORY" --clobber
+        run: gh release upload "${{ inputs.tag }}" dist/*.zip dist/*.zip.sha256 dist/*.tar.gz dist/*.tar.gz.sha256 dist/*.exe dist/*.exe.sha256 dist/RigHaven-Agent-linux-x64 dist/RigHaven-Agent-linux-x64.sha256 --repo "$GITHUB_REPOSITORY" --clobber

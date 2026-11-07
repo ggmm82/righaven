@@ -107,6 +107,11 @@ which one instead of choosing.
 - **Activity.** Every action asked to an agent, every tunnel, connection and disconnection is
   recorded in *Show the activity of connected PCs*.
 
+## Dedicated machines
+
+RigHaven Agent can also run the tasks of on-premise environments with the machine's Docker
+(`agent node on`): see [On-premise environments](ON-PREMISE-ENVIRONMENTS.md).
+
 ## Limits
 
 - Windows only for now; the Linux and phone agents are planned.

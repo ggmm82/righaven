@@ -4,6 +4,7 @@ import (
 	"archive/tar"
 	"bufio"
 	"bytes"
+	"compress/gzip"
 	"context"
 	"crypto/sha1"
 	"encoding/base64"
@@ -20,6 +21,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -1171,7 +1173,7 @@ func TestAgentPairsConnectsAnswersAndCarriesATunnel(t *testing.T) {
 	mux.HandleFunc("/api/webhooks/righaven-agent/pair", func(w http.ResponseWriter, r *http.Request) {
 		var body map[string]string
 		_ = json.NewDecoder(r.Body).Decode(&body)
-		if body["code"] != "ABCDE-FGHJK" || body["platform"] != "windows" {
+		if body["code"] != "ABCDE-FGHJK" || body["platform"] != runtime.GOOS {
 			w.WriteHeader(403)
 			return
 		}
@@ -1212,7 +1214,7 @@ func TestAgentPairsConnectsAnswersAndCarriesATunnel(t *testing.T) {
 	go func() { finished <- runAgent(a, loaded, io.Discard, stop) }()
 	socket := <-sockets
 	hello := socket.readJSON(t)
-	if hello["type"] != "hello" || hello["platform"] != "windows" || !strings.Contains(fmt.Sprint(hello["actions"]), "net-scan") {
+	if hello["type"] != "hello" || hello["platform"] != runtime.GOOS || !strings.Contains(fmt.Sprint(hello["actions"]), "net-scan") {
 		t.Fatalf("%v", hello)
 	}
 	// The server asks a search of the home network.
@@ -1268,5 +1270,404 @@ func TestTunnelsReachOnlyThePrivateNetworkOfThePC(t *testing.T) {
 	_, err := homeDial("sql01.office.local:1433", 300*time.Millisecond)
 	if err == nil || strings.Contains(err.Error(), "not an address") || strings.Contains(err.Error(), "not resolved") {
 		t.Fatalf("an internal name should be dialled, got %v", err)
+	}
+}
+
+// fakeDocker writes a docker command for the node tests: info, images, run (writes into the
+// folder mounted at /out and prints a JSON answer), inspect, rm, stop.
+func fakeDocker(t *testing.T) string {
+	dir := t.TempDir()
+	script := `#!/bin/sh
+case "$1" in
+info) echo "8 17179869184 27.1.1" ;;
+image) exit 0 ;;
+inspect) echo false ;;
+rm|stop) exit 0 ;;
+run)
+  shift
+  while [ $# -gt 0 ]; do
+    if [ "$1" = "--mount" ]; then
+      case "$2" in
+        *dst=/out) out=$(echo "$2" | sed 's/^type=bind,src=//; s/,dst=.*$//') ;;
+        *dst=/progress) progress=$(echo "$2" | sed 's/^type=bind,src=//; s/,dst=.*$//') ;;
+        *dst=/job.json,readonly) job=$(echo "$2" | sed 's/^type=bind,src=//; s/,dst=.*$//') ;;
+      esac
+    fi
+    shift
+  done
+  echo '{"phase":"done"}' > "$progress/status.json"
+  cat "$job" > "$out/report.md"
+  echo '{"ok": true}'
+  ;;
+*) exit 2 ;;
+esac
+`
+	path := filepath.Join(dir, "docker")
+	must(t, os.WriteFile(path, []byte(script), 0o755))
+	return path
+}
+
+func TestNodeRunsASandboxAndSendsBackItsFiles(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("the fake docker is a shell script")
+	}
+	a := portable(t)
+	docker := fakeDocker(t)
+	previousDocker, previousRuns := nodeDockerCmd, nodeRunsDir
+	runs := t.TempDir()
+	nodeDockerCmd, nodeRunsDir = func() []string { return []string{docker} }, func() string { return runs }
+	t.Cleanup(func() { nodeDockerCmd, nodeRunsDir = previousDocker, previousRuns })
+	job := nodeRun{ID: "rh-job-0123456789ab", Image: "righaven-env:abc", Timeout: 60, Mounts: []nodeMount{
+		{Key: "m0", Mode: "ro", Kind: "file", Target: "/job.json"}, {Key: "m1", Mode: "rw", Kind: "dir", Target: "/out"},
+		{Key: "m2", Mode: "live", Kind: "dir", Target: "/progress"}},
+		Args: []string{"run", "--name", "rh-job-0123456789ab", "--init", "--cap-drop=ALL", "--memory=4096m", "--cpus=4", "--network=bridge",
+			"--mount", "type=bind,src={m0},dst=/job.json,readonly", "--mount", "type=bind,src={m1},dst=/out", "--mount", "type=bind,src={m2},dst=/progress",
+			"--env", "A=1", "righaven-env:abc", "python3", "/opt/righaven-worker/run_agent.py", "/job.json"}}
+	var result map[string]any
+	files := map[string]string{}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get(agentHeader) != "rha_test" {
+			w.WriteHeader(401)
+			return
+		}
+		switch r.URL.Path {
+		case "/api/webhooks/righaven-agent/runs/rh-job-0123456789ab/bundle":
+			gz := gzip.NewWriter(w)
+			archive := tar.NewWriter(gz)
+			for name, body := range map[string]string{"m0": `{"task":"ciao"}`, "../evil": "x"} {
+				must(t, archive.WriteHeader(&tar.Header{Name: name, Mode: 0o644, Size: int64(len(body)), Typeflag: tar.TypeReg}))
+				_, _ = archive.Write([]byte(body))
+			}
+			archive.Close()
+			gz.Close()
+		case "/api/webhooks/righaven-agent/runs/rh-job-0123456789ab/live":
+			w.WriteHeader(200)
+		case "/api/webhooks/righaven-agent/runs/rh-job-0123456789ab/result":
+			gz, err := gzip.NewReader(r.Body)
+			must(t, err)
+			archive := tar.NewReader(gz)
+			for {
+				header, err := archive.Next()
+				if err != nil {
+					break
+				}
+				data, _ := io.ReadAll(archive)
+				if header.Name == "result.json" {
+					must(t, json.Unmarshal(data, &result))
+				} else if header.Typeflag == tar.TypeReg {
+					files[header.Name] = string(data)
+				}
+			}
+			w.WriteHeader(200)
+		default:
+			w.WriteHeader(404)
+		}
+	}))
+	defer server.Close()
+	session := &agentSession{a: a, config: agentConfig{Server: server.URL, Token: "rha_test", Node: &nodeConfig{Jobs: 2}}, out: io.Discard,
+		conn: nil}
+	dir := filepath.Join(runs, job.ID)
+	// The bundle with a path outside it is refused: nothing runs.
+	refused := session.executeJob(dir, job)
+	if refused["returncode"] != 125 || !strings.Contains(refused["stderr"].(string), "outside the bundle") {
+		t.Fatalf("a bundle escaping its folder must be refused: %v", refused)
+	}
+	server.Config.Handler = wrapBundle(server.Config.Handler)
+	done := session.executeJob(dir, job)
+	if done["returncode"] != 0 || done["stdout"] != "{\"ok\": true}\n" {
+		t.Fatalf("run: %v", done)
+	}
+	session.uploadResult(dir, job, done)
+	if result["returncode"] != float64(0) || files["m1/report.md"] != `{"task":"ciao"}` || files["m2/status.json"] != "{\"phase\":\"done\"}\n" {
+		t.Fatalf("result sent back: %v %v", result, files)
+	}
+	if _, ok := files["m0"]; ok {
+		t.Fatal("read-only folders are not sent back")
+	}
+	if _, err := os.Stat(dir); !os.IsNotExist(err) {
+		t.Fatal("the run's folder stays on the machine after the server took the result")
+	}
+}
+
+// wrapBundle answers the bundle without the escaping entry.
+func wrapBundle(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasSuffix(r.URL.Path, "/bundle") {
+			gz := gzip.NewWriter(w)
+			archive := tar.NewWriter(gz)
+			body := `{"task":"ciao"}`
+			_ = archive.WriteHeader(&tar.Header{Name: "m0", Mode: 0o644, Size: int64(len(body)), Typeflag: tar.TypeReg})
+			_, _ = archive.Write([]byte(body))
+			archive.Close()
+			gz.Close()
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+func TestNodeRefusesCommandsOutsideItsSandboxRules(t *testing.T) {
+	limits := map[string]any{"cpus": 8.0, "memory_mib": 16384}
+	base := func(extra ...string) nodeRun {
+		// The options exactly as the server's base_arguments writes them.
+		args := append([]string{"run", "--name", "rh-job-0123456789ab", "--label", "org.righaven.harness.owner=gateway", "--init", "--cap-drop=ALL",
+			"--security-opt=no-new-privileges", "--pids-limit=256", "--memory=2048m", "--memory-swap=2048m", "--cpus=2", "--network=bridge",
+			"--tmpfs", "/tmp:rw,size=512m", "--env", "RIGHAVEN_CPU_THREADS=2", "--env", "TZ=Europe/Rome"}, extra...)
+		return nodeRun{ID: "rh-job-0123456789ab", Image: "img", Mounts: []nodeMount{{Key: "m0", Mode: "ro", Kind: "dir", Target: "/data"}},
+			Args: append(args, "img", "python3", "x.py")}
+	}
+	if args, name, err := nodeArgs(base("--mount", "type=bind,src={m0},dst=/data,readonly"), "/runs/x/m", limits); err != nil || name != "rh-job-0123456789ab" ||
+		!strings.Contains(strings.Join(args, " "), "src="+dockerPath(filepath.Join("/runs/x/m", "m0"))+",dst=/data,readonly") {
+		t.Fatalf("a plain command is accepted: %v %v", args, err)
+	}
+	for _, extra := range [][]string{{"--privileged"}, {"--device", "/dev/sda"}, {"--network=host"}, {"-v", "/:/host"}, {"--cap-add", "SYS_ADMIN"},
+		{"--mount", "type=bind,src=/etc,dst=/etc"}, {"--mount", "type=bind,src={m0},dst=/data"}, {"--mount", "type=bind,src={m9},dst=/data,readonly"},
+		{"--cpus=64"}, {"--memory=999999m"}, {"--env", "LD_PRELOAD=/x.so"}, {"--label", "com.other=1"}, {"--pid=host"}, {"--pids-limit=99999"}} {
+		if _, _, err := nodeArgs(base(extra...), "/runs/x/m", limits); err == nil {
+			t.Fatalf("refused: %v", extra)
+		}
+	}
+	wrongName := base()
+	wrongName.Args[2] = "rh-job-ffffffffffff"
+	if _, _, err := nodeArgs(wrongName, "/runs/x/m", limits); err == nil {
+		t.Fatal("the container name is the run's")
+	}
+	wrongImage := base()
+	wrongImage.Image = "other"
+	if _, _, err := nodeArgs(wrongImage, "/runs/x/m", limits); err == nil {
+		t.Fatal("the image is the run's")
+	}
+}
+
+// With RIGHAVEN_NODE_DOCKER_TEST=1 (the Linux job of CI, which has Docker) a real container runs
+// through the node's checks, mounts and result upload.
+func TestNodeRunsARealContainer(t *testing.T) {
+	if os.Getenv("RIGHAVEN_NODE_DOCKER_TEST") != "1" {
+		t.Skip("set RIGHAVEN_NODE_DOCKER_TEST=1 on a machine with Docker")
+	}
+	a := portable(t)
+	must(t, exec.Command("docker", "pull", "-q", "busybox:1.36").Run())
+	runs := t.TempDir()
+	previousRuns := nodeRunsDir
+	nodeRunsDir = func() string { return runs }
+	t.Cleanup(func() { nodeRunsDir = previousRuns })
+	job := nodeRun{ID: "rh-job-0a1b2c3d4e5f", Image: "busybox:1.36", Timeout: 120, Mounts: []nodeMount{
+		{Key: "m0", Mode: "ro", Kind: "file", Target: "/job.json"}, {Key: "m1", Mode: "rw", Kind: "dir", Target: "/out"}},
+		Args: []string{"run", "--name", "rh-job-0a1b2c3d4e5f", "--init", "--cap-drop=ALL", "--security-opt=no-new-privileges", "--pids-limit=64",
+			"--memory=256m", "--memory-swap=256m", "--cpus=1", "--network=bridge", "--tmpfs", "/tmp:rw,size=16m",
+			"--mount", "type=bind,src={m0},dst=/job.json,readonly", "--mount", "type=bind,src={m1},dst=/out",
+			"busybox:1.36", "sh", "-c", `cat /job.json > /out/report.md && echo '{"ok": true}' && ! touch /job.json 2>/dev/null`}}
+	var files = map[string]string{}
+	var result map[string]any
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case strings.HasSuffix(r.URL.Path, "/bundle"):
+			gz := gzip.NewWriter(w)
+			archive := tar.NewWriter(gz)
+			body := `{"task":"real"}`
+			_ = archive.WriteHeader(&tar.Header{Name: "m0", Mode: 0o644, Size: int64(len(body)), Typeflag: tar.TypeReg})
+			_, _ = archive.Write([]byte(body))
+			_ = archive.WriteHeader(&tar.Header{Name: "m1/", Mode: 0o777, Typeflag: tar.TypeDir})
+			archive.Close()
+			gz.Close()
+		case strings.HasSuffix(r.URL.Path, "/result"):
+			gz, _ := gzip.NewReader(r.Body)
+			archive := tar.NewReader(gz)
+			for header, err := archive.Next(); err == nil; header, err = archive.Next() {
+				data, _ := io.ReadAll(archive)
+				if header.Name == "result.json" {
+					_ = json.Unmarshal(data, &result)
+				} else {
+					files[header.Name] = string(data)
+				}
+			}
+		}
+	}))
+	defer server.Close()
+	session := &agentSession{a: a, config: agentConfig{Server: server.URL, Token: "rha_test", Node: &nodeConfig{Jobs: 1}}, out: io.Discard}
+	dir := filepath.Join(runs, job.ID)
+	done := session.executeJob(dir, job)
+	if done["returncode"] != 0 || !strings.Contains(done["stdout"].(string), `"ok": true`) {
+		t.Fatalf("real container: %v", done)
+	}
+	session.uploadResult(dir, job, done)
+	if files["m1/report.md"] != `{"task":"real"}` || result["returncode"] != float64(0) {
+		t.Fatalf("files back: %v %v", files, result)
+	}
+	if exec.Command("docker", "inspect", job.ID).Run() == nil {
+		t.Fatal("the container is removed after the run")
+	}
+}
+
+// The server's own worker command (testdata/server-args.json, kept equal to docker_runtime by
+// tests/test_compute_nodes.py) passes the node's sandbox rules.
+func TestNodeAcceptsTheServersCommand(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join("testdata", "server-args.json"))
+	must(t, err)
+	var fixture struct {
+		Image  string      `json:"image"`
+		Mounts []nodeMount `json:"mounts"`
+		Args   []string    `json:"args"`
+	}
+	must(t, json.Unmarshal(data, &fixture))
+	job := nodeRun{ID: "rh-job-0123456789ab", Image: fixture.Image, Mounts: fixture.Mounts, Args: fixture.Args}
+	args, name, err := nodeArgs(job, "/runs/x/m", map[string]any{"cpus": 8.0, "memory_mib": 16384})
+	if err != nil || name != job.ID {
+		t.Fatalf("the server's command must pass: %v", err)
+	}
+	if !strings.Contains(strings.Join(args, " "), "src="+dockerPath(filepath.Join("/runs/x/m", "m0"))+",dst=/mnt/user-data,readonly") || args[len(args)-1] != "/job.json" {
+		t.Fatalf("command on the node: %v", args)
+	}
+}
+
+// A proxy error while the server restarts is not a revocation: the agent keeps its pairing and retries.
+func TestAgentRevocationIsTheServersAnswerOnly(t *testing.T) {
+	answer := ""
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch answer {
+		case "revoked":
+			w.WriteHeader(401)
+			_, _ = w.Write([]byte(`{"code":"agent_revoked"}`))
+		case "proxy":
+			w.WriteHeader(404)
+			_, _ = w.Write([]byte("404 page not found"))
+		default:
+			_, _ = w.Write([]byte(`{"ok":true}`))
+		}
+	}))
+	defer server.Close()
+	config := agentConfig{Server: server.URL, Token: "rha_x"}
+	for value, revoked := range map[string]bool{"revoked": true, "proxy": false, "ok": false} {
+		answer = value
+		if agentRevoked(config) != revoked {
+			t.Fatalf("%s: revoked should be %v", value, revoked)
+		}
+	}
+	if agentRevoked(agentConfig{Server: "http://127.0.0.1:9", Token: "rha_x"}) {
+		t.Fatal("an unreachable server is not a revocation")
+	}
+}
+
+// The node prepares an environment image only with RigHaven's installer and its capabilities.
+func TestNodePreparesOnlyRigHavensInstaller(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join("testdata", "server-prepare-args.json"))
+	must(t, err)
+	var fixture struct {
+		Image   string       `json:"image"`
+		Prepare *nodePrepare `json:"prepare"`
+		Mounts  []nodeMount  `json:"mounts"`
+		Args    []string     `json:"args"`
+	}
+	must(t, json.Unmarshal(data, &fixture))
+	limits := map[string]any{"cpus": 8.0, "memory_mib": 16384}
+	job := nodeRun{ID: "rh-env-0123456789ab-a1b2c3", Image: fixture.Image, Mounts: fixture.Mounts, Args: fixture.Args, Prepare: fixture.Prepare}
+	args, name, err := nodeArgs(job, "/runs/x/m", limits)
+	if err != nil || name != job.ID || args[len(args)-1] != "/environment-request.json" {
+		t.Fatalf("the server's preparation must pass: %v %v", err, args)
+	}
+	replace := func(old, value string) nodeRun {
+		changed := job
+		changed.Args = append([]string{}, job.Args...)
+		for i, item := range changed.Args {
+			if item == old {
+				changed.Args[i] = value
+			}
+		}
+		return changed
+	}
+	task := job
+	task.Prepare = nil
+	for label, wrong := range map[string]nodeRun{
+		"a task cannot add capabilities":    task,
+		"only the installers' capabilities": replace("CHOWN", "SYS_ADMIN"),
+		"only RigHaven's installer":         replace("/opt/righaven/prepare_environment.py", "/tmp/x.py"),
+		"the environment's own label":       replace("org.righaven.environment="+strings.Repeat("b", 64), "org.righaven.environment="+strings.Repeat("d", 64)),
+	} {
+		if _, _, err := nodeArgs(wrong, "/runs/x/m", limits); err == nil {
+			t.Fatalf("%s: refused expected", label)
+		}
+	}
+	bad := job
+	bad.Prepare = &nodePrepare{Tag: "nginx:latest", Environment: strings.Repeat("b", 64)}
+	if validRunID(bad) {
+		t.Fatal("only RigHaven's environment tags")
+	}
+}
+
+func TestNodeImagesLeastUsedFirst(t *testing.T) {
+	list := []string{"new", "never", "old"}
+	use := map[string]int64{"new": 300, "old": 100}
+	sortByUse(list, func(id string) int64 { return use[id] })
+	if strings.Join(list, ",") != "never,old,new" {
+		t.Fatalf("pruning order: %v", list)
+	}
+}
+
+// With RIGHAVEN_NODE_DOCKER_TEST=1: an environment is prepared on the node with a real container and
+// saved there as an image (docker commit), with its label, and listed among the node's images.
+func TestNodePreparesARealEnvironmentImage(t *testing.T) {
+	if os.Getenv("RIGHAVEN_NODE_DOCKER_TEST") != "1" {
+		t.Skip("set RIGHAVEN_NODE_DOCKER_TEST=1 on a machine with Docker")
+	}
+	a := portable(t)
+	must(t, exec.Command("docker", "pull", "-q", "busybox:1.36").Run())
+	// A stand-in core image whose «python3» plays RigHaven's installer.
+	context := t.TempDir()
+	installer := "#!/bin/sh\nmkdir -p /opt/tools && cat /environment-request.json > /opt/tools/installed\necho '{\"phase\":\"verified\",\"installed_versions\":{\"x\":\"1.0\"}}'\n"
+	must(t, os.WriteFile(filepath.Join(context, "python3"), []byte(installer), 0o755))
+	must(t, os.WriteFile(filepath.Join(context, "Dockerfile"), []byte("FROM busybox:1.36\nCOPY python3 /bin/python3\n"), 0o644))
+	core := "righaven-node-test-core:1"
+	if out, err := exec.Command("docker", "build", "-q", "-t", core, context).CombinedOutput(); err != nil {
+		t.Fatalf("docker build: %v %s", err, out)
+	}
+	environment := strings.Repeat("ab", 32)
+	tag := "skill-environment:0123456789ab-" + environment
+	t.Cleanup(func() { _ = exec.Command("docker", "image", "rm", "-f", tag, core).Run() })
+	runs := t.TempDir()
+	previousRuns := nodeRunsDir
+	nodeRunsDir = func() string { return runs }
+	t.Cleanup(func() { nodeRunsDir = previousRuns })
+	job := nodeRun{ID: "rh-env-0123456789ab-a1b2c3", Image: core, Timeout: 120, Prepare: &nodePrepare{Tag: tag, Environment: environment},
+		Mounts: []nodeMount{{Key: "m0", Mode: "ro", Kind: "file", Target: "/environment-request.json"}},
+		Args: []string{"run", "--name", "rh-env-0123456789ab-a1b2c3", "--init", "--cap-drop=ALL", "--security-opt=no-new-privileges",
+			"--pids-limit=64", "--memory=256m", "--memory-swap=256m", "--cpus=1", "--network=bridge",
+			"--cap-add", "CHOWN", "--cap-add", "FOWNER", "--cap-add", "DAC_OVERRIDE", "--cap-add", "SETUID", "--cap-add", "SETGID",
+			"--label", "org.righaven.harness.installation=test", "--label", "org.righaven.environment=" + environment,
+			"--mount", "type=bind,src={m0},dst=/environment-request.json,readonly",
+			core, "python3", "/opt/righaven/prepare_environment.py", "/environment-request.json"}}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasSuffix(r.URL.Path, "/bundle") {
+			gz := gzip.NewWriter(w)
+			archive := tar.NewWriter(gz)
+			body := `{"tools":["x"]}`
+			_ = archive.WriteHeader(&tar.Header{Name: "m0", Mode: 0o644, Size: int64(len(body)), Typeflag: tar.TypeReg})
+			_, _ = archive.Write([]byte(body))
+			archive.Close()
+			gz.Close()
+		}
+	}))
+	defer server.Close()
+	session := &agentSession{a: a, config: agentConfig{Server: server.URL, Token: "rha_test", Node: &nodeConfig{Jobs: 1}}, out: io.Discard}
+	done := session.executeJob(filepath.Join(runs, job.ID), job)
+	if done["returncode"] != 0 || !nodeImageID.MatchString(fmt.Sprint(done["image_id"])) {
+		t.Fatalf("preparation on the node: %v", done)
+	}
+	label, _ := exec.Command("docker", "image", "inspect", "--format", `{{index .Config.Labels "org.righaven.environment"}}`, tag).Output()
+	if strings.TrimSpace(string(label)) != environment {
+		t.Fatalf("label of the prepared image: %q", label)
+	}
+	installed, _ := exec.Command("docker", "run", "--rm", tag, "cat", "/opt/tools/installed").Output()
+	if string(installed) != `{"tools":["x"]}` {
+		t.Fatalf("the image keeps what the installer did: %q", installed)
+	}
+	found := false
+	for _, id := range nodeImages() {
+		found = found || id == done["image_id"]
+	}
+	if !found {
+		t.Fatal("the node reports its prepared image")
+	}
+	if exec.Command("docker", "inspect", job.ID).Run() == nil {
+		t.Fatal("the preparation container is removed")
 	}
 }

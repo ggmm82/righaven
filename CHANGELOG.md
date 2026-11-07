@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.1.0
+
+- **On-premise images stay on the machine.** An environment placed on a machine is prepared there
+  (same installer and checks, `docker commit`), never in the server's cache; each place reuses
+  only its own images (the machine starts from its closest one), and the machine removes its least
+  used images beyond `agent node on --images GiB` (default 40).
+- **On-premise environments.** Coordination, projects and data stay on the server; an environment
+  can run its tasks on a dedicated machine of the owner (*Cloud*, *On premise · «machine»* or
+  *Automatic*). RigHaven Agent becomes a compute node with `agent node on`: it declares CPU,
+  memory and tasks at a time, checks each sandbox command against its own rules, runs it with its
+  Docker and sends progress and results back. Per-node resources, live progress, stop, results
+  kept while offline. `RigHaven-Agent-linux-x64` for Linux machines.
+
 ## 1.0.0
 
 First stable version.

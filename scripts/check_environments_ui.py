@@ -34,6 +34,10 @@ def main():
                 if self.path.endswith('/history'):
                     profile=state['environments'][0]
                     return self.send(json.dumps({'items':[{'id':'a'*64,'saved_at':100,'definition':profile},{'id':'b'*64,'saved_at':90,'definition':{**profile,'purpose':'Earlier configuration'}}]}))
+                if self.path.endswith('/compute-nodes'):
+                    return self.send(json.dumps({'nodes':[{'id':'ag_0123456789ab','name':'Workstation','online':True,'running':[],
+                                                           'compute':{'cpus':16,'memory_mib':65536,'jobs':2,'docker':'27.1'}},
+                                                          {'id':'ag_ffffffffffff','name':'SamsungPc','online':True,'running':[],'compute':None,'reason':'not_a_node'}]}))
                 if '/tool-versions' in self.path:return self.send(json.dumps(library))
                 if '/transfers/' in self.path:return self.send(json.dumps(transfer))
                 if '/terminals/' in self.path:return self.send(json.dumps(terminal))
@@ -73,7 +77,7 @@ def main():
                 if '/terminals/' in self.path and self.path.endswith('/input'):
                     terminal['text']+='\nExecuted: '+value['text'];return self.send('{"accepted":true}')
                 if fail[0]:return self.send('{"detail":"Name already exists"}',code=409)
-                profile={**value,'tools':['d2','pandoc'],'deployment':{'mode':value.get('mode','on_demand'),'ephemeral':False,'preload_tools':value.get('preload_tools'),'tool_versions':value.get('tool_versions',{})},'runtime':{'status':'on_demand'}}
+                profile={**value,'tools':['d2','pandoc'],'deployment':{'mode':value.get('mode','on_demand'),'ephemeral':False,'preload_tools':value.get('preload_tools'),'tool_versions':value.get('tool_versions',{}),'placement':value.get('placement') or 'cloud'},'runtime':{'status':'on_demand'}}
                 state['environments']=[profile];self.send(json.dumps(profile))
             do_PUT=do_POST
             def do_DELETE(self):
@@ -96,8 +100,17 @@ def main():
                 dialog.get_by_role('radio',name=re.compile('^Precarica')).check()
                 programs=dialog.get_by_role('group',name='Programmi da tenere pronti');programs.get_by_label('pandoc',exact=True).uncheck()
                 dialog.get_by_text('Versioni e opzioni avanzate',exact=True).click();dialog.get_by_label('Versione d2',exact=True).select_option('latest')
+                # On premise: the environment runs on a dedicated machine of the owner; coordination stays here.
+                place=dialog.get_by_label('Dove si esegue',exact=True);expect(place).to_have_value('cloud')
+                expect(place.locator('option')).to_have_count(4)
+                expect(place.locator('option',has_text='SamsungPc')).to_be_disabled()  # connected, but not a compute node
+                expect(dialog.get_by_test_id('placement-hint')).to_contain_text('agent node on')
+                place.select_option('ag_0123456789ab')
+                dialog.get_by_label('Se la macchina è scollegata',exact=True).select_option('cloud')
                 dialog.get_by_role('button',name='Salva ambiente').click();expect(page.get_by_role('dialog')).to_have_count(0)
                 card=page.get_by_test_id('environment-card');expect(card).to_contain_text('Progettazione')
+                expect(card.get_by_test_id('environment-place')).to_have_text('On premise · Workstation')
+                assert posts[-1][1]['placement']=='ag_0123456789ab' and posts[-1][1]['unavailable']=='cloud',posts[-1][1]
                 expect(page.get_by_test_id('profile-reuse-policy')).to_contain_text('Criterio di scelta, in ordine: skill del ruolo presenti → programmi coperti → meno programmi mancanti')
                 expect(card.get_by_test_id('profile-reuse')).to_contain_text('Nessun incarico l’ha ancora usato come base.')
                 assert posts[-1][1]['preload_tools']==['d2'];assert posts[-1][1]['tool_versions']=={'d2':'latest'}
