@@ -52,11 +52,38 @@ off, let RigHaven work in the background there.
 Tunnels and tests reach only private addresses of the phone's networks, as on Windows: an internal
 name that resolves to the internet is refused.
 
+## Server outages and revocation
+
+The phone stays paired while the server is down, restarting or behind a proxy error page (Traefik
+answers 404 while the gateway is not running): the agent keeps retrying. Only when the server
+itself answers `agent_revoked` on `/api/webhooks/righaven-agent/status` (you pressed *Revoke* in
+Connected PCs) does the app ask for a new code, with the server address already filled in.
+
+## Updates without a store
+
+**Agent → Updates** (also on the pairing screen) lists the GitHub releases that carry
+`RigHaven-android.apk`, stable versions first and test versions (`-rc.`) after, with the installed
+one marked. Choose one: the app downloads it and Android's installer asks you to confirm. The first
+time Android asks to allow RigHaven to install apps. Older versions can be chosen too, if Android
+accepts them (it refuses a lower version code over a higher one: uninstall first in that case).
+
+Updates install over the previous version only if both are signed with the same key. The CI signs
+the APK with the project key held in the repository secrets:
+
+| Secret | Value |
+|---|---|
+| `ANDROID_KEYSTORE_B64` | the keystore (PKCS12), base64 on one line |
+| `ANDROID_KEYSTORE_PASSWORD` | its password |
+| `ANDROID_KEY_ALIAS` | the key's alias |
+| `ANDROID_KEY_PASSWORD` | the key's password (the keystore's if empty) |
+
+Without them the APK is signed with a throwaway debug key and the CI warns: a later version signed
+with the project key needs one uninstall (and a new pairing). Keep the keystore safe: losing it
+means every phone must uninstall to move to a new key.
+
 ## Limits
 
 - USB (OTG) serial boards, NFC and traffic recording are not available on the phone yet.
 - Wi-Fi provisioning of devices in setup mode and Wi-Fi exploration stay on the Windows agent.
-- The release APK is signed by the CI: without a project signing key, a new version may ask to
-  uninstall the previous one first.
 - The agent logic (protocol, tunnels, network search) is tested on the JVM; the app is built by
   the CI. Not yet tried on a real phone against a real server.

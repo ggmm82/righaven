@@ -29,12 +29,21 @@ object Store {
     fun save(context: Context, pairing: Pairing) {
         context.getSharedPreferences(FILE, Context.MODE_PRIVATE).edit()
             .putString("server", pairing.server).putString("token", seal(pairing.token))
-            .putString("agent", pairing.agent).putString("name", pairing.name).apply()
+            .putString("agent", pairing.agent).putString("name", pairing.name).putBoolean("revoked", false).apply()
     }
 
     fun clear(context: Context) {
         context.getSharedPreferences(FILE, Context.MODE_PRIVATE).edit().clear().apply()
     }
+
+    /** The server confirmed this phone's access was revoked: pair again, the server address is kept. */
+    fun revoked(context: Context) = context.getSharedPreferences(FILE, Context.MODE_PRIVATE).getBoolean("revoked", false)
+
+    fun setRevoked(context: Context, value: Boolean) {
+        context.getSharedPreferences(FILE, Context.MODE_PRIVATE).edit().putBoolean("revoked", value).apply()
+    }
+
+    fun server(context: Context) = context.getSharedPreferences(FILE, Context.MODE_PRIVATE).getString("server", "") ?: ""
 
     fun agentEnabled(context: Context) = context.getSharedPreferences(FILE, Context.MODE_PRIVATE).getBoolean("agent_on", true)
 

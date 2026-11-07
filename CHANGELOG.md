@@ -7,6 +7,11 @@
   Wi-Fi networks, search of the phone's network, connection tests and tunnels to hosts of its
   private network. Pairing with the same code as a PC, token encrypted with the Android Keystore.
   `RigHaven-android.apk` in the release.
+- **Android: no unpairing on outages.** A proxy 404 or a server restart no longer drops the
+  pairing: only the server's `agent_revoked` answer does, and the address stays filled in.
+- **Android: updates from the releases.** *Agent → Updates* lists the GitHub releases with the APK
+  (stable and test), downloads the chosen one and hands it to Android's installer. The CI signs
+  it with a stable key from the repository secrets.
 
 ## 1.1.0
 

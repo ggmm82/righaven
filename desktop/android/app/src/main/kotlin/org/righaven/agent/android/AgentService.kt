@@ -102,21 +102,22 @@ class AgentService : Service() {
             override fun onMessage(webSocket: WebSocket, text: String) { session?.onText(text) }
             override fun onMessage(webSocket: WebSocket, bytes: ByteString) { session?.onBinary(bytes.toByteArray()) }
 
+            // A revocation is only what the server itself confirms; a proxy or a restarting server is not.
             override fun onClosed(webSocket: WebSocket, code: Int, reason: String) { ended(code == 4001 || code == 4401) }
 
             override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
-                ended((response?.code ?: 0) in setOf(401, 403, 404))
+                ended((response?.code ?: 0) in setOf(401, 403))
             }
         })
     }
 
-    private fun ended(revoked: Boolean) {
+    private fun ended(refused: Boolean) {
         session?.closeAll()
         session = null
         if (!running) return
-        if (revoked) {
+        if (refused && confirmedRevoked()) {
             show(tr("Il server non riconosce più questo telefono: abbinalo di nuovo dall’app", "The server no longer recognizes this phone: pair it again from the app"))
-            Store.clear(this)
+            Store.setRevoked(this, true)  // the server address stays, to pair again in one step
             running = false
             stopSelf()
             return
@@ -127,6 +128,23 @@ class AgentService : Service() {
             pause = (pause * 2).coerceAtMost(60_000L)
             if (running) connect()
         }.start()
+    }
+
+    /** Asks the server whether this phone's access was revoked; no answer means "try again later". */
+    private fun confirmedRevoked(): Boolean {
+        val pairing = Store.load(this) ?: return false
+        return try {
+            val connection = java.net.URL(pairing.server + "/api/webhooks/righaven-agent/status").openConnection() as java.net.HttpURLConnection
+            connection.connectTimeout = 15_000
+            connection.readTimeout = 15_000
+            connection.setRequestProperty(VERSION_HEADER, pairing.token)
+            val code = connection.responseCode
+            val body = (if (code in 200..299) connection.inputStream else connection.errorStream)?.bufferedReader()?.readText().orEmpty()
+            connection.disconnect()
+            code == 401 && body.contains("agent_revoked")
+        } catch (error: Exception) {
+            false
+        }
     }
 
     private fun show(text: String) {

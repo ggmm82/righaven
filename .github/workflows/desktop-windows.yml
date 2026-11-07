@@ -255,13 +255,28 @@ jobs:
           gradle-version: '8.14.3'
       - name: Agent protocol tests and the Android app (the runner has the Android SDK)
         working-directory: desktop/android
+        env:
+          # The stable signing key: every release installs over the previous one. Without the
+          # secrets the app is signed with a throwaway debug key (fine for forks and tests).
+          ANDROID_KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
           test -n "$ANDROID_HOME"
           export RIGHAVEN_VERSION="${TAG#v}"
+          if [ -n "$ANDROID_KEYSTORE_B64" ]; then
+            printf '%s' "$ANDROID_KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/righaven.jks"
+            export ANDROID_KEYSTORE_FILE="$RUNNER_TEMP/righaven.jks"
+            export ANDROID_KEY_PASSWORD="${ANDROID_KEY_PASSWORD:-$ANDROID_KEYSTORE_PASSWORD}"
+          else
+            echo "::warning::ANDROID_KEYSTORE_B64 is not set: the APK is signed with a debug key and will not update over a release-signed app"
+          fi
           gradle --no-daemon :core:test :app:assembleRelease
           cp app/build/outputs/apk/release/app-release.apk "$GITHUB_WORKSPACE/RigHaven-android.apk"
           cd "$GITHUB_WORKSPACE" && sha256sum RigHaven-android.apk > RigHaven-android.apk.sha256
           unzip -l RigHaven-android.apk | grep -q classes.dex
+          if [ -n "${ANDROID_KEYSTORE_FILE:-}" ]; then "$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -n 1)/apksigner" verify --print-certs RigHaven-android.apk | grep -i "SHA-256" | head -n 1; fi
       - uses: actions/upload-artifact@v4
         with:
           name: android-app
