@@ -34,6 +34,9 @@ class ComputeNodeTests(unittest.TestCase):
         state = patch.object(agent_hub, 'state', side_effect=lambda i: node_state(i, self.offered.get(i)))
         state.start()
         self.addCleanup(state.stop)
+        online = patch.object(agent_hub, 'online', side_effect=lambda i: i in ('ag_000000000001', 'ag_000000000002'))  # 2: a PC, not a node
+        online.start()
+        self.addCleanup(online.stop)
 
     def folders(self):
         project, output, progress, job = (self.root / n for n in ('project', 'output', 'progress', 'job.json'))
@@ -167,6 +170,47 @@ def server_template():
              '--mount', 'type=bind,src={m2},dst=/job.json,readonly',
              'righaven-env:abc', 'python3', '/opt/righaven-worker/run_agent.py', '/job.json']
     return args
+
+
+class OfflineMachineTests(unittest.TestCase):
+    """What happens to a task whose machine is offline: wait N minutes, or run it in the cloud."""
+    def setUp(self):
+        compute_nodes.LEASES.clear()
+        self.online = set()
+        for p in (patch.object(agent_hub, 'online', side_effect=lambda i: i in self.online),
+                  patch.object(agent_hub, 'state', side_effect=lambda i: node_state(i, {'cpus': 8.0, 'memory_mib': 8192, 'jobs': 1} if i in self.online else None)),
+                  patch.object(agents, 'owned', side_effect=lambda u, i: {'id': i, 'name': 'devPc'})):
+            p.start()
+            self.addCleanup(p.stop)
+
+    def choose(self, unavailable, notes):
+        with patch('righaven.environments.preferences', return_value={'dati': {'placement': 'ag_000000000001', 'unavailable': unavailable}}):
+            return compute_nodes.choose('alice', 'dati', [], notes=notes)
+
+    def test_an_offline_machine_waits_or_hands_the_task_to_the_cloud_as_chosen(self):
+        notes = []
+        self.assertIsNone(self.choose('cloud', notes))
+        self.assertIn('devPc', notes[0])
+        self.assertIn('cloud', notes[0])
+        self.assertEqual(self.choose('wait:15', []), 'ag_000000000001')
+        with patch('righaven.environments.preferences', return_value={'dati': {'placement': 'ag_000000000001'}}):
+            self.assertEqual(compute_nodes.waiting_minutes('alice', 'dati'), 15)  # the default
+        for wrong in ('wait:0', 'wait:999', 'later', 'wait:x'):
+            with self.assertRaises(ValueError):
+                compute_nodes.check_unavailable(wrong)
+
+    def test_the_wait_counts_only_the_time_offline(self):
+        with self.assertRaises(RuntimeError) as offline:
+            compute_nodes.acquire('ag_000000000001', 'rh-job-000000000001', offline_timeout=.6, label='devPc')
+        self.assertIn('devPc', str(offline.exception))
+        self.assertIn('scollegata', str(offline.exception))
+        threading.Timer(.3, lambda: self.online.add('ag_000000000001')).start()
+        lease = compute_nodes.acquire('ag_000000000001', 'rh-job-000000000002', offline_timeout=5, label='devPc')
+        self.assertEqual(lease['cpus'], 8.0)
+        # Connected but busy: a queue, not an offline machine.
+        with self.assertRaises(RuntimeError) as busy:
+            compute_nodes.acquire('ag_000000000001', 'rh-job-000000000003', offline_timeout=.3, timeout=1.2, label='devPc')
+        self.assertIn('occupata', str(busy.exception))
 
 
 class ServerArgumentsTests(unittest.TestCase):

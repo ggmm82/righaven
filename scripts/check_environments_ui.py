@@ -106,10 +106,11 @@ def main():
                 expect(place.locator('option',has_text='SamsungPc')).to_be_disabled()  # connected, but not a compute node
                 expect(dialog.get_by_test_id('placement-hint')).to_contain_text('agent node on')
                 place.select_option('ag_0123456789ab')
+                dialog.get_by_label('Se la macchina è scollegata',exact=True).select_option('cloud')
                 dialog.get_by_role('button',name='Salva ambiente').click();expect(page.get_by_role('dialog')).to_have_count(0)
                 card=page.get_by_test_id('environment-card');expect(card).to_contain_text('Progettazione')
                 expect(card.get_by_test_id('environment-place')).to_have_text('On premise · Workstation')
-                assert posts[-1][1]['placement']=='ag_0123456789ab',posts[-1][1]
+                assert posts[-1][1]['placement']=='ag_0123456789ab' and posts[-1][1]['unavailable']=='cloud',posts[-1][1]
                 expect(page.get_by_test_id('profile-reuse-policy')).to_contain_text('Criterio di scelta, in ordine: skill del ruolo presenti → programmi coperti → meno programmi mancanti')
                 expect(card.get_by_test_id('profile-reuse')).to_contain_text('Nessun incarico l’ha ancora usato come base.')
                 assert posts[-1][1]['preload_tools']==['d2'];assert posts[-1][1]['tool_versions']=={'d2':'latest'}

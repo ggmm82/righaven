@@ -206,7 +206,8 @@ func runAgent(a *App, config agentConfig, out io.Writer, stop <-chan struct{}) e
 		header.Set(agentHeader, config.Token)
 		conn, err := wsDial(config.Server, "/api/webhooks/righaven-agent/connect", header, 20*time.Second)
 		var refused *wsRefused
-		if errors.As(err, &refused) && (refused.Status == 401 || refused.Status == 403 || refused.Status == 404) {
+		// Only the server's own answer is a revocation: a proxy (404 while the server restarts) is not.
+		if errors.As(err, &refused) && (refused.Status == 401 || refused.Status == 403) && agentRevoked(config) {
 			return errors.New(a.T("agent_revoked"))
 		}
 		if err == nil {
@@ -233,6 +234,23 @@ func runAgent(a *App, config agentConfig, out io.Writer, stop <-chan struct{}) e
 }
 
 var errAgentRevoked = errors.New("revoked")
+
+// agentRevoked asks the server whether this agent's access was revoked; any other answer (the
+// server is down, a proxy error, no network) means "try again later".
+func agentRevoked(config agentConfig) bool {
+	request, err := http.NewRequest("GET", config.Server+"/api/webhooks/righaven-agent/status", nil)
+	if err != nil {
+		return false
+	}
+	request.Header.Set(agentHeader, config.Token)
+	response, err := httpClient.Do(request)
+	if err != nil {
+		return false
+	}
+	defer response.Body.Close()
+	body, _ := io.ReadAll(io.LimitReader(response.Body, 4096))
+	return response.StatusCode == http.StatusUnauthorized && strings.Contains(string(body), "agent_revoked")
+}
 
 func (s *agentSession) send(value any) error {
 	if s.conn == nil { // a run of a compute node can outlive the channel it came from

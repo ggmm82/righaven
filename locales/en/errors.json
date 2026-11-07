@@ -1213,7 +1213,6 @@
   "Immagine del worker mancante": "Worker image missing",
   "Immagine non richiesta da questa macchina": "Image not requested by this machine",
   "La connessione ": "The connection ",
-  "La macchina on premise è occupata o scollegata": "The on-premise machine is busy or offline",
   "Nome del worker non valido": "Invalid worker name",
   "Questo incarico non può essere eseguito su «": "This task cannot run on «",
   "Questo incarico usa risorse di questo server (": "This task uses resources of this server (",
@@ -1221,5 +1220,7 @@
   "Risultato troppo grande": "Result too large",
   "Volume del worker non supportato su una macchina on premise": "Worker volume not supported on an on-premise machine",
   "Questa macchina non esegue ambienti (avvia RigHaven Agent con «agent node on» oppure scegli Cloud): ": "This machine runs no environments (start RigHaven Agent with “agent node on” or choose Cloud): ",
-  "Catalogo modelli non leggibile: ": "Model catalog unreadable: "
+  "Catalogo modelli non leggibile: ": "Model catalog unreadable: ",
+  "If the machine is offline: cloud, or wait 1-240 minutes": null,
+  "La macchina «": "The machine «"
 }

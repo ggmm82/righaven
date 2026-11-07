@@ -1519,3 +1519,31 @@ func TestNodeAcceptsTheServersCommand(t *testing.T) {
 		t.Fatalf("command on the node: %v", args)
 	}
 }
+
+// A proxy error while the server restarts is not a revocation: the agent keeps its pairing and retries.
+func TestAgentRevocationIsTheServersAnswerOnly(t *testing.T) {
+	answer := ""
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch answer {
+		case "revoked":
+			w.WriteHeader(401)
+			_, _ = w.Write([]byte(`{"code":"agent_revoked"}`))
+		case "proxy":
+			w.WriteHeader(404)
+			_, _ = w.Write([]byte("404 page not found"))
+		default:
+			_, _ = w.Write([]byte(`{"ok":true}`))
+		}
+	}))
+	defer server.Close()
+	config := agentConfig{Server: server.URL, Token: "rha_x"}
+	for value, revoked := range map[string]bool{"revoked": true, "proxy": false, "ok": false} {
+		answer = value
+		if agentRevoked(config) != revoked {
+			t.Fatalf("%s: revoked should be %v", value, revoked)
+		}
+	}
+	if agentRevoked(agentConfig{Server: "http://127.0.0.1:9", Token: "rha_x"}) {
+		t.Fatal("an unreachable server is not a revocation")
+	}
+}
