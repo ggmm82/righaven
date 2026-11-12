@@ -120,23 +120,19 @@ and can make the TV unusable.
 
 Works with ELM327 adapters on the standard OBD-II data (engine, emissions, trouble codes):
 
-- **Bluetooth LE** (most cheap adapters named "OBDII", Vgate iCar, vLinker): they never appear as
-  a COM port. Nothing to pair: ask in the chat ("read the codes of my car") and the coordinator
-  reads the adapter through RigHaven Agent on the PC or the phone (`harness_bluetooth` action
-  `obd`): stored, pending and permanent trouble codes, warning light, live values, VIN. Read only,
-  no approval; the Agent listens to the adapter's notifications in the same connection where it
-  sends the ELM327 commands. Ignition on, and no other app connected to the adapter.
-- **Classic Bluetooth**: pair the adapter with the machine running RigHaven (on Linux `rfcomm bind` gives
-  `/dev/rfcomm0`, which the administrator adds to `RIGHAVEN_DEVICES`), then *Attached to this
-  machine*. On Windows a Bluetooth adapter is a COM port that WSL cannot see: share it with an
-  RFC 2217 server, or use a USB or Wi-Fi adapter.
+- **Bluetooth, classic or LE** (cheap "OBDII" dongles, Vgate, vLinker, HC-05 serial modules):
+  create a Bluetooth connection on the PC or phone running RigHaven Agent and assign it to the
+  task. The agent opens the device as a byte channel (a classic device through its serial
+  profile, an LE device through its write characteristic and notifications) and the task's tools
+  use it as a serial port (`socket://…`). Ignition on, and no other app connected to the adapter.
 - **USB**: *Attached to this machine* (`/dev/ttyUSB0`; on Windows via usbipd).
 - **Wi-Fi**: *In rete* → *TCP*, usually `192.168.0.10:35000`.
 
 `iot.obd` reads protocol, battery voltage, VIN when available, supported values, live values
 (RPM, speed, temperatures…) and stored trouble codes. Clearing codes is a write: it needs your
 approval and also resets the readiness monitors. Manufacturer-specific systems (ABS, airbags,
-body) are outside standard OBD-II.
+body) are outside standard OBD-II. Manual sessions (AT commands, a fixed protocol, listening to
+the bus) use `iot.send` and `iot.capture` on the same channel: see the skill's `CHANNELS.md`.
 
 ## Peripherals of the PC, from the page
 
@@ -177,7 +173,7 @@ Every result of a search, and every saved device connection, offers the same act
 |---|---|---|
 | Device on the network (or a saved network device) | ports that answer, name, home page | — |
 | Any Wi-Fi network | RigHaven for Windows joins it for a few seconds (with the password typed by the owner when it is protected; networks already saved in Windows keep their own profile), reads the page of what answers there (the device's setup page or the router) and goes back; *Create connection* uses that address | *Add to the home Wi-Fi* for Tasmota, Shelly, ESPHome, WLED, OpenBeken; Tuya, Daikin and LG are added with their app |
-| Bluetooth device, paired or not (or a saved Bluetooth connection); devices heard now come first, those Windows only remembers are in a closed list; any device that advertises (also a phone with an advertiser app) is listed | services, characteristics and readable values | classic Bluetooth serial devices (HC-05, older OBD-II): pair them in Windows; Bluetooth LE OBD-II adapters are read from the chat |
+| Bluetooth device, paired or not (or a saved Bluetooth connection); devices heard now come first, those Windows only remembers are in a closed list; any device that advertises (also a phone with an advertiser app) is listed | services, characteristics and readable values | *Create connection*: classic or LE, the device becomes a byte channel the task's tools open like a serial port |
 | USB peripheral | busid, VID:PID, state, whether it is a serial port, the chip (CP210x, CH340, FTDI, Espressif native USB…) and whether RigHaven can update its firmware (ESP boards, esptool) | *Attach to RigHaven*, then *Create connection on /dev/ttyUSB0* |
 | COM port | name, Bluetooth or not, shared or not | *Share with RigHaven*, then *Create connection* |
 | Matter device | name, vendor, state | pairing code, then *Create connection* |
@@ -323,3 +319,22 @@ way: use a USB or Wi-Fi adapter.
 
 Serial ports plugged in when RigHaven starts are offered automatically (`--devices auto`); after
 plugging one in, run `./righaven` again. The user running Docker must be allowed to use them.
+
+## Bluetooth as a transport
+
+A Bluetooth connection names one device, whatever protocol runs over it. The agent of the PC or
+phone that has the device (RigHaven Agent with `ble-stream`) carries it to the server through the
+same encrypted tunnel used for COM ports, reachable only from RigHaven's internal network:
+
+| What | How |
+|---|---|
+| Classic device | its serial profile (the COM port Windows created, or RFCOMM on the phone) |
+| Bluetooth LE device | one write characteristic and the notifications of one characteristic: the optional *channel profile* of the connection; empty, the agent uses a serial profile the device has (`fff0`, `ffe0`, `18f0`, Nordic UART…) |
+| In a task | `socket://host:port`, like a serial port: `iot.capture`, `iot.send`, `iot.obd` or any tool that opens a serial URL |
+| Without a task | the chat (`harness_bluetooth`: inspect, read, approved write or exchange with end marker and timeout) and the page (*Explore* → *Manual terminal*, on connections with writing allowed) |
+
+One client per device at a time; the channel reopens when a tool needs it. Writes follow the same
+approvals as any device: one owner approval per write in a task, the owner's own command in the
+page terminal (recorded in the agent's activity). With an agent that does not carry Bluetooth yet,
+the connection stays usable from the chat and the page only, as before.
+

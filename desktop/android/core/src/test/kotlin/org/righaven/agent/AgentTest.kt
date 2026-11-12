@@ -198,3 +198,45 @@ class BleExchangeTest {
         }
     }
 }
+
+class BleChannelTest {
+    @Test
+    fun bluetoothTunnelsReachTheAgentWithTheirTarget() {
+        val channel = FakeChannel()
+        val opened = mutableListOf<String>()
+        val session = AgentSession(channel, "android", "1.2.0", listOf("ble-stream"), { emptyList() },
+            handle = { _, _ -> emptyMap() },
+            openStream = { target ->
+                opened += target
+                object : Stream {
+                    override val input: InputStream = java.io.ByteArrayInputStream(ByteArray(0))
+                    override val output: OutputStream = ByteArrayOutputStream()
+                    override fun close() {}
+                }
+            })
+        session.onText("""{"type":"open","stream":4,"target":"ble:66:1E:32:FA:3C:20"}""")
+        assertEquals("opened", channel.next().getString("type"))
+        assertEquals(listOf("ble:66:1E:32:FA:3C:20"), opened, "a Bluetooth channel keeps its prefix")
+    }
+
+    @Test
+    fun parsesTargetsAndChoosesTheChannel() {
+        val plain = BleChannel.parse("ble:66:1e:32:fa:3c:20")
+        assertEquals("66:1E:32:FA:3C:20", plain.address)
+        val adapter = mapOf(
+            "00001800-0000-1000-8000-00805f9b34fb" to mapOf("00002a00-0000-1000-8000-00805f9b34fb" to setOf("Read", "Write")),
+            "0000fff0-0000-1000-8000-00805f9b34fb" to mapOf("0000fff1-0000-1000-8000-00805f9b34fb" to setOf("Read", "Notify"),
+                "0000fff2-0000-1000-8000-00805f9b34fb" to setOf("Write")))
+        assertEquals(Triple("0000fff0-0000-1000-8000-00805f9b34fb", "0000fff2-0000-1000-8000-00805f9b34fb", "0000fff1-0000-1000-8000-00805f9b34fb"),
+            BleChannel.choose(plain, adapter))
+        val other = mapOf("0000ae30-0000-1000-8000-00805f9b34fb" to mapOf("0000ae01-0000-1000-8000-00805f9b34fb" to setOf("WriteWithoutResponse"),
+            "0000ae02-0000-1000-8000-00805f9b34fb" to setOf("Notify")))
+        assertEquals("0000ae01-0000-1000-8000-00805f9b34fb", BleChannel.choose(plain, other).second)
+        val named = BleChannel.parse("ble:66:1E:32:FA:3C:20/0000ae30-0000-1000-8000-00805f9b34fb/0000ae01-0000-1000-8000-00805f9b34fb/0000ae02-0000-1000-8000-00805f9b34fb")
+        assertEquals("0000ae02-0000-1000-8000-00805f9b34fb", BleChannel.choose(named, emptyMap()).third)
+        assertFailsWith<IllegalStateException> { BleChannel.choose(plain, adapter.filterKeys { it.startsWith("00001800") }) }
+        for (bad in listOf("ble:66:1E", "tcp:66:1E:32:FA:3C:20", "ble:66:1E:32:FA:3C:20/x/y/z")) {
+            assertFailsWith<IllegalArgumentException> { BleChannel.parse(bad) }
+        }
+    }
+}

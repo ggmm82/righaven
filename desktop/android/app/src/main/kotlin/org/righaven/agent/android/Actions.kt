@@ -32,7 +32,7 @@ import java.util.concurrent.TimeUnit
  * nearby Wi-Fi networks, the search of its network and whether a host of its network answers.
  */
 class Actions(private val context: Context) {
-    val names = listOf("bluetooth-scan", "ble-inspect", "ble-read", "ble-write", "ble-exchange", "wifi-scan", "net-scan", "tcp-check",
+    val names = listOf("bluetooth-scan", "ble-inspect", "ble-read", "ble-write", "ble-exchange", "ble-stream", "wifi-scan", "net-scan", "tcp-check",
         "net-listen", "pc-devices", "nfc-read")
 
     fun handle(action: String, args: Map<String, String>): Map<String, Any?> = when (action) {

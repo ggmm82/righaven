@@ -295,7 +295,9 @@ func (p *serialPort) Close() error {
 
 // listCOMPorts returns the present serial ports with their Windows names.
 func listCOMPorts() ([]comPort, error) {
-	script := `Get-PnpDevice -Class Ports -PresentOnly -ErrorAction SilentlyContinue | ForEach-Object { if ($_.FriendlyName -match '\((COM\d+)\)') { [pscustomobject]@{ name = $Matches[1]; label = $_.FriendlyName } } } | ConvertTo-Json -Compress`
+	// Ports Windows creates for paired classic Bluetooth devices carry the device's address in
+	// their instance ID (BTHENUM\{...}\...&661E32FA3C20_C00000000); incoming ports have zeros.
+	script := `Get-PnpDevice -Class Ports -PresentOnly -ErrorAction SilentlyContinue | ForEach-Object { if ($_.FriendlyName -match '\((COM\d+)\)') { $name = $Matches[1]; $address = ''; if ($_.InstanceId -match '^BTHENUM\\.*&([0-9A-F]{12})_' -and $Matches[1] -ne '000000000000') { $address = $Matches[1] }; [pscustomobject]@{ name = $name; label = $_.FriendlyName; address = $address } } } | ConvertTo-Json -Compress`
 	output, err := exec.Command("powershell.exe", "-NoProfile", "-NonInteractive", "-Command", script).Output()
 	if err != nil {
 		return nil, err
@@ -407,8 +409,8 @@ public static class Gatt {
     if (operation.Status != AsyncStatus.Completed) throw operation.ErrorCode ?? new Exception(operation.Status.ToString());
     return operation.GetResults();
   }
-  // The whole operation ends within 50 seconds, whatever the device does.
-  static readonly DateTime Deadline = DateTime.UtcNow.AddSeconds(50);
+  // The whole operation ends within 50 seconds, whatever the device does (a stream lasts until its input ends).
+  static DateTime Deadline = DateTime.UtcNow.AddSeconds(50);
   static string Clean(object value) { return value == null ? "" : value.ToString().Replace("|", " ").Replace("\r", " ").Replace("\n", " "); }
   static string Hex(IBuffer buffer) { var bytes = new byte[buffer.Length]; DataReader.FromBuffer(buffer).ReadBytes(bytes); return String.Concat(bytes.Select(b => b.ToString("x2"))); }
   // Many Bluetooth LE devices use a random (static) address: try it as public, then as random.
@@ -480,6 +482,64 @@ public static class Gatt {
     }
     try { Wait(listen.WriteClientCharacteristicConfigurationDescriptorAsync(GattClientCharacteristicConfigurationDescriptorValue.None)); } catch (Exception) { }
   }
+  // Serial-over-BLE profiles of common modules and adapters: service, write, notify. Only where the
+  // bytes go; what they mean is up to the tool that opens the channel.
+  static readonly string[][] Profiles = {
+    new[] { "0000fff0-0000-1000-8000-00805f9b34fb", "0000fff2-0000-1000-8000-00805f9b34fb", "0000fff1-0000-1000-8000-00805f9b34fb" },
+    new[] { "0000ffe0-0000-1000-8000-00805f9b34fb", "0000ffe1-0000-1000-8000-00805f9b34fb", "0000ffe1-0000-1000-8000-00805f9b34fb" },
+    new[] { "000018f0-0000-1000-8000-00805f9b34fb", "00002af1-0000-1000-8000-00805f9b34fb", "00002af0-0000-1000-8000-00805f9b34fb" },
+    new[] { "6e400001-b5a3-f393-e0a9-e50e24dcca9e", "6e400002-b5a3-f393-e0a9-e50e24dcca9e", "6e400003-b5a3-f393-e0a9-e50e24dcca9e" },
+    new[] { "e7810a71-73ae-499d-8c15-faa9aef0c3f2", "bef8d6c9-9c21-4c9e-b632-bd58c1009f9f", "bef8d6c9-9c21-4c9e-b632-bd58c1009f9f" },
+  };
+  // The channel of a device: the profile given, a known serial profile it has, or the first
+  // service with a characteristic that takes writes and one that notifies.
+  static GattCharacteristic[] Channel(GattDeviceServicesResult services, string service, string write, string notify) {
+    if (service != "") return new[] { Find(services, service, write), Find(services, service, notify) };
+    foreach (var profile in Profiles) {
+      try { return new[] { Find(services, profile[0], profile[1]), Find(services, profile[0], profile[2]) }; } catch (Exception) { }
+    }
+    foreach (var item in services.Services) {
+      if (item.Uuid.ToString().StartsWith("000018") && item.Uuid.ToString().EndsWith("-0000-1000-8000-00805f9b34fb") && !item.Uuid.ToString().StartsWith("000018f0")) continue;
+      var characteristics = Wait(item.GetCharacteristicsAsync(BluetoothCacheMode.Uncached));
+      if (characteristics.Status != GattCommunicationStatus.Success) continue;
+      GattCharacteristic writer = null, listener = null;
+      foreach (var candidate in characteristics.Characteristics) {
+        if (writer == null && (candidate.CharacteristicProperties & (GattCharacteristicProperties.Write | GattCharacteristicProperties.WriteWithoutResponse)) != 0) writer = candidate;
+        if (listener == null && (candidate.CharacteristicProperties & (GattCharacteristicProperties.Notify | GattCharacteristicProperties.Indicate)) != 0) listener = candidate;
+      }
+      if (writer != null && listener != null) return new[] { writer, listener };
+    }
+    throw new Exception("no service of this device takes writes and notifies: name the channel profile (service, write, notify)");
+  }
+  // stream: the device as a byte channel until the input ends. Input lines W|hex are written (in
+  // pieces of 20 bytes, the smallest Bluetooth LE packet); notifications come out as R|hex.
+  static void Stream(GattDeviceServicesResult services, string[] args) {
+    var channel = Channel(services, args.Length > 2 ? args[2] : "", args.Length > 3 ? args[3] : "", args.Length > 4 ? args[4] : "");
+    var target = channel[0]; var listen = channel[1]; var gate = new object();
+    listen.ValueChanged += (sender, change) => {
+      var chunk = new byte[change.CharacteristicValue.Length]; DataReader.FromBuffer(change.CharacteristicValue).ReadBytes(chunk);
+      lock (gate) { Console.Out.WriteLine("R|" + String.Concat(chunk.Select(b => b.ToString("x2")))); Console.Out.Flush(); }
+    };
+    var mode = (listen.CharacteristicProperties & GattCharacteristicProperties.Notify) != 0 ? GattClientCharacteristicConfigurationDescriptorValue.Notify : GattClientCharacteristicConfigurationDescriptorValue.Indicate;
+    var subscribed = Wait(listen.WriteClientCharacteristicConfigurationDescriptorAsync(mode));
+    if (subscribed != GattCommunicationStatus.Success) throw new Exception("notifications refused: " + subscribed);
+    var option = (target.CharacteristicProperties & GattCharacteristicProperties.Write) != 0 ? GattWriteOption.WriteWithResponse : GattWriteOption.WriteWithoutResponse;
+    lock (gate) { Console.Out.WriteLine("S|" + target.Service.Uuid + "|" + target.Uuid + "|" + listen.Uuid); Console.Out.Flush(); }
+    Deadline = DateTime.MaxValue;
+    string line;
+    while ((line = Console.In.ReadLine()) != null) {
+      if (!line.StartsWith("W|")) continue;
+      var data = Bytes(line.Substring(2).Trim());
+      for (int at = 0; at < data.Length; at += 20) {
+        var writer = new DataWriter(); writer.WriteBytes(data.Skip(at).Take(20).ToArray());
+        var started = DateTime.UtcNow; Deadline = started.AddSeconds(15);
+        var status = Wait(target.WriteValueAsync(writer.DetachBuffer(), option));
+        Deadline = DateTime.MaxValue;
+        if (status != GattCommunicationStatus.Success) throw new Exception("write refused: " + status);
+      }
+    }
+    try { Deadline = DateTime.UtcNow.AddSeconds(5); Wait(listen.WriteClientCharacteristicConfigurationDescriptorAsync(GattClientCharacteristicConfigurationDescriptorValue.None)); } catch (Exception) { }
+  }
   public static int Main(string[] args) {
     try {
       var address = Convert.ToUInt64(args[1].Replace(":", ""), 16);
@@ -514,6 +574,8 @@ public static class Gatt {
         Console.WriteLine("V|");
       } else if (args[0] == "exchange") {
         Exchange(services, args);
+      } else if (args[0] == "stream") {
+        Stream(services, args);
       }
       device.Dispose();
       return 0;
@@ -562,6 +624,39 @@ func dotnetProgram(name, source string) (string, error) {
 		return "", fmt.Errorf("Bluetooth helper not built: %s", strings.Join(errorsOnly, " "))
 	}
 	return program, nil
+}
+
+// startGATTStream runs the GATT helper in stream mode for one Bluetooth LE device: it keeps the
+// connection, writes what the channel receives and returns what the device notifies.
+func startGATTStream(channel bleChannel) (io.ReadWriteCloser, error) {
+	program, err := dotnetProgram("gatt", gattSource)
+	if err != nil {
+		return nil, err
+	}
+	command := exec.Command(program, "stream", channel.Address, channel.Service, channel.Write, channel.Notify)
+	in, err := command.StdinPipe()
+	if err != nil {
+		return nil, err
+	}
+	out, err := command.StdoutPipe()
+	if err != nil {
+		return nil, err
+	}
+	if err := command.Start(); err != nil {
+		return nil, err
+	}
+	stop := func() error {
+		done := make(chan error, 1)
+		go func() { done <- command.Wait() }()
+		select {
+		case <-done:
+		case <-time.After(3 * time.Second):
+			_ = command.Process.Kill()
+			<-done
+		}
+		return nil
+	}
+	return newHelperStream(in, out, stop)
 }
 
 func runGATT(args ...string) (string, error) {

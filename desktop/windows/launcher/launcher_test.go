@@ -1784,3 +1784,86 @@ func TestGATTExchangeSendsCommandsInOneConnection(t *testing.T) {
 		t.Fatal("accepted too many commands")
 	}
 }
+
+type pipeStream struct {
+	io.Reader
+	io.Writer
+	closed bool
+}
+
+func (p *pipeStream) Close() error { p.closed = true; return nil }
+
+func TestBluetoothChannelTargets(t *testing.T) {
+	channel, err := parseBLETarget("ble:66:1e:32:fa:3c:20/0000FFF0-0000-1000-8000-00805f9b34fb/0000fff2-0000-1000-8000-00805f9b34fb/0000fff1-0000-1000-8000-00805f9b34fb")
+	if err != nil || channel.Address != "66:1E:32:FA:3C:20" || channel.Service != "0000fff0-0000-1000-8000-00805f9b34fb" || channel.Notify != "0000fff1-0000-1000-8000-00805f9b34fb" {
+		t.Fatalf("%+v %v", channel, err)
+	}
+	if channel, err := parseBLETarget("ble:66:1E:32:FA:3C:20"); err != nil || channel.Service != "" {
+		t.Fatalf("%+v %v", channel, err)
+	}
+	for _, bad := range []string{"ble:66:1E", "tcp:66:1E:32:FA:3C:20", "ble:66:1E:32:FA:3C:20/x/y/z", "ble:66:1E:32:FA:3C:20/0000fff0-0000-1000-8000-00805f9b34fb"} {
+		if _, err := parseBLETarget(bad); err == nil {
+			t.Fatalf("accepted %s", bad)
+		}
+	}
+}
+
+func TestBluetoothChannelUsesTheClassicPortOrTheLEChannelOneClientAtATime(t *testing.T) {
+	previousPorts, previousCOM, previousGATT := comPorts, openCOM, gattStream
+	t.Cleanup(func() { comPorts, openCOM, gattStream = previousPorts, previousCOM, previousGATT })
+	comPorts = func() ([]comPort, error) {
+		return []comPort{{Name: "COM7", Label: "Standard Serial over Bluetooth link (COM7)", Address: "001DA5683E2F"}}, nil
+	}
+	var opened string
+	openCOM = func(name string) (io.ReadWriteCloser, error) {
+		opened = name
+		return &pipeStream{Reader: strings.NewReader(""), Writer: io.Discard}, nil
+	}
+	var asked bleChannel
+	gattStream = func(channel bleChannel) (io.ReadWriteCloser, error) {
+		asked = channel
+		return &pipeStream{Reader: strings.NewReader(""), Writer: io.Discard}, nil
+	}
+	classic, err := openBluetooth("ble:00:1D:A5:68:3E:2F")
+	if err != nil || opened != "COM7" {
+		t.Fatalf("classic device not opened through its COM port: %v %s", err, opened)
+	}
+	if _, err := openBluetooth("ble:00:1D:A5:68:3E:2F"); err == nil {
+		t.Fatal("a second client opened the same device")
+	}
+	_ = classic.Close()
+	again, err := openBluetooth("ble:00:1D:A5:68:3E:2F")
+	if err != nil {
+		t.Fatalf("the device stayed busy after its client closed: %v", err)
+	}
+	_ = again.Close()
+	le, err := openBluetooth("ble:66:1E:32:FA:3C:20")
+	if err != nil || asked.Address != "66:1E:32:FA:3C:20" {
+		t.Fatalf("LE device not opened through GATT: %v %+v", err, asked)
+	}
+	_ = le.Close()
+}
+
+func TestHelperStreamCarriesBytesBothWays(t *testing.T) {
+	var written strings.Builder
+	in := &pipeStream{Writer: &written}
+	output := "N|OBDII\nS|0000fff0-0000-1000-8000-00805f9b34fb|0000fff2-0000-1000-8000-00805f9b34fb|0000fff1-0000-1000-8000-00805f9b34fb\nR|454c4d\nR|3332370d3e\n"
+	stream, err := newHelperStream(in, strings.NewReader(output), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := stream.Write([]byte("ATZ\r")); err != nil || written.String() != "W|41545a0d\n" {
+		t.Fatalf("%q %v", written.String(), err)
+	}
+	data, err := io.ReadAll(stream)
+	if err != nil || string(data) != "ELM327\r>" {
+		t.Fatalf("%q %v", data, err)
+	}
+	_ = stream.Close()
+	if !in.closed {
+		t.Fatal("closing the stream must end the helper's input")
+	}
+	if _, err := newHelperStream(&pipeStream{Writer: io.Discard}, strings.NewReader("N|x\nE|device not found or not in range\n"), nil); err == nil || !strings.Contains(err.Error(), "Unreachable") {
+		t.Fatalf("%v", err)
+	}
+}

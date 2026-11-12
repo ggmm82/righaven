@@ -682,7 +682,7 @@ def vehicle(cfg,args,output):
                     'limits':['Read only. Manufacturer-specific data (body, ABS, airbags) is outside standard OBD-II.']}
         if command=='codes':
             codes={'stored':obd_value(connection.query(obd.commands.GET_DTC)),
-                   'pending':obd_value(connection.query(obd.commands.FREEZE_DTC)) if hasattr(obd.commands,'FREEZE_DTC') else None,
+                   'pending':obd_value(connection.query(obd.commands.GET_CURRENT_DTC)) if hasattr(obd.commands,'GET_CURRENT_DTC') else None,
                    'monitors':obd_value(connection.query(obd.commands.STATUS)) if hasattr(obd.commands,'STATUS') else None}
             (output/'codes.json').write_text(json.dumps({'at':now(),**info,**codes},indent=2,default=str))
             stored=codes['stored'] or []

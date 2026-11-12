@@ -41,7 +41,7 @@ type agentConfig struct {
 }
 
 var (
-	agentActions = []string{"bluetooth-scan", "wifi-scan", "com-list", "ble-inspect", "ble-read", "ble-write", "ble-exchange", "wifi-provision",
+	agentActions = []string{"bluetooth-scan", "wifi-scan", "com-list", "ble-inspect", "ble-read", "ble-write", "ble-exchange", "ble-stream", "wifi-provision",
 		"wifi-explore", "pc-devices", "net-listen", "lan-devices", "traffic-capture", "net-scan", "tcp-check"}
 	agentConfigPath = func() string {
 		base := os.Getenv("LOCALAPPDATA")
@@ -352,7 +352,8 @@ func (s *agentSession) serve(stop <-chan struct{}) error {
 	}
 }
 
-// openStream connects one tunnel: a COM port of this PC or a device of its private network.
+// openStream connects one tunnel: a COM port of this PC, a Bluetooth device as a byte channel
+// (ble-stream) or a device of its private network.
 func (s *agentSession) openStream(number uint32, target string) {
 	var stream io.ReadWriteCloser
 	var err error
@@ -361,6 +362,8 @@ func (s *agentSession) openStream(number uint32, target string) {
 		stream, err = openCOM(strings.TrimPrefix(target, "com:"))
 	case strings.HasPrefix(target, "tcp:"):
 		stream, err = homeDial(strings.TrimPrefix(target, "tcp:"), 10*time.Second)
+	case strings.HasPrefix(target, "ble:"):
+		stream, err = openBluetooth(target)
 	default:
 		err = errors.New("unknown target")
 	}

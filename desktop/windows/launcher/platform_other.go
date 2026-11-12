@@ -52,6 +52,8 @@ func scanWifi() ([]wifiNetwork, error) { return nil, os.ErrNotExist }
 
 func runGATT(...string) (string, error) { return "", os.ErrNotExist }
 
+func startGATTStream(bleChannel) (io.ReadWriteCloser, error) { return nil, os.ErrNotExist }
+
 type windowsWifi struct{}
 
 func (windowsWifi) Current() (string, error)               { return "", os.ErrNotExist }

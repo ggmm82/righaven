@@ -219,7 +219,8 @@ def harness_setup_device(runtime: Runtime, kind: str, target: str, name: str = '
     Windows COM port (for example a paired Bluetooth OBD-II adapter); network (target = IP
     address, protocol mqtt, http, modbus-tcp, adb, tcp or tuya); matter (target = the 11-digit
     pairing code from Alexa, SmartThings, Google Home or Apple Home); bluetooth (target = the
-    Bluetooth LE address from the Bluetooth search, then use harness_bluetooth). Tuya devices also need
+    Bluetooth address from the Bluetooth search, classic or LE: a byte channel the task's tools open
+    like a serial port, or the chat's harness_bluetooth for quick checks). Tuya devices also need
     the device ID and local key, which the owner enters in Connections, never in the chat.
 
     Args:
@@ -341,42 +342,40 @@ def harness_explore_device(runtime: Runtime, kind: str, target: str, pc: str = '
 
 @tool('harness_bluetooth', parse_docstring=True)
 def harness_bluetooth(runtime: Runtime, connection: str = '', action: str = 'inspect', service: str = '', characteristic: str = '', value: str = '', address: str = '',
-                      notify: str = '', request: str = 'codes') -> str:
-    """Work with a Bluetooth LE device connection through the PC's or phone's Bluetooth (RigHaven Agent).
+                      notify: str = '', text: str = '', until: str = '', wait: int = 3000) -> str:
+    """Quick checks of a Bluetooth device from the chat, through the PC's or phone's Bluetooth (RigHaven Agent).
 
-    inspect lists the device's services and characteristics with their properties and the
-    values that can be read; read reads one characteristic. Neither needs approval nor a saved
-    connection: pass the address found by the Bluetooth search. A read returns only the stored
-    value: devices that answer commands by notification (OBD-II adapters, serial bridges, many
-    boards) need exchange, which writes and listens in the same connection.
-    write sends bytes to one characteristic of a saved connection (harness_setup_device kind
-    bluetooth creates it; the owner allows writing on it and assigns it to the task) and only after
-    the owner approved that exact write: first call harness_device_change with action send and
-    command_json {"payload": "<hex>", "encoding": "hex", "address": "<service>/<characteristic>"},
-    end the turn, and call write after the approval. exchange is the same approved write, but it
-    also returns what the device notifies (on notify, or the first notifying characteristic of the
-    service). Short UUIDs such as 180a are accepted. Many commercial devices encrypt their commands:
-    say so when the characteristics look vendor specific.
-    obd reads a vehicle through a Bluetooth LE ELM327 OBD-II adapter (these never appear as a COM
-    port, so iot.obd cannot use them): request codes (stored, pending and permanent trouble codes,
-    warning light state), live (rpm, speed, temperatures, load, voltage) or info (adapter,
-    protocol, VIN). Read only, no approval: only fixed diagnostic requests are sent, never clearing
-    codes. Ignition on (engine may stay off) and no other app connected to the adapter. Standard
-    OBD-II covers engine and emissions only: ABS, airbags, gearbox and body modules (often the
-    light on Chinese cars) need the manufacturer's tool; explain codes as symptoms to confirm.
+    Bluetooth is a transport like a serial port: to speak a protocol over it (OBD-II, AT commands,
+    Modbus, a vendor protocol), assign the connection to a task in the IoT environment, where the
+    tools open the device as a byte channel (iot.obd, iot.send with reply_until, iot.capture). Use
+    this tool when no environment is needed: inspect lists services and characteristics with their
+    properties and readable values; read reads one characteristic. Neither needs approval nor a
+    saved connection (pass the address from the Bluetooth search). A read returns only a stored
+    value: devices that answer commands by notification need exchange. write sends bytes to one
+    characteristic of a saved connection and exchange sends them and returns what the device
+    notifies back (prompt sessions: until is the end of the answer, for example > or OK, wait the
+    timeout). Both only after the owner approved that exact write: first call harness_device_change
+    with action send and command_json {"payload": "<hex>", "encoding": "hex", "address":
+    "<service>/<characteristic>"}, end the turn, then call write or exchange. Service and
+    characteristics default to the connection's channel profile. Short UUIDs such as fff0 are
+    accepted. Many commercial devices encrypt their commands: say so when the characteristics look
+    vendor specific. A device that never answers can be a physical limit (a connector without data
+    lines): say so instead of retrying.
 
     Args:
         runtime: Injected RigHaven runtime.
-        connection: ID of the Bluetooth LE device connection (needed to write and exchange).
-        action: inspect, read, write, exchange or obd.
-        service: Service UUID (read, write, exchange; obd finds it when empty).
-        characteristic: Characteristic UUID to read or write (obd finds it when empty).
+        connection: ID of the Bluetooth device connection (needed to write and exchange).
+        action: inspect, read, write or exchange.
+        service: Service UUID (read, write, exchange).
+        characteristic: Characteristic UUID to read or to write to.
         value: Bytes to write, in hexadecimal (write, exchange).
-        address: Bluetooth address from the search, to inspect, read or obd without a connection.
-        notify: Characteristic that notifies the answers (exchange, obd; found when empty).
-        request: For obd: codes, live or info.
+        address: Bluetooth address from the search, to inspect or read without a connection.
+        notify: Characteristic that notifies the answers (exchange; found when empty).
+        text: The bytes to write as text instead of value, for example "ATZ\r" (write, exchange).
+        until: End of the answer for exchange, as text (for example > or OK); empty waits the whole time.
+        wait: Milliseconds to wait for the answer of exchange (200 to 10000).
     """
-    from . import connections, device_changes, host_bridge, obd_ble
+    from . import connections, device_changes, host_bridge
     if address and not connection:
         if action in ('write', 'exchange'):
             raise ValueError('Writing needs a saved Bluetooth LE connection: create it with harness_setup_device')
@@ -387,33 +386,17 @@ def harness_bluetooth(runtime: Runtime, connection: str = '', action: str = 'ins
         if not row or row.get('kind') != 'device' or row.get('transport') != 'bluetooth':
             raise ValueError('Not a Bluetooth LE device connection: ' + str(connection))
     agent, _ = _pc(runtime, row.get('agent', ''))
-
-    def exchange(args):
-        try:
-            return host_bridge.run('ble-exchange', args, timeout=120, agent=agent)
-        except ValueError as error:
-            if 'non è disponibile' in str(error):
-                raise ValueError('This RigHaven Agent (or app) is too old to listen to Bluetooth notifications: update it from the latest release, then retry') from error
-            raise
-
+    service = service or row.get('channel_service', '')
+    characteristic = characteristic or row.get('channel_write', '')
+    notify = notify or row.get('channel_notify', '')
     if action == 'inspect':
         return json.dumps(host_bridge.run('ble-inspect', {'address': row['address']}, timeout=150, agent=agent), ensure_ascii=False)
     if action == 'read':
         return json.dumps(host_bridge.run('ble-read', {'address': row['address'], 'service': service, 'characteristic': characteristic}, timeout=90, agent=agent), ensure_ascii=False)
-    if action == 'obd':
-        sent = obd_ble.commands(request)
-        if service and characteristic:
-            chosen = (host_bridge.uuid128(service), host_bridge.uuid128(characteristic), host_bridge.uuid128(notify) if notify else '')
-        else:
-            report = host_bridge.run('ble-inspect', {'address': row['address']}, timeout=150, agent=agent)
-            chosen = obd_ble.pick(report.get('services'))
-        answer = exchange({'address': row['address'], 'service': chosen[0], 'characteristic': chosen[1], 'notify': chosen[2],
-                           'commands': ','.join(obd_ble.encode(c) for c in sent), 'until': obd_ble.PROMPT, 'wait': str(obd_ble.WAIT_MS)})
-        result = obd_ble.decode(request, sent, answer.get('responses') or [])
-        result['adapter_channel'] = {'service': chosen[0], 'write': chosen[1], 'notify': chosen[2]}
-        return json.dumps(result, ensure_ascii=False)
     if action not in ('write', 'exchange'):
-        raise ValueError('action: inspect, read, write, exchange o obd')
+        raise ValueError('action: inspect, read, write o exchange')
+    if text and not value:
+        value = text.encode().hex()
     command = device_changes.bluetooth_command({'payload': value, 'encoding': 'hex', 'address': service + '/' + characteristic})
     workspace = workspace_for(runtime)
     change = device_changes.consume(workspace, connection, device_changes.command_fingerprint(command))
@@ -422,13 +405,9 @@ def harness_bluetooth(runtime: Runtime, connection: str = '', action: str = 'ins
                            'command_json ' + json.dumps(command) + ', explain it, end the turn and ' + action + ' after the owner approves.'}, ensure_ascii=False)
     from .audit_log import append
     if action == 'exchange':
-        if len(command['payload']) > 128:
-            raise ValueError('exchange sends at most 64 bytes: use write for longer values')
-        answer = exchange({'address': row['address'], 'service': service, 'characteristic': characteristic, 'notify': notify,
-                           'commands': command['payload'], 'wait': '5000'})
+        answer = host_bridge.bluetooth_exchange(row, agent, command, notify, until, wait)
         append(workspace, 'Dispositivi', 'Scrittura Bluetooth LE eseguita', 'completed', connection + ' · ' + command['address'] + ' · ' + command['payload'][:64])
-        responses = answer.get('responses') or ['']
-        return json.dumps({'written': True, 'change': change['id'], 'notified': responses[0], 'text': obd_ble.text(responses[0]) if responses[0] else ''}, ensure_ascii=False)
+        return json.dumps({'written': True, 'change': change['id'], **answer}, ensure_ascii=False)
     host_bridge.run('ble-write', {'address': row['address'], 'service': service, 'characteristic': characteristic, 'value': command['payload']}, timeout=90, agent=agent)
     append(workspace, 'Dispositivi', 'Scrittura Bluetooth LE eseguita', 'completed', connection + ' · ' + command['address'] + ' · ' + command['payload'][:64])
     return json.dumps({'written': True, 'change': change['id']}, ensure_ascii=False)

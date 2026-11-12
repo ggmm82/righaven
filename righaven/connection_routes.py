@@ -44,6 +44,10 @@ class Connection(BaseModel):
     version: Optional[str] = Field(default=None, max_length=4)
     node_id: Optional[int] = None
     address: Optional[str] = Field(default=None, max_length=17)
+    # Channel profile of a Bluetooth LE device (optional): where to write, where it notifies.
+    channel_service: Optional[str] = Field(default=None, max_length=36)
+    channel_write: Optional[str] = Field(default=None, max_length=36)
+    channel_notify: Optional[str] = Field(default=None, max_length=36)
     agent: Optional[str] = Field(default=None, max_length=20)
     ranges: Optional[list[str]] = Field(default=None, max_length=64)
     exclude: Optional[list[str]] = Field(default=None, max_length=64)
@@ -311,6 +315,23 @@ async def remove(identifier: str, request: Request):
 async def test(identifier: str, request: Request):
     same_origin(request)
     return await run(connections.test, get_effective_user_id(), identifier)
+
+
+class BluetoothExchange(BaseModel):
+    text: str = Field(default='', max_length=64)
+    value: str = Field(default='', max_length=128)
+    until: str = Field(default='', max_length=8)
+    wait: int = Field(default=3000, ge=200, le=10000)
+
+
+@router.post('/api/harness/connections/{identifier}/bluetooth/exchange')
+@require_permission('agents', 'write')
+async def bluetooth_exchange(identifier: str, body: BluetoothExchange, request: Request):
+    """A manual command from the page to a Bluetooth device and its answer (a terminal at a prompt).
+    The owner typing it is the approval of that one write; it needs writing allowed on the connection
+    and is recorded in the activity of the PC or phone."""
+    same_origin(request)
+    return await run(connections.bluetooth_terminal, get_effective_user_id(), identifier, body.model_dump())
 
 
 @router.post('/api/harness/connections/{identifier}/sign-in')

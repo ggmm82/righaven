@@ -43,6 +43,8 @@ TRANSPORTS = ('network', 'serial', 'local', 'bluetooth')
 AGENT_ID = re.compile(r'ag_[0-9a-f]{12}\Z')
 COM_PORT = re.compile(r'COM[0-9]{1,3}\Z')
 BLE_ADDRESS = re.compile(r'[0-9A-F]{2}(:[0-9A-F]{2}){5}\Z')
+BLE_UUID = re.compile(r'[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\Z')
+CHANNEL = ('channel_service', 'channel_write', 'channel_notify')
 PROTOCOLS = {'mqtt': (1883, 8883), 'modbus-tcp': (502, 802), 'http': (80, 443), 'adb': (5555, 5555), 'tuya': (6668, 6668), 'matter': (5580, 5580), 'tcp': (None, None)}
 TUYA_ID = re.compile(r'[A-Za-z0-9]{10,32}\Z')
 TUYA_VERSIONS = ('3.1', '3.2', '3.3', '3.4', '3.5')
@@ -117,8 +119,11 @@ def usable_tools(record):
     if record['kind'] == 'network':
         return ['netscan']
     if record['kind'] == 'device':
-        # Bluetooth LE goes through the PC's launcher: the coordinator uses it (harness_bluetooth), not a container.
-        return [] if record.get('transport') == 'bluetooth' else ['iot']
+        if record.get('transport') == 'bluetooth':
+            # A byte channel any tool of the environment can open, through the agent that has the device
+            # (RigHaven Agent able to carry Bluetooth). Otherwise only the chat's quick checks reach it.
+            return ['iot'] if bluetooth_channel(record) else []
+        return ['iot']
     if record['kind'] == 'sqlserver' and record.get('authentication') in ('entra', 'microsoft'):
         return ['usql']
     return ['usql', 'dlt', 'schemacrawler']
@@ -389,11 +394,21 @@ def _device(body, previous, record):
             if body.get('protocol') == 'matter':
                 raise ValueError('Matter devices go through the Matter controller of this server')
     if transport == 'bluetooth':
-        # A Bluetooth LE device reached through the PC's Bluetooth by the RigHaven launcher.
+        # A Bluetooth device (classic or LE) reached through the Bluetooth of a PC or phone: one
+        # connection per device, whatever protocol the tools speak over it.
         address = str(body.get('address') or (previous or {}).get('address') or '').strip().upper().replace('-', ':')
         if not BLE_ADDRESS.fullmatch(address):
             raise ValueError('Indirizzo Bluetooth non valido: usa la forma 38:A5:C9:3C:2E:9F, dalla ricerca Bluetooth')
         record['address'] = address
+        # Optional channel profile of a Bluetooth LE device (where to write, where it notifies),
+        # found while exploring it; without it the agent picks a serial profile the device has.
+        from .host_bridge import uuid128
+        given = {k: body.get(k) for k in CHANNEL if k in body}
+        profile = {k: uuid128(given.get(k, (previous or {}).get(k)) or '') for k in CHANNEL}
+        if any(profile.values()):
+            if not all(BLE_UUID.fullmatch(v) for v in profile.values()):
+                raise ValueError('Profilo del canale Bluetooth: servizio, caratteristica di scrittura e di notifica, tre UUID (anche corti, per esempio fff0)')
+            record.update(profile)
         return record
     if transport == 'local':
         if not body.get('device'):
@@ -571,7 +586,8 @@ def test(user_id, identifier):
             from . import host_bridge
             current = host_bridge.state(record.get('agent'))
             available = 'ble-inspect' in current['actions'] and current['connected']
-            result = {'ok': available, 'detail': 'Il launcher di RigHaven sul PC risponde: usa «Esplora» per collegarti al dispositivo' if available
+            result = {'ok': available, 'detail': ('Il PC o il telefono risponde: il dispositivo è consegnabile agli ambienti come canale di byte' if bluetooth_channel(record)
+                                                  else 'Il launcher di RigHaven sul PC risponde: usa «Esplora» per collegarti al dispositivo') if available
                       else 'Serve RigHaven per Windows aperto sul PC: è lui che usa il Bluetooth del PC'}
         elif record['kind'] == 'device' and record['transport'] == 'local':
             available = record['device'] in local_devices()
@@ -989,16 +1005,58 @@ def _file(record, user_id):
             'username': record['username'], 'password': record['password']}
 
 
+def bluetooth_channel(record):
+    """Whether the agent of this Bluetooth connection carries Bluetooth devices as byte channels."""
+    if not record.get('agent'):
+        return False
+    from . import agent_hub
+    current = agent_hub.state(record['agent'])
+    return current['connected'] and 'ble-stream' in current['actions']
+
+
+def bluetooth_target(record):
+    """The tunnel target of a Bluetooth device: its address and, when known, its channel profile."""
+    profile = [record.get(k) for k in CHANNEL]
+    return 'ble:' + record['address'] + ('/' + '/'.join(profile) if all(profile) else '')
+
+
+def bluetooth_terminal(user_id, identifier, body):
+    """One command typed by the owner in the page and what the device notifies back."""
+    record = _read(user_id, identifier)
+    if record['kind'] != 'device' or record.get('transport') != 'bluetooth':
+        raise ValueError('Non è una connessione Bluetooth: ' + identifier)
+    if not record.get('write_enabled'):
+        raise ValueError('Per inviare comandi abilita la scrittura sulla connessione')
+    if not all(record.get(k) for k in ('channel_service', 'channel_write')):
+        raise ValueError('Indica il profilo del canale (servizio e caratteristica di scrittura) nella connessione: lo trovi con «Esplora»')
+    value = str(body.get('value') or '').lower().replace(' ', '') or str(body.get('text') or '').encode().hex()
+    from . import agents, device_changes, host_bridge
+    command = device_changes.bluetooth_command({'payload': value, 'encoding': 'hex', 'address': record['channel_service'] + '/' + record['channel_write']})
+    agent = host_bridge.pick(user_id, record.get('agent') or None)
+    answer = host_bridge.bluetooth_exchange(record, agent, command, record.get('channel_notify', ''), str(body.get('until') or ''), int(body.get('wait') or 3000))
+    agents.log(user_id, agent or '', 'ble-terminal', identifier + ' · ' + command['payload'][:64], 'done')
+    return answer
+
+
 def through_agent(record, node=None):
     """The record a worker receives for a service reached through an agent: the tunnel's address, same protocol.
     A worker running on that agent's own machine (an on-premise environment) reaches the service directly."""
-    if not record.get('agent') or (record['kind'] == 'device' and record.get('transport') == 'bluetooth') or record['kind'] not in (*DEFAULT_PORTS, 'device'):
+    if not record.get('agent') or record['kind'] not in (*DEFAULT_PORTS, 'device'):
         return record
+    bluetooth = record['kind'] == 'device' and record.get('transport') == 'bluetooth'
     if node:
-        if record['agent'] != node or (record['kind'] == 'device' and record['transport'] == 'serial'):
+        if record['agent'] != node or (record['kind'] == 'device' and record['transport'] in ('serial', 'bluetooth')):
             raise ValueError('La connessione ' + record['id'] + ' non è raggiungibile dalla macchina on premise di questo incarico')
         return record
     from . import agent_hub
+    if bluetooth:
+        # The device as a byte channel, like a serial port shared by the agent: the tools of the
+        # environment open it with their own protocol (socket://host:port).
+        if not bluetooth_channel(record):
+            raise ValueError('Il Bluetooth della connessione ' + record['id'] + ' non è raggiungibile da un ambiente: serve RigHaven Agent aggiornato e collegato '
+                             'sul PC o sul telefono che ha il dispositivo. Intanto usalo dalla chat (ispezione, lettura, scambio)')
+        host, port = agent_hub.tunnel(record['agent'], bluetooth_target(record))
+        return {**record, 'transport': 'serial', 'protocol': 'socket', 'host': host, 'port': port, 'device': '', 'home': record['address']}
     if record['kind'] == 'device' and record['transport'] == 'serial':
         host, port = agent_hub.tunnel(record['agent'], 'com:' + record['device'])
         return {**record, 'protocol': 'socket', 'host': host, 'port': port, 'device': '', 'home': record['device']}

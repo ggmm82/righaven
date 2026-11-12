@@ -186,3 +186,29 @@ def run(action, args=None, timeout=180, poll=2.0, agent=None):
         if status['status'] == 'failed':
             raise ValueError(str(status['result'].get('error') or 'Azione sul PC non riuscita')[:500])
     raise ValueError('Il launcher non ha risposto in tempo: ' + action)
+
+
+def bluetooth_exchange(row, agent, command, notify='', until='', wait=3000):
+    """One approved write and what the device notifies back, in the same connection (the bytes are not interpreted)."""
+    if len(command['payload']) > 128:
+        raise ValueError('exchange sends at most 64 bytes: use write for longer values')
+    service, _, characteristic = command['address'].partition('/')
+    if not 200 <= int(wait) <= 10000:
+        raise ValueError('wait: from 200 to 10000 milliseconds')
+    args = {'address': row['address'], 'service': service, 'characteristic': characteristic, 'notify': notify,
+            'commands': command['payload'], 'wait': str(int(wait))}
+    if until:
+        end = until.encode()
+        args['until'] = end[-1:].hex()  # the agent stops at the last byte of the end marker
+    try:
+        answer = run('ble-exchange', args, timeout=120, agent=agent)
+    except ValueError as error:
+        if 'non è disponibile' in str(error):
+            raise ValueError('This RigHaven Agent (or app) is too old to listen to Bluetooth notifications: update it from the latest release, then retry') from error
+        raise
+    notified = (answer.get('responses') or [''])[0]
+    try:
+        shown = bytes.fromhex(notified).decode('utf-8', 'replace')
+    except ValueError:
+        shown = ''
+    return {'notified': notified, 'text': shown}

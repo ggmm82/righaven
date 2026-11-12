@@ -549,6 +549,56 @@ class ConnectionTests(unittest.TestCase):
         self.assertEqual(connections.device_file(serial)['url'], 'socket://172.18.0.5:42000')
         self.assertEqual(connections.device_file(network)['url'], 'http://172.18.0.5:42000/')
 
+    def test_a_bluetooth_device_is_a_byte_channel_for_environments(self):
+        from righaven import agent_hub, agents
+        with patch.object(agents, 'owned', return_value={'id': 'ag_0123456789ab'}):
+            plain = connections.save('alice', {'id': 'obd-ble', 'kind': 'device', 'name': 'OBDII', 'transport': 'bluetooth', 'agent': 'ag_0123456789ab',
+                                               'address': '66:1e:32:fa:3c:20', 'access': 'write'})
+            profiled = connections.save('alice', {'id': 'modulo', 'kind': 'device', 'name': 'Modulo', 'transport': 'bluetooth', 'agent': 'ag_0123456789ab',
+                                                  'address': '38:A5:C9:3C:2E:9F', 'channel_service': 'fff0', 'channel_write': 'fff2', 'channel_notify': 'fff1'})
+            with self.assertRaisesRegex(ValueError, 'Profilo del canale'):
+                connections.save('alice', {'id': 'z', 'kind': 'device', 'name': 'Z', 'transport': 'bluetooth', 'agent': 'ag_0123456789ab',
+                                           'address': '38:A5:C9:3C:2E:9F', 'channel_service': 'fff0'})
+        self.assertEqual(profiled['channel_write'], '0000fff2-0000-1000-8000-00805f9b34fb')
+        self.assertNotIn('obd', json.dumps(plain).lower().replace('obd-ble', '').replace('obdii', ''), 'no protocol field in the connection')
+        old = {'connected': True, 'platform': 'windows', 'actions': ['ble-inspect', 'ble-exchange'], 'matter': False}
+        new = {**old, 'actions': [*old['actions'], 'ble-stream']}
+        with patch.object(agent_hub, 'state', return_value=old):
+            self.assertEqual(connections.usable_tools(connections._read('alice', 'obd-ble')), [], 'an older agent keeps today\'s behaviour')
+            with self.assertRaisesRegex(ValueError, 'aggiornato'):
+                connections.through_agent(connections._read('alice', 'obd-ble'))
+        with patch.object(agent_hub, 'state', return_value=new), patch.object(agent_hub, 'tunnel', return_value=('172.18.0.5', 42002)) as tunnel:
+            self.assertEqual(connections.usable_tools(connections._read('alice', 'obd-ble')), ['iot'])
+            channel = connections.through_agent(connections._read('alice', 'obd-ble'))
+            connections.through_agent(connections._read('alice', 'modulo'))
+            with self.assertRaisesRegex(ValueError, 'on premise'):
+                connections.through_agent(connections._read('alice', 'obd-ble'), 'ag_0123456789ab')
+        tunnel.assert_any_call('ag_0123456789ab', 'ble:66:1E:32:FA:3C:20')
+        tunnel.assert_any_call('ag_0123456789ab', 'ble:38:A5:C9:3C:2E:9F/0000fff0-0000-1000-8000-00805f9b34fb/0000fff2-0000-1000-8000-00805f9b34fb/0000fff1-0000-1000-8000-00805f9b34fb')
+        self.assertEqual(connections.device_file(channel)['url'], 'socket://172.18.0.5:42002', 'the same as a serial port shared by an agent')
+
+    def test_the_page_terminal_writes_only_where_writing_is_allowed(self):
+        from righaven import agents, host_bridge
+        with patch.object(agents, 'owned', return_value={'id': 'ag_0123456789ab'}):
+            connections.save('alice', {'id': 'letto', 'kind': 'device', 'name': 'Lettura', 'transport': 'bluetooth', 'agent': 'ag_0123456789ab',
+                                       'address': '66:1E:32:FA:3C:20', 'channel_service': 'fff0', 'channel_write': 'fff2', 'channel_notify': 'fff1'})
+            connections.save('alice', {'id': 'scrivo', 'kind': 'device', 'name': 'Scrittura', 'transport': 'bluetooth', 'agent': 'ag_0123456789ab',
+                                       'address': '66:1E:32:FA:3C:20', 'access': 'write', 'channel_service': 'fff0', 'channel_write': 'fff2', 'channel_notify': 'fff1'})
+        with self.assertRaisesRegex(ValueError, 'scrittura'):
+            connections.bluetooth_terminal('alice', 'letto', {'text': 'ATZ\r'})
+        asked = []
+
+        def run(action, args=None, timeout=0, poll=0, agent=None):
+            asked.append((action, args, agent))
+            return {'responses': ['454c4d3332372076312e350d0d3e']}
+        with patch.object(host_bridge, 'pick', return_value='ag_0123456789ab'), patch.object(host_bridge, 'run', side_effect=run), \
+                patch.object(agents, 'log') as log:
+            answer = connections.bluetooth_terminal('alice', 'scrivo', {'text': 'ATZ\r', 'until': '>', 'wait': 2000})
+        self.assertEqual(answer['text'], 'ELM327 v1.5\r\r>')
+        self.assertEqual(asked[0][1]['commands'], '41545a0d')
+        self.assertEqual((asked[0][1]['until'], asked[0][1]['wait'], asked[0][1]['notify']), ('3e', '2000', '0000fff1-0000-1000-8000-00805f9b34fb'))
+        log.assert_called_once()
+
     def test_every_connection_says_whether_it_is_cloud_or_on_premise(self):
         place = lambda record: connections.location({'kind': 'postgres', **record})
         self.assertEqual(place({'host': 'db.example.org'}), ('cloud', ''))

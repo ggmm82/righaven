@@ -47,7 +47,7 @@ off, let RigHaven work in the background there.
 | Bluetooth search | Bluetooth LE devices heard in 8 seconds (name, signal, maker, sensor data) and the paired ones |
 | Bluetooth exploration and reads | services, characteristics, readable values |
 | Bluetooth writes | only the writes you approved on the server, one by one (with the device's notified answer when asked) |
-| OBD-II over Bluetooth LE | the car's trouble codes, warning light, live values and VIN through a Bluetooth LE ELM327 adapter, read only |
+| Bluetooth devices as channels | a Bluetooth device of the phone (classic or LE) opened as a byte channel for the server's tools, one client at a time |
 | Wi-Fi networks | the nearby networks (Android allows a few new scans every two minutes) |
 | Network search | the usual ports of devices, TVs and phones in the phone's network |
 | Test of a connection | the host and port answer from the phone |
