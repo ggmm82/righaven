@@ -200,6 +200,8 @@ def bluetooth_exchange(row, agent, command, notify='', until='', wait=3000):
     if until:
         end = until.encode()
         args['until'] = end[-1:].hex()  # the agent stops at the last byte of the end marker
+    if bluetooth_busy(agent, row['address']):
+        raise ValueError('The Bluetooth device is in use by a task now (one client at a time): wait for it to end, or use the task to send the command')
     try:
         answer = run('ble-exchange', args, timeout=120, agent=agent)
     except ValueError as error:
@@ -212,3 +214,40 @@ def bluetooth_exchange(row, agent, command, notify='', until='', wait=3000):
     except ValueError:
         shown = ''
     return {'notified': notified, 'text': shown}
+
+
+# Serial-over-BLE profiles of common modules and adapters (service, write, notify): the same list
+# and the same choice as RigHaven Agent's channels, so the chat and the tasks use one channel.
+PROFILES = (
+    ('0000fff0-0000-1000-8000-00805f9b34fb', '0000fff2-0000-1000-8000-00805f9b34fb', '0000fff1-0000-1000-8000-00805f9b34fb'),
+    ('0000ffe0-0000-1000-8000-00805f9b34fb', '0000ffe1-0000-1000-8000-00805f9b34fb', '0000ffe1-0000-1000-8000-00805f9b34fb'),
+    ('000018f0-0000-1000-8000-00805f9b34fb', '00002af1-0000-1000-8000-00805f9b34fb', '00002af0-0000-1000-8000-00805f9b34fb'),
+    ('6e400001-b5a3-f393-e0a9-e50e24dcca9e', '6e400002-b5a3-f393-e0a9-e50e24dcca9e', '6e400003-b5a3-f393-e0a9-e50e24dcca9e'),
+    ('e7810a71-73ae-499d-8c15-faa9aef0c3f2', 'bef8d6c9-9c21-4c9e-b632-bd58c1009f9f', 'bef8d6c9-9c21-4c9e-b632-bd58c1009f9f'),
+)
+
+
+def choose_channel(services):
+    """The channel profile of a device from ble-inspect: a known serial profile it has, else the first
+    service (not a standard 18xx one) with a characteristic that takes writes and one that notifies."""
+    found = {str(s.get('uuid', '')).lower(): {str(c.get('uuid', '')).lower(): set(c.get('properties') or []) for c in s.get('characteristics') or []}
+             for s in services or []}
+    for service, write, notify in PROFILES:
+        if write in found.get(service, {}) and notify in found.get(service, {}):
+            return service, write, notify
+    for service, characteristics in found.items():
+        if service.startswith('000018') and service.endswith('-0000-1000-8000-00805f9b34fb') and not service.startswith('000018f0'):
+            continue
+        writes = [u for u, p in characteristics.items() if p & {'Write', 'WriteWithoutResponse'}]
+        notifies = [u for u, p in characteristics.items() if p & {'Notify', 'Indicate'}]
+        if writes and notifies:
+            return service, writes[0], notifies[0]
+    raise ValueError('No service of this Bluetooth device takes writes and notifies: name the channel profile (service, write, notify)')
+
+
+def bluetooth_busy(agent, address):
+    """A task holds this Bluetooth device now (one client at a time)."""
+    if not agent:
+        return False
+    from . import agent_hub
+    return agent_hub.in_use(agent, 'ble:' + str(address).upper())

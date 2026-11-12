@@ -225,3 +225,27 @@ class BluetoothToolTests(SetupDeviceToolTests):
         with self.assertRaises(ValueError):
             tools.harness_bluetooth.func(runtime=None, connection='adattatore', action='obd')
 
+    def test_channel_is_found_like_the_agent_kept_and_the_chat_waits_for_a_task(self):
+        from righaven import agent_hub, connections, host_bridge
+        (self.host / 'heartbeat.json').write_text(json.dumps({'at': time.time(), 'platform': 'windows', 'actions': ['ble-inspect', 'ble-exchange']}))
+        tools.harness_setup_device.func(runtime=None, kind='bluetooth', target='66:1E:32:FA:3C:20', name='Dongle')
+        services = [{'uuid': '0000fff0-0000-1000-8000-00805f9b34fb', 'characteristics': [
+                        {'uuid': '0000fff1-0000-1000-8000-00805f9b34fb', 'properties': ['Read', 'Notify']},
+                        {'uuid': '0000fff2-0000-1000-8000-00805f9b34fb', 'properties': ['Write']}]},
+                    {'uuid': '0000ae30-0000-1000-8000-00805f9b34fb', 'characteristics': [
+                        {'uuid': '0000ae01-0000-1000-8000-00805f9b34fb', 'properties': ['WriteWithoutResponse']},
+                        {'uuid': '0000ae02-0000-1000-8000-00805f9b34fb', 'properties': ['Notify']}]}]
+        with self.assertRaisesRegex(ValueError, 'action channel first'):
+            tools.harness_bluetooth.func(runtime=None, connection='dongle', action='exchange', text='ATRV\r')
+        with patch.object(host_bridge, 'run', return_value={'name': 'OBDII', 'services': services}):
+            found = json.loads(tools.harness_bluetooth.func(runtime=None, connection='dongle', action='channel'))
+        self.assertEqual(found['channel'], {'channel_service': '0000fff0-0000-1000-8000-00805f9b34fb', 'channel_write': '0000fff2-0000-1000-8000-00805f9b34fb',
+                                            'channel_notify': '0000fff1-0000-1000-8000-00805f9b34fb'}, 'the known serial profile, as the agent picks it')
+        self.assertEqual(connections._read('alice', 'dongle')['channel_write'], '0000fff2-0000-1000-8000-00805f9b34fb')
+        self.assertEqual(host_bridge.choose_channel(services[1:])[1], '0000ae01-0000-1000-8000-00805f9b34fb')
+        agent_hub.ACTIVE[('ag_0123456789ab', 'ble:66:1E:32:FA:3C:20')] = 1
+        self.addCleanup(agent_hub.ACTIVE.clear)
+        self.assertTrue(host_bridge.bluetooth_busy('ag_0123456789ab', '66:1e:32:fa:3c:20'))
+        with patch('righaven.tools._pc', return_value=('ag_0123456789ab', None)), self.assertRaisesRegex(ValueError, 'in use by a task'):
+            tools.harness_bluetooth.func(runtime=None, connection='dongle', action='inspect')
+

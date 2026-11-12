@@ -702,7 +702,7 @@ const gattName=(uuid:string,t:Translate)=>{const short=/^0000([0-9a-f]{4})-0000-
 /** Manual commands to a Bluetooth device from the page, at a prompt: any protocol (AT commands, a vendor's own), the bytes are not interpreted. */
 function BleTerminal({row,t}:{row:Connection;t:Translate}){
  const [text,setText]=useState(""),[until,setUntil]=useState(">"),[wait,setWait]=useState("3000"),[crlf,setCrlf]=useState("\r"),[log,setLog]=useState<{sent:string;answer:string;error?:boolean}[]>([]),[busy,setBusy]=useState(false);
- if(!row.write_enabled||!row.channel_service||!row.channel_write)return <p className="mt-2 text-xs" data-testid="ble-terminal-off">{t("Terminale manuale: abilita la scrittura sulla connessione e indica il profilo del canale (servizio e scrittura) per inviare comandi dalla pagina.","Manual terminal: allow writing on the connection and set the channel profile (service and write) to send commands from the page.")}</p>;
+ if(row.write_enabled!==true)return <p className="mt-2 text-xs" data-testid="ble-terminal-off">{t("Terminale manuale: abilita la scrittura sulla connessione per inviare comandi dalla pagina. Il canale lo trova RigHaven al primo comando, lo stesso che usano gli incarichi.","Manual terminal: allow writing on the connection to send commands from the page. RigHaven finds the channel at the first command, the same one tasks use.")}</p>;
  async function send(){if(!text)return;setBusy(true);const command=text+crlf;
   try{const r=await fetch(`${getBackendBaseURL()}/api/harness/connections/${row.id}/bluetooth/exchange`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({text:command,until,wait:Number(wait)||3000})});
    const v=await r.json() as {text?:string;notified?:string;detail?:string};

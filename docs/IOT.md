@@ -333,8 +333,12 @@ same encrypted tunnel used for COM ports, reachable only from RigHaven's interna
 | In a task | `socket://host:port`, like a serial port: `iot.capture`, `iot.send`, `iot.obd` or any tool that opens a serial URL |
 | Without a task | the chat (`harness_bluetooth`: inspect, read, approved write or exchange with end marker and timeout) and the page (*Explore* → *Manual terminal*, on connections with writing allowed) |
 
-One client per device at a time; the channel reopens when a tool needs it. Writes follow the same
-approvals as any device: one owner approval per write in a task, the owner's own command in the
-page terminal (recorded in the agent's activity). With an agent that does not carry Bluetooth yet,
+One client per device at a time; the channel reopens when a tool needs it, and the chat waits while
+a task holds the device. The channel of an LE device is found once (the chat's `channel`, or the
+page terminal's first command) and kept on the connection, so the chat and the tasks write to the
+same characteristics. Writes follow the same approvals as any device: one owner approval per write
+in a task, asked before the task starts in the fields its tool sends, or none when the owner's zone
+of trust covers `send` on the connection (each write recorded as such); the owner's own command in
+the page terminal (recorded in the agent's activity). With an agent that does not carry Bluetooth yet,
 the connection stays usable from the chat and the page only, as before.
 

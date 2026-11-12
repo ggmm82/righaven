@@ -12,9 +12,16 @@ cable is behind it, and RigHaven does not read the bytes: the protocol is chosen
   (one approved write, then the reply in the same connection: `reply_seconds`, `reply_until`
   for prompts such as `>` or `OK`), `iot.obd` (python-OBD), `iot.inspect`/`iot.flash` for ESP
   boards, or a tool of the environment that takes a pyserial URL.
-- Manual commands are a session at a prompt: one `iot.send` per command, each the exact payload
-  the owner approved (or within the owner's zone of trust), with the line end the device wants
-  (`\r` for ELM327 and AT modems). Use `iot.capture` to listen without writing.
+- Manual commands are a session at a prompt: one `iot.send` per command, with the line end the
+  device wants (`\r` for ELM327 and AT modems). Use `iot.capture` to listen without writing.
+- Approvals: an approval is delivered when the task starts, so the coordinator asks it **before**
+  the assignment, with **the same fields the task will send** (`harness_device_change` action
+  send, `command_json` `{"payload": "ATRV\r", "encoding": "text"}` for `iot.send` payload
+  `ATRV\r`): an approval in another form (hex bytes and a characteristic, for the chat) does not
+  match. When the owner's zone of trust covers `send` on the connection, the task's writes need
+  no single approvals and each one is recorded as such.
+- One client at a time: while a task holds the device, the chat cannot open it; send the commands
+  from the task instead of mixing the two.
 
 ## Recipe: ELM327 adapter, by hand
 

@@ -29,11 +29,15 @@ def command_fingerprint(command):
 
 
 def approved(cfg,action,**match):
-    """The owner's approval of this exact change, used once."""
+    """The owner's approval of this exact change, used once; or the owner's zone of trust for this
+    kind of write on this connection (recorded as such in the receipt)."""
     for approval in cfg.get('approvals') or []:
         if approval.get('action')==action and not approval.get('used') and all(approval.get(k)==v for k,v in match.items()):
             approval['used']=True
             return approval['id']
+    until=cfg.get('auto_until') or ''
+    if action in (cfg.get('auto_approve') or []) and (not until or until>datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')):
+        return 'zone-of-trust'
     raise UserError('This write needs the owner approval of this exact change: ask with harness_device_change ('+action+'), '
                     'then run it in the next assignment exactly as approved')
 
@@ -670,7 +674,17 @@ def vehicle(cfg,args,output):
     connection=obd.OBD(obd_port(cfg),baudrate=cfg.get('baud'),fast=False,timeout=5)
     try:
         if not connection.is_connected():
-            raise UserError('OBD adapter or vehicle not responding ('+str(connection.status())+'): ignition on, adapter paired and the right port')
+            status=str(connection.status())
+            if status in ('Not Connected',''):
+                raise UserError('OBD adapter not responding ('+status+'): adapter powered, the right channel or port, and no other app connected to it')
+            # The adapter answers but the vehicle does not: what the adapter itself knows is still a result.
+            adapter={'status':status}
+            for name in ('ELM_VERSION','ELM_VOLTAGE'):
+                if hasattr(obd.commands,name):adapter[name.lower()]=obd_value(connection.query(getattr(obd.commands,name),force=True))
+            (output/'vehicle.json').write_text(json.dumps({'at':now(),**adapter,'vehicle_answers':False},indent=2,default=str))
+            return {'status':'no_vehicle','adapter':adapter,'files':['vehicle.json'],
+                    'limits':[('The adapter answers but no control unit does: ignition on (on some cars the engine running); if it stays silent on every protocol, '
+                               'the socket may carry power without data lines (pins 6 and 14), a physical limit. The voltage is the one at the socket (pin 16).')]}
         info={'status':str(connection.status()),'protocol':connection.protocol_name()}
         for name in ('ELM_VERSION','ELM_VOLTAGE','VIN'):
             if hasattr(obd.commands,name):info[name.lower()]=obd_value(connection.query(getattr(obd.commands,name),force=True))

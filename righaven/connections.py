@@ -1020,6 +1020,17 @@ def bluetooth_target(record):
     return 'ble:' + record['address'] + ('/' + '/'.join(profile) if all(profile) else '')
 
 
+def set_channel(user_id, identifier, profile):
+    """Keep the channel profile found for a Bluetooth device, so the chat and the tasks open the same one."""
+    record = _read(user_id, identifier)
+    if record['kind'] != 'device' or record.get('transport') != 'bluetooth':
+        raise ValueError('Non è una connessione Bluetooth: ' + identifier)
+    record.update(zip(CHANNEL, profile))
+    record['updated_at'] = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
+    _write(user_id, record)
+    return {k: record[k] for k in CHANNEL}
+
+
 def bluetooth_terminal(user_id, identifier, body):
     """One command typed by the owner in the page and what the device notifies back."""
     record = _read(user_id, identifier)
@@ -1027,12 +1038,14 @@ def bluetooth_terminal(user_id, identifier, body):
         raise ValueError('Non è una connessione Bluetooth: ' + identifier)
     if not record.get('write_enabled'):
         raise ValueError('Per inviare comandi abilita la scrittura sulla connessione')
-    if not all(record.get(k) for k in ('channel_service', 'channel_write')):
-        raise ValueError('Indica il profilo del canale (servizio e caratteristica di scrittura) nella connessione: lo trovi con «Esplora»')
     value = str(body.get('value') or '').lower().replace(' ', '') or str(body.get('text') or '').encode().hex()
     from . import agents, device_changes, host_bridge
-    command = device_changes.bluetooth_command({'payload': value, 'encoding': 'hex', 'address': record['channel_service'] + '/' + record['channel_write']})
     agent = host_bridge.pick(user_id, record.get('agent') or None)
+    if not all(record.get(k) for k in ('channel_service', 'channel_write')):
+        # The first command finds the channel the same way the agent does for tasks, and keeps it.
+        report = host_bridge.run('ble-inspect', {'address': record['address']}, timeout=150, agent=agent)
+        record.update(set_channel(user_id, identifier, host_bridge.choose_channel(report.get('services'))))
+    command = device_changes.bluetooth_command({'payload': value, 'encoding': 'hex', 'address': record['channel_service'] + '/' + record['channel_write']})
     answer = host_bridge.bluetooth_exchange(record, agent, command, record.get('channel_notify', ''), str(body.get('until') or ''), int(body.get('wait') or 3000))
     agents.log(user_id, agent or '', 'ble-terminal', identifier + ' · ' + command['payload'][:64], 'done')
     return answer
@@ -1138,6 +1151,11 @@ class Delivery:
                     # Reprogramming needs one owner approval per change, delivered once.
                     from .device_changes import deliver
                     content['approvals'] = deliver(workspace, identifier, Path(destination).name)
+                    # The owner's zone of trust (chosen kinds of writes approved by themselves for a
+                    # while) holds inside the task too: the toolkit records each write it covers.
+                    trusted = [a for a in record.get('auto_approve') or [] if auto_approves({**record, 'write': True}, a)]
+                    if trusted:
+                        content.update(auto_approve=trusted, auto_until=record.get('auto_until', ''))
                 path.write_text(json.dumps(content))
                 if record.get('home') and record['kind'] in DEFAULT_PORTS:
                     self.domains.append(record['host'])  # the tunnel of the agent, on this server (devices add their host below)

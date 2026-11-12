@@ -11,6 +11,12 @@
   work on the channel. Without a task, the chat inspects, reads and exchanges bytes (end marker
   and timeout) and the page has a manual terminal; writes keep their approvals. Older agents keep
   today's behaviour. Needs the new Agent and app.
+- **Bluetooth channels in practice.** The owner's zone of trust now covers writes inside a task too
+  (manual sessions such as ATZ, ATRV, ATSP no longer need one approval each); the chat finds the
+  device's channel the way the agent does and keeps it on the connection, so the chat and the
+  tasks use the same characteristics; the chat waits while a task holds the device; `iot.obd`
+  returns the adapter's version and voltage when the vehicle does not answer (a socket with power
+  and no data lines is reported as a physical limit).
 - **Replies in the same connection.** `iot.send` on MQTT can subscribe to the topic where the
   device answers (`reply_topic`, e.g. `stat/plug/#`) before publishing, so an immediate answer is
   not missed; serial and TCP replies can end at a prompt (`reply_until`, e.g. `>` or `OK`) instead

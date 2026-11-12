@@ -349,7 +349,10 @@ def harness_bluetooth(runtime: Runtime, connection: str = '', action: str = 'ins
     Modbus, a vendor protocol), assign the connection to a task in the IoT environment, where the
     tools open the device as a byte channel (iot.obd, iot.send with reply_until, iot.capture). Use
     this tool when no environment is needed: inspect lists services and characteristics with their
-    properties and readable values; read reads one characteristic. Neither needs approval nor a
+    properties and readable values; read reads one characteristic; channel finds the device's
+    channel (the same choice RigHaven Agent makes for tasks) and keeps it on the connection, so the
+    chat and the tasks write to the same characteristics (do it before asking a write approval).
+    Inspect and read need neither approval nor a
     saved connection (pass the address from the Bluetooth search). A read returns only a stored
     value: devices that answer commands by notification need exchange. write sends bytes to one
     characteristic of a saved connection and exchange sends them and returns what the device
@@ -365,7 +368,7 @@ def harness_bluetooth(runtime: Runtime, connection: str = '', action: str = 'ins
     Args:
         runtime: Injected RigHaven runtime.
         connection: ID of the Bluetooth device connection (needed to write and exchange).
-        action: inspect, read, write or exchange.
+        action: inspect, read, channel, write or exchange.
         service: Service UUID (read, write, exchange).
         characteristic: Characteristic UUID to read or to write to.
         value: Bytes to write, in hexadecimal (write, exchange).
@@ -389,12 +392,24 @@ def harness_bluetooth(runtime: Runtime, connection: str = '', action: str = 'ins
     service = service or row.get('channel_service', '')
     characteristic = characteristic or row.get('channel_write', '')
     notify = notify or row.get('channel_notify', '')
+    if host_bridge.bluetooth_busy(agent, row['address']):
+        raise ValueError('The Bluetooth device is in use by a task now (one client at a time): wait for it to end, or use the task to send the command')
     if action == 'inspect':
         return json.dumps(host_bridge.run('ble-inspect', {'address': row['address']}, timeout=150, agent=agent), ensure_ascii=False)
     if action == 'read':
         return json.dumps(host_bridge.run('ble-read', {'address': row['address'], 'service': service, 'characteristic': characteristic}, timeout=90, agent=agent), ensure_ascii=False)
+    if action == 'channel':
+        if not connection:
+            raise ValueError('channel keeps the profile on a saved Bluetooth connection: pass connection')
+        report = host_bridge.run('ble-inspect', {'address': row['address']}, timeout=150, agent=agent)
+        profile = host_bridge.choose_channel(report.get('services'))
+        saved = connections.set_channel(resolve_runtime_user_id(runtime), connection, profile)
+        return json.dumps({'channel': saved, 'instruction': 'Writes and exchanges use this channel by default; ask approvals with address '
+                           + profile[0] + '/' + profile[1] + ', and in tasks the same channel opens as a serial port.'}, ensure_ascii=False)
     if action not in ('write', 'exchange'):
-        raise ValueError('action: inspect, read, write o exchange')
+        raise ValueError('action: inspect, read, channel, write o exchange')
+    if not service or not characteristic:
+        raise ValueError('This connection has no channel profile yet: call harness_bluetooth with action channel first')
     if text and not value:
         value = text.encode().hex()
     command = device_changes.bluetooth_command({'payload': value, 'encoding': 'hex', 'address': service + '/' + characteristic})

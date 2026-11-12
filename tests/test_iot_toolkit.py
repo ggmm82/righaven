@@ -362,6 +362,26 @@ exit 0
             self.assertTrue(state['codes'], 'nothing cleared without approval')
             cleared = iot_job.vehicle({**cfg, 'approvals': [{'id': 'c1', 'action': 'clear_codes'}]}, {'command': 'clear_codes'}, self.output('clear'))
             self.assertEqual((cleared['approval'], cleared['codes_after']), ('c1', []))
+            # The adapter answers but the vehicle does not: the adapter's version and voltage are still a result.
+            silent = type('Silent', (Connection,), {'is_connected': lambda self: False, 'status': lambda self: 'OBD Connected'})
+            with patch.object(fake, 'OBD', silent):
+                quiet = iot_job.vehicle(cfg, {'command': 'codes'}, self.output('quiet'))
+            self.assertEqual(quiet['status'], 'no_vehicle')
+            self.assertEqual(quiet['adapter']['elm_voltage'], {'value': 12.6, 'unit': 'volt'})
+            self.assertIn('physical limit', quiet['limits'][0])
+            absent = type('Absent', (Connection,), {'is_connected': lambda self: False, 'status': lambda self: 'Not Connected'})
+            with patch.object(fake, 'OBD', absent), self.assertRaisesRegex(iot_job.UserError, 'adapter not responding'):
+                iot_job.vehicle(cfg, {'command': 'info'}, self.output('absent'))
+
+    def test_the_owner_zone_of_trust_covers_writes_inside_the_task(self):
+        cfg = {'approvals': [], 'auto_approve': ['send'], 'auto_until': ''}
+        self.assertEqual(iot_job.approved(cfg, 'send', fingerprint='anything'), 'zone-of-trust')
+        with self.assertRaisesRegex(iot_job.UserError, 'harness_device_change'):
+            iot_job.approved(cfg, 'flash', sha256='x')
+        with self.assertRaisesRegex(iot_job.UserError, 'harness_device_change'):
+            iot_job.approved({**cfg, 'auto_until': '2000-01-01T00:00:00Z'}, 'send', fingerprint='anything')
+        exact = {**cfg, 'approvals': [{'id': 'a1', 'action': 'send', 'fingerprint': 'f'}]}
+        self.assertEqual(iot_job.approved(exact, 'send', fingerprint='f'), 'a1', 'an exact approval is used first')
 
 
 if __name__ == '__main__':

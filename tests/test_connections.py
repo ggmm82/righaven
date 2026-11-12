@@ -387,6 +387,15 @@ class ConnectionTests(unittest.TestCase):
         delivery = connections.Delivery(self.workspace, Path(self.temp.name) / 'job-2', role=role)
         self.assertEqual(json.loads((Path(self.temp.name) / 'job-2' / 'tv.json').read_text())['approvals'], [], 'an approval is delivered once')
         delivery.close()
+        connections.save('alice', {'kind': 'device', 'name': 'TV', 'transport': 'network', 'protocol': 'adb', 'host': 'tv.example.com', 'access': 'write',
+                                   'auto_approve': ['reboot'], 'auto_hours': 1}, 'tv')
+        delivery = connections.Delivery(self.workspace, Path(self.temp.name) / 'job-3', role=role)
+        trusted = json.loads((Path(self.temp.name) / 'job-3' / 'tv.json').read_text())
+        self.assertEqual(trusted['auto_approve'], ['reboot'], 'the owner\'s zone of trust reaches the task')
+        self.assertTrue(trusted['auto_until'])
+        delivery.close()
+        connections.save('alice', {'kind': 'device', 'name': 'TV', 'transport': 'network', 'protocol': 'adb', 'host': 'tv.example.com', 'access': 'write',
+                                   'auto_approve': []}, 'tv')
         statuses = {c['id']: c['status'] for c in device_changes.listing(self.workspace)}
         self.assertEqual(statuses, {install['id']: 'rejected', disable['id']: 'delivered'})
         command = device_changes.request(self.workspace, 'tv', 'send', command={'topic': 'x', 'payload': 'on', 'encoding': 'text'})
@@ -586,6 +595,15 @@ class ConnectionTests(unittest.TestCase):
                                        'address': '66:1E:32:FA:3C:20', 'access': 'write', 'channel_service': 'fff0', 'channel_write': 'fff2', 'channel_notify': 'fff1'})
         with self.assertRaisesRegex(ValueError, 'scrittura'):
             connections.bluetooth_terminal('alice', 'letto', {'text': 'ATZ\r'})
+        with patch.object(agents, 'owned', return_value={'id': 'ag_0123456789ab'}):
+            connections.save('alice', {'id': 'nuovo', 'kind': 'device', 'name': 'Nuovo', 'transport': 'bluetooth', 'agent': 'ag_0123456789ab',
+                                       'address': '66:1E:32:FA:3C:21', 'access': 'write'})
+        services = [{'uuid': '0000ffe0-0000-1000-8000-00805f9b34fb', 'characteristics': [{'uuid': '0000ffe1-0000-1000-8000-00805f9b34fb', 'properties': ['Write', 'Notify']}]}]
+        replies = iter([{'name': 'HC-08', 'services': services}, {'responses': ['4f4b0d3e']}])
+        with patch.object(host_bridge, 'pick', return_value='ag_0123456789ab'), patch.object(host_bridge, 'run', side_effect=lambda *a, **k: next(replies)), \
+                patch.object(agents, 'log'):
+            self.assertEqual(connections.bluetooth_terminal('alice', 'nuovo', {'text': 'AT\r', 'until': '>'})['text'], 'OK\r>')
+        self.assertEqual(connections._read('alice', 'nuovo')['channel_service'], '0000ffe0-0000-1000-8000-00805f9b34fb', 'the first command keeps the channel')
         asked = []
 
         def run(action, args=None, timeout=0, poll=0, agent=None):
