@@ -23,4 +23,9 @@ func TestGATTHelperBuilds(t *testing.T) {
 	if err != nil || !strings.HasPrefix(strings.TrimSpace(string(output)), "E|") {
 		t.Fatalf("%q %v", output, err)
 	}
+	// The stream mode too: without a device, an error line before any channel line.
+	output, err = exec.Command(program, "stream", "00:00:00:00:00:00", "", "", "").Output()
+	if err != nil || !strings.HasPrefix(strings.TrimSpace(string(output)), "E|") {
+		t.Fatalf("%q %v", output, err)
+	}
 }

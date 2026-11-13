@@ -2,13 +2,21 @@
 
 ## 1.2.0
 
-- **Bluetooth LE OBD-II adapters.** The cheap "OBDII" dongles (and Vgate, vLinker) answer only by
-  notification and never become a COM port, so reading them always came back empty. RigHaven
-  Agent (Windows and Android) now listens to the notifications and sends the commands in the
-  same connection (`ble-exchange`); the chat reads stored, pending and permanent trouble codes,
-  the warning light, live values and the VIN with `harness_bluetooth` action `obd`, read only and
-  without approval (only fixed diagnostic requests, never clearing codes). An approved Bluetooth
-  write can also return what the device notifies (`exchange`). Needs the new Agent and app.
+- **Bluetooth is a transport.** A Bluetooth connection (one per device, classic or LE) reaches a
+  task like a serial port: RigHaven Agent on the PC or phone opens it as a byte channel (classic
+  through its serial profile, LE through one write characteristic and the notifications of
+  another, the connection's optional channel profile) through the agents' tunnel, and any tool of
+  the environment speaks its own protocol over it. No protocol knowledge in the core: the
+  OBD-specific chat action is gone, `iot.obd` and manual sessions (`iot.send` with `reply_until`)
+  work on the channel. Without a task, the chat inspects, reads and exchanges bytes (end marker
+  and timeout) and the page has a manual terminal; writes keep their approvals. Older agents keep
+  today's behaviour. Needs the new Agent and app.
+- **Bluetooth channels in practice.** The owner's zone of trust now covers writes inside a task too
+  (manual sessions such as ATZ, ATRV, ATSP no longer need one approval each); the chat finds the
+  device's channel the way the agent does and keeps it on the connection, so the chat and the
+  tasks use the same characteristics; the chat waits while a task holds the device; `iot.obd`
+  returns the adapter's version and voltage when the vehicle does not answer (a socket with power
+  and no data lines is reported as a physical limit).
 - **Replies in the same connection.** `iot.send` on MQTT can subscribe to the topic where the
   device answers (`reply_topic`, e.g. `stat/plug/#`) before publishing, so an immediate answer is
   not missed; serial and TCP replies can end at a prompt (`reply_until`, e.g. `>` or `OK`) instead

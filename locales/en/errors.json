@@ -1230,10 +1230,16 @@
   "Parte del risultato troppo grande": "Result part too large",
   "Approvazione automatica: ": "Automatic approval: ",
   "Durata dell’approvazione automatica: ": "Automatic approval duration: ",
-  "action: inspect, read, write, exchange o obd": "action: inspect, read, write, exchange or obd",
-  "OBD request: codes, live o info": "OBD request: codes, live or info",
-  "OBD command not allowed: ": null,
-  "This Bluetooth device has no service that takes commands and notifies answers: not an ELM327 adapter": null,
   "This RigHaven Agent (or app) is too old to listen to Bluetooth notifications: update it from the latest release, then retry": null,
-  "exchange sends at most 64 bytes: use write for longer values": null
+  "exchange sends at most 64 bytes: use write for longer values": null,
+  "Il Bluetooth della connessione ": "The Bluetooth of connection ",
+  "Non è una connessione Bluetooth: ": "Not a Bluetooth connection: ",
+  "Per inviare comandi abilita la scrittura sulla connessione": "To send commands, allow writing on the connection",
+  "Profilo del canale Bluetooth: servizio, caratteristica di scrittura e di notifica, tre UUID (anche corti, per esempio fff0)": "Bluetooth channel profile: service, write and notify characteristics, three UUIDs (short ones too, for example fff0)",
+  "wait: from 200 to 10000 milliseconds": null,
+  "action: inspect, read, channel, write o exchange": "action: inspect, read, channel, write or exchange",
+  "No service of this Bluetooth device takes writes and notifies: name the channel profile (service, write, notify)": null,
+  "The Bluetooth device is in use by a task now (one client at a time): wait for it to end, or use the task to send the command": null,
+  "This connection has no channel profile yet: call harness_bluetooth with action channel first": null,
+  "channel keeps the profile on a saved Bluetooth connection: pass connection": null
 }

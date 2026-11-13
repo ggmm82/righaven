@@ -120,17 +120,29 @@ class AgentService : Service() {
                         }
                     },
                     openStream = { target ->
-                        val tcp = try {
-                            HomeDial().open(target)
-                        } catch (error: Exception) {
-                            log.add(tr("✗ tunnel verso ", "✗ tunnel to ") + target + " · " + (error.message ?: error.javaClass.simpleName))
-                            throw error
-                        }
-                        log.add(tr("Tunnel aperto verso ", "Tunnel opened to ") + target)
-                        object : Stream {
-                            override val input: InputStream = tcp.getInputStream()
-                            override val output: OutputStream = tcp.getOutputStream()
-                            override fun close() = tcp.close()
+                        if (target.startsWith("ble:")) {
+                            // A Bluetooth device of the phone as a byte channel for the server's tools.
+                            val stream = try {
+                                BleStream.open(this@AgentService, target)
+                            } catch (error: Exception) {
+                                log.add(tr("✗ canale Bluetooth ", "✗ Bluetooth channel ") + target.removePrefix("ble:") + " · " + (error.message ?: error.javaClass.simpleName))
+                                throw error
+                            }
+                            log.add(tr("Canale Bluetooth aperto: ", "Bluetooth channel opened: ") + target.removePrefix("ble:"))
+                            stream
+                        } else {
+                            val tcp = try {
+                                HomeDial().open(target)
+                            } catch (error: Exception) {
+                                log.add(tr("✗ tunnel verso ", "✗ tunnel to ") + target + " · " + (error.message ?: error.javaClass.simpleName))
+                                throw error
+                            }
+                            log.add(tr("Tunnel aperto verso ", "Tunnel opened to ") + target)
+                            object : Stream {
+                                override val input: InputStream = tcp.getInputStream()
+                                override val output: OutputStream = tcp.getOutputStream()
+                                override fun close() = tcp.close()
+                            }
                         }
                     }).also { it.hello() }
                 show(tr("Collegato a ", "Connected to ") + pairing.server)

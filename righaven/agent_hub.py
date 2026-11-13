@@ -34,6 +34,7 @@ _lock = threading.RLock()
 SESSIONS = {}   # agent id → Session
 JOBS = {}       # job id → {'agent', 'action', 'status', 'result', 'at'}
 TUNNELS = {}    # (agent id, target) → (server, port)
+ACTIVE = {}  # (agent, target) → tunnel clients connected now
 LOOP = None
 
 
@@ -278,6 +279,8 @@ async def _bridge(identifier, target, reader, writer):
         writer.close()
         return
     agents.log(session.agent['user'], identifier, 'tunnel', target)
+    with _lock:
+        ACTIVE[(identifier, target)] = ACTIVE.get((identifier, target), 0) + 1
     try:
         while True:
             data = await reader.read(32768)
@@ -287,12 +290,24 @@ async def _bridge(identifier, target, reader, writer):
     except (ConnectionError, asyncio.CancelledError):
         pass
     finally:
+        with _lock:
+            left = ACTIVE.get((identifier, target), 1) - 1
+            if left > 0:
+                ACTIVE[(identifier, target)] = left
+            else:
+                ACTIVE.pop((identifier, target), None)
         if session.streams.pop(stream, None) is not None:
             try:
                 await session.send_json({'type': 'close', 'stream': stream})
             except Exception:
                 pass
         writer.close()
+
+
+def in_use(identifier, prefix):
+    """Whether a tool holds a tunnel of this agent whose target starts with prefix (a Bluetooth device: one client at a time)."""
+    with _lock:
+        return any(agent == identifier and target.startswith(prefix) for agent, target in ACTIVE)
 
 
 def address():

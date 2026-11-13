@@ -21,11 +21,11 @@ type Test={ok:boolean;detail:string;at:string};
 type Connection={id:string;kind:Kind;name:string;description?:string;host?:string;port?:number;database?:string;username?:string;tls?:boolean;read_only?:boolean;
  authentication?:"password"|"entra"|"microsoft";entra_connection?:string;tenant_id?:string;client_id?:string;cloud?:string;has_secret:boolean;tools:string[];last_test?:Test;updated_at?:string;
  mode?:"user"|"application";signed_in?:boolean;account?:string;write_enabled?:boolean;write_schema?:string;
- transport?:Transport;protocol?:string;device?:string;topic?:string;path?:string;unit?:number;baud?:number;ranges?:string[];exclude?:string[];address?:string;agent?:string;location?:"cloud"|"on_premise";pc?:string;auto_approve?:string[];auto_until?:string};
+ transport?:Transport;protocol?:string;device?:string;topic?:string;path?:string;unit?:number;baud?:number;ranges?:string[];exclude?:string[];address?:string;channel_service?:string;channel_write?:string;channel_notify?:string;agent?:string;location?:"cloud"|"on_premise";pc?:string;auto_approve?:string[];auto_until?:string};
 type SignIn={id:string;user_code:string;verification_uri:string;interval:number;status:string;detail?:string};
 type Form={id:string;kind:Kind;name:string;description:string;host:string;port:string;database:string;username:string;password:string;tls:boolean;read_only:boolean;
  authentication:"password"|"entra"|"microsoft";entra_connection:string;tenant_id:string;client_id:string;client_secret:string;cloud:string;mode:"user"|"application";access:"read"|"write";write_schema:string;
- transport:Transport;protocol:string;device:string;topic:string;path:string;unit:string;baud:string;ranges:string;exclude:string;authorized:boolean;version:string;node_id:string;address:string;place:Place;auto_approve:string[];auto_hours:string;auto_until:string};
+ transport:Transport;protocol:string;device:string;topic:string;path:string;unit:string;baud:string;ranges:string;exclude:string;authorized:boolean;version:string;node_id:string;address:string;channel_service:string;channel_write:string;channel_notify:string;place:Place;auto_approve:string[];auto_hours:string;auto_until:string};
 
 const PORTS:Record<Kind,string>={postgres:"5432",sqlserver:"1433",mysql:"3306",oracle:"1521",entra:"",device:"",network:""};
 const DEVICE_PORTS:Record<string,string>={mqtt:"1883",mqtts:"8883","modbus-tcp":"502",http:"80",https:"443",adb:"5555",tuya:"6668",tcp:""};
@@ -33,7 +33,7 @@ const LABELS:Record<Kind,string>={postgres:"PostgreSQL",sqlserver:"SQL Server / 
 const DEFAULT_CLIENT="04b07795-8ddb-461a-bbee-02f9e1bf7b46";
 const blank=(kind:Kind,place:Place="cloud"):Form=>({id:"",kind,name:"",description:"",host:"",port:PORTS[kind],database:"",username:"",password:"",tls:true,read_only:false,
  authentication:kind==="sqlserver"?"microsoft":"password",entra_connection:"",tenant_id:"",client_id:"",client_secret:"",cloud:"public",mode:"user",access:"read",write_schema:"",
- transport:"network",protocol:"mqtt",device:"",topic:"#",path:"/",unit:"1",baud:"115200",ranges:"",exclude:"",authorized:false,version:"3.3",node_id:"",address:"",place,auto_approve:[],auto_hours:"",auto_until:""});
+ transport:"network",protocol:"mqtt",device:"",topic:"#",path:"/",unit:"1",baud:"115200",ranges:"",exclude:"",authorized:false,version:"3.3",node_id:"",address:"",channel_service:"",channel_write:"",channel_notify:"",place,auto_approve:[],auto_hours:"",auto_until:""});
 const slug=(text:string)=>text.normalize("NFD").replace(/\p{M}/gu,"").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"").replace(/^([^a-z])/,"c-$1").slice(0,40);
 
 /** Personal database, Microsoft cloud and device connections; secrets are encrypted and never shown again. */
@@ -69,7 +69,7 @@ export default function ConnectionsPage(){
   if(form.kind==="network")Object.assign(body,{ranges:form.ranges.split(/[\s,;]+/).filter(Boolean),exclude:form.exclude.split(/[\s,;]+/).filter(Boolean),authorized:form.authorized,access:form.access});
   else if(form.kind==="device")Object.assign(body,{transport:form.transport,access:form.access,agent:agentOf(form.place),
    ...(form.transport==="serial"&&agentOf(form.place)?{device:form.device,baud:Number(form.baud)}
-    :form.transport==="bluetooth"?{address:form.address}
+    :form.transport==="bluetooth"?{address:form.address,...(form.channel_service||form.channel_write||form.channel_notify?{channel_service:form.channel_service,channel_write:form.channel_write,channel_notify:form.channel_notify}:{})}
     :form.transport==="local"?{device:form.device,baud:Number(form.baud)}
     :form.transport==="serial"?{host:form.host,port:Number(form.port),baud:Number(form.baud),protocol:form.protocol==="socket"?"socket":"rfc2217"}
     :{host:form.host,protocol:form.protocol,tls:form.tls,...(form.port?{port:Number(form.port)}:{}),username:form.username,...(form.password?{password:form.password}:{}),
@@ -137,7 +137,7 @@ export default function ConnectionsPage(){
     ...(place==="cloud"?[["entra","entra","network",LABELS.entra] as [string,Kind,Transport,string]]:[]),
     ["device","device","network",t("Servizio di rete (MQTT, HTTP, Modbus, Android, Tuya, TCP)","Network service (MQTT, HTTP, Modbus, Android, Tuya, TCP)")],
     ...(place==="cloud"?[]:[["serial","device",agent?"serial":"local",agent?t("Porta COM / USB del PC","COM / USB port of the PC"):t("Porta seriale / USB","Serial / USB port")] as [string,Kind,Transport,string],
-     ["bluetooth","device","bluetooth",t("Dispositivo Bluetooth LE","Bluetooth LE device")] as [string,Kind,Transport,string]]),
+     ["bluetooth","device","bluetooth",t("Dispositivo Bluetooth","Bluetooth device")] as [string,Kind,Transport,string]]),
     ...(agent?[]:[["network","network","network",t("Rete da mappare","Network to map")] as [string,Kind,Transport,string]])];
    return <section className="space-y-3 rounded-xl border p-4" data-testid="new-connection">
     <h2 className="font-semibold">{t("Nuova connessione a un servizio","New connection to a service")}</h2>
@@ -233,6 +233,7 @@ export default function ConnectionsPage(){
     {signIn.status==="failed"&&<p className="text-destructive">{t("Accesso non riuscito: ","Sign-in failed: ")}{signIn.detail}</p>}
    </div>}
    {explore===r.id&&r.transport==="bluetooth"&&r.address&&<BleExplorer address={r.address} t={t}/>}
+   {explore===r.id&&r.transport==="bluetooth"&&<BleTerminal row={r} t={t}/>}
    {explore===r.id&&r.transport==="network"&&r.host&&<NetExplorer address={r.host} t={t}/>}
    {catalog?.id===r.id&&<div className="mt-3 space-y-2 rounded border p-3" data-testid="database-list">
     {catalog.rows===null?<p>{t("Cerco i database visibili al tuo account…","Looking for the databases your account can see…")}</p>
@@ -252,7 +253,7 @@ type FieldInput=(key:keyof Form,label:string,props?:Record<string,unknown>)=>Rea
 
 function deviceSummary(r:Connection,t:Translate){
  if(r.transport==="serial"&&r.agent)return t("Porta COM del PC: ","COM port of the PC: ")+(r.device??"")+(r.baud?" · "+String(r.baud)+" baud":"");
- if(r.transport==="bluetooth")return t("Bluetooth LE: ","Bluetooth LE: ")+(r.address??"");
+ if(r.transport==="bluetooth")return t("Bluetooth: ","Bluetooth: ")+(r.address??"")+(r.channel_service?" · "+t("canale ","channel ")+r.channel_service.slice(4,8):"");
  if(r.transport==="local")return t("Collegato a questa macchina: ","Attached to this machine: ")+(r.device??"")+(r.baud?" · "+String(r.baud)+" baud":"");
  if(r.transport==="serial")return t("Seriale in rete (RFC 2217): ","Serial over the network (RFC 2217): ")+(r.host??"")+":"+String(r.port??"")+" · "+String(r.baud??"")+" baud";
  return (r.protocol??"").toUpperCase()+" · "+(r.host??"")+":"+String(r.port??"")+(r.topic?" · topic "+r.topic:"")+(r.path&&r.path!=="/"?" · "+r.path:"")+(r.username?" · "+r.username:"");
@@ -284,11 +285,16 @@ function DeviceFields({form,setForm,devices,editing,t,input}:{form:Form;setForm:
    <option value="network">{t("In rete: MQTT, Modbus TCP, HTTP o TCP","On the network: MQTT, Modbus TCP, HTTP or TCP")}</option>
    <option value="serial">{agent?t("Porta COM del PC (scheda USB, adattatore seriale o Bluetooth)","COM port of the PC (USB board, serial or Bluetooth adapter)"):t("Porta seriale condivisa in rete (RFC 2217, per esempio ser2net o ESP-Link)","Serial port shared on the network (RFC 2217, for example ser2net or ESP-Link)")}</option>
    {form.place==="server"&&<option value="local">{t("Collegato a questa macchina (USB, seriale)","Attached to this machine (USB, serial)")}</option>}
-   {form.place!=="cloud"&&<option value="bluetooth">{t("Bluetooth LE, tramite il Bluetooth del PC","Bluetooth LE, through the PC's Bluetooth")}</option>}</select></label>
+   {form.place!=="cloud"&&<option value="bluetooth">{t("Bluetooth (classico o LE), tramite il Bluetooth del PC o del telefono","Bluetooth (classic or LE), through the PC's or phone's Bluetooth")}</option>}</select></label>
   {agent&&<p className="text-muted-foreground text-xs md:col-span-2">{t("RigHaven Agent porta il servizio a questo server con un tunnel cifrato, solo quando un incarico lo usa. Le scritture restano approvate da te, una per una.","RigHaven Agent carries the service to this server through an encrypted tunnel, only while a task uses it. Writes are still approved by you, one by one.")}</p>}
   {agent&&form.transport==="serial"&&<label className="block text-sm">{t("Porta COM","COM port")}<input className={field} aria-label={t("Porta COM","COM port")} placeholder="COM5" value={form.device} onChange={e=>set({device:e.target.value.toUpperCase()})}/></label>}
   {form.transport==="bluetooth"&&<label className="block text-sm md:col-span-2">{t("Indirizzo Bluetooth","Bluetooth address")}<input className={field} aria-label={t("Indirizzo Bluetooth","Bluetooth address")} placeholder="38:A5:C9:3C:2E:9F" value={form.address} onChange={e=>set({address:e.target.value})}/>
    <span className="text-muted-foreground block text-xs">{t("Dalla ricerca Bluetooth qui sopra. Leggere il dispositivo è libero; ogni scrittura la approvi tu, una per una.","From the Bluetooth search above. Reading the device is free; you approve each write, one by one.")}</span></label>}
+  {form.transport==="bluetooth"&&<details className="text-sm md:col-span-2" data-testid="bluetooth-channel" open={!!(form.channel_service||form.channel_write||form.channel_notify)}>
+   <summary className="cursor-pointer">{t("Profilo del canale (facoltativo, solo Bluetooth LE)","Channel profile (optional, Bluetooth LE only)")}</summary>
+   <p className="text-muted-foreground text-xs">{t("Il dispositivo diventa un canale di byte che gli strumenti dell’ambiente aprono come una porta seriale, con qualunque protocollo. Indica dove scrivere e dove il dispositivo risponde (lo vedi con «Esplora»); vuoto, RigHaven usa un profilo seriale che il dispositivo ha. Un dispositivo classico non ne ha bisogno.","The device becomes a byte channel that the environment's tools open like a serial port, with any protocol. Say where to write and where the device answers (see it with “Explore”); empty, RigHaven uses a serial profile the device has. A classic device does not need it.")}</p>
+   <div className="grid gap-2 md:grid-cols-3">{(["channel_service","channel_write","channel_notify"] as const).map(key=><label key={key} className="block text-xs">{key==="channel_service"?t("Servizio","Service"):key==="channel_write"?t("Scrittura","Write"):t("Notifica (risposte)","Notify (answers)")}
+    <input className={field} aria-label={key} placeholder={key==="channel_service"?"fff0":key==="channel_write"?"fff2":"fff1"} value={form[key]} onChange={e=>set({[key]:e.target.value.trim()})}/></label>)}</div></details>}
   {form.transport==="network"&&<>
    <label className="block text-sm">{t("Protocollo","Protocol")}<select className={field} aria-label={t("Protocollo","Protocol")} value={form.protocol} onChange={e=>set({protocol:e.target.value,port:""})}>
     <option value="mqtt">MQTT</option><option value="modbus-tcp">Modbus TCP</option><option value="http">HTTP</option>
@@ -693,6 +699,28 @@ const GATT_NAMES:Record<string,[string,string]>={"1800":["Accesso generico","Gen
 const gattName=(uuid:string,t:Translate)=>{const short=/^0000([0-9a-f]{4})-0000-1000-8000-00805f9b34fb$/.exec(uuid)?.[1];const name=short?GATT_NAMES[short]:undefined;return name?t(name[0],name[1])+" ("+short+")":short??uuid;};
 
 /** What a Bluetooth LE device offers: services, characteristics and the values that can be read. Reading only. */
+/** Manual commands to a Bluetooth device from the page, at a prompt: any protocol (AT commands, a vendor's own), the bytes are not interpreted. */
+function BleTerminal({row,t}:{row:Connection;t:Translate}){
+ const [text,setText]=useState(""),[until,setUntil]=useState(">"),[wait,setWait]=useState("3000"),[crlf,setCrlf]=useState("\r"),[log,setLog]=useState<{sent:string;answer:string;error?:boolean}[]>([]),[busy,setBusy]=useState(false);
+ if(row.write_enabled!==true)return <p className="mt-2 text-xs" data-testid="ble-terminal-off">{t("Terminale manuale: abilita la scrittura sulla connessione per inviare comandi dalla pagina. Il canale lo trova RigHaven al primo comando, lo stesso che usano gli incarichi.","Manual terminal: allow writing on the connection to send commands from the page. RigHaven finds the channel at the first command, the same one tasks use.")}</p>;
+ async function send(){if(!text)return;setBusy(true);const command=text+crlf;
+  try{const r=await fetch(`${getBackendBaseURL()}/api/harness/connections/${row.id}/bluetooth/exchange`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({text:command,until,wait:Number(wait)||3000})});
+   const v=await r.json() as {text?:string;notified?:string;detail?:string};
+   setLog(l=>[...l,r.ok?{sent:text,answer:v.text!==undefined&&v.text!==""?v.text:(v.notified!==undefined&&v.notified!==""?v.notified:t("(nessuna risposta)","(no answer)"))}:{sent:text,answer:typeof v.detail==="string"?v.detail:String(r.status),error:true}].slice(-50));setText("");}
+  catch(e){setLog(l=>[...l,{sent:text,answer:e instanceof Error?e.message:String(e),error:true}]);}finally{setBusy(false);}}
+ return <div className="mt-3 space-y-2 rounded border p-3 text-xs" data-testid="ble-terminal">
+  <p className="font-semibold">{t("Terminale manuale","Manual terminal")}</p>
+  <p className="text-muted-foreground">{t("Ogni comando che invii è una scrittura che approvi tu stesso, registrata nell’attività del PC o del telefono. RigHaven non interpreta i byte: vale per qualunque protocollo.","Each command you send is a write you approve yourself, recorded in the activity of the PC or phone. RigHaven does not interpret the bytes: any protocol works.")}</p>
+  <pre className="max-h-64 overflow-auto rounded bg-black/5 p-2 whitespace-pre-wrap" data-testid="ble-terminal-log">{log.map((e,i)=><span key={i} className={e.error?"text-destructive":""}>{"> "+e.sent+"\n"+e.answer.replace(/\r/g,"\n")+"\n"}</span>)}</pre>
+  <div className="flex flex-wrap items-end gap-2">
+   <label className="grow">{t("Comando","Command")}<input className="mt-1 block w-full rounded border bg-transparent px-2 py-1 font-mono" aria-label={t("Comando","Command")} placeholder="ATZ" value={text} onChange={e=>setText(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")void send();}}/></label>
+   <label>{t("Fine riga","Line end")}<select className="mt-1 block rounded border bg-transparent px-2 py-1" value={crlf} onChange={e=>setCrlf(e.target.value)}><option value={"\r"}>CR</option><option value={"\r\n"}>CR+LF</option><option value={"\n"}>LF</option><option value="">{t("nessuna","none")}</option></select></label>
+   <label>{t("Fine risposta","Answer end")}<input className="mt-1 block w-16 rounded border bg-transparent px-2 py-1 font-mono" aria-label={t("Fine risposta","Answer end")} value={until} onChange={e=>setUntil(e.target.value)}/></label>
+   <label>{t("Attesa (ms)","Wait (ms)")}<input className="mt-1 block w-20 rounded border bg-transparent px-2 py-1" aria-label={t("Attesa (ms)","Wait (ms)")} value={wait} onChange={e=>setWait(e.target.value.replace(/\D/g,""))}/></label>
+   <button type="button" className="rounded border px-3 py-1 disabled:opacity-50" disabled={busy||!text} onClick={()=>void send()}>{busy?t("Invio…","Sending…"):t("Invia","Send")}</button></div>
+ </div>;
+}
+
 function BleExplorer({address,t}:{address:string;t:Translate}){
  const host=useHost();
  const [result,setResult]=useState<{name:string;services:GattService[]}|null>(null),[error,setError]=useState(""),[busy,setBusy]=useState(false);
@@ -705,7 +733,7 @@ function BleExplorer({address,t}:{address:string;t:Translate}){
    {result.services.length===0?<p className="text-xs">{t("Il dispositivo non espone servizi leggibili.","The device exposes no readable services.")}</p>
    :<ul className="space-y-2 text-xs">{result.services.map(sv=><li key={sv.uuid}><strong>{gattName(sv.uuid,t)}</strong>
      <ul className="ml-3 space-y-0.5">{sv.characteristics.map(c=><li key={c.uuid} className="break-all">{gattName(c.uuid,t)} · {(c.properties??[]).join(", ")}{c.text?<> · <strong>{c.text}</strong></>:c.value?<> · <code>{c.value}</code></>:null}{c.error?" · "+c.error:""}</li>)}</ul></li>)}</ul>}
-   <p className="text-muted-foreground text-xs">{t("Per comandarlo chiedilo nella chat: ogni scrittura la approvi tu nella scheda del compito. Molti dispositivi commerciali cifrano i comandi con chiavi del produttore.","To command it ask in the chat: you approve each write in the task card. Many commercial devices encrypt their commands with vendor keys.")}</p></>}
+   <p className="text-muted-foreground text-xs">{t("Per usarlo con un protocollo, assegna la connessione a un incarico: gli strumenti dell’ambiente aprono il dispositivo come una porta seriale. Dalla chat o dal terminale qui sotto puoi inviare comandi manuali; ogni scrittura la approvi tu. Molti dispositivi commerciali cifrano i comandi con chiavi del produttore.","To use it with a protocol, assign the connection to a task: the environment's tools open the device like a serial port. From the chat or the terminal below you can send manual commands; you approve each write. Many commercial devices encrypt their commands with vendor keys.")}</p></>}
  </div>;
 }
 

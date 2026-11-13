@@ -20,6 +20,8 @@ import (
 type comPort struct {
 	Name  string `json:"name"`
 	Label string `json:"label"`
+	// Address is the Bluetooth address (12 hex digits) of the paired classic device behind the port.
+	Address string `json:"address,omitempty"`
 }
 
 var (

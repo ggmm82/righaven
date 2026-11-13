@@ -90,9 +90,13 @@ class AgentSession(
     private fun open(number: Int, target: String) {
         pumps.execute {
             val stream = try {
-                // COM ports exist only on a PC: a phone carries hosts of its network.
-                require(target.startsWith("tcp:")) { "only devices of this phone's network" }
-                openStream(target.removePrefix("tcp:"))
+                // COM ports exist only on a PC: a phone carries hosts of its network and its
+                // Bluetooth devices as byte channels (ble:ADDRESS[/service/write/notify]).
+                when {
+                    target.startsWith("tcp:") -> openStream(target.removePrefix("tcp:"))
+                    target.startsWith("ble:") -> openStream(target)
+                    else -> throw IllegalArgumentException("only devices of this phone's network or Bluetooth")
+                }
             } catch (error: Exception) {
                 channel.sendText(JSONObject(mapOf("type" to "close", "stream" to number, "error" to (error.message ?: "refused"))).toString())
                 return@execute

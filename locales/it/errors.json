@@ -395,8 +395,11 @@
   "Matter devices go through the Matter controller of this server": "I dispositivi Matter passano dal controller Matter di questo server",
   "Through a RigHaven Agent a USB or serial device is a COM port of the PC": "Tramite RigHaven Agent un dispositivo USB o seriale è una porta COM del PC",
   "If the machine is offline: cloud, or wait 1-240 minutes": "Se la macchina è scollegata: cloud, oppure attesa da 1 a 240 minuti",
-  "OBD command not allowed: ": "Comando OBD non consentito: ",
-  "This Bluetooth device has no service that takes commands and notifies answers: not an ELM327 adapter": "Questo dispositivo Bluetooth non ha un servizio che accetta comandi e notifica le risposte: non è un adattatore ELM327",
   "This RigHaven Agent (or app) is too old to listen to Bluetooth notifications: update it from the latest release, then retry": "Questo RigHaven Agent (o app) è troppo vecchio per ascoltare le notifiche Bluetooth: aggiornalo dall’ultima release e riprova",
-  "exchange sends at most 64 bytes: use write for longer values": "exchange invia al massimo 64 byte: per valori più lunghi usa write"
+  "exchange sends at most 64 bytes: use write for longer values": "exchange invia al massimo 64 byte: per valori più lunghi usa write",
+  "wait: from 200 to 10000 milliseconds": "wait: da 200 a 10000 millisecondi",
+  "No service of this Bluetooth device takes writes and notifies: name the channel profile (service, write, notify)": "Nessun servizio di questo dispositivo Bluetooth accetta scritture e invia notifiche: indica il profilo del canale (servizio, scrittura, notifica)",
+  "The Bluetooth device is in use by a task now (one client at a time): wait for it to end, or use the task to send the command": "Il dispositivo Bluetooth è in uso da un incarico (un client alla volta): aspetta che finisca, oppure invia il comando dall’incarico",
+  "This connection has no channel profile yet: call harness_bluetooth with action channel first": "Questa connessione non ha ancora un profilo di canale: prima usa harness_bluetooth con action channel",
+  "channel keeps the profile on a saved Bluetooth connection: pass connection": "channel salva il profilo su una connessione Bluetooth salvata: indica connection"
 }
