@@ -4532,6 +4532,159 @@
         "kind": "pip-native",
         "native_commands": []
       }
+    },
+    {
+      "id": "materialcraft",
+      "name": "MaterialCraft",
+      "role": "Materiali procedurali PBR",
+      "description": "Progetta grafi di materiali modificabili, genera mappe PBR e verifica le esportazioni senza GPU.",
+      "repository": "https://github.com/storytold/materialcraft",
+      "version": "v0.4.1",
+      "executable": "materialcraft-cli",
+      "registry_args": [
+        "commands"
+      ],
+      "mcp_args": [
+        "mcp"
+      ],
+      "assets": {
+        "amd64": {
+          "name": "materialcraft-0.4.1-linux-x86_64.tar.gz",
+          "url": "https://github.com/storytold/materialcraft/releases/download/v0.4.1/materialcraft-0.4.1-linux-x86_64.tar.gz",
+          "sha256": "43115f8d3e2fee8f9f29bc07b03c984c2e8f6d04e0e1959439d73ec5cdf6830e",
+          "size_bytes": 22058769
+        },
+        "arm64": {
+          "name": "materialcraft-0.4.1-linux-aarch64.tar.gz",
+          "url": "https://github.com/storytold/materialcraft/releases/download/v0.4.1/materialcraft-0.4.1-linux-aarch64.tar.gz",
+          "sha256": "43a37b6a484ddfdf059c907f3eff553f20da24dd2ccd4a5a088f5d5cb38b4415",
+          "size_bytes": 20488393
+        }
+      },
+      "checks": [
+        "Riapri il sorgente SBS con le sue risorse e riesporta le mappe.",
+        "Verifica convenzione delle normali, risoluzione e canali sulla destinazione."
+      ],
+      "examples": [
+        "materialcraft-cli new pbr surface.sbs --size 256",
+        "materialcraft-cli export surface.sbs maps --format png --depth 8"
+      ]
+    },
+    {
+      "id": "frictionless",
+      "name": "Frictionless",
+      "role": "Contratti per dati tabellari",
+      "description": "Genera descrittori Data Package e valida CSV e schemi forniti.",
+      "repository": "https://github.com/frictionlessdata/framework",
+      "version": "5.21.0",
+      "executable": "frictionless",
+      "registry_args": [
+        "--help"
+      ],
+      "registry_format": "help-commands",
+      "mcp_args": null,
+      "assets": {
+        "amd64": {
+          "name": "frictionless-5.21.0-py3-none-any.whl",
+          "url": "https://files.pythonhosted.org/packages/88/e1/8140a97773b48ceb2b8d04179a13aec003c3999be764813ad47830fab657/frictionless-5.21.0-py3-none-any.whl",
+          "sha256": "c76db03abaee4862aa04116057dbc13e788a2fc18b9be37c2d35dc07a67e1b11",
+          "size_bytes": 575379
+        },
+        "arm64": {
+          "name": "frictionless-5.21.0-py3-none-any.whl",
+          "url": "https://files.pythonhosted.org/packages/88/e1/8140a97773b48ceb2b8d04179a13aec003c3999be764813ad47830fab657/frictionless-5.21.0-py3-none-any.whl",
+          "sha256": "c76db03abaee4862aa04116057dbc13e788a2fc18b9be37c2d35dc07a67e1b11",
+          "size_bytes": 575379
+        }
+      },
+      "checks": [
+        "Dataset, datapackage.json con riferimenti relativi e report JSON",
+        "Uno schema inferito è una bozza: tipi, chiavi e vincoli richiedono conferma. Validare descrittori locali controllando i percorsi delle risorse."
+      ],
+      "examples": [
+        "frictionless describe sales.csv --type package --json",
+        "frictionless validate datapackage.json --json"
+      ],
+      "download_base": "https://files.pythonhosted.org/",
+      "install": {
+        "kind": "pip-native",
+        "native_commands": [
+          "frictionless"
+        ]
+      }
+    },
+    {
+      "id": "ruff",
+      "name": "Ruff",
+      "role": "Qualità del codice Python",
+      "description": "Controlla e formatta sorgenti Python e notebook.",
+      "repository": "https://github.com/astral-sh/ruff",
+      "version": "0.17.6",
+      "executable": "ruff",
+      "registry_args": [
+        "--help"
+      ],
+      "registry_format": "help-commands",
+      "mcp_args": null,
+      "assets": {
+        "amd64": {
+          "name": "ruff-x86_64-unknown-linux-gnu.tar.gz",
+          "url": "https://github.com/astral-sh/ruff/releases/download/0.17.6/ruff-x86_64-unknown-linux-gnu.tar.gz",
+          "sha256": "94b33791f48cd54ab35ad673a443a5c001d3e6d87effeaba9899070b700d45f3",
+          "size_bytes": 10250218
+        },
+        "arm64": {
+          "name": "ruff-aarch64-unknown-linux-gnu.tar.gz",
+          "url": "https://github.com/astral-sh/ruff/releases/download/0.17.6/ruff-aarch64-unknown-linux-gnu.tar.gz",
+          "sha256": "d4eea36ee6228f6c6bbcf0aea4ebf66fe0e595eedc6cffe628d7b8ba3623390f",
+          "size_bytes": 9747726
+        }
+      },
+      "checks": [
+        "File .py/.ipynb originali o revisionati, configurazione di lint e report",
+        "Il lint non verifica esecuzione, risultati dei notebook o regole di business. Applicare correzioni solo alle copie di lavoro e verificare le differenze."
+      ],
+      "examples": [
+        "ruff check --output-format json src notebooks",
+        "ruff format --check src notebooks"
+      ]
+    },
+    {
+      "id": "opentofu",
+      "name": "OpenTofu",
+      "role": "Infrastructure as Code",
+      "description": "Valida moduli IaC e prepara piani di modifica da revisionare, con prove locali riproducibili.",
+      "repository": "https://github.com/opentofu/opentofu",
+      "version": "v1.13.10",
+      "executable": "tofu",
+      "registry_args": [
+        "--help"
+      ],
+      "registry_format": "help-commands",
+      "mcp_args": null,
+      "assets": {
+        "amd64": {
+          "name": "tofu_1.13.10_linux_amd64.tar.gz",
+          "url": "https://github.com/opentofu/opentofu/releases/download/v1.13.10/tofu_1.13.10_linux_amd64.tar.gz",
+          "sha256": "f606b6117ee03177374806d56d580bde7b512aff69f86d2b9f3148dced4ca375",
+          "size_bytes": 35123217
+        },
+        "arm64": {
+          "name": "tofu_1.13.10_linux_arm64.tar.gz",
+          "url": "https://github.com/opentofu/opentofu/releases/download/v1.13.10/tofu_1.13.10_linux_arm64.tar.gz",
+          "sha256": "9dcdabf93c5209feaa35a7bb6d41f4d71b0880c4c4dfaf275d612f5b6facc28a",
+          "size_bytes": 31317944
+        }
+      },
+      "checks": [
+        "Valida una fixture locale con terraform_data e controlla il piano senza applicarlo.",
+        "Escludi valori riservati, state e piani binari dalla consegna ordinaria."
+      ],
+      "examples": [
+        "tofu init -backend=false -input=false",
+        "tofu validate -json",
+        "tofu plan -input=false -refresh=false -detailed-exitcode"
+      ]
     }
   ],
   "cli_runtimes": {

@@ -40,6 +40,20 @@ class ToolCapabilitiesTests(unittest.TestCase):
         self.assertEqual(command_ids('node.create*  Create node\nframe.create  Create frame\n\n'),['frame.create','node.create'])
         with self.assertRaises(ValueError):command_ids('123')
 
+    def test_native_cli_help_catalog_uses_the_commands_section_only(self):
+        fixtures = [
+            ('Commands:\n  check    Check code\n  format   Format code\n\nOptions:\n  --help    Print help\n',
+             ['check', 'format']),
+            ('Main commands:\n  validate   Validate a module\n  plan       Show a plan\n\n'
+             'All other commands:\n  show       Inspect a plan\n\nGlobal options\n  -help Help\n',
+             ['plan', 'show', 'validate']),
+            ('╭─ Options ─╮\n│ --help  Help │\n╰─────╯\n╭─ Commands ─╮\n│ describe  Describe data │\n│ validate  Validate data │\n╰─────╯\n',
+             ['describe', 'validate']),
+        ]
+        for help_text, expected in fixtures:
+            with self.subTest(expected=expected):
+                self.assertEqual(command_ids(help_text, 'help-commands'), expected)
+
     def fixture(self,root):
         shutil.copy2(ROOT/'versions.lock.json',root/'versions.lock.json')
         data=json.loads((ROOT/'config/tool-capabilities.json').read_text())

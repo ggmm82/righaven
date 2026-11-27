@@ -143,6 +143,10 @@
     "xauth",
     "xvfb"
   ],
+  "materialcraft": [],
+  "frictionless": [],
+  "ruff": [],
+  "opentofu": [],
   "lightcraft": [
     "fonts-noto-core",
     "libasound2",

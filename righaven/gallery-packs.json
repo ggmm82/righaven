@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0.0",
   "hub_name": "RigHaven Hub",
-  "total_packs": 214,
+  "total_packs": 218,
   "packs": [
     {
       "id": "env-data-engineering-rig",
@@ -12954,6 +12954,248 @@
       ],
       "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Follow skill-data-pipeline phase by phase and record the evidence of each gate.",
       "verification_command": "craft capabilities sqlglot && craft capabilities faker"
+    },
+    {
+      "id": "skill-materialcraft",
+      "name": "MaterialCraft — Procedural PBR materials",
+      "version": "v0.4.1",
+      "author": "righaven-core",
+      "category": "skill",
+      "tags": [
+        "materialcraft",
+        "pbr",
+        "procedural-materials"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "materialcraft"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Skill: MaterialCraft",
+          "description": "Author editable PBR material graphs and verify headless map export."
+        },
+        "it": {
+          "title": "Skill: MaterialCraft",
+          "description": "Crea grafi PBR modificabili e verifica le mappe esportate da terminale."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "materialcraft",
+          "executable": "/usr/local/bin/materialcraft-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities materialcraft"
+        }
+      ],
+      "skill_prompt_template": "Read the MaterialCraft skill and its CLI recipe. Deliver the SBS graph with its resources and maps, and record a fresh CLI reopen and export in handoff.json.",
+      "verification_command": "python3 /opt/righaven-worker/handoff.py validate \"$RIGHAVEN_OUTPUT_DIR\"",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ],
+        "read_only_mounts": [
+          "/mnt/user-data"
+        ],
+        "drop_capabilities": [
+          "ALL"
+        ],
+        "no_new_privileges": true
+      }
+    },
+    {
+      "id": "skill-frictionless",
+      "name": "Skill: Frictionless",
+      "version": "5.21.0",
+      "author": "righaven-core",
+      "category": "skill",
+      "tags": [
+        "frictionless",
+        "validation"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "frictionless"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Skill: Frictionless",
+          "description": "Validate tabular deliveries against a portable data contract."
+        },
+        "it": {
+          "title": "Skill: Frictionless",
+          "description": "Genera descrittori Data Package e valida CSV e schemi forniti."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "frictionless",
+          "executable": "/usr/local/bin/frictionless",
+          "safe_flags": [
+            "--help"
+          ],
+          "health_check": "craft capabilities frictionless"
+        }
+      ],
+      "skill_prompt_template": "Read skill-frictionless and preserve the sources and validation evidence from a real CLI run.",
+      "verification_command": "python3 /opt/righaven-worker/handoff.py validate \"$RIGHAVEN_OUTPUT_DIR\"",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ],
+        "read_only_mounts": [
+          "/mnt/user-data"
+        ],
+        "drop_capabilities": [
+          "ALL"
+        ],
+        "no_new_privileges": true
+      }
+    },
+    {
+      "id": "skill-ruff",
+      "name": "Skill: Ruff",
+      "version": "0.17.6",
+      "author": "righaven-core",
+      "category": "skill",
+      "tags": [
+        "ruff",
+        "validation"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "ruff"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Skill: Ruff",
+          "description": "Lint and format Python source and notebooks."
+        },
+        "it": {
+          "title": "Skill: Ruff",
+          "description": "Controlla e formatta sorgenti Python e notebook."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "ruff",
+          "executable": "/usr/local/bin/ruff",
+          "safe_flags": [
+            "--help"
+          ],
+          "health_check": "craft capabilities ruff"
+        }
+      ],
+      "skill_prompt_template": "Read skill-ruff and preserve the sources and validation evidence from a real CLI run.",
+      "verification_command": "python3 /opt/righaven-worker/handoff.py validate \"$RIGHAVEN_OUTPUT_DIR\"",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ],
+        "read_only_mounts": [
+          "/mnt/user-data"
+        ],
+        "drop_capabilities": [
+          "ALL"
+        ],
+        "no_new_privileges": true
+      }
+    },
+    {
+      "id": "skill-opentofu",
+      "name": "Skill: OpenTofu",
+      "version": "v1.13.10",
+      "author": "righaven-core",
+      "category": "skill",
+      "tags": [
+        "opentofu",
+        "iac",
+        "validation"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "opentofu"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Skill: OpenTofu",
+          "description": "Validate infrastructure modules and prepare a reviewable plan."
+        },
+        "it": {
+          "title": "Skill: OpenTofu",
+          "description": "Valida i moduli di infrastruttura e prepara un piano da revisionare."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "opentofu",
+          "executable": "/usr/local/bin/tofu",
+          "safe_flags": [
+            "--help"
+          ],
+          "health_check": "craft capabilities opentofu"
+        }
+      ],
+      "skill_prompt_template": "Read skill-opentofu. Deliver editable modules and a validation report with the plan summary.",
+      "verification_command": "python3 /opt/righaven-worker/handoff.py validate \"$RIGHAVEN_OUTPUT_DIR\"",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ],
+        "read_only_mounts": [
+          "/mnt/user-data"
+        ],
+        "drop_capabilities": [
+          "ALL"
+        ],
+        "no_new_privileges": true
+      }
     }
   ]
 }

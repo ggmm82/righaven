@@ -55,7 +55,7 @@ def main():
         registry['ok'] = registry['returncode'] == 0 and bool(registry['stdout'].strip())
         (reference / 'commands.txt').write_text(registry['stdout'], encoding='utf-8')
         checks.append(registry)
-        if args.mcp:
+        if args.mcp and app.get('mcp_args') is not None:
             args.workspace_root.mkdir(parents=True, exist_ok=True)
             mcp = run(['craft', 'tools', app['id'], '--out', str(reference / 'mcp-tools.json')], timeout=210)
             mcp['ok'] = mcp['returncode'] == 0

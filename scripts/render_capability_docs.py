@@ -13,6 +13,7 @@ def render(root):
         'Un comando registrato non è un workflow collaudato: verifica prerequisiti, dati, unità, modelli/add-on e reale esecuzione. `enabled=false` può dipendere dalla selezione o dal documento aperto; non significa automaticamente funzione assente.', '',
         '| Strumento | Quando sceglierlo | Sorgenti da conservare |','|---|---|---|']
     rendered={}
+    cli_only={app['id'] for app in json.loads((root/'versions.lock.json').read_text())['applications'] if app.get('mcp_args') is None}
     for app in data['applications']:
         skill=root/'skills/custom'/('skill-'+app['id']);ref=skill/'references/CAPABILITIES.md'
         index.append('| ['+app['id']+'](../../skill-'+app['id']+'/references/CAPABILITIES.md) | '+app['choose_for']+' | '+app['sources']+' |')
@@ -26,7 +27,8 @@ def render(root):
             '## Scoperta mirata', '',
             '1. `craft capabilities '+app['id']+'`: selezione per obiettivo e confini.',
             '2. `craft commands '+app['id']+'`: registro integrale; cerca soltanto gli ID pertinenti.',
-            '3. `craft tools '+app['id']+' --out "$RIGHAVEN_OUTPUT_DIR/work/'+app['id']+'-tools.json"`: schemi MCP della release.',
+            ('3. Usa `craft run '+app['id']+' -- <comando>` per eseguire la CLI.' if app['id'] in cli_only else
+             '3. `craft tools '+app['id']+' --out "$RIGHAVEN_OUTPUT_DIR/work/'+app['id']+'-tools.json"`: schemi MCP della release.'),
             '4. Apri un input pertinente, salva presto il sorgente e verifica una prova a finitura prevista. Riduci il perimetro prima della qualità.',
             '5. Verifica le proprietà salvate e un export effettivo; non trasformare il codice di uscita zero in una valutazione professionale.', '',
             'Catalogo esaminato: '+str(app['catalog_count'])+' ID unici (le integrazioni con adattatore descrivono le operazioni esposte, non l’intera API upstream). SHA256 della rilevazione: `'+app['catalog_sha256']+'`.',

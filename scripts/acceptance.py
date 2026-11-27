@@ -25,13 +25,13 @@ class Case:
         self.commands = []
         self.checks = []
 
-    def run(self, *args, timeout=180):
+    def run(self, *args, timeout=180, expected=0):
         args = [str(x) for x in args]
         result = subprocess.run(args, cwd=self.root, capture_output=True, text=True,
                                 env={**os.environ, 'QT_QPA_PLATFORM': 'offscreen'}, timeout=timeout)
         self.commands.append({'argv': args, 'returncode': result.returncode,
                               'stdout': result.stdout[-12000:], 'stderr': result.stderr[-3000:]})
-        if result.returncode:
+        if result.returncode != expected:
             raise RuntimeError('Comando fallito: ' + ' '.join(args) + '\n' + (result.stderr or result.stdout)[-1000:])
         return result.stdout
 
@@ -493,8 +493,113 @@ def calibre(c):
     c.check('Display virtuale rileva ancora link interattivo mancante',rejected.returncode!=0,rejected.stdout[-1500:])
 
 
+def materialcraft(case):
+    import shutil
+
+    case.run('materialcraft-cli', 'new', 'pbr', 'surface.sbs', '--size', '256')
+    case.run('materialcraft-cli', 'export', 'surface.sbs', 'maps', '--format', 'png', '--depth', '8')
+    case.run('materialcraft-cli', 'render', 'surface.sbs', 'preview.png', '--size', '256x256', '--scene', 'sphere')
+
+    package = case.root / 'downloaded'
+    package.mkdir()
+    shutil.copy2(case.root / 'surface.sbs', package)
+    resources = case.root / 'resources'
+    if resources.is_dir():
+        shutil.copytree(resources, package / resources.name)
+    info = json.loads(case.run('materialcraft-cli', 'info', 'downloaded/surface.sbs'))
+    nodes = info['graph']['nodes']
+    case.check('Editable SBS reopens from copied project', bool(nodes), {'nodes': len(nodes)})
+    case.run('materialcraft-cli', 'export', 'downloaded/surface.sbs', 'reopened-maps', '--format', 'png', '--depth', '8')
+
+    channels = {'basecolor', 'normal', 'roughness', 'metallic', 'height', 'ambientocclusion'}
+    maps = sorted((case.root / 'maps').glob('*.png'))
+    case.check('All six PBR maps exported', {path.stem.rsplit('_', 1)[-1] for path in maps} == channels,
+               [path.name for path in maps])
+    for path in maps:
+        regenerated = case.root / 'reopened-maps' / path.name
+        streams = case.probe(path)['streams']
+        case.check('Copied graph reproduces ' + path.name,
+                   streams[0]['width'] == streams[0]['height'] == 256
+                   and case.pixels(path) == case.pixels(regenerated), streams)
+    preview = case.probe(case.root / 'preview.png')['streams'][0]
+    case.check('Material preview rendered without GPU', preview['width'] == preview['height'] == 256, preview)
+
+
+def frictionless(case):
+    import shutil
+
+    csv = case.root / 'sales.csv'
+    csv.write_text('id,amount\n1,25\n2,35\n')
+    package = json.loads(case.run('frictionless', 'describe', csv.name, '--type', 'package', '--json'))
+    resource = package['resources'][0]
+    case.check('Data Package has a portable path and integer schema',
+               resource['path'] == csv.name and all(field['type'] == 'integer' for field in resource['schema']['fields']),
+               resource)
+    resource['schema']['primaryKey'] = ['id']
+    descriptor = case.root / 'datapackage.json'
+    descriptor.write_text(json.dumps(package, indent=2))
+    copied = case.root / 'copied-delivery'
+    copied.mkdir()
+    shutil.copy2(descriptor, copied)
+    shutil.copy2(csv, copied)
+    report = json.loads(case.run('frictionless', 'validate', 'copied-delivery/datapackage.json', '--json'))
+    case.check('Package validates after relocation', report['valid'] and report['stats']['tasks'] == 1, report['stats'])
+    (copied / csv.name).write_text('id,amount\n1,25\n1,bad\n')
+    report = json.loads(case.run('frictionless', 'validate', 'copied-delivery/datapackage.json', '--json', expected=1))
+    errors = {issue['type'] for task in report['tasks'] for issue in task['errors']}
+    case.check('Duplicate key and invalid type are rejected',
+               not report['valid'] and {'primary-key', 'type-error'} <= errors, sorted(errors))
+
+
+def ruff(case):
+    script = case.root / 'report.py'
+    script.write_text('result=missing_total\n')
+    notebook = case.root / 'analysis.ipynb'
+    notebook.write_text(json.dumps({'nbformat': 4, 'nbformat_minor': 5, 'metadata': {}, 'cells': [
+        {'cell_type': 'markdown', 'id': 'summary', 'metadata': {}, 'source': ['# Summary']},
+        {'cell_type': 'code', 'id': 'calculation', 'metadata': {}, 'execution_count': None,
+         'source': ['print(missing_value)'], 'outputs': []},
+    ]}))
+    findings = json.loads(case.run('ruff', 'check', '--isolated', '--select', 'F821', '--output-format', 'json',
+                                   script.name, notebook.name, expected=1))
+    files = {Path(finding['filename']).name for finding in findings if finding['code'] == 'F821'}
+    case.check('Lint reports undefined names in script and notebook', files == {script.name, notebook.name}, sorted(files))
+    case.run('ruff', 'format', '--isolated', '--check', script.name, expected=1)
+    script.write_text('result=60\n')
+    case.run('ruff', 'format', '--isolated', script.name)
+    case.run('ruff', 'format', '--isolated', '--check', script.name)
+    case.run('ruff', 'check', '--isolated', script.name)
+    case.check('Formatted Python source preserves the computation', script.read_text() == 'result = 60\n',
+               script.read_text())
+
+
+def opentofu(case):
+    config = case.root / 'main.tf'
+    config.write_text('resource "terraform_data" "example" {\n  input = 60\n}\n')
+    case.run('tofu', 'fmt', '-check', '-diff')
+    case.run('tofu', 'init', '-backend=false', '-input=false', '-no-color')
+    validation = json.loads(case.run('tofu', 'validate', '-json'))
+    case.check('Valid offline infrastructure module', validation['valid'], validation)
+
+    case.run('tofu', 'plan', '-input=false', '-refresh=false', '-no-color',
+             '-detailed-exitcode', '-out=fixture.plan', expected=2)
+    plan = json.loads(case.run('tofu', 'show', '-json', 'fixture.plan'))
+    changes = plan['resource_changes']
+    case.check('Plan proposes one expected change without writing state',
+               len(changes) == 1 and changes[0]['address'] == 'terraform_data.example'
+               and changes[0]['change']['actions'] == ['create']
+               and changes[0]['change']['after']['input'] == 60
+               and not list(case.root.glob('*.tfstate*')),
+               [{'address': item['address'], 'actions': item['change']['actions']} for item in changes])
+
+    config.write_text('resource "terraform_data" "example" {\n  input = local.missing\n}\n')
+    invalid = json.loads(case.run('tofu', 'validate', '-json', expected=1))
+    case.check('Invalid reference is rejected', not invalid['valid'] and invalid['error_count'] > 0,
+               invalid['diagnostics'])
+
+
 CASES = {name: globals()[name] for name in ('photocraft', 'vectorcraft', 'filmcraft', 'lightcraft', 'pdfcraft',
-            'effectcraft', 'designcraft', 'gridcraft', 'wordcraft', 'deckcraft', 'cadcraft', 'soundcraft', 'figcraft', 'blender', 'calibre')}
+            'effectcraft', 'designcraft', 'gridcraft', 'wordcraft', 'deckcraft', 'cadcraft', 'soundcraft', 'figcraft', 'blender', 'calibre', 'materialcraft', 'frictionless', 'ruff', 'opentofu')}
 try:
     from .acceptance_toolkit import CASES as TOOLKIT_CASES
 except ImportError:

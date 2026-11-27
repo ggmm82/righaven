@@ -11,7 +11,7 @@ import stat
 
 FLAT = {'.wav','.mp3','.m4a','.ogg','.flac','.aac','.mp4','.mov','.webm','.mkv','.png','.jpg','.jpeg','.webp'}
 ASSETS = FLAT | {'.svg','.obj','.glb','.gltf'}
-NATIVE_TOOL = {'.scraft':'soundcraft','.ecproj':'effectcraft','.fcproj':'filmcraft','.blend':'blender','.fcstd':'freecad','.mscz':'musescore','.ifc':'ifcopenshell','.otio':'opentimelineio','.mlp':'pymeshlab','.py':'manim','.d2':'d2','.puml':'plantuml','.mmd':'mermaid','.excalidraw':'excalidraw','.bpmn':'bpmn','.dsl':'structurizr'}
+NATIVE_TOOL = {'.sbs':'materialcraft','.scraft':'soundcraft','.ecproj':'effectcraft','.fcproj':'filmcraft','.blend':'blender','.fcstd':'freecad','.mscz':'musescore','.ifc':'ifcopenshell','.otio':'opentimelineio','.mlp':'pymeshlab','.py':'manim','.d2':'d2','.puml':'plantuml','.mmd':'mermaid','.excalidraw':'excalidraw','.bpmn':'bpmn','.dsl':'structurizr'}
 
 
 def component_metadata(component, index):
