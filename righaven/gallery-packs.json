@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0.0",
   "hub_name": "RigHaven Hub",
-  "total_packs": 217,
+  "total_packs": 218,
   "packs": [
     {
       "id": "env-data-engineering-rig",
@@ -13120,6 +13120,67 @@
         }
       ],
       "skill_prompt_template": "Read skill-ruff and preserve the sources and validation evidence from a real CLI run.",
+      "verification_command": "python3 /opt/righaven-worker/handoff.py validate \"$RIGHAVEN_OUTPUT_DIR\"",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ],
+        "read_only_mounts": [
+          "/mnt/user-data"
+        ],
+        "drop_capabilities": [
+          "ALL"
+        ],
+        "no_new_privileges": true
+      }
+    },
+    {
+      "id": "skill-opentofu",
+      "name": "Skill: OpenTofu",
+      "version": "v1.13.10",
+      "author": "righaven-core",
+      "category": "skill",
+      "tags": [
+        "opentofu",
+        "iac",
+        "validation"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "opentofu"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Skill: OpenTofu",
+          "description": "Validate infrastructure modules and prepare a reviewable plan."
+        },
+        "it": {
+          "title": "Skill: OpenTofu",
+          "description": "Valida i moduli di infrastruttura e prepara un piano da revisionare."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "opentofu",
+          "executable": "/usr/local/bin/tofu",
+          "safe_flags": [
+            "--help"
+          ],
+          "health_check": "craft capabilities opentofu"
+        }
+      ],
+      "skill_prompt_template": "Read skill-opentofu. Deliver editable modules and a validation report with the plan summary.",
       "verification_command": "python3 /opt/righaven-worker/handoff.py validate \"$RIGHAVEN_OUTPUT_DIR\"",
       "security_policy": {
         "rootless": true,

@@ -573,8 +573,33 @@ def ruff(case):
                script.read_text())
 
 
+def opentofu(case):
+    config = case.root / 'main.tf'
+    config.write_text('resource "terraform_data" "example" {\n  input = 60\n}\n')
+    case.run('tofu', 'fmt', '-check', '-diff')
+    case.run('tofu', 'init', '-backend=false', '-input=false', '-no-color')
+    validation = json.loads(case.run('tofu', 'validate', '-json'))
+    case.check('Valid offline infrastructure module', validation['valid'], validation)
+
+    case.run('tofu', 'plan', '-input=false', '-refresh=false', '-no-color',
+             '-detailed-exitcode', '-out=fixture.plan', expected=2)
+    plan = json.loads(case.run('tofu', 'show', '-json', 'fixture.plan'))
+    changes = plan['resource_changes']
+    case.check('Plan proposes one expected change without writing state',
+               len(changes) == 1 and changes[0]['address'] == 'terraform_data.example'
+               and changes[0]['change']['actions'] == ['create']
+               and changes[0]['change']['after']['input'] == 60
+               and not list(case.root.glob('*.tfstate*')),
+               [{'address': item['address'], 'actions': item['change']['actions']} for item in changes])
+
+    config.write_text('resource "terraform_data" "example" {\n  input = local.missing\n}\n')
+    invalid = json.loads(case.run('tofu', 'validate', '-json', expected=1))
+    case.check('Invalid reference is rejected', not invalid['valid'] and invalid['error_count'] > 0,
+               invalid['diagnostics'])
+
+
 CASES = {name: globals()[name] for name in ('photocraft', 'vectorcraft', 'filmcraft', 'lightcraft', 'pdfcraft',
-            'effectcraft', 'designcraft', 'gridcraft', 'wordcraft', 'deckcraft', 'cadcraft', 'soundcraft', 'figcraft', 'blender', 'calibre', 'materialcraft', 'frictionless', 'ruff')}
+            'effectcraft', 'designcraft', 'gridcraft', 'wordcraft', 'deckcraft', 'cadcraft', 'soundcraft', 'figcraft', 'blender', 'calibre', 'materialcraft', 'frictionless', 'ruff', 'opentofu')}
 try:
     from .acceptance_toolkit import CASES as TOOLKIT_CASES
 except ImportError:

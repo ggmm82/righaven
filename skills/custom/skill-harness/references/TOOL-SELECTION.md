@@ -119,6 +119,7 @@ Un comando registrato non è un workflow collaudato: verifica prerequisiti, dati
 | [materialcraft](../../skill-materialcraft/references/CAPABILITIES.md) | Creare e riesportare materiali PBR procedurali con un grafo dedicato | Pacchetto SBS nativo, risorse locali, mappe e anteprima |
 | [frictionless](../../skill-frictionless/references/CAPABILITIES.md) | Genera descrittori Data Package e valida CSV e schemi forniti | Dataset, datapackage.json con riferimenti relativi e report JSON |
 | [ruff](../../skill-ruff/references/CAPABILITIES.md) | Controlla e formatta sorgenti Python e notebook | File .py/.ipynb originali o revisionati, configurazione di lint e report |
+| [opentofu](../../skill-opentofu/references/CAPABILITIES.md) | Validare infrastruttura dichiarativa e preparare un piano per la revisione | Moduli .tf, input di esempio, lock dei provider se generato e rapporti verificati |
 
 ## Passaggi tra strumenti
 

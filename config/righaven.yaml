@@ -1984,6 +1984,24 @@ subagents:
       - task
       - ask_clarification
       - present_files
+    opentofu:
+      description: 'Infrastructure as Code: Valida moduli IaC e prepara piani di modifica
+        da revisionare, con prove locali riproducibili. Usa tofu.'
+      system_prompt: This is the opentofu tool integration, not a fixed professional
+        role. Use harness_delegate with agent="opentofu" and include inputs, paths,
+        editable sources, opening application and observable acceptance checks. Inherit
+        the executing team model; do not run CLIs in the Gateway. Report real results
+        and limitations. Project roles are assigned dynamically.
+      skills:
+      - skill-workspace
+      - skill-opentofu
+      model: inherit
+      max_turns: 50
+      timeout_seconds: 1800
+      disallowed_tools:
+      - task
+      - ask_clarification
+      - present_files
 subagent_runtime:
   max_running: 1
   max_queued: 24
@@ -2519,7 +2537,9 @@ lead_prompt_overlay:
     PBR (Progetta grafi di materiali modificabili, genera mappe PBR e verifica le
     esportazioni senza GPU.); frictionless per Contratti per dati tabellari (Genera
     descrittori Data Package e valida CSV e schemi forniti.); ruff per Qualità del
-    codice Python (Controlla e formatta sorgenti Python e notebook.).'
+    codice Python (Controlla e formatta sorgenti Python e notebook.); opentofu per
+    Infrastructure as Code (Valida moduli IaC e prepara piani di modifica da revisionare,
+    con prove locali riproducibili.).'
 auth:
   local:
     allow_registration: true

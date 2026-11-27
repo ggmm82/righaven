@@ -10652,6 +10652,57 @@
       "ids_sha256": "1f29b86bd2a32cb4a64b00f7c65935b0e5db15d5b1efa247f441a7c090d11d49",
       "catalog_sha256": "d56cf474c6f6141ba1af426cab55f1c376475838deb9c5241f1fd558cc189569",
       "reference": "https://github.com/astral-sh/ruff"
+    },
+    {
+      "id": "opentofu",
+      "version": "v1.13.10",
+      "choose_for": "Validare infrastruttura dichiarativa e preparare un piano per la revisione",
+      "sources": "Moduli .tf, input di esempio, lock dei provider se generato e rapporti verificati",
+      "limits": "Pianificare su un target remoto può usare credenziali e contattare il backend. La prova nativa usa solo una fixture locale senza provider esterni e non applica cambiamenti.",
+      "groups": [
+        {
+          "goal": "Validazione e piano di revisione",
+          "commands": [
+            "fmt",
+            "init",
+            "validate",
+            "plan",
+            "show",
+            "providers"
+          ],
+          "evidence": "registered"
+        }
+      ],
+      "catalog_ids": [
+        "apply",
+        "console",
+        "destroy",
+        "fmt",
+        "force-unlock",
+        "get",
+        "graph",
+        "import",
+        "init",
+        "login",
+        "logout",
+        "metadata",
+        "output",
+        "plan",
+        "providers",
+        "refresh",
+        "show",
+        "state",
+        "taint",
+        "test",
+        "untaint",
+        "validate",
+        "version",
+        "workspace"
+      ],
+      "catalog_count": 24,
+      "ids_sha256": "ece87022391f658660d790d6e4dcbc7af2d413dd8cebded5d7168f3803411806",
+      "catalog_sha256": "a585be803c3fa80f79996f9bda6bc33ffb08ca9c90bf05130f69f3781a8eb121",
+      "reference": "https://github.com/opentofu/opentofu/tree/v1.13.10"
     }
   ]
 }

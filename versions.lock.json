@@ -4648,6 +4648,43 @@
         "ruff check --output-format json src notebooks",
         "ruff format --check src notebooks"
       ]
+    },
+    {
+      "id": "opentofu",
+      "name": "OpenTofu",
+      "role": "Infrastructure as Code",
+      "description": "Valida moduli IaC e prepara piani di modifica da revisionare, con prove locali riproducibili.",
+      "repository": "https://github.com/opentofu/opentofu",
+      "version": "v1.13.10",
+      "executable": "tofu",
+      "registry_args": [
+        "--help"
+      ],
+      "registry_format": "help-commands",
+      "mcp_args": null,
+      "assets": {
+        "amd64": {
+          "name": "tofu_1.13.10_linux_amd64.tar.gz",
+          "url": "https://github.com/opentofu/opentofu/releases/download/v1.13.10/tofu_1.13.10_linux_amd64.tar.gz",
+          "sha256": "f606b6117ee03177374806d56d580bde7b512aff69f86d2b9f3148dced4ca375",
+          "size_bytes": 35123217
+        },
+        "arm64": {
+          "name": "tofu_1.13.10_linux_arm64.tar.gz",
+          "url": "https://github.com/opentofu/opentofu/releases/download/v1.13.10/tofu_1.13.10_linux_arm64.tar.gz",
+          "sha256": "9dcdabf93c5209feaa35a7bb6d41f4d71b0880c4c4dfaf275d612f5b6facc28a",
+          "size_bytes": 31317944
+        }
+      },
+      "checks": [
+        "Valida una fixture locale con terraform_data e controlla il piano senza applicarlo.",
+        "Escludi valori riservati, state e piani binari dalla consegna ordinaria."
+      ],
+      "examples": [
+        "tofu init -backend=false -input=false",
+        "tofu validate -json",
+        "tofu plan -input=false -refresh=false -detailed-exitcode"
+      ]
     }
   ],
   "cli_runtimes": {

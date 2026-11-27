@@ -44,6 +44,9 @@ class ToolCapabilitiesTests(unittest.TestCase):
         fixtures = [
             ('Commands:\n  check    Check code\n  format   Format code\n\nOptions:\n  --help    Print help\n',
              ['check', 'format']),
+            ('Main commands:\n  validate   Validate a module\n  plan       Show a plan\n\n'
+             'All other commands:\n  show       Inspect a plan\n\nGlobal options\n  -help Help\n',
+             ['plan', 'show', 'validate']),
             ('╭─ Options ─╮\n│ --help  Help │\n╰─────╯\n╭─ Commands ─╮\n│ describe  Describe data │\n│ validate  Validate data │\n╰─────╯\n',
              ['describe', 'validate']),
         ]

@@ -10,8 +10,12 @@ def command_ids(text, registry_format=None):
         rich = re.search(r'^╭─+ Commands ─+╮\s*$([\s\S]*?)^╰─+╯', text, re.M)
         if rich:
             return sorted(set(re.findall(r'^│\s+([a-z][a-z0-9-]*)\s+', rich[1], re.M)))
-        plain = re.search(r'^Commands:\s*\n((?:[ \t]+[^\n]+\n?)+)', text, re.M)
-        return sorted(set(re.findall(r'^[ \t]+([a-z][a-z0-9-]*)[ \t]+', plain[1], re.M))) if plain else []
+        sections = re.findall(
+            r'^(?:Commands|Main commands|All other commands):[ \t]*\n((?:[ \t]+[^\n]+\n?)+)',
+            text,
+            re.M,
+        )
+        return sorted(set(re.findall(r'^[ \t]+([a-z][a-z0-9-]*)[ \t]+', '\n'.join(sections), re.M)))
 
     try:
         value=json.loads(text)
