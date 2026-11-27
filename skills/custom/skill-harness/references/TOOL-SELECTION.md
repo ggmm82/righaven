@@ -116,6 +116,7 @@ Un comando registrato non è un workflow collaudato: verifica prerequisiti, dati
 | [faker](../../skill-faker/references/CAPABILITIES.md) | Generate deterministic, foreign-key consistent stub data from the schema model for a batch (periodic runs use increasing batch numbers) into a DuckDB copy and Parquet/CSV/JSON Lines/XML files | Schema model, generator script, per-batch CSV/Parquet/JSON Lines/XML files, stub DuckDB database and manifest |
 | [iot](../../skill-iot/references/CAPABILITIES.md) | Observe, control and simulate devices assigned to the task: MQTT, Modbus TCP, HTTP and serial telemetry, Android and Android TV over network ADB, vehicle OBD-II diagnostics, ESP firmware flashing, each write approved by the owner | Scenario JSON, capture and send receipts, telemetry JSON Lines/CSV, summaries, written values and firmware digests |
 | [netscan](../../skill-netscan/references/CAPABILITIES.md) | Inventory and assess networks the owner authorizes: hosts, open ports, services, a network map, and approved non-intrusive vulnerability and TLS checks | Network connection scope, nmap XML, hosts and services JSON, inventory CSV, Mermaid network map, findings JSON and report |
+| [materialcraft](../../skill-materialcraft/references/CAPABILITIES.md) | Creare e riesportare materiali PBR procedurali con un grafo dedicato | Pacchetto SBS nativo, risorse locali, mappe e anteprima |
 
 ## Passaggi tra strumenti
 

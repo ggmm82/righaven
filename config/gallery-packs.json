@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0.0",
   "hub_name": "RigHaven Hub",
-  "total_packs": 214,
+  "total_packs": 215,
   "packs": [
     {
       "id": "env-data-engineering-rig",
@@ -12954,6 +12954,67 @@
       ],
       "skill_prompt_template": "Compose project-specific roles from the requested outcome. Read the selected tool skills and exact CLI schemas. Preserve native sources, parameters and dependencies; work only in isolated assignment staging. Run real native checks and distinguish technical results from quality, safety or conformance claims. Follow skill-data-pipeline phase by phase and record the evidence of each gate.",
       "verification_command": "craft capabilities sqlglot && craft capabilities faker"
+    },
+    {
+      "id": "skill-materialcraft",
+      "name": "MaterialCraft — Procedural PBR materials",
+      "version": "v0.4.1",
+      "author": "righaven-core",
+      "category": "skill",
+      "tags": [
+        "materialcraft",
+        "pbr",
+        "procedural-materials"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "verified": false,
+      "tools": [
+        "materialcraft"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Skill: MaterialCraft",
+          "description": "Author editable PBR material graphs and verify headless map export."
+        },
+        "it": {
+          "title": "Skill: MaterialCraft",
+          "description": "Crea grafi PBR modificabili e verifica le mappe esportate da terminale."
+        }
+      },
+      "docker_dependencies": {
+        "base_image": "righaven-sandbox:0.1.0",
+        "system_packages": [],
+        "python_packages": [],
+        "node_packages": [],
+        "nix_packages": []
+      },
+      "cli_binaries": [
+        {
+          "name": "materialcraft",
+          "executable": "/usr/local/bin/materialcraft-cli",
+          "safe_flags": [
+            "commands"
+          ],
+          "health_check": "craft capabilities materialcraft"
+        }
+      ],
+      "skill_prompt_template": "Read the MaterialCraft skill and its CLI recipe. Deliver the SBS graph with its resources and maps, and record a fresh CLI reopen and export in handoff.json.",
+      "verification_command": "python3 /opt/righaven-worker/handoff.py validate \"$RIGHAVEN_OUTPUT_DIR\"",
+      "security_policy": {
+        "rootless": true,
+        "network_access": false,
+        "writable_paths": [
+          "$RIGHAVEN_OUTPUT_DIR"
+        ],
+        "read_only_mounts": [
+          "/mnt/user-data"
+        ],
+        "drop_capabilities": [
+          "ALL"
+        ],
+        "no_new_privileges": true
+      }
     }
   ]
 }

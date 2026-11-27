@@ -493,8 +493,40 @@ def calibre(c):
     c.check('Display virtuale rileva ancora link interattivo mancante',rejected.returncode!=0,rejected.stdout[-1500:])
 
 
+def materialcraft(case):
+    import shutil
+
+    case.run('materialcraft-cli', 'new', 'pbr', 'surface.sbs', '--size', '256')
+    case.run('materialcraft-cli', 'export', 'surface.sbs', 'maps', '--format', 'png', '--depth', '8')
+    case.run('materialcraft-cli', 'render', 'surface.sbs', 'preview.png', '--size', '256x256', '--scene', 'sphere')
+
+    package = case.root / 'downloaded'
+    package.mkdir()
+    shutil.copy2(case.root / 'surface.sbs', package)
+    resources = case.root / 'resources'
+    if resources.is_dir():
+        shutil.copytree(resources, package / resources.name)
+    info = json.loads(case.run('materialcraft-cli', 'info', 'downloaded/surface.sbs'))
+    nodes = info['graph']['nodes']
+    case.check('Editable SBS reopens from copied project', bool(nodes), {'nodes': len(nodes)})
+    case.run('materialcraft-cli', 'export', 'downloaded/surface.sbs', 'reopened-maps', '--format', 'png', '--depth', '8')
+
+    channels = {'basecolor', 'normal', 'roughness', 'metallic', 'height', 'ambientocclusion'}
+    maps = sorted((case.root / 'maps').glob('*.png'))
+    case.check('All six PBR maps exported', {path.stem.rsplit('_', 1)[-1] for path in maps} == channels,
+               [path.name for path in maps])
+    for path in maps:
+        regenerated = case.root / 'reopened-maps' / path.name
+        streams = case.probe(path)['streams']
+        case.check('Copied graph reproduces ' + path.name,
+                   streams[0]['width'] == streams[0]['height'] == 256
+                   and case.pixels(path) == case.pixels(regenerated), streams)
+    preview = case.probe(case.root / 'preview.png')['streams'][0]
+    case.check('Material preview rendered without GPU', preview['width'] == preview['height'] == 256, preview)
+
+
 CASES = {name: globals()[name] for name in ('photocraft', 'vectorcraft', 'filmcraft', 'lightcraft', 'pdfcraft',
-            'effectcraft', 'designcraft', 'gridcraft', 'wordcraft', 'deckcraft', 'cadcraft', 'soundcraft', 'figcraft', 'blender', 'calibre')}
+            'effectcraft', 'designcraft', 'gridcraft', 'wordcraft', 'deckcraft', 'cadcraft', 'soundcraft', 'figcraft', 'blender', 'calibre', 'materialcraft')}
 try:
     from .acceptance_toolkit import CASES as TOOLKIT_CASES
 except ImportError:
