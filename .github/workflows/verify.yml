@@ -275,8 +275,12 @@ jobs:
           python scripts/check_preload_priority.py
           python scripts/check_execution_lanes.py
           python scripts/check_parallel_preparation.py
-          python scripts/check_version_installation.py --tool photocraft --version v0.16.0
           python scripts/check_task_staging.py
+      - name: Verify installation of an official PhotoCraft release
+        if: matrix.component == 'sandbox'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python scripts/check_version_installation.py --tool photocraft --version v0.16.0
       - name: Check native environment ownership, CRUD and deployment preferences
         if: matrix.component == 'gateway'
         run: docker run --rm --network=none --entrypoint python -e RIGHAVEN_REQUIRE_GATEWAY_TESTS=1 --mount "type=bind,src=$PWD/tests,dst=/review,readonly" righaven-gateway:0.1.0 -m unittest discover -s /review -p test_environment_routes.py -v
@@ -413,7 +417,10 @@ jobs:
           python scripts/check_task_staging.py
           python scripts/check_execution_lanes.py
           python scripts/check_parallel_preparation.py
-          python scripts/check_version_installation.py --tool photocraft --version v0.16.0
+      - name: Verify installation of an official PhotoCraft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python scripts/check_version_installation.py --tool photocraft --version v0.16.0
   startup:
     needs: [resolve, tests, images, containerd-portability]
     if: needs.resolve.outputs.reuse != 'true' && needs.resolve.outputs.desktop_only != 'true'

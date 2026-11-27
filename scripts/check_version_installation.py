@@ -1,17 +1,31 @@
 #!/usr/bin/env python3
 """Install and natively verify an official release with packaged shell completions."""
-import argparse,json,sys,tempfile,time,uuid
+import argparse,json,os,subprocess,sys,tempfile,time,uuid
 from pathlib import Path
 from unittest.mock import patch
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
-from righaven import state,tool_versions as versions,environment_runtime as factory,docker_runtime as runtime
+from righaven import release_catalog,state,tool_versions as versions,environment_runtime as factory,docker_runtime as runtime
+
+
+def release_reader(read):
+    """Use the runner's GitHub token only for official GitHub release metadata."""
+    def fetch(url, limit=8*1024**2, accept='application/json'):
+        base = 'https://api.github.com/repos/'
+        if not url.startswith(base) or not os.environ.get('GH_TOKEN'):
+            return read(url, limit, accept)
+        endpoint = 'repos/' + url[len(base):]
+        data = subprocess.check_output(['gh', 'api', '--hostname', 'github.com', endpoint], timeout=60)
+        if len(data) > limit:
+            raise ValueError('Release metadata exceeds the test limit')
+        return data
+    return fetch
 
 
 def main():
     parser=argparse.ArgumentParser();parser.add_argument('--tool',default='photocraft');parser.add_argument('--version',default='v0.16.0');args=parser.parse_args()
     with tempfile.TemporaryDirectory(prefix='native-version-installation-') as temporary:
         root=Path(temporary);(root/'installation-id').write_text(uuid.uuid4().hex)
-        with patch.object(state,'STATE',root),patch.object(runtime,'host_path',side_effect=str),patch.object(factory,'pinned',return_value=set()):
+        with patch.object(state,'STATE',root),patch.object(runtime,'host_path',side_effect=str),patch.object(factory,'pinned',return_value=set()), patch.object(release_catalog, 'read', release_reader(release_catalog.read)):
             try:
                 job=versions.start(args.tool,args.version);file=versions.directory()/'jobs'/job['id']/'status.json'
                 until=time.monotonic()+600
