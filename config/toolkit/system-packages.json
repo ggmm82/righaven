@@ -144,6 +144,8 @@
     "xvfb"
   ],
   "materialcraft": [],
+  "frictionless": [],
+  "ruff": [],
   "lightcraft": [
     "fonts-noto-core",
     "libasound2",

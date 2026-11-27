@@ -180,6 +180,8 @@ def main():
         if argv and argv[0] == '--':
             argv = argv[1:]
         return subprocess.run([app['executable'], *argv]).returncode
+    if app.get('mcp_args') is None:
+        parser.error(f'{args.app} is a CLI-only tool; use craft run {args.app}')
     session_timeout = getattr(args, 'timeout', None) or min(1200, max(1, int(float(os.environ.get('RIGHAVEN_JOB_DEADLINE', str(time.time() + 300))) - time.time() - 10)))
     session = McpSession([app['executable'], *app['mcp_args']], session_timeout)
     try:

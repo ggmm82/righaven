@@ -269,6 +269,7 @@ jobs:
           python scripts/check_environment_runtime.py --tools d2 pandoc --incremental-check --policy-check --recovery-check
           python scripts/check_environment_runtime.py --tools calibre pdfcraft wordcraft --calibre-stress
           python scripts/check_environment_runtime.py --tools materialcraft
+          python scripts/check_environment_runtime.py --tools frictionless ruff
       - name: Check a cold preload yields to a ready foreground tool and resumes after cleanup
         if: matrix.component == 'sandbox'
         run: |

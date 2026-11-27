@@ -10585,6 +10585,73 @@
       "ids_sha256": "40779ecd38c18a3fbbe8c1ac2d1166e180dc8b8679ac127e5f4cd4a93ac2eeb4",
       "catalog_sha256": "54adeb83525216d20fd323428c5dca5178455a0eabf7dc057c7e66f35816301b",
       "reference": "https://github.com/storytold/materialcraft/tree/v0.4.1"
+    },
+    {
+      "id": "frictionless",
+      "version": "5.21.0",
+      "choose_for": "Genera descrittori Data Package e valida CSV e schemi forniti",
+      "sources": "Dataset, datapackage.json con riferimenti relativi e report JSON",
+      "limits": "Uno schema inferito è una bozza: tipi, chiavi e vincoli richiedono conferma. Validare descrittori locali controllando i percorsi delle risorse.",
+      "groups": [
+        {
+          "goal": "Contratti per dati tabellari",
+          "commands": [
+            "describe",
+            "validate"
+          ],
+          "evidence": "registered"
+        }
+      ],
+      "catalog_ids": [
+        "convert",
+        "describe",
+        "explore",
+        "extract",
+        "index",
+        "list",
+        "publish",
+        "query",
+        "script",
+        "validate"
+      ],
+      "catalog_count": 10,
+      "ids_sha256": "d7793b79afe422624fd4cfc9390fade00697e3da153b895eb4c9fe89acd46569",
+      "catalog_sha256": "f80c02b63d52b68af4c1b597b194027901c82e3824f78750aad7679cae4b3634",
+      "reference": "https://github.com/frictionlessdata/framework"
+    },
+    {
+      "id": "ruff",
+      "version": "0.17.6",
+      "choose_for": "Controlla e formatta sorgenti Python e notebook",
+      "sources": "File .py/.ipynb originali o revisionati, configurazione di lint e report",
+      "limits": "Il lint non verifica esecuzione, risultati dei notebook o regole di business. Applicare correzioni solo alle copie di lavoro e verificare le differenze.",
+      "groups": [
+        {
+          "goal": "Qualità del codice Python",
+          "commands": [
+            "check",
+            "format",
+            "rule"
+          ],
+          "evidence": "registered"
+        }
+      ],
+      "catalog_ids": [
+        "analyze",
+        "check",
+        "clean",
+        "config",
+        "format",
+        "help",
+        "linter",
+        "rule",
+        "server",
+        "version"
+      ],
+      "catalog_count": 10,
+      "ids_sha256": "1f29b86bd2a32cb4a64b00f7c65935b0e5db15d5b1efa247f441a7c090d11d49",
+      "catalog_sha256": "d56cf474c6f6141ba1af426cab55f1c376475838deb9c5241f1fd558cc189569",
+      "reference": "https://github.com/astral-sh/ruff"
     }
   ]
 }

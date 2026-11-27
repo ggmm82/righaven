@@ -3,7 +3,16 @@ import json
 import re
 
 
-def command_ids(text):
+def command_ids(text, registry_format=None):
+    if registry_format == 'help-commands':
+        # Clap prints an indented Commands section. Typer wraps the same
+        # information in a Rich table with a box around its command rows.
+        rich = re.search(r'^╭─+ Commands ─+╮\s*$([\s\S]*?)^╰─+╯', text, re.M)
+        if rich:
+            return sorted(set(re.findall(r'^│\s+([a-z][a-z0-9-]*)\s+', rich[1], re.M)))
+        plain = re.search(r'^Commands:\s*\n((?:[ \t]+[^\n]+\n?)+)', text, re.M)
+        return sorted(set(re.findall(r'^[ \t]+([a-z][a-z0-9-]*)[ \t]+', plain[1], re.M))) if plain else []
+
     try:
         value=json.loads(text)
     except ValueError:

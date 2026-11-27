@@ -1,0 +1,60 @@
+{
+  "id": "skill-ruff",
+  "name": "Skill: Ruff",
+  "version": "0.17.6",
+  "author": "righaven-core",
+  "category": "skill",
+  "tags": [
+    "ruff",
+    "validation"
+  ],
+  "stars": 0,
+  "forks": 0,
+  "verified": false,
+  "tools": [
+    "ruff"
+  ],
+  "i18n": {
+    "en": {
+      "title": "Skill: Ruff",
+      "description": "Lint and format Python source and notebooks."
+    },
+    "it": {
+      "title": "Skill: Ruff",
+      "description": "Controlla e formatta sorgenti Python e notebook."
+    }
+  },
+  "docker_dependencies": {
+    "base_image": "righaven-sandbox:0.1.0",
+    "system_packages": [],
+    "python_packages": [],
+    "node_packages": [],
+    "nix_packages": []
+  },
+  "cli_binaries": [
+    {
+      "name": "ruff",
+      "executable": "/usr/local/bin/ruff",
+      "safe_flags": [
+        "--help"
+      ],
+      "health_check": "craft capabilities ruff"
+    }
+  ],
+  "skill_prompt_template": "Read skill-ruff and preserve the sources and validation evidence from a real CLI run.",
+  "verification_command": "python3 /opt/righaven-worker/handoff.py validate \"$RIGHAVEN_OUTPUT_DIR\"",
+  "security_policy": {
+    "rootless": true,
+    "network_access": false,
+    "writable_paths": [
+      "$RIGHAVEN_OUTPUT_DIR"
+    ],
+    "read_only_mounts": [
+      "/mnt/user-data"
+    ],
+    "drop_capabilities": [
+      "ALL"
+    ],
+    "no_new_privileges": true
+  }
+}

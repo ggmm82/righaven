@@ -44,7 +44,7 @@ def validate(root, *, native=False, catalog_dir=None):
                 argv=[apps[identifier]['executable'],*apps[identifier]['registry_args']]
                 result=subprocess.run(argv,capture_output=True,text=True,timeout=30,check=True)
                 text=result.stdout
-            actual=set(command_ids(text))
+            actual=set(command_ids(text,apps[identifier].get('registry_format')))
             if ids!=actual:raise ValueError(identifier+': catalogo diverso dalla release documentata; missing='+str(sorted(ids-actual)[:8])+', extra='+str(sorted(actual-ids)[:8]))
         report.append({'id':identifier,'version':entry['version'],'registered_ids':len(ids),'groups':len(entry['groups'])})
     if seen!=set(apps):raise ValueError('Mancano le capacità di strumenti installati')

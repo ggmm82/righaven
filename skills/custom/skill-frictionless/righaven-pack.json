@@ -1,0 +1,60 @@
+{
+  "id": "skill-frictionless",
+  "name": "Skill: Frictionless",
+  "version": "5.21.0",
+  "author": "righaven-core",
+  "category": "skill",
+  "tags": [
+    "frictionless",
+    "validation"
+  ],
+  "stars": 0,
+  "forks": 0,
+  "verified": false,
+  "tools": [
+    "frictionless"
+  ],
+  "i18n": {
+    "en": {
+      "title": "Skill: Frictionless",
+      "description": "Validate tabular deliveries against a portable data contract."
+    },
+    "it": {
+      "title": "Skill: Frictionless",
+      "description": "Genera descrittori Data Package e valida CSV e schemi forniti."
+    }
+  },
+  "docker_dependencies": {
+    "base_image": "righaven-sandbox:0.1.0",
+    "system_packages": [],
+    "python_packages": [],
+    "node_packages": [],
+    "nix_packages": []
+  },
+  "cli_binaries": [
+    {
+      "name": "frictionless",
+      "executable": "/usr/local/bin/frictionless",
+      "safe_flags": [
+        "--help"
+      ],
+      "health_check": "craft capabilities frictionless"
+    }
+  ],
+  "skill_prompt_template": "Read skill-frictionless and preserve the sources and validation evidence from a real CLI run.",
+  "verification_command": "python3 /opt/righaven-worker/handoff.py validate \"$RIGHAVEN_OUTPUT_DIR\"",
+  "security_policy": {
+    "rootless": true,
+    "network_access": false,
+    "writable_paths": [
+      "$RIGHAVEN_OUTPUT_DIR"
+    ],
+    "read_only_mounts": [
+      "/mnt/user-data"
+    ],
+    "drop_capabilities": [
+      "ALL"
+    ],
+    "no_new_privileges": true
+  }
+}

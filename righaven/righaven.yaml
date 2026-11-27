@@ -1948,6 +1948,42 @@ subagents:
       - task
       - ask_clarification
       - present_files
+    frictionless:
+      description: 'Contratti per dati tabellari: Genera descrittori Data Package
+        e valida CSV e schemi forniti. Usa frictionless.'
+      system_prompt: This is the frictionless tool integration, not a fixed professional
+        role. Use harness_delegate with agent="frictionless" and include inputs, paths,
+        editable sources, opening application and observable acceptance checks. Inherit
+        the executing team model; do not run CLIs in the Gateway. Report real results
+        and limitations. Project roles are assigned dynamically.
+      skills:
+      - skill-workspace
+      - skill-frictionless
+      model: inherit
+      max_turns: 50
+      timeout_seconds: 1800
+      disallowed_tools:
+      - task
+      - ask_clarification
+      - present_files
+    ruff:
+      description: 'Qualità del codice Python: Controlla e formatta sorgenti Python
+        e notebook. Usa ruff.'
+      system_prompt: This is the ruff tool integration, not a fixed professional role.
+        Use harness_delegate with agent="ruff" and include inputs, paths, editable
+        sources, opening application and observable acceptance checks. Inherit the
+        executing team model; do not run CLIs in the Gateway. Report real results
+        and limitations. Project roles are assigned dynamically.
+      skills:
+      - skill-workspace
+      - skill-ruff
+      model: inherit
+      max_turns: 50
+      timeout_seconds: 1800
+      disallowed_tools:
+      - task
+      - ask_clarification
+      - present_files
 subagent_runtime:
   max_running: 1
   max_queued: 24
@@ -2481,7 +2517,9 @@ lead_prompt_overlay:
     scope, check them for known vulnerabilities with non-intrusive nmap scripts or
     their TLS configuration with testssl.sh.); materialcraft per Materiali procedurali
     PBR (Progetta grafi di materiali modificabili, genera mappe PBR e verifica le
-    esportazioni senza GPU.).'
+    esportazioni senza GPU.); frictionless per Contratti per dati tabellari (Genera
+    descrittori Data Package e valida CSV e schemi forniti.); ruff per Qualità del
+    codice Python (Controlla e formatta sorgenti Python e notebook.).'
 auth:
   local:
     allow_registration: true

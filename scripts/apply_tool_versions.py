@@ -95,7 +95,7 @@ def refresh_capabilities(capabilities,packages):
         if tool not in packages:continue
         app=packages[tool]['app']
         text=subprocess.check_output([app['executable'],*app['registry_args']],text=True,timeout=60)
-        ids=command_ids(text)
+        ids=command_ids(text,app.get('registry_format'))
         if not ids:raise ValueError('Registro vuoto per la release selezionata: '+tool)
         registered=set(ids);groups=[];mapped=set()
         for group in entry['groups']:
